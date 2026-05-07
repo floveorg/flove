@@ -84,6 +84,14 @@ hugo new posts/mi-post.md
    - `TXT _gitlab-pages-verification-code` → token que da GitLab
 4. Marcar "Force HTTPS" y esperar a Let's Encrypt.
 
+## Licencia
+
+Todo el contenido de este repositorio (texto, código, diseños) está bajo
+**[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)**.
+Ver [`LICENSE`](./LICENSE) para los términos completos.
+
+Atribución sugerida: `flove · Marc (marcflove) · flove.org · CC BY-SA 4.0`.
+
 ## Notas
 
 - `docs/` y `context/` están en `.gitignore` por tamaño. Si necesitas

@@ -1,0 +1,28 @@
+# GitLab Pages — flove
+#
+# Publica:
+#   /        ← apps/ (HTML estático: launcher lite + 13 demos)
+#   /blog/   ← Hugo (tema Ananke)
+#
+# El job se llama exactamente `pages` para que GitLab Pages lo recoja.
+# El artifact `public/` es lo que GitLab sirve.
+
+image: registry.gitlab.com/pages/hugo/hugo_extended:latest
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  HUGO_ENV: production
+
+pages:
+  stage: deploy
+  script:
+    # 1. Sitio estático en la raíz
+    - mkdir -p public
+    - cp -r apps/. public/
+    # 2. Blog Hugo en /blog/
+    - hugo --source blog --destination ../public/blog --minify --baseURL "https://flove.org/blog/"
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

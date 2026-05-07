@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>✺ flove · HackBoth</title>
+  <link rel="stylesheet" href="flove.css">
+  <style>
+    /* ===== RESET & VARIABLES ===== */
+    :root {
+      --bg: #0b0b10;
+      --panel: #111217;
+      --muted: #9aa0ad;
+      --ink: #edf0f6;
+      --accent: #00ff88;
+      --accent2: #ff3fb8;
+      --radius: 14px;
+      --gap: 1rem;
+      /* flove identity overrides — acid green HackBoth */
+      --app-accent:        #00ff88;
+      --app-accent-soft:   #b3ffd6;
+      --app-ink-on-accent: #001a0d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Inter, system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #07070a);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 28px auto;
+      padding: 18px;
+    }
+
+    .hackboth {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 22px;
+      border-radius: 18px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .title {
+      margin: 0 0 14px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      font-size: 1.45rem;
+      color: var(--accent);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .visually-hidden {
+      position: absolute !important;
+      height: 1px;
+      width: 1px;
+      overflow: hidden;
+      clip: rect(1px, 1px, 1px, 1px);
+      white-space: nowrap;
+    }
+
+    /* ===== FIELDS ===== */
+    .field {
+      margin-bottom: var(--gap);
+      position: relative;
+    }
+
+    /* seamless textareas */
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: var(--ink);
+      resize: vertical;
+      font-size: 0.98rem;
+      outline: none;
+    }
+
+    textarea::placeholder {
+      color: rgba(255, 255, 255, 0.28);
+    }
+
+    textarea:focus {
+      box-shadow: 0 0 0 9999px rgba(255, 255, 255, 0.00) inset;
+    }
+
+    /* ===== TRI‑GRID : LEFT / MID (two lines, small) / RIGHT ===== */
+    .tri-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      margin-bottom: var(--gap);
+      align-items: start;
+      grid-auto-rows: minmax(56px, auto);
+    }
+
+    .cell {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .cell.left textarea,
+    .cell.right textarea {
+      width: 100%;
+    }
+
+    /* middle column – two lines, compact */
+    .mid-text {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.7rem;
+      line-height: 1.3;
+      white-space: normal;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      padding: 0 2px;
+    }
+
+    .mid-text::before {
+      content: "— ";
+      opacity: 0.6;
+    }
+
+    .mid-text::after {
+      content: " —";
+      opacity: 0.6;
+    }
+
+    /* end icons (♀ / ♂) */
+    .end-icon {
+      position: absolute;
+      right: 0;
+      top: 0;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      font-size: 1.05rem;
+      padding: 4px 6px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .female { color: #ff7ab6; }
+    .male { color: #7fe0b0; }
+
+    /* ===== HIDE CONDITIONAL SECTIONS UNTIL ALL 6 FIELDS ARE FILLED ===== */
+    .conditional-section {
+      display: none;
+    }
+
+    /* when all six required textareas are valid (non‑empty), show Q5 and buttons */
+    .hackboth:has(#dislike1:valid):has(#dislike2:valid):has(#dislike3:valid):has(#like1:valid):has(#like2:valid):has(#like3:valid) .conditional-section {
+      display: block;
+    }
+
+    /* ===== Q5 TOGGLE (YES) STYLES ===== */
+    .toggle-input {
+      display: none;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+      color: var(--accent);
+      font-weight: 800;
+      margin-left: 8px;
+      user-select: none;
+    }
+
+    .pill.show-results {
+      color: #06120a;
+      background: linear-gradient(90deg, #90ffc9, #33ff99);
+    }
+
+    /* when Q5 is checked → reveal mid-text and specific icons */
+    .hackboth:has(#know-hack:checked) .mid-text {
+      opacity: 1;
+      transform: none;
+    }
+
+    .hackboth:has(#know-hack:checked) .left.r2 .end-icon.female,
+    .hackboth:has(#know-hack:checked) .right.r2 .end-icon.female,
+    .hackboth:has(#know-hack:checked) .left.r3 .end-icon.male,
+    .hackboth:has(#know-hack:checked) .right.r3 .end-icon.male {
+      opacity: 1;
+    }
+
+/* ===== Q5: lock inputs + show mids + icons (CSS-only) ===== */
+#know-hack:checked + label.show-results{
+  filter:saturate(1.15);box-shadow:0 0 0 3px rgba(0,255,136,.15) inset, 0 8px 24px rgba(0,0,0,.25)
+}
+/* One-shot: cuando está checkeado, el label deja de recibir clics (no se puede alternar de nuevo) */
+#know-hack:checked + label.show-results{pointer-events:none}
+
+/* Usamos :has() en el formulario para aplicar globalmente */
+.hackboth:has(#know-hack:checked) textarea{
+  pointer-events:none; /* visible pero no editable */
+  background:transparent;
+}
+.hackboth:has(#know-hack:checked) .mid-text{opacity:1;transform:none}
+
+
+
+
+    /* ===== ACTION BUTTONS ===== */
+    .buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+      color: var(--ink);
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .btn .ico {
+      font-size: 1.1rem;
+    }
+
+    .btn:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .btn:focus {
+      outline: 3px solid rgba(0, 255, 136, 0.18);
+      outline-offset: 3px;
+    }
+
+    .btn-close {
+      background: transparent;
+    }
+
+    /* ===== MODAL (publish confirmation) ===== */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    }
+
+    .modal-box {
+      width: clamp(260px, 40%, 520px);
+      background: var(--panel);
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+
+    #publish-toggle:checked ~ .modal {
+      pointer-events: auto;
+      opacity: 1;
+    }
+
+    /* ===== RESPONSIVE (mobile: keep three columns, narrow middle) ===== */
+    @media (max-width: 720px) {
+      .tri-grid {
+        gap: 6px;
+      }
+
+      textarea {
+        font-size: 0.9rem;
+        padding: 6px 0;
+      }
+
+      .mid-text {
+        font-size: 0.65rem;
+        padding: 0 1px;
+      }
+
+      @media (max-width: 480px) {
+        .mid-text::before,
+        .mid-text::after {
+          content: none;
+        }
+      }
+
+      .end-icon {
+        right: 2px;
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .tri-grid {
+        gap: 4px;
+      }
+      textarea {
+        font-size: 0.85rem;
+      }
+      .mid-text {
+        font-size: 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="flove-bar flove-bar--dark">
+  <a class="flove-home" href="index.html">←</a>
+  <span class="flove-mark flove-asterism">✺</span>
+  <span class="flove-app-name">hackboth</span>
+  <span class="flove-spacer"></span>
+  <span class="flove-tag">rellena · revela</span>
+</div>
+
+<main class="page">
+  <form class="hackboth" action="/save" method="post" novalidate>
+    <h1 class="title">HackBoth</h1>
+
+  
+
+    <!-- 2. Who would you like to hack? -->
+    <section class="field">
+      <label class="label" for="who">Who-What would you like to Hack?</label>
+      <textarea id="who" name="who" rows="2" placeholder="Name it here..."></textarea>
+    </section>
+
+    <!-- TRI‑GRID: Q3 / MID (two lines) / Q4 — all six textareas required -->
+    <section class="tri-grid">
+      <!-- Row 1 -->
+      <div class="cell left r1">
+        <label class="visually-hidden" for="dislike1">Say 3 things you don’t like</label>
+        <textarea id="dislike1" name="dislike1" class="editable" rows="2" placeholder="1 thing you DISLIKE" required></textarea>
+        <span class="end-icon" aria-hidden="true"></span>
+      </div>
+      <div class="cell mid r1">
+        <div class="mid-text">because of<br>too much</div>
+      </div>
+      <div class="cell right r1">
+        <label class="visually-hidden" for="like1">Say 3 things you Like</label>
+        <textarea id="like1" name="like1" class="editable" rows="2" placeholder="1 thing you LIKE" required></textarea>
+        <span class="end-icon" aria-hidden="true"></span>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="cell left r2">
+        <label class="visually-hidden" for="dislike2">3.2 Don’t like</label>
+        <textarea id="dislike2" name="dislike2" class="editable" rows="2" placeholder="Another thing you DISLIKE" required></textarea>
+        <span class="end-icon female" aria-hidden="true">♀</span>
+      </div>
+      <div class="cell mid r2">
+        <div class="mid-text">because of<br>too much</div>
+      </div>
+      <div class="cell right r2">
+        <label class="visually-hidden" for="like2">4.2 Like</label>
+        <textarea id="like2" name="like2" class="editable" rows="2" placeholder="Another thing you LIKE" required></textarea>
+        <span class="end-icon female" aria-hidden="true">♀</span>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="cell left r3">
+        <label class="visually-hidden" for="dislike3">3.3 Don’t like</label>
+        <textarea id="dislike3" name="dislike3" class="editable" rows="2" placeholder="Yet another thing you DISLIKE" required></textarea>
+        <span class="end-icon male" aria-hidden="true">♂</span>
+      </div>
+      <div class="cell mid r3">
+        <div class="mid-text">because of<br>too much</div>
+      </div>
+      <div class="cell right r3">
+        <label class="visually-hidden" for="like3">4.3 Like</label>
+        <textarea id="like3" name="like3" class="editable" rows="2" placeholder="Yet another thing you LIKE" required></textarea>
+        <span class="end-icon male" aria-hidden="true">♂</span>
+      </div>
+    </section>
+
+    <!-- CONDITIONAL SECTION: appears only after all six textareas are filled -->
+    <div class="conditional-section">
+      <!-- 5. Do you want to know the hack? -->
+      <section class="field">
+        <label class="label">Do you want to know the Hack?</label>
+        <input type="checkbox" id="know-hack" class="toggle-input" />
+        <label for="know-hack" class="pill yes-pill show-results" role="button">Yes</label>
+      </section>
+
+      <!-- BUTTONS (Save, Send, Publish) -->
+      <section class="buttons">
+        <button class="btn" type="submit" name="action" value="save">
+          <span class="ico" aria-hidden="true">💾</span><span>Save</span>
+        </button>
+
+        <a class="btn" href="mailto:?subject=HackBoth%20results&body=Please%20see%20attached%20form" role="button">
+          <span class="ico" aria-hidden="true">✉️</span><span>Send</span>
+        </a>
+
+        <input type="checkbox" id="publish-toggle" class="toggle-input" />
+        <label for="publish-toggle" class="btn" role="button">
+          <span class="ico" aria-hidden="true">📢</span><span>Publish</span>
+        </label>
+      </section>
+    </div>
+
+    <!-- CSS‑only modal (publish confirmation) -->
+    <div class="modal" aria-hidden="true">
+      <div class="modal-box">
+        <h2>Published</h2>
+        <p>Your form has been visually published (demo). Hook your backend to persist it…</p>
+        <label for="publish-toggle" class="btn btn-close">Close</label>
+      </div>
+    </div>
+  </form>
+</main>
+
+<a class="flove-footer-badge flove-footer-badge--dark" href="index.html">
+  <span class="flove-asterism flove-asterism--still">✺</span> all apps
+</a>
+</body>
+</html>

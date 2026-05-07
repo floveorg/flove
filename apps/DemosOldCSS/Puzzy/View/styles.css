@@ -1,0 +1,151 @@
+
+/* SIMPLEX LOVE PRO — two click behaviours, no JS */
+:root{
+  --bg:#0b0c10; --paper:#f6f7ff; --ink:#0e1020;
+  --accent:#ff7ab6; --mint:#29ffd1; --sun:#ffd45a;
+  --line:#e7e9f6; --glass:rgba(255,255,255,.75);
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font:16px/1.5 ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;background:radial-gradient(1200px 600px at 20% 10%, #171a2c,#0b0c10);color:var(--paper)}
+a{color:inherit;text-decoration:none}
+
+.header{display:flex;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--mint));color:#0b0c10;font-weight:800}
+.header h1{font-size:16px;margin:0}
+
+.board{
+  position:relative; width:min(1100px,94vw); height:660px; margin:28px auto;
+  border-radius:22px; background:linear-gradient(180deg,#fff,#f4f6ff 50%,#eef0ff);
+  color:var(--ink); box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden;
+}
+
+/* main LOVE node */
+.node-love{
+  position:absolute; left:50%; bottom:78px; transform:translateX(-50%);
+  width:180px;height:180px;border-radius:30px;
+  background:conic-gradient(from 180deg at 50% 50%, #fff, #fff 40%, #ffd9f0 60%, #defcf1);
+  border:2px dashed #ffb7e2; display:grid; place-items:center;
+  box-shadow:0 12px 30px rgba(0,0,0,.12);
+  transition:transform .25s ease, filter .25s ease, opacity .25s ease;
+}
+.node-love h2{margin:0;font-size:48px;color:#f25ab1;text-shadow:0 2px 0 #fff}
+
+/* pills */
+.pill{
+  position:absolute; transform:translate(-50%,-50%);
+  padding:10px 16px;border-radius:999px;background:#fff;border:2px solid var(--line);
+  color:#222; font-weight:800; letter-spacing:.25px;
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+  transition:transform .2s ease, box-shadow .2s ease, opacity .2s ease, filter .2s ease;
+}
+.pill:hover{transform:translate(-50%,-50%) scale(1.06); box-shadow:0 16px 32px rgba(0,0,0,.18)}
+
+/* approximate positions */
+.pill.rank{left:32%; top:33%}
+.pill.match{left:46%; top:47%}
+.pill.acts{left:61%; top:33%}
+.pill.syns{left:23%; top:66%}
+.pill.ants{left:56%; top:66%}
+.pill.parents{left:41%; top:58%}
+.pill.types{left:51%; top:58%}
+.pill.wiki{left:47%; top:54%}
+.pill.etym{left:47%; top:62%}
+/* farther */
+.pill.wizard{left:83%; top:64%}
+.pill.raters{left:80%; top:78%}
+.pill.plus1{left:7%; top:70%; background:#0f1222;color:#fff;border-color:#2f3559}
+.pill.plus2{left:32%; top:18%; background:#0f1222;color:#fff;border-color:#2f3559}
+.pill.plus3{left:72%; top:18%; background:#0f1222;color:#fff;border-color:#2f3559}
+
+/* connectors (decor) */
+.connector{position:absolute; pointer-events:none; width:2px; background:linear-gradient(#ffc7e8,#9fffe4); opacity:.6}
+.connector.rank{left:32%; top:33%; height:120px; transform:translate(-50%,-50%) rotate(40deg)}
+.connector.acts{left:61%; top:33%; height:120px; transform:translate(-50%,-50%) rotate(140deg)}
+.connector.match{left:46%; top:47%; height:80px; transform:translate(-50%,-50%) rotate(90deg)}
+
+/* --- NEAR WORD CLICK: inline microcards ----------------------------- */
+.popover{
+  position:absolute; inset:auto auto auto auto;
+  min-width:260px; max-width:320px;
+  background:rgba(255,255,255,.9); backdrop-filter:saturate(1.2) blur(4px);
+  border:2px solid var(--line); border-radius:16px; padding:12px 12px 10px;
+  color:#101320; box-shadow:0 20px 50px rgba(0,0,0,.2);
+  opacity:0; transform:translateY(6px) scale(.98); pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+}
+.popover h3{margin:0 0 6px 0; font-size:16px; letter-spacing:.4px}
+.popover .row{display:flex;gap:6px;flex-wrap:wrap}
+.popover .tag{padding:7px 10px;border-radius:999px;border:1.5px solid #e0e3f7;background:#fff;font-weight:700}
+.popover .mini{margin-top:8px; display:flex; gap:8px}
+.popover .mini a{padding:6px 8px;border-radius:10px;border:1px solid #e0e3f7;background:#fff; font-weight:800}
+
+/* attach each popover near its pill coordinate */
+#rank{left:32%; top:42%}
+#match{left:46%; top:57%}
+#acts{left:61%; top:42%}
+#synonyms{left:23%; top:76%}
+#antonyms{left:56%; top:76%}
+#parents{left:41%; top:68%}
+#types{left:51%; top:68%}
+
+/* make it open with :target */
+.board:has(#rank:target) #rank,
+.board:has(#match:target) #match,
+.board:has(#acts:target) #acts,
+.board:has(#synonyms:target) #synonyms,
+.board:has(#antonyms:target) #antonyms,
+.board:has(#parents:target) #parents,
+.board:has(#types:target) #types{opacity:1; transform:none; pointer-events:auto}
+
+/* When a popover is open: minimize rest */
+.board:has(.popover:target) .pill:not(.near),
+.board:has(.popover:target) .pill.near:not([data-open="1"]),
+.board:has(.popover:target) .node-love{
+  opacity:.25; filter:saturate(.7) blur(.2px);
+  transform:translate(-50%,-50%) scale(.92);
+  pointer-events:none;
+}
+/* highlight the associated near pill */
+.board:has(#rank:target) .pill.rank,
+.board:has(#match:target) .pill.match,
+.board:has(#acts:target) .pill.acts,
+.board:has(#synonyms:target) .pill.syns,
+.board:has(#antonyms:target) .pill.ants,
+.board:has(#parents:target) .pill.parents,
+.board:has(#types:target) .pill.types{opacity:1; filter:none; pointer-events:auto}
+
+/* close button */
+.close{position:absolute; right:8px; top:6px; padding:2px 8px; border-radius:999px; border:1px solid #e0e3f7; background:#fff; font-weight:900}
+
+/* --- FAR WORD CLICK: full tree overlay -------------------------------- */
+.treeModal{
+  position:absolute; inset:10px; border-radius:18px; background:rgba(14,16,36,.96);
+  color:#eaf0ff; border:1px solid rgba(255,255,255,.08); padding:14px;
+  display:grid; grid-template-columns: 1.1fr .9fr; gap:12px;
+  opacity:0; pointer-events:none; transform:translateY(8px) scale(.98);
+  transition:opacity .3s ease, transform .3s ease;
+}
+.treeModal h2{margin:4px 0 8px 0}
+.tree{border:1px dashed #2e345a; border-radius:12px; padding:8px}
+.tree details{border-left:3px solid #2e345a; margin:.25rem 0 .25rem .5rem; padding:.2rem .2rem .2rem .6rem}
+.tree summary{cursor:pointer; list-style:none}
+.tree summary::-webkit-details-marker{display:none}
+.tree details[open]>summary{color:#29ffd1}
+
+.actions .btn{display:inline-block; padding:9px 12px; border-radius:12px; border:1px solid #2a2e4c; background:#171a2d; color:#e6e9ff; font-weight:700; margin:0 6px 6px 0}
+.modalbar{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.modalbar a{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1); background:#12152a;color:#eaf0ff}
+.modalbar .primary{background:linear-gradient(135deg,var(--accent),var(--mint));color:#070910;font-weight:900}
+
+/* open states by :target */
+.board:has(#wizard:target) .treeModal.wizard,
+.board:has(#raters:target) .treeModal.raters{opacity:1; pointer-events:auto; transform:none}
+
+/* When far modal open: shrink and blur base map */
+.board:has(.treeModal:target) .pill,
+.board:has(.treeModal:target) .node-love{opacity:.2; filter:blur(.8px); pointer-events:none}
+/* keep the launcher pill slightly visible */
+.board:has(#wizard:target) .pill.wizard,
+.board:has(#raters:target) .pill.raters{opacity:.65; filter:none}
+
+.footerHelp{width:min(1100px,94vw);margin:0 auto 26px auto; color:#cbd4ff}
+.footerHelp a{color:#fff;text-decoration:underline}

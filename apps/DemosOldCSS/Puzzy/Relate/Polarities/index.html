@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lao AI — Polarity Companion</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0f1221;
+    --panel: rgba(255,255,255,0.06);
+    --panel-strong: rgba(255,255,255,0.12);
+    --ink: #e9efff;
+    --muted: #b8c2ffcc;
+    --brand: #7de0ff;
+    --brand-2: #a2ffa3;
+    --accent: #ffd28a;
+    --danger: #ff8ea1;
+    --ok: #7ef0c3;
+    --shadow: 0 10px 30px rgba(0,0,0,.45);
+    --radius: 18px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    color:var(--ink); background:
+    radial-gradient(1200px 1200px at 85% -10%, #1b1f3a 0%, transparent 60%),
+    radial-gradient(1000px 1000px at -20% 110%, #0a1f20 0%, transparent 60%),
+    linear-gradient(180deg, #0b0e1a 0%, #0f1221 100%);
+    min-height:100%;
+  }
+
+  .wrap{max-width:1200px; margin:0 auto; padding:28px 18px 64px}
+  header{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .badge{
+    border:1px solid #ffffff1a; color:var(--muted); padding:6px 10px; border-radius:999px; font-size:.82rem; letter-spacing:.2px
+  }
+  .logo{
+    display:flex; align-items:center; gap:14px; padding:14px 18px; background:var(--panel-strong);
+    border:1px solid #ffffff17; border-radius:var(--radius); backdrop-filter: blur(10px); box-shadow:var(--shadow)
+  }
+  .logo .mark{
+    width:38px; height:38px; border-radius:12px;
+    background:
+      conic-gradient(from 210deg, var(--brand), #b0ffea 25%, #ffe89c 55%, #a1a8ff 80%, var(--brand));
+    box-shadow:inset 0 0 0 2px #ffffff50, 0 6px 18px #0008;
+  }
+  h1{
+    margin:0; font-weight:800; letter-spacing:.5px; line-height:1.1; font-size:1.55rem
+  }
+  .subtitle{color:var(--muted); font-weight:400; margin-top:2px; font-size:.98rem}
+
+  /* layout */
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns: 360px 1fr;
+  }
+  @media (max-width: 980px){ .grid{ grid-template-columns: 1fr } }
+
+  /* left panel */
+  .pane{
+    background:var(--panel); border:1px solid #ffffff14; border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); backdrop-filter: blur(8px);
+  }
+  .pane h2{font-size:1.0rem; margin:0 0 8px 0; letter-spacing:.2px}
+  .prompt{
+    display:grid; gap:10px;
+  }
+  .input{
+    position:relative; border:1px solid #ffffff1a; border-radius:14px; overflow:hidden; background: #0c0f1f;
+  }
+  .input textarea{
+    width:100%; min-height:130px; padding:16px 14px; color:var(--ink);
+    background:transparent; border:0; outline:none; resize:vertical; caret-color: var(--brand);
+    font: 400 0.98rem/1.5 Inter, system-ui;
+  }
+  .hint{
+    color:var(--muted); font-size:.85rem;
+    display:flex; align-items:center; gap:8px;
+  }
+  .hint .dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+
+  /* collapsible with <details> */
+  details{
+    background: #0b1020; border:1px solid #ffffff14; border-radius:12px; padding:10px 12px;
+  }
+  details + details{ margin-top:10px }
+  details[open]{ background:#101737; border-color:#ffffff2a }
+  summary{
+    cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; color:#dfe6ff;
+    font-weight:600; letter-spacing:.2px;
+  }
+  summary::marker{display:none}
+  summary .chev{width:9px;height:9px;border-right:2px solid #90a2ff;border-bottom:2px solid #90a2ff; transform:rotate(-45deg); transition:.2s}
+  details[open] summary .chev{ transform:rotate(45deg) }
+  .small{color:var(--muted); font-size:.95rem; margin:8px 2px 2px}
+  .small a{color:var(--brand)}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#0b132e; padding:2px 6px; border-radius:6px; border:1px dashed #ffffff1a}
+
+  /* polarity cards */
+  .cards{
+    display:grid; gap:14px;
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+  }
+  @media (max-width: 860px){ .cards{ grid-template-columns: 1fr } }
+
+  .card{
+    background:linear-gradient(145deg, #0b1124, #0c152e);
+    border:1px solid #ffffff12; border-radius:16px; padding:14px; position:relative; overflow:hidden; box-shadow:var(--shadow);
+  }
+  .card h3{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:1.0rem; margin:0 0 10px
+  }
+  .chip{
+    font-size:.8rem; color:#171b2f; background:linear-gradient(180deg,#9fe9ff,#7de0ff); padding:4px 8px; border-radius:999px;
+    border:1px solid #ffffffa8;
+  }
+
+  /* sides */
+  .sides{display:grid; gap:8px}
+  .side{
+    display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
+    padding:8px 10px; border-radius:12px; border:1px solid #ffffff10; background: #0e1731;
+    position:relative;
+  }
+  .side input{appearance:none; width:18px; height:18px; border-radius:6px; border:2px solid #8bd7ff; display:grid; place-items:center; cursor:pointer}
+  .side input::after{content:""; width:10px;height:10px;border-radius:3px; transform: scale(0); background:linear-gradient(180deg,#8bd7ff,#a8f7ff); transition:.12s}
+  .side input:checked::after{ transform: scale(1) }
+
+  /* tooltip */
+  [data-tip]{
+    position:relative; cursor:help; border-bottom:1px dotted #8bd7ff50
+  }
+  [data-tip]::after{
+    content: attr(data-tip);
+    position:absolute; left:50%; bottom: calc(100% + 8px);
+    transform: translateX(-50%); pointer-events:none;
+    color:#0c1229; background:#c8f0ff; padding:8px 10px; border-radius:10px; white-space:nowrap; font-size:.8rem;
+    opacity:0; transition:.12s; box-shadow:0 8px 20px #0008; border:1px solid #6ddaff;
+  }
+  [data-tip]:hover::after{ opacity:1 }
+
+  /* complementary suggestion (CSS-only) */
+  .suggest{ display:none; margin-top:8px; padding:10px 12px; border-radius:12px; border:1px dashed #ffffff2a; background:#0a1a2a}
+  .suggest strong{ color: var(--accent) }
+  /* show it whenever any of the radios inside .card is checked */
+  .card:has(.side input:checked) .suggest{ display:block }
+
+  
+  /* footer bar */
+  .bar{
+    margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .btn{
+    border:1px solid #ffffff26; color:#0b1224; background:linear-gradient(180deg,#c5fff6,#9ae6ff);
+    padding:10px 14px; border-radius:12px; font-weight:700; letter-spacing:.2px; cursor:pointer; text-decoration:none;
+    box-shadow: 0 8px 16px #0007;
+  }
+  .btn.alt{ background: linear-gradient(180deg,#ffdca7,#ffb3a4) }
+  .btn.ghost{ background: transparent; color:var(--ink); border-color:#ffffff2c }
+  .pill{ padding:7px 10px; border-radius:999px; font-size:.82rem; background:#0a152f; border:1px solid #ffffff1e; color:var(--muted) }
+
+  .legend{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px
+  }
+  .legend .sw{width:10px;height:10px;border-radius:3px;background:var(--brand)}
+  .legend .sw.b{background:var(--brand-2)}
+  .legend .sw.c{background:var(--accent)}
+
+  /* link styling */
+  a{ color: var(--brand) }
+  a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible{
+    outline:2px solid #7de0ff; outline-offset:2px; border-radius:10px
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-label="LAO AI">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>Lao AI <span class="badge">Polarity Companion</span></h1>
+          <div class="subtitle">Suggesting the <em>other side</em> you might be missing — gently, always.</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: prompt & help -->
+      <section class="pane">
+        <h2>1) Describe what you’re adding</h2>
+        <div class="prompt">
+          <div class="input">
+            <textarea placeholder="e.g., “Write an abstract, formal note about the project scope.”&#10;Lao AI will help you balance it with its polarity twin."></textarea>
+          </div>
+          <div class="hint"><span class="dot"></span> Tip: You can be messy here; Lao AI cares about balance, not grammar.</div>
+
+          <details>
+            <summary><span class="chev"></span> What is polarity balancing?</summary>
+            <p class="small">
+              Many ideas carry a <b>pair</b> (formal/informal, abstract/concrete, inner/outer…). When you pick one,
+              <b>Lao AI</b> invites you to also cover its <i>complement</i> so your note is more robust and fair.
+              This is inspired by systemic thinking…and by
+              <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.
+            </p>
+          </details>
+
+          <details>
+            <summary><span class="chev"></span> How to use this panel effectively</summary>
+            <ul class="small" style="margin:8px 0 2px 16px">
+              <li>Select the side you naturally gravitate toward.</li>
+              <li>Read the <span class="mono">Complementary suggestion</span> and add one line addressing it.</li>
+              <li>Repeat across 2–3 pairs you care about; that’s usually enough.</li>
+            </ul>
+          </details>
+
+          <div class="legend">
+            <span class="sw"></span><span class="pill">Your natural choice</span>
+            <span class="sw b"></span><span class="pill">Complementary hint</span>
+            <span class="sw c"></span><span class="pill">Background info</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: polarity cards -->
+      <section class="pane">
+        <h2>2) Pick the side you’re using — LAO AI will show you the other you are leaving aside</h2>
+
+        <div class="cards">
+
+          <!-- Card Template Example -->
+          <article class="card">
+         
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="simdiff" />
+                <strong>Similar</strong>
+                <span class="pill">pattern, analogy</span>
+              </label>
+
+              <label class="side right">
+                <input type="radio" name="simdiff" />
+                <strong>Different</strong>
+                <span class="pill">contrast, novelty</span>
+              </label>
+            </div>
+
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> If you argued similarity, add one concrete difference (or vice-versa). This prevents
+                <span data-tip="Over-generalizing, blurring critical distinctions">category blur</span>
+                and improves transfer learning for readers.
+              </div>
+              <details class="small" style="margin-top:8px">
+                <summary><span class="chev"></span> Learn more</summary>
+                <p>Similarity helps recognition; difference sharpens boundaries. Together they avoid both banal repetition and unjustified separation.</p>
+              </details>
+            </div>
+          </article>
+
+          <!-- Abstract vs Concrete -->
+          <article class="card">
+           
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="abscon" />
+                <strong>Abstract</strong>
+                <span class="pill">principles</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="abscon" />
+                <strong>Concrete</strong>
+                <span class="pill">example</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> Pair each principle with a <i>small, vivid example</i> (or lift examples into rules of thumb).
+              </div>
+              <details class="small" style="margin-top:8px">
+                <summary><span class="chev"></span> Why this matters</summary>
+                <p>Abstraction transfers across cases; concreteness grounds truth and testability. Balance gives clarity <em>and</em> traction.</p>
+              </details>
+            </div>
+          </article>
+
+          <!-- Formal vs Informal -->
+          <article class="card">
+     
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="forinf" />
+                <strong>Formal</strong>
+                <span class="pill">precise, structured</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="forinf" />
+                <strong>Informal</strong>
+                <span class="pill">warm, human</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> Add one counter-tone line: a crisp definition inside an informal note, or a friendly aside inside formal writing.
+              </div>
+            </div>
+          </article>
+
+          <!-- Important vs Trivial -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="imptri" />
+                <strong>Important</strong>
+                <span class="pill">core</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="imptri" />
+                <strong>Trivial</strong>
+                <span class="pill">edge details</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> If you highlighted the big rock, add one “small pebble” that often trips people (or vice-versa).
+              </div>
+            </div>
+          </article>
+
+          <!-- Inner vs Outer -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="innout" />
+                <strong>Inner</strong>
+                <span class="pill">motives, feelings</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="innout" />
+                <strong>Outer</strong>
+                <span class="pill">behaviors, signals</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> Pair a felt reason with an observable action (or the other way around) to align intent and impact.
+              </div>
+            </div>
+          </article>
+
+          <!-- Hard vs Soft -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="hardsoft" />
+                <strong>Hard</strong>
+                <span class="pill">facts, constraints</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="hardsoft" />
+                <strong>Soft</strong>
+                <span class="pill">values, nuance</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> Add a metric to a value claim, or name a value behind a metric.
+              </div>
+            </div>
+          </article>
+
+          <!-- Past vs Future -->
+          <article class="card">
+            
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="pastfuture" />
+                <strong>Past</strong>
+                <span class="pill">precedent</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="pastfuture" />
+                <strong>Future</strong>
+                <span class="pill">projection</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> Tie one historical anchor to one next step, so momentum is visible.
+              </div>
+            </div>
+          </article>
+
+          <!-- Female & Male (handle respectfully; invite balance) -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="femm" />
+                <strong>Femenine</strong>
+                <span class="pill">care, receptivity</span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="femm" />
+                <strong>Masculine</strong>
+                <span class="pill">direction, agency</span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="chosen" style="margin-bottom:6px; font-weight:600"></div>
+              <div class="small">
+                <strong>Complementary suggestion:</strong> Temper agency with care, or care with agency. These are archetypal <i>qualities</i>, not identities.
+              </div>
+              <details class="small" style="margin-top:8px">
+                <summary><span class="chev"></span> Notes on language</summary>
+                <p>We use “feminine/masculine-coded” to talk about traditional qualities—anyone can express either.</p>
+              </details>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="bar">
+          <a class="btn" href="#" aria-label="This is a mock action for the prototype">Copy balanced note</a>
+          <a class="btn alt" href="#" aria-label="This is a mock action for the prototype">Create summary</a>
+          <a class="btn ghost" href="https://en.wikipedia.org/wiki/POLARITY_(social_psychology)" target="_blank" rel="noopener">Read about polarity</a>
+        </div>
+      </section>
+    </div>
+
+    <footer style="opacity:.9; margin-top:22px; color:var(--muted); text-align:center">
+      Made with balance by <strong><a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">LAO</a> AI</strong>
+    </footer>
+  </div>
+</body>
+</html>
+

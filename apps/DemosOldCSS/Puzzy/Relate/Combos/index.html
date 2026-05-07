@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FUZZY Combinations</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <form class="shell" action="#" method="post" id="relForm">
+    <section class="panel">
+      <h1>FUZZY Combinations</h1>
+
+      <div class="grid">
+
+        <!-- Compact inputs -->
+        <label class="ghost-input" title="Type any concept">
+          <input name="word" id="word" placeholder="Add a WORD">
+        </label>
+        <label class="ghost-input" title="Any number or code">
+          <input name="number" id="number" placeholder="Add a NUMBER">
+        </label>
+
+        <!-- AND / OR as radios (kept for UI, but symbol is NOT used) -->
+        <div class="row">
+
+          <div class="toggle" role="radiogroup" aria-label="And / Or">
+            <label class="pill">AND
+              <input type="radio" name="andor" value="AND" checked>
+            </label>
+            <label class="pill">OR
+              <input type="radio" name="andor" value="OR">
+            </label>
+          </div>
+          <span class="spacer"></span>
+        </div>
+
+        <!-- Complementaries & Opposite as TEXTAREAS -->
+        <label class="mini-area" title="Complementary terms (comma or newline separated)">
+          <textarea name="complementary" id="comp1" placeholder="Complementary…"></textarea>
+        </label>
+        <label class="mini-area" title="Complementary #2 (comma or newline separated)">
+          <textarea name="complementary2" id="comp2" placeholder="Complementary…"></textarea>
+        </label>
+        <label class="mini-area" title="Opposite terms (comma or newline separated)">
+          <textarea name="opposite" id="oppo" placeholder="Opposite…"></textarea>
+        </label>
+
+        <!-- GO below the fields -->
+        <div class="row">
+
+          <button type="button" class="go" id="goBtn" data-tip="Get results">GO</button>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="resultsPanel" class="reveal" hidden>
+          <div class="legible">
+            <h3>Legible Combinations</h3>
+            <ol class="pretty" id="comboList" aria-label="All possible combinations"></ol>
+            <p class="hint">Did you notice that the AND / OR selection was meaningless for combinations? :)</p>
+          </div>
+
+          <!-- Bottom actions -->
+          <div class="actions">
+            <a href="#" class="action" id="savePrint">Save</a>
+            <a class="action secondary" id="sendMail"
+               href="mailto:?subject=Relations%20Form&body=See%20attached%20(print%20to%20PDF)">Send</a>
+            <button class="action ghost" type="submit">Publish</button>
+            <span class="spacer"></span>
+            <span class="muted">Try a more <a href="http://demos.flove.org/fuzzy/combinations/advanced/index.html">advanced way</a></span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </form>
+
+  <script>
+    // ---------- helpers ----------
+    const $ = (sel, ctx=document) => ctx.querySelector(sel);
+    const splitItems = (txt) => txt.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+
+    // Create one (input + wise) entry block for a given combination
+    function createEntryBlock(comboIdx, entryIdx){
+      const wrap = document.createElement('div');
+      wrap.className = 'combo-entry';
+
+      // text input
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'entry-input';
+      input.placeholder = 'Add a definition';
+
+      // wise toggle button
+      const wiseBtn = document.createElement('button');
+      wiseBtn.type = 'button';
+      wiseBtn.className = 'btn btn-compact';
+      wiseBtn.textContent = 'Wise it';
+
+      // radio group (hidden until toggled)
+      const radiosWrap = document.createElement('div');
+      radiosWrap.className = 'five wise-radios';
+      radiosWrap.hidden = true;
+
+      const labels = ['Evidence','Axiom','Prediction','Proposal','Challenge'];
+      const groupName = `wise_${comboIdx}_${entryIdx}`;
+      labels.forEach((lab, i) => {
+        const id = `${groupName}_${i}`;
+        const labEl = document.createElement('label');
+        const inp = document.createElement('input');
+        inp.type = 'radio';
+        inp.name = groupName;
+        inp.id = id;
+        labEl.appendChild(inp);
+        labEl.append(' ' + lab);
+        radiosWrap.appendChild(labEl);
+      });
+
+      wiseBtn.addEventListener('click', () => {
+        radiosWrap.hidden = !radiosWrap.hidden;
+      });
+
+      wrap.appendChild(input);
+      wrap.appendChild(wiseBtn);
+      wrap.appendChild(radiosWrap);
+      return wrap;
+    }
+
+    // Build one complete LI for a combination string (no symbol in middle)
+    function renderCombination(comboText, comboIdx){
+      const li = document.createElement('li');
+      li.className = 'combo-item';
+
+      // header row (just the combo text)
+      const head = document.createElement('div');
+      head.className = 'combo-head';
+      head.textContent = comboText;
+
+      // entries zone (holds entry blocks)
+      const entries = document.createElement('div');
+      entries.className = 'combo-entries';
+      entries.dataset.count = '0';
+
+      // add more button (per combo)
+      const addMore = document.createElement('button');
+      addMore.type = 'button';
+      addMore.className = 'btn add-more';
+      addMore.textContent = '+ Add more';
+
+      // initial entry
+      let entryCount = 0;
+      function addEntry(){
+        const block = createEntryBlock(comboIdx, entryCount++);
+        entries.appendChild(block);
+      }
+      addEntry();
+
+      addMore.addEventListener('click', addEntry);
+
+      li.appendChild(head);
+      li.appendChild(entries);
+      li.appendChild(addMore);
+      return li;
+    }
+
+    // ---------- GO logic ----------
+    const goBtn = $("#goBtn");
+    const resultsPanel = $("#resultsPanel");
+    const comboList = $("#comboList");
+
+    goBtn.addEventListener("mouseenter", () => goBtn.classList.add("hovering"));
+    goBtn.addEventListener("mouseleave", () => goBtn.classList.remove("hovering"));
+
+    goBtn.addEventListener("click", () => {
+      // gather inputs
+      const word = $("#word").value.trim();
+      const number = $("#number").value.trim();
+      // AND/OR radio remains in UI, but we DON'T use the symbol anymore
+      splitItems; // keep linter happy if bundlers used
+      const list1 = splitItems($("#comp1").value);
+      const list2 = splitItems($("#comp2").value);
+      const list3 = splitItems($("#oppo").value);
+
+      // Build combinations WITHOUT any middle symbol
+      const combos = new Set();
+      const add = (s) => { if (s && !combos.has(s)) combos.add(s); };
+
+      const base = [word, number].filter(Boolean);
+      const pools = [list1, list2, list3].filter(arr => arr.length);
+
+      // pairs: base ↔ each item, written as "A B"
+      base.forEach(b => pools.forEach(arr => arr.forEach(x => add(`${b} ${x}`))));
+
+      // cross-pool pairs: item ↔ item from other lists
+      for (let i=0;i<pools.length;i++){
+        for (let j=i+1;j<pools.length;j++){
+          pools[i].forEach(a => pools[j].forEach(b => add(`${a} ${b}`)));
+        }
+      }
+
+      // triples: WORD/NUMBER with two items; write "A B C"
+      if (base.length){
+        base.forEach(b => {
+          const aFew = pools.flat().slice(0,6);
+          for (let i=0;i<aFew.length;i++){
+            for (let j=i+1;j<aFew.length;j++){
+              add(`${b} ${aFew[i]} ${aFew[j]}`);
+            }
+          }
+        });
+      }
+
+      // render
+      comboList.innerHTML = "";
+      if (combos.size === 0){
+        const li = document.createElement("li");
+        li.textContent = "No combinations yet — add text above and press GO.";
+        comboList.appendChild(li);
+      } else {
+        let idx = 0;
+        [...combos].forEach(c => comboList.appendChild(renderCombination(c, idx++)));
+      }
+
+      resultsPanel.hidden = false;
+      resultsPanel.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+
+    // Save (print)
+    $("#savePrint").addEventListener("click", (e)=>{
+      e.preventDefault();
+      window.print();
+    });
+
+    // Prevent real submit (demo)
+    $("#relForm").addEventListener("submit", (e)=>{
+      if (!e.target.getAttribute("action") || e.target.getAttribute("action")==="#"){
+        e.preventDefault();
+        alert("Publish pressed (demo). Set the form 'action' to post somewhere.");
+      }
+    });
+  </script>
+</body>
+</html>
+
+

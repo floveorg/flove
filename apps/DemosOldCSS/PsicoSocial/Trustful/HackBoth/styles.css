@@ -1,0 +1,125 @@
+/* HackBoth — Pure CSS; tri-grid; seamless inputs; one-shot Yes */
+
+:root{
+  --bg:#0b0b10; --panel:#111217; --muted:#9aa0ad; --ink:#edf0f6;
+  --accent:#00ff88; --accent2:#ff3fb8;
+  --radius:14px; --gap:1rem;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#07070a);color:var(--ink);-webkit-font-smoothing:antialiased}
+.page{max-width:980px;margin:28px auto;padding:18px}
+.hackboth{background:var(--panel);border:1px solid rgba(255,255,255,0.06);padding:22px;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,0.6)}
+.title{margin:0 0 14px;font-weight:800;letter-spacing:.2px;font-size:1.45rem;color:var(--accent)}
+.label{display:block;margin-bottom:6px;color:var(--muted);font-size:.92rem}
+.visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+
+/* Fields */
+.field{margin-bottom:var(--gap);position:relative}
+
+/* ===== Seamless Textareas (no border, no underline, no decorations) ===== */
+textarea{
+  width:100%;min-height:44px;padding:8px 0;border:none;border-radius:0;
+  background:transparent;color:var(--ink);resize:vertical;font-size:.98rem;outline:none;
+}
+textarea::placeholder{color:rgba(255,255,255,0.28)}
+/* Optional: slight glow on focus without lines/borders */
+textarea:focus{box-shadow:0 0 0 9999px rgba(255,255,255,0.00) inset}
+
+/* Toggle inputs hidden */
+.toggle-input{display:none}
+
+/* Pills / buttons */
+.pill{
+  display:inline-block;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);
+  color:var(--accent);font-weight:800;margin-left:8px;user-select:none
+}
+.pill.show-results{color:#06120a;background:linear-gradient(90deg,#90ffc9,#33ff99)}
+/* Tooltip for Q1 */
+.tooltip{
+  display:inline-block;opacity:0;transform:translateY(-6px);transition:all .2s ease;
+  position:absolute;left:120px;top:8px;padding:8px 10px;background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(4px);border-radius:8px;color:var(--muted);font-size:.88rem
+}
+#want-hack:checked ~ .tooltip{opacity:1;transform:none}
+
+/* ===== Tri-grid (Left/Q3 | Middle/WHY | Right/Q4) ===== */
+.tri-grid{
+  display:grid;grid-template-columns:1fr minmax(60px,10rem) 1fr;gap:18px;margin-bottom:var(--gap);
+  align-items:start;grid-auto-rows:minmax(56px,auto)
+}
+.cell{position:relative;display:flex;align-items:center}
+.cell.right textarea, .cell.left textarea{width:100%}
+
+.mid-text{
+  width:100%; text-align:center; color:var(--muted); font-weight:700; white-space:nowrap;
+  opacity:0; transform:translateY(4px); transition:all .18s ease;
+}
+.mid-text::before{content:"— ";opacity:.6}
+.mid-text::after{content:" —";opacity:.6}
+
+/* End icons (♀/♂) */
+.end-icon{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);
+  opacity:0;transition:opacity .18s ease, transform .18s ease;
+  font-size:1.05rem;padding:4px 6px;border-radius:8px;pointer-events:none
+}
+.female{color:#ff7ab6}
+.male{color:#7fe0b0}
+
+/* ===== Q5: lock inputs + show mids + icons (CSS-only) ===== */
+#know-hack:checked + label.show-results{
+  filter:saturate(1.15);box-shadow:0 0 0 3px rgba(0,255,136,.15) inset, 0 8px 24px rgba(0,0,0,.25)
+}
+/* One-shot: cuando está checkeado, el label deja de recibir clics (no se puede alternar de nuevo) */
+#know-hack:checked + label.show-results{pointer-events:none}
+
+/* Usamos :has() en el formulario para aplicar globalmente */
+.hackboth:has(#know-hack:checked) textarea{
+  pointer-events:none; /* visible pero no editable */
+  background:transparent;
+}
+.hackboth:has(#know-hack:checked) .mid-text{opacity:1;transform:none}
+
+/* Mostrar iconos solo en fila 2 (♀) y fila 3 (♂) de ambas columnas */
+.hackboth:has(#know-hack:checked) .left.r2 .end-icon.female,
+.hackboth:has(#know-hack:checked) .right.r2 .end-icon.female{opacity:1;transform:translateY(-50%)}
+.hackboth:has(#know-hack:checked) .left.r3 .end-icon.male,
+.hackboth:has(#know-hack:checked) .right.r3 .end-icon.male{opacity:1;transform:translateY(-50%)}
+
+/* Action buttons (uniform look + icons) */
+.buttons{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;
+  border:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent);
+  color:var(--ink);cursor:pointer;text-decoration:none;font-weight:700
+}
+.btn .ico{font-size:1.1rem}
+.btn:hover{border-color:rgba(255,255,255,0.16)}
+.btn:focus{outline:3px solid rgba(0,255,136,0.18);outline-offset:3px}
+.btn.btn-close{background:transparent}
+
+/* Modal */
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .18s ease}
+.modal-box{
+  width:clamp(260px,40%,520px);background:var(--panel);padding:20px;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.08);box-shadow:0 12px 40px rgba(0,0,0,0.6);text-align:center
+}
+#publish-toggle:checked ~ .modal{pointer-events:auto;opacity:1}
+
+/* Notes */
+.note.small{margin:.4rem 0 0;color:var(--muted);font-size:.85rem}
+
+/* Responsive */
+@media (max-width:900px){
+  .tri-grid{grid-template-columns:1fr minmax(50px,8rem) 1fr}
+}
+@media (max-width:720px){
+  .tri-grid{grid-template-columns:1fr;gap:8px}
+  /* en móvil, ponemos el porqué debajo de cada fila, preservando alineación visual */
+  .tri-grid .cell.mid{order:2}
+  .mid-text{text-align:left}
+  .tooltip{left:16px;top:56px}
+}
+

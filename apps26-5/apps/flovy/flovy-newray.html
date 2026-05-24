@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a new ray · flovy</title>
+
+<style>
+/* ============================================================
+   Design tokens — kept compatible with flovy.html
+   ============================================================ */
+:root{
+  --accent:        #e63a5f;
+  --accent-deep:   #b32444;
+  --accent-rgb:    230, 58, 95;
+  --accent-glow:   rgba(230, 58, 95, .35);
+  --ink:           #1a1a22;
+  --ink-soft:      #555562;
+  --ink-mute:      #888892;
+  --line:          rgba(0, 0, 0, .12);
+  --line-strong:   rgba(0, 0, 0, .22);
+  --fill-soft:     rgba(var(--accent-rgb), .06);
+  --fill-mid:      rgba(var(--accent-rgb), .14);
+  --fill-pressed: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  --panel-bg:      rgba(255, 255, 255, .88);
+  --panel-border:  rgba(0, 0, 0, .08);
+  --panel-shadow:  0 12px 36px rgba(0, 0, 0, .14);
+  --radius-pill:   999px;
+  --fast:          .18s ease-out;
+  --font-ui:       'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display:  'Georgia', 'Times New Roman', serif;
+  --font-mono:     'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+/* ── i18n: dual-span swap, mirroring flovy.html ──────────── */
+.t-es{ display: none; }
+body:has(#ui-lang-es:checked) .t-en{ display: none; }
+body:has(#ui-lang-es:checked) .t-es{ display: inline; }
+
+/* ── Compact when loaded inside a half-size modal iframe ── */
+@media (max-height: 600px), (max-width: 700px){
+  .page{ padding: 1rem 1rem 2rem; }
+  .page-head{ margin-bottom: .8rem; padding-bottom: .6rem; }
+  .page-title{ font-size: 1.4rem; }
+  .layout{ gap: 1rem; }
+}
+
+*{ box-sizing: border-box; }
+html, body{ margin: 0; padding: 0; }
+body{
+  min-height: 100vh;
+  font: 400 15px/1.5 var(--font-ui);
+  color: var(--ink);
+  background:
+    radial-gradient(60% 50% at 20% 0%,  rgba(var(--accent-rgb), .10), transparent 60%),
+    radial-gradient(50% 50% at 100% 100%, rgba(var(--accent-rgb), .06), transparent 60%),
+    linear-gradient(180deg, #fafafa, #f0eef2);
+  background-attachment: fixed;
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.page{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.4rem 4rem;
+}
+
+.page-head{
+  display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+  margin-bottom: 1.6rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.page-title{
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.8rem; font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--accent-deep);
+}
+.page-mark{
+  display: inline-block;
+  margin-right: .25rem;
+  font-size: 1.6rem; color: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+.page-sub{
+  margin: 0; color: var(--ink-soft);
+  font-size: .92rem;
+}
+
+.layout{
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1.6rem;
+}
+@media (max-width: 900px){
+  .layout{ grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Form card
+   ============================================================ */
+.card{
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.fieldset{
+  border: 0;
+  margin: 0;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-bottom: 1px dashed var(--line);
+}
+.fieldset:last-of-type{ border-bottom: 0; }
+.fieldset > legend{
+  display: flex; align-items: center; gap: .55rem;
+  padding: 0;
+  margin-bottom: .9rem;
+  font: 700 .72rem/1 var(--font-ui);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.fieldset > legend::before{
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.fieldset .hint{
+  margin: -.45rem 0 .65rem;
+  font-size: .8rem; color: var(--ink-mute);
+}
+
+.grid{
+  display: grid; gap: .85rem 1rem;
+  grid-template-columns: 1fr 1fr;
+}
+.grid.cols-1{ grid-template-columns: 1fr; }
+.grid.cols-3{ grid-template-columns: repeat(3, 1fr); }
+.grid.cols-4{ grid-template-columns: repeat(4, 1fr); }
+.grid.cols-5{ grid-template-columns: repeat(5, 1fr); }
+.grid .span-2{ grid-column: span 2; }
+.grid .span-full{ grid-column: 1 / -1; }
+
+@media (max-width: 600px){
+  .grid, .grid.cols-3, .grid.cols-4, .grid.cols-5{ grid-template-columns: 1fr 1fr; }
+  .grid .span-2{ grid-column: 1 / -1; }
+}
+
+.field{ display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.field > label{
+  font: 600 .76rem/1.2 var(--font-ui);
+  color: var(--ink-soft);
+  letter-spacing: .02em;
+}
+.field > .var-name{
+  font: 400 .68rem/1 var(--font-mono);
+  color: var(--ink-mute);
+  letter-spacing: 0;
+}
+.field input[type="text"],
+.field textarea{
+  width: 100%;
+  padding: .55rem .7rem;
+  font: 400 .9rem/1.35 var(--font-ui);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .9);
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  outline: none;
+  transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
+}
+.field input.glyph{
+  text-align: center;
+  font-size: 1.2rem;
+  font-family: var(--font-ui), 'Segoe UI Symbol', 'Apple Color Emoji';
+}
+.field textarea{ resize: vertical; min-height: 60px; font-family: var(--font-ui); }
+.field input:focus,
+.field textarea:focus{
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12);
+}
+.field input::placeholder,
+.field textarea::placeholder{ color: var(--ink-mute); font-style: italic; }
+
+.field.check{
+  flex-direction: row; align-items: center; gap: .5rem;
+  padding: .35rem 0;
+}
+.field.check label{ font-weight: 600; color: var(--ink); cursor: pointer; }
+.field.check input{ accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* ============================================================
+   Output card — prompt-first layout
+   ============================================================ */
+.output-card{
+  position: sticky; top: 1rem;
+  align-self: start;
+  display: flex; flex-direction: column;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+.btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .35rem;
+  padding: .55rem 1.2rem;
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  border: 0; border-radius: 999px;
+  background: var(--fill-pressed);
+  color: #fff;
+  cursor: pointer;
+  transition: filter var(--fast), transform var(--fast), background var(--fast);
+}
+.btn:hover{ filter: brightness(1.08); }
+.btn:active{ transform: scale(.97); }
+.btn--lg{ padding: .7rem 1.6rem; font-size: .92rem; }
+.btn.ghost,
+.btn--ghost{
+  background: transparent;
+  color: var(--accent-deep);
+  border: 2px solid rgba(var(--accent-rgb), .35);
+}
+.btn.ghost:hover,
+.btn--ghost:hover{ background: var(--fill-soft); filter: none; }
+
+.prompt-actions{
+  display: flex; justify-content: center; align-items: center;
+  gap: .6rem;
+  margin-bottom: .8rem;
+}
+.prompt-area{
+  width: 100%;
+  min-height: 360px;
+  flex: 1;
+  padding: .9rem 1rem;
+  font: 400 .9rem/1.55 var(--font-ui);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .94);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.prompt-area:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12);
+}
+
+.code-toggle{ margin-top: .9rem; }
+.code-toggle > summary{
+  list-style: none;
+  display: flex; justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+.code-toggle > summary::-webkit-details-marker{ display: none; }
+.code-toggle > summary .btn::after{
+  content: "▾";
+  display: inline-block;
+  margin-left: .35rem;
+  font-size: .8em;
+  transition: transform var(--fast);
+}
+.code-toggle[open] > summary .btn::after{ transform: rotate(180deg); }
+
+.code-body{
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, .55);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.code-body .label{
+  display: block;
+  margin: 1rem 0 .35rem;
+  font: 600 .72rem/1.3 var(--font-ui);
+  color: var(--ink-soft);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.code-body .label:first-of-type{ margin-top: 0; }
+.code-body pre,
+.code-body code{
+  display: block;
+  width: 100%; min-height: 60px;
+  padding: .8rem .9rem; margin: 0;
+  font: 400 .78rem/1.55 var(--font-mono);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .94);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.code-body .btn-copy-all-wrap{
+  display: flex; justify-content: flex-end;
+  margin-top: .8rem;
+}
+
+.copy-feedback{
+  display: inline-block;
+  font-size: .76rem; font-weight: 600;
+  color: var(--accent-deep);
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+.copy-feedback.show{ opacity: 1; }
+
+/* ============================================================
+   Import section (collapsed accordion)
+   ============================================================ */
+.import-row{
+  padding: .9rem 1.25rem;
+  border-bottom: 1px dashed var(--line);
+}
+.import-row details summary{
+  cursor: pointer;
+  font: 600 .8rem/1.2 var(--font-ui);
+  color: var(--accent-deep);
+  outline: none;
+  list-style: none;
+}
+.import-row details summary::-webkit-details-marker{ display: none; }
+.import-row details summary::before{
+  content: "▸ ";
+  display: inline-block;
+  transition: transform var(--fast);
+  transform: translateY(-1px);
+}
+.import-row details[open] summary::before{ content: "▾ "; }
+.import-row .import-hint{
+  margin: .4rem 0 .55rem;
+  font-size: .78rem; color: var(--ink-mute);
+}
+.import-row textarea{
+  width: 100%; min-height: 110px;
+  padding: .55rem .7rem;
+  font: 400 .78rem/1.45 var(--font-mono);
+  background: rgba(255, 255, 255, .9);
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  resize: vertical;
+  outline: none;
+}
+.import-row textarea:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12);
+}
+.import-row .import-actions{
+  display: flex; gap: .5rem; align-items: center;
+  margin-top: .6rem;
+}
+
+/* ============================================================
+   Icon picker (popover with 100 emojis + upload)
+   ============================================================ */
+.icon-picker{ margin-top: .35rem; }
+.icon-picker > summary{
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .35rem .65rem;
+  font: 600 .72rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, .9);
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+  transition: background var(--fast), border-color var(--fast);
+}
+.icon-picker > summary::-webkit-details-marker{ display: none; }
+.icon-picker[open] > summary{
+  background: rgba(var(--accent-rgb), .08);
+  border-color: var(--accent);
+  border-style: solid;
+}
+.icon-picker > summary:hover{ background: #fff; }
+.icon-picker-body{
+  margin-top: .6rem;
+  padding: .8rem;
+  background: rgba(255, 255, 255, .95);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.icon-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  margin-bottom: .8rem;
+}
+.icon-opt{
+  width: 36px; height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-opt:hover{
+  background: rgba(var(--accent-rgb), .15);
+  border-color: var(--accent);
+}
+.icon-upload{
+  display: flex; align-items: flex-start; gap: .8rem;
+  padding-top: .6rem;
+  border-top: 1px dashed var(--line);
+}
+.icon-upload .btn-upload{
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .45rem .9rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--accent-deep);
+  cursor: pointer;
+  font: 700 .78rem/1 var(--font-ui);
+}
+.icon-upload .btn-upload:hover{ background: rgba(var(--accent-rgb), .15); }
+.icon-upload .upload-hint{
+  margin: 0;
+  font-size: .72rem;
+  color: var(--ink-mute);
+  line-height: 1.4;
+}
+</style>
+</head>
+
+<body>
+
+<main class="page">
+
+  <input type="radio" name="ui-lang" id="ui-lang-en" hidden checked>
+  <input type="radio" name="ui-lang" id="ui-lang-es" hidden>
+
+  <header class="page-head">
+    <h1 class="page-title"><span class="page-mark">✦</span> <span class="t-en">Add a new ray</span><span class="t-es">Añadir un ray nuevo</span></h1>
+    <p class="page-sub"><span class="t-en">Fill the form. Copy the generated HTML + CSS into flovy.html and you've got a new ray in the ✨ magic dropdown.</span><span class="t-es">Rellena el formulario. Copia el HTML + CSS generado en flovy.html y tendrás un ray nuevo en el desplegable ✨ magic.</span></p>
+  </header>
+
+  <div class="layout">
+
+    <!-- ============== FORM ============== -->
+    <section class="card" aria-label="Ray fields">
+
+      <!-- Import existing ray block -->
+      <div class="import-row">
+        <details>
+          <summary>Import existing ray block (paste &amp; pre-fill)</summary>
+          <p class="import-hint">Paste a <code>body:has(#X:checked){ … }</code> block from flovy.html. The fields below will be filled in.</p>
+          <textarea id="import-box" placeholder="body:has(#my-persp:checked){&#10;  --ray-logo: &quot;✦&quot;;&#10;  --ray-title: &quot;My Persp&quot;;&#10;  …&#10;}"></textarea>
+          <div class="import-actions">
+            <button type="button" class="btn ghost" id="btn-import">Load fields</button>
+            <span class="copy-feedback" id="import-feedback">loaded.</span>
+          </div>
+        </details>
+      </div>
+
+      <form id="ray-form" autocomplete="off">
+
+      <!-- IDENTITY -->
+      <fieldset class="fieldset">
+        <legend>Identity</legend>
+        <p class="hint">The ray ID is used as the radio input id (<code>my-persp</code> → <code>#my-persp</code>). Keep it short, lowercase, kebab-case.</p>
+        <div class="grid">
+          <div class="field span-2">
+            <label for="ray-id">Ray ID <span class="var-name">id="<output>my-persp</output>"</span></label>
+            <input type="text" id="ray-id" name="ray-id" value="my-persp" pattern="[a-z][a-z0-9-]*" required>
+          </div>
+          <div class="field">
+            <label for="arm-icon">Arm icon (visible in the magic dropdown)</label>
+            <input type="text" id="arm-icon" name="arm-icon" class="glyph" value="🦊">
+            <details class="icon-picker" data-icon-picker-for="arm-icon">
+              <summary>📚 Pick from icon library…</summary>
+              <div class="icon-picker-body">
+                <div class="icon-grid" data-icon-grid></div>
+                <div class="icon-upload">
+                  <input type="file" id="arm-icon-upload" accept="image/*" hidden>
+                  <label for="arm-icon-upload" class="btn-upload">📁 Upload your own</label>
+                  <p class="upload-hint">SVG or square PNG/JPG. Suggested: <strong>64×64&nbsp;px</strong>, transparent background, under&nbsp;50&nbsp;KB. Larger files are accepted but may slow rendering on small UI cells.</p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="field">
+            <label for="arm-label-text">Arm label (small caption under the icon)</label>
+            <input type="text" id="arm-label-text" name="arm-label-text" value="my persp">
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- TOPBAR -->
+      <fieldset class="fieldset">
+        <legend>Topbar (logo · title · slogan)</legend>
+        <div class="grid">
+          <div class="field">
+            <label for="ray-logo">Logo glyph</label>
+            <span class="var-name">--ray-logo</span>
+            <input type="text" id="ray-logo" name="ray-logo" class="glyph" value="✧" maxlength="4">
+          </div>
+          <div class="field">
+            <label for="ray-title">Topbar title</label>
+            <span class="var-name">--ray-title</span>
+            <input type="text" id="ray-title" name="ray-title" value="My Persp">
+          </div>
+          <div class="field">
+            <label for="ray-title-scale">Title size (1 = default)</label>
+            <span class="var-name">--ray-title-scale</span>
+            <input type="text" id="ray-title-scale" name="ray-title-scale" value="" placeholder="1">
+          </div>
+          <div class="field">
+            <label for="ray-slogan">Slogan (typewriter line)</label>
+            <span class="var-name">--ray-slogan</span>
+            <input type="text" id="ray-slogan" name="ray-slogan" placeholder="Short phrase ending with the logo glyph">
+          </div>
+          <div class="field check">
+            <input type="checkbox" id="ray-slogan-show" name="ray-slogan-show">
+            <label for="ray-slogan-show">Show slogan</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- SECTION -->
+      <fieldset class="fieldset">
+        <legend>Notes section</legend>
+        <div class="grid">
+          <div class="field">
+            <label for="ray-section-title">Section title</label>
+            <span class="var-name">--ray-section-title</span>
+            <input type="text" id="ray-section-title" name="ray-section-title">
+          </div>
+          <div class="field">
+            <label for="ray-section-tagline">Section tagline</label>
+            <span class="var-name">--ray-section-tagline</span>
+            <input type="text" id="ray-section-tagline" name="ray-section-tagline">
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- STEP PANELS -->
+      <fieldset class="fieldset">
+        <legend>Step panels (titles &amp; intros)</legend>
+        <p class="hint">Steps 2–5 in the stepper: Backgrounds, Animations, Text, Summary. Leave blank to keep the default.</p>
+        <div class="grid">
+          <div class="field">
+            <label for="ray-panel-2-title">Step 2 title</label>
+            <span class="var-name">--ray-panel-2-title</span>
+            <input type="text" id="ray-panel-2-title" name="ray-panel-2-title">
+          </div>
+          <div class="field">
+            <label for="ray-panel-2-intro">Step 2 intro</label>
+            <span class="var-name">--ray-panel-2-intro</span>
+            <input type="text" id="ray-panel-2-intro" name="ray-panel-2-intro">
+          </div>
+          <div class="field">
+            <label for="ray-panel-3-title">Step 3 title</label>
+            <span class="var-name">--ray-panel-3-title</span>
+            <input type="text" id="ray-panel-3-title" name="ray-panel-3-title">
+          </div>
+          <div class="field">
+            <label for="ray-panel-3-intro">Step 3 intro</label>
+            <span class="var-name">--ray-panel-3-intro</span>
+            <input type="text" id="ray-panel-3-intro" name="ray-panel-3-intro">
+          </div>
+          <div class="field">
+            <label for="ray-panel-4-title">Step 4 title</label>
+            <span class="var-name">--ray-panel-4-title</span>
+            <input type="text" id="ray-panel-4-title" name="ray-panel-4-title">
+          </div>
+          <div class="field">
+            <label for="ray-panel-4-intro">Step 4 intro</label>
+            <span class="var-name">--ray-panel-4-intro</span>
+            <input type="text" id="ray-panel-4-intro" name="ray-panel-4-intro">
+          </div>
+          <div class="field">
+            <label for="ray-panel-5-title">Summary panel title</label>
+            <span class="var-name">--ray-panel-5-title</span>
+            <input type="text" id="ray-panel-5-title" name="ray-panel-5-title">
+          </div>
+          <div class="field">
+            <label for="ray-panel-5-intro">Summary panel intro</label>
+            <span class="var-name">--ray-panel-5-intro</span>
+            <input type="text" id="ray-panel-5-intro" name="ray-panel-5-intro">
+          </div>
+          <div class="field">
+            <label for="ray-panel-6-title">Sounds panel title</label>
+            <span class="var-name">--ray-panel-6-title</span>
+            <input type="text" id="ray-panel-6-title" name="ray-panel-6-title">
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- STEPPER LABELS -->
+      <fieldset class="fieldset">
+        <legend>Stepper labels</legend>
+        <p class="hint">Short lowercase labels under each step node. Only shown if the toggle below is on.</p>
+        <div class="grid cols-5">
+          <div class="field">
+            <label for="ray-step-1-label">step 1</label>
+            <input type="text" id="ray-step-1-label" name="ray-step-1-label">
+          </div>
+          <div class="field">
+            <label for="ray-step-2-label">step 2</label>
+            <input type="text" id="ray-step-2-label" name="ray-step-2-label">
+          </div>
+          <div class="field">
+            <label for="ray-step-3-label">step 3</label>
+            <input type="text" id="ray-step-3-label" name="ray-step-3-label">
+          </div>
+          <div class="field">
+            <label for="ray-step-4-label">step 4</label>
+            <input type="text" id="ray-step-4-label" name="ray-step-4-label">
+          </div>
+          <div class="field">
+            <label for="ray-step-5-label">step 5</label>
+            <input type="text" id="ray-step-5-label" name="ray-step-5-label">
+          </div>
+          <div class="field check span-full">
+            <input type="checkbox" id="ray-step-labels-show" name="ray-step-labels-show">
+            <label for="ray-step-labels-show">Show stepper labels</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- MISC LABELS -->
+      <fieldset class="fieldset">
+        <legend>Action labels</legend>
+        <div class="grid">
+          <div class="field">
+            <label for="ray-textarea-hint">Textarea italic hint</label>
+            <span class="var-name">--ray-textarea-hint</span>
+            <input type="text" id="ray-textarea-hint" name="ray-textarea-hint" placeholder="Drop a casual line…">
+          </div>
+          <div class="field check">
+            <input type="checkbox" id="ray-textarea-hint-show" name="ray-textarea-hint-show">
+            <label for="ray-textarea-hint-show">Show textarea hint</label>
+          </div>
+          <div class="field">
+            <label for="ray-add-label">"＋ Add" button label</label>
+            <span class="var-name">--ray-add-label</span>
+            <input type="text" id="ray-add-label" name="ray-add-label" placeholder="＋ Add">
+          </div>
+          <div class="field">
+            <label for="ray-rater-label">Rater legend</label>
+            <span class="var-name">--ray-rater-label</span>
+            <input type="text" id="ray-rater-label" name="ray-rater-label" placeholder="Rate">
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- RATER EMOJI -->
+      <fieldset class="fieldset">
+        <legend>Rater emoji (4 cells)</legend>
+        <p class="hint">Each cell shows a different reaction. Leave all blank to keep the default emoji.</p>
+        <div class="grid cols-4">
+          <div class="field">
+            <label for="ray-rate-h">Heart row</label>
+            <input type="text" id="ray-rate-h" name="ray-rate-h" class="glyph" maxlength="4" placeholder="🙂">
+          </div>
+          <div class="field">
+            <label for="ray-rate-f">Fun row</label>
+            <input type="text" id="ray-rate-f" name="ray-rate-f" class="glyph" maxlength="4" placeholder="😄">
+          </div>
+          <div class="field">
+            <label for="ray-rate-l">Love row</label>
+            <input type="text" id="ray-rate-l" name="ray-rate-l" class="glyph" maxlength="4" placeholder="🤝">
+          </div>
+          <div class="field">
+            <label for="ray-rate-t">Thoughts row</label>
+            <input type="text" id="ray-rate-t" name="ray-rate-t" class="glyph" maxlength="4" placeholder="💭">
+          </div>
+          <div class="field check span-full">
+            <input type="checkbox" id="ray-rate-show" name="ray-rate-show">
+            <label for="ray-rate-show">Swap the rater emojis</label>
+          </div>
+        </div>
+      </fieldset>
+
+      </form>
+    </section>
+
+    <!-- ============== OUTPUT (prompt + collapsible code) ============== -->
+    <aside class="card output-card" aria-label="Generated prompt">
+
+      <div class="prompt-actions">
+        <button type="button" class="btn btn--lg" id="btn-copy-prompt">Copy Prompt</button>
+        <span class="copy-feedback" id="copy-feedback">copied.</span>
+      </div>
+
+      <textarea class="prompt-area" id="prompt-area" spellcheck="false"
+                placeholder="Friendly prompt will appear here as you fill the form…"></textarea>
+
+      <details class="code-toggle">
+        <summary><span class="btn btn--ghost btn--lg">Display code</span></summary>
+        <div class="code-body">
+
+          <span class="label">① HTML — radio input (paste near the other arm radios)</span>
+          <pre><code id="out-input"></code></pre>
+
+          <span class="label">② HTML — arm cell (paste inside .magic-arms or .arm-list)</span>
+          <pre><code id="out-arm"></code></pre>
+
+          <span class="label">③ CSS — ray data block (paste inside the RAY DATA section)</span>
+          <pre><code id="out-css"></code></pre>
+
+          <div class="btn-copy-all-wrap">
+            <button type="button" class="btn btn--ghost" id="btn-copy-all">Copy code</button>
+            <span class="copy-feedback" id="copy-all-feedback">copied.</span>
+          </div>
+
+        </div>
+      </details>
+
+    </aside>
+  </div>
+</main>
+
+<script>
+(() => {
+  const form = document.getElementById('ray-form');
+  const outInput = document.getElementById('out-input');
+  const outArm   = document.getElementById('out-arm');
+  const outCss   = document.getElementById('out-css');
+  const outPrompt= document.getElementById('prompt-area');
+  const idEcho   = document.querySelector('output');
+
+  // Map field id → CSS variable name. Booleans expand to the matching show value.
+  const TEXT_VARS = [
+    'ray-logo', 'ray-title', 'ray-title-scale', 'ray-slogan',
+    'ray-section-title', 'ray-section-tagline',
+    'ray-panel-2-title', 'ray-panel-2-intro',
+    'ray-panel-3-title', 'ray-panel-3-intro',
+    'ray-panel-4-title', 'ray-panel-4-intro',
+    'ray-panel-5-title', 'ray-panel-5-intro', 'ray-panel-6-title',
+    'ray-step-1-label', 'ray-step-2-label', 'ray-step-3-label',
+    'ray-step-4-label', 'ray-step-5-label',
+    'ray-textarea-hint', 'ray-add-label', 'ray-rater-label',
+    'ray-rate-h', 'ray-rate-f', 'ray-rate-l', 'ray-rate-t',
+  ];
+  // Variables whose value is NOT quoted (numbers, keywords).
+  const UNQUOTED = new Set(['ray-title-scale']);
+  // Bool checkboxes → emitted as fixed keyword values when ticked.
+  const BOOL_VARS = {
+    'ray-slogan-show':       'inline-block',
+    'ray-step-labels-show':  'block',
+    'ray-textarea-hint-show':'block',
+    'ray-rate-show':         'inline-flex',
+  };
+
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const padKey = (k) => (k + ':').padEnd(28, ' ');
+
+  function generate(){
+    const id = (document.getElementById('ray-id').value.trim() || 'my-persp');
+    const icon = document.getElementById('arm-icon').value.trim() || '◇';
+    const armLabel = document.getElementById('arm-label-text').value.trim() || id;
+    if (idEcho) idEcho.textContent = id;
+
+    // ① radio input
+    outInput.textContent =
+      `<input type="radio" name="topbar-ray" id="${id}" class="ctl">`;
+
+    // ② arm cell
+    outArm.textContent =
+`<div class="arm-cell">
+  <label class="arm" for="${id}" title="${esc(armLabel)}" aria-label="${esc(armLabel)}" tabindex="0">${esc(icon)}</label>
+  <label class="arm-label" for="${id}">${esc(armLabel)}</label>
+</div>`;
+
+    // ③ CSS data block
+    const lines = [];
+    lines.push(`body:has(#${id}:checked){`);
+    for (const key of TEXT_VARS){
+      const el = document.getElementById(key);
+      if (!el) continue;
+      const v = el.value.trim();
+      if (!v) continue;
+      if (UNQUOTED.has(key)){
+        lines.push(`  --${padKey(key)}${v};`);
+      } else {
+        lines.push(`  --${padKey(key)}"${v.replace(/"/g, '\\"')}";`);
+      }
+    }
+    for (const [boolKey, keyword] of Object.entries(BOOL_VARS)){
+      const el = document.getElementById(boolKey);
+      if (el && el.checked){
+        lines.push(`  --${padKey(boolKey)}${keyword};`);
+      }
+    }
+    lines.push(`}`);
+    outCss.textContent = lines.join('\n');
+
+    // friendly prompt (only refresh if user hasn't edited the textarea)
+    if (!outPrompt.dataset.dirty){
+      outPrompt.value = buildPrompt(id, icon, armLabel);
+    }
+  }
+
+  function buildPrompt(id, icon, armLabel){
+    const title  = document.getElementById('ray-title').value.trim();
+    const logo   = document.getElementById('ray-logo').value.trim();
+    const slogan = document.getElementById('ray-slogan').value.trim();
+    const secT   = document.getElementById('ray-section-title').value.trim();
+    const secTag = document.getElementById('ray-section-tagline').value.trim();
+
+    const lines = [
+      `Add a new ray (perspective) to flovy:`,
+      `  • ID:           ${id}`,
+      `  • Arm icon:     ${icon}`,
+      `  • Arm label:    ${armLabel}`,
+    ];
+    if (title)  lines.push(`  • Topbar title: ${title}`);
+    if (logo)   lines.push(`  • Topbar logo:  ${logo}`);
+    if (slogan) lines.push(`  • Slogan:       "${slogan}"`);
+    if (secT)   lines.push(`  • Section title: ${secT}`);
+    if (secTag) lines.push(`  • Section tagline: "${secTag}"`);
+
+    lines.push('');
+    lines.push(`The ray joins the existing ones (formal, informal, hotter, dramatic, nerdy, cheeky, whimsy, mythic, queer, magical, cool) under the ✨ magic dropdown of flovy.html.`);
+    lines.push('');
+    lines.push(`Please generate the matching code to add it:`);
+    lines.push(`  – 1 radio:   <input type="radio" name="topbar-ray" id="${id}" class="ctl">`);
+    lines.push(`  – 1 arm cell with <label class="arm" for="${id}">${icon}</label> + a .arm-label`);
+    lines.push(`  – 1 CSS block: body:has(#${id}:checked){ --ray-* … } inside the RAY DATA section`);
+    lines.push('');
+    lines.push(`If any of the optional fields (panels, step labels, textarea hint, rater emoji) are filled in the form, include them as --ray-* declarations in the CSS block.`);
+    return lines.join('\n');
+  }
+
+  // mark prompt as user-edited so generate() stops overwriting it
+  outPrompt.addEventListener('input', () => { outPrompt.dataset.dirty = '1'; });
+
+  /* ---- Copy Prompt: copies the textarea content ---- */
+  document.getElementById('btn-copy-prompt').addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(outPrompt.value);
+      flash('copy-feedback');
+    }catch(_){
+      outPrompt.focus();
+      outPrompt.select();
+    }
+  });
+
+  form.addEventListener('input', generate);
+  form.addEventListener('change', generate);
+
+  /* ---- Copy all (HTML + CSS combined) ---- */
+  document.getElementById('btn-copy-all').addEventListener('click', async () => {
+    const text =
+      `<!-- 1. add this radio with the other topbar-ray radios -->\n` +
+      outInput.textContent + `\n\n` +
+      `<!-- 2. add this arm cell inside .magic-arms or .arm-list -->\n` +
+      outArm.textContent + `\n\n` +
+      `/* 3. add this block inside the RAY DATA section of flovy.html */\n` +
+      outCss.textContent + `\n`;
+    try {
+      await navigator.clipboard.writeText(text);
+      flash('copy-all-feedback');
+    } catch (_) {
+      // older browser fallback: select the output and let the user Cmd/Ctrl-C
+      const range = document.createRange();
+      range.selectNodeContents(outCss);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  });
+
+  function flash(id){
+    const el = document.getElementById(id);
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1400);
+  }
+
+  /* ---- Import: parse a body:has(#X:checked){ ... --ray-Y: "Z"; ... } block ---- */
+  document.getElementById('btn-import').addEventListener('click', () => {
+    const raw = document.getElementById('import-box').value;
+    const idMatch = raw.match(/body:has\(#([a-z][a-z0-9-]*):checked\)/i);
+    if (idMatch){
+      document.getElementById('ray-id').value = idMatch[1];
+    }
+    const re = /--(ray-[a-z0-9-]+):\s*(?:"([^"]*)"|([^;]+));/gi;
+    let m;
+    while ((m = re.exec(raw)) !== null){
+      const key = m[1];
+      const value = m[2] !== undefined ? m[2] : m[3].trim();
+      const el = document.getElementById(key);
+      if (!el) continue;
+      if (el.type === 'checkbox'){
+        el.checked = !!value;
+      } else {
+        el.value = value;
+      }
+    }
+    generate();
+    flash('import-feedback');
+  });
+
+  generate();  // initial render
+
+  // ── Icon picker: 100-emoji grid + custom upload ──────────────
+  const ICONS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","🤩","🥳","🤔","🤗","🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🦅","🦉","🦋","🐢","🐍","🦎","🐳","🐬","🐠","🐙","🦀","🐝","🐞","🦔","🌱","🌿","🍀","🌾","🌵","🌲","🌳","🌴","🌷","🌹","🌺","🌸","🌼","🌻","🌞","🌙","🌟","⭐","✨","⚡","🔥","💧","🌈","❄️","☀️","💎","🎵","🎨","📚","🔮","🎯","🚀","⛵","🌍","🏔","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","✌️","👋","✊","🤝","🙏","☯️"];
+  document.querySelectorAll('details.icon-picker').forEach(picker => {
+    const targetId = picker.dataset.iconPickerFor;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const grid = picker.querySelector('[data-icon-grid]');
+    if (grid && !grid.children.length){
+      const frag = document.createDocumentFragment();
+      ICONS.forEach(ic => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'icon-opt';
+        b.dataset.icon = ic; b.textContent = ic; b.title = ic;
+        frag.appendChild(b);
+      });
+      grid.appendChild(frag);
+    }
+    grid?.addEventListener('click', e => {
+      const btn = e.target.closest('.icon-opt'); if (!btn) return;
+      target.value = btn.dataset.icon;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      picker.open = false;
+    });
+    const upload = picker.querySelector('input[type="file"]');
+    upload?.addEventListener('change', () => {
+      const f = upload.files && upload.files[0]; if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        target.value = reader.result;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        picker.open = false;
+      };
+      reader.readAsDataURL(f);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

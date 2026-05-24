@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>✺ flove · rate</title>
+  <link rel="stylesheet" href="flove.css" />
+  <style>
+    :root {
+      --app-accent:        #b794f4;
+      --app-accent-soft:   #e9defc;
+      --app-ink-on-accent: #2a1957;
+    }
+    body {
+      margin: 0;
+      font-family: var(--flove-font-ui);
+      background: linear-gradient(180deg, #fbfaff 0%, #f3eefe 100%);
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+    .rate-page { max-width: 920px; margin: 24px auto 80px; padding: 0 18px; }
+
+    .rate-head h1 {
+      margin: 8px 0 4px;
+      font-family: var(--flove-font-display);
+      font-weight: 400;
+      font-size: clamp(24px, 4vw, 32px);
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .rate-title {
+      display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .title-word {
+      font: inherit;
+      font-weight: 700;
+      color: var(--app-ink-on-accent);
+      background: transparent;
+      border: none;
+      border-bottom: 2px dotted var(--app-accent);
+      padding: 2px 4px;
+      min-width: 4ch;
+      width: 6ch;
+      text-transform: uppercase;
+    }
+    .title-word:focus { outline: none; border-bottom-style: solid; }
+
+    /* ---------- Middle relation toggle (↔ ↔ related with) ---------- */
+    #relation-toggle { position: absolute; opacity: 0; pointer-events: none; }
+    .relation-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 40px; height: 32px; padding: 0 12px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px dashed rgba(127,127,127,.35);
+      background: rgba(255,255,255,.4);
+      color: var(--app-ink-on-accent);
+      cursor: pointer;
+      font-family: var(--flove-font-ui);
+      font-size: 13px;
+      transition: background var(--flove-fast),
+                  border-color var(--flove-fast),
+                  border-style var(--flove-fast);
+    }
+    .relation-btn .relation-arrows {
+      font-size: 22px; line-height: 1;
+      letter-spacing: -2px;
+      opacity: .35;
+      transition: opacity var(--flove-fast);
+    }
+    .relation-btn .relation-text {
+      display: none;
+      font-style: italic;
+      letter-spacing: .3px;
+    }
+    .relation-btn:hover .relation-arrows { opacity: .75; }
+    /* Checked = relation mode */
+    #relation-toggle:checked + .relation-btn {
+      background: var(--app-accent-soft);
+      border-color: var(--app-accent);
+      border-style: solid;
+    }
+    #relation-toggle:checked + .relation-btn .relation-arrows { display: none; }
+    #relation-toggle:checked + .relation-btn .relation-text  { display: inline; }
+
+    /* ---------- Join button (back to binomial) ---------- */
+    .join-btn {
+      display: none;
+      margin: 6px 0 0;
+      padding: 5px 14px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px solid var(--app-accent);
+      background: rgba(255,255,255,.6);
+      color: var(--app-ink-on-accent);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: .3px;
+      transition: background var(--flove-fast);
+    }
+    .join-btn:hover { background: var(--app-accent-soft); }
+    .rate-head:has(#relation-toggle:checked) .join-btn { display: inline-flex; }
+
+    /* ---------- Graph button + panel ---------- */
+    .graph-btn {
+      margin-left: auto;
+      font: inherit;
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px solid var(--app-accent);
+      background: rgba(255,255,255,.7);
+      color: var(--app-ink-on-accent);
+      cursor: pointer;
+      transition: background var(--flove-fast);
+    }
+    .graph-btn:hover { background: var(--app-accent-soft); }
+    .graph-btn[aria-expanded="true"] { background: var(--app-accent); }
+    .graph-panel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px dashed var(--app-accent);
+      border-radius: var(--flove-radius);
+      background: rgba(255,255,255,.65);
+    }
+    .graph-panel[hidden] { display: none; }
+    .graph-panel-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+    .graph-panel-head h4 { margin: 0; font-size: 14px; }
+    .graph-close {
+      background: transparent; border: none; font-size: 20px; cursor: pointer;
+      color: var(--app-ink-on-accent); line-height: 1;
+    }
+    .graph-summary { font-size: 13px; margin: 4px 0 8px; }
+    .graph-full-link {
+      font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--app-ink-on-accent); text-decoration: none;
+      border-bottom: 1px solid var(--app-accent);
+    }
+
+    /* (Old target-pill / subject-row styles removed — superseded by the
+       in-title relation toggle and the join button below.) */
+
+    /* ---------- Pure-CSS tabs (radio + sibling) ---------- */
+    .tabs-shell { margin-top: 16px; }
+    .tabs-row {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .tabs-shell input[type="radio"] {
+      position: absolute; opacity: 0; pointer-events: none;
+    }
+    .tab-label {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px solid rgba(127,127,127,.22);
+      background: rgba(255,255,255,.6);
+      cursor: pointer;
+      font-size: 12px; letter-spacing: .4px; text-transform: uppercase;
+      transition: background var(--flove-fast), border-color var(--flove-fast);
+    }
+    .tabs-shell input[type="radio"]:checked + .tab-label {
+      background: var(--app-accent);
+      color: var(--app-ink-on-accent);
+      border-color: var(--app-accent);
+    }
+    .panel { display: none; }
+    #tab-modify:checked   ~ .panels-area > #panel-modify,
+    #tab-join:checked     ~ .panels-area > #panel-join,
+    #tab-opinions:checked ~ .panels-area > #panel-opinions,
+    #tab-help:checked     ~ .panels-area > #panel-help { display: block; }
+    .panels-area .panel {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border: 1px dashed rgba(127,127,127,.3);
+      border-radius: var(--flove-radius);
+      background: rgba(255,255,255,.55);
+    }
+
+    /* ---------- Live phrase ---------- */
+    .ribbon {
+      margin: 18px 0 14px;
+      padding: 12px 14px;
+      border-top: 2px solid var(--app-accent);
+      border-bottom: 2px solid var(--app-accent);
+      font-weight: 600;
+      color: var(--app-ink-on-accent);
+      font-size: clamp(14px, 1.7vw, 16px);
+      min-height: 1.5em;
+    }
+
+    /* ---------- Rater profile (declared senses) ---------- */
+    .rater-profile {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      padding: 12px 14px;
+      border-radius: var(--flove-radius);
+      background: rgba(183,148,244,.10);
+      margin-bottom: 18px;
+    }
+    .rater-profile .label {
+      font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--app-ink-on-accent); opacity: .7;
+    }
+    .sense-toggle {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px solid rgba(127,127,127,.25);
+      background: rgba(255,255,255,.6);
+      cursor: pointer;
+      font-size: 13px;
+      transition: background var(--flove-fast), border-color var(--flove-fast);
+    }
+    .sense-toggle input[type="checkbox"] {
+      position: absolute; opacity: 0; pointer-events: none;
+    }
+    .sense-toggle:has(input:checked) {
+      background: var(--app-accent-soft);
+      border-color: var(--app-accent);
+    }
+
+    /* ---------- Arity selector (2 | 3 · 4 · 5 · 7) ---------- */
+    .group-size {
+      display: flex; gap: 6px; align-items: center; margin-bottom: 14px;
+      font-size: 13px; letter-spacing: .4px;
+      color: var(--app-ink-on-accent);
+      flex-wrap: wrap;
+    }
+    .group-label {
+      font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+      opacity: .65; margin-right: 4px;
+    }
+    .num-btn {
+      min-width: 30px;
+      padding: 5px 10px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px solid rgba(127,127,127,.22);
+      cursor: pointer;
+      background: rgba(255,255,255,.5);
+      font-weight: 700;
+      text-align: center;
+      transition: background var(--flove-fast), border-color var(--flove-fast);
+      user-select: none;
+    }
+    .num-btn:hover { background: var(--app-accent-soft); border-color: var(--app-accent); }
+    .num-btn:active { transform: scale(.96); }
+    /* The "2" button sits visually apart from the rest */
+    .group-sep {
+      display: inline-block;
+      width: 1px; height: 22px;
+      background: rgba(127,127,127,.3);
+      margin: 0 8px;
+    }
+    /* Add-rater chip pushed to the right edge */
+    .add-rater {
+      margin-left: auto;
+      padding: 5px 12px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px dashed var(--app-accent);
+      color: var(--app-ink-on-accent);
+      text-decoration: none;
+      font-size: 12px;
+      background: rgba(255,255,255,.5);
+      transition: background var(--flove-fast);
+    }
+    .add-rater:hover { background: var(--app-accent-soft); }
+
+    /* The visible list of raters is JS-driven (see render() below).
+       No arity-based CSS gating — every rendered .scale is shown. */
+
+    /* Drag handle + remove button + dragging state */
+    .scale-handle, .scale-remove {
+      position: absolute; top: 6px;
+      width: 22px; height: 22px;
+      padding: 0;
+      border: none; background: transparent;
+      color: rgba(0,0,0,.35);
+      cursor: pointer; line-height: 1;
+      transition: color var(--flove-fast), background var(--flove-fast);
+      border-radius: var(--flove-radius-pill);
+    }
+    .scale-handle { left: 6px; cursor: grab; font-size: 14px; }
+    .scale-handle:active { cursor: grabbing; }
+    .scale-remove { right: 6px; font-size: 18px; }
+    .scale-handle:hover, .scale-remove:hover {
+      color: var(--app-ink-on-accent);
+      background: var(--app-accent-soft);
+    }
+    .scale.dragging {
+      opacity: .55;
+      box-shadow: 0 8px 24px rgba(43,74,149,.18);
+      transform: scale(.99);
+    }
+    .scale.drop-before { box-shadow: 0 -3px 0 var(--app-accent); }
+    .scale.drop-after  { box-shadow: 0  3px 0 var(--app-accent); }
+
+    /* ---------- Scales (bipolar axis with supports, à la original) ---------- */
+    .scales { display: flex; flex-direction: column; gap: 22px; }
+    .scale {
+      position: relative;
+      padding: 14px 22px 16px;
+      background: rgba(255,255,255,.6);
+      border-radius: var(--flove-radius);
+      border: 1px solid rgba(127,127,127,.14);
+      min-height: 118px;
+    }
+    /* Pole labels positioned absolutely, mid label centered */
+    .scale .pole {
+      position: absolute; top: 12px;
+      font-size: 12px; letter-spacing: .8px; text-transform: uppercase;
+      color: var(--app-ink-on-accent);
+      font-weight: 700;
+    }
+    .scale .pole.left  { left: 38px; }
+    .scale .pole.right { right: 38px; }
+    .scale .pole.mid {
+      left: 50%; transform: translateX(-50%);
+      font-weight: 500; font-style: italic; opacity: .6;
+    }
+    /* Axis bar: horizontal line + center mark + end supports */
+    .axis-bar {
+      position: relative;
+      height: 22px;
+      margin: 36px 6px 6px;
+    }
+    .axis-bar::before {
+      content: ""; position: absolute; left: 0; right: 0; top: 50%;
+      height: 2px; background: rgba(43,74,149,.45);
+      transform: translateY(-1px);
+    }
+    .axis-bar::after {
+      content: ""; position: absolute; left: 50%; top: 0;
+      width: 2px; height: 22px; background: var(--app-accent);
+      transform: translateX(-1px);
+    }
+    .axis-bar::before, .axis-bar::after { pointer-events: none; }
+    .scale::before, .scale::after {
+      content: ""; position: absolute; top: 56px;
+      width: 14px; height: 8px;
+      border-bottom: 2px solid rgba(43,74,149,.45);
+    }
+    .scale::before { left: 14px; }
+    .scale::after  { right: 14px; }
+    /* Range slider sits over the bar */
+    .scale input[type="range"] {
+      position: absolute; left: 22px; right: 22px; top: 38px;
+      width: calc(100% - 44px);
+      margin: 0;
+      accent-color: var(--app-accent);
+      background: transparent;
+    }
+    .scale .ticks {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      font-size: 10px; color: rgba(0,0,0,.45);
+      margin-top: 2px;
+    }
+    .scale .ticks span { justify-self: center; }
+
+    /* Rater name (above the bar, small, floating tag) */
+    .rater-name {
+      position: absolute; top: -10px; left: 38px;
+      padding: 1px 8px;
+      background: var(--app-accent-soft);
+      border-radius: var(--flove-radius-pill);
+      font: 700 10px/1.6 var(--flove-font-ui);
+      letter-spacing: 1.2px;
+      color: var(--app-ink-on-accent);
+    }
+    .rater-name small { font-weight: 500; opacity: .65; letter-spacing: .5px; }
+
+    /* Pole labels listed below the slider for arity ≥ 4 */
+    .poles-list {
+      display: grid;
+      gap: 4px;
+      margin: 4px 0 0; padding: 0;
+      list-style: none;
+      font-size: 11px;
+      letter-spacing: .3px;
+      color: var(--app-ink-on-accent);
+    }
+    .poles-list li {
+      justify-self: center; text-align: center;
+      max-width: 100%; overflow-wrap: anywhere;
+    }
+    /* Arity ≥ 4 raters use the bottom labels — hide the top poles area */
+    .scale[data-arity="4"], .scale[data-arity="5"], .scale[data-arity="7"] {
+      padding-top: 30px;
+    }
+    .scale[data-arity="4"] .axis-bar,
+    .scale[data-arity="5"] .axis-bar,
+    .scale[data-arity="7"] .axis-bar {
+      margin-top: 16px;
+    }
+    /* Reposition the slider for arity ≥ 4 so it sits over the bar with
+       the labels list below */
+    .scale[data-arity="4"] input[type="range"],
+    .scale[data-arity="5"] input[type="range"],
+    .scale[data-arity="7"] input[type="range"] {
+      position: relative;
+      top: 0; left: 0; right: 0;
+      width: calc(100% - 12px);
+      margin: -18px 6px 0;
+    }
+
+    /* Per-scale sense pills */
+    .senses-mini {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+    }
+    .sense-pill {
+      position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px;
+      border-radius: var(--flove-radius-pill);
+      border: 1px solid rgba(127,127,127,.22);
+      background: rgba(255,255,255,.6);
+      cursor: pointer;
+      transition: background var(--flove-fast),
+                  transform var(--flove-fast),
+                  border-color var(--flove-fast),
+                  opacity var(--flove-fast);
+    }
+    .sense-pill input[type="checkbox"] {
+      position: absolute; opacity: 0; pointer-events: none;
+    }
+    .sense-pill:has(input:checked) {
+      background: var(--app-accent-soft);
+      border-color: var(--app-accent);
+      transform: translateY(-1px);
+    }
+    /* Dim a scale's sense pill if the rater hasn't declared that sense.
+       .scales now lives inside .rate-body, so reach in through it. */
+    .rater-profile:has(input[name="sense_hear"]:not(:checked))  ~ .rate-body .sense-pill[data-sense="hear"],
+    .rater-profile:has(input[name="sense_touch"]:not(:checked)) ~ .rate-body .sense-pill[data-sense="touch"],
+    .rater-profile:has(input[name="sense_view"]:not(:checked))  ~ .rate-body .sense-pill[data-sense="view"],
+    .rater-profile:has(input[name="sense_taste"]:not(:checked)) ~ .rate-body .sense-pill[data-sense="taste"],
+    .rater-profile:has(input[name="sense_smell"]:not(:checked)) ~ .rate-body .sense-pill[data-sense="smell"] {
+      opacity: .25;
+    }
+
+    @media (max-width: 600px) {
+      .scale .pole { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="flove-bar flove-bar--auto">
+    <a class="flove-home" href="index.html">← launcher</a>
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;"><defs><linearGradient id="g-rate" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#2a9aff"/><stop offset="50%" stop-color="#6a3aff"/><stop offset="100%" stop-color="#8ac4ff"/></linearGradient></defs><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><g fill="url(#g-rate)" stroke="none"><circle cx="14" cy="50" r="3"/><circle cx="26" cy="50" r="4"/><circle cx="38" cy="50" r="5"/><circle cx="50" cy="50" r="6"/><circle cx="62" cy="50" r="7"/><circle cx="74" cy="50" r="8"/><circle cx="86" cy="50" r="9"/></g></g></svg>
+    <span class="flove-app-name">rate</span>
+    <span class="flove-spacer"></span>
+    <span class="flove-tag">fuzzy · rater models</span>
+  </header>
+
+  <main class="rate-page">
+
+    <form id="rate-form"
+          data-flove-app="rate"
+          data-flove-type="rating"
+          data-flove-asterism="puzzy/relate/rate">
+
+      <section class="rate-head">
+        <h1>
+          <span class="flove-asterism flove-asterism--still">✺</span>
+          <span class="rate-title">
+            <input type="text" name="subject" value="TRUE" autocomplete="off"
+                   class="title-word" aria-label="first word of the binomial" />
+            <!-- Middle button: unselected by default, shows two faint
+                 opposite arrows. Click → relation mode (label flips to
+                 'related with'). The join button below is the way back. -->
+            <input type="checkbox" id="relation-toggle" name="rel" />
+            <label for="relation-toggle" class="relation-btn"
+                   title="click to rate the relation between the two">
+              <span class="relation-arrows" aria-hidden="true">↔</span>
+              <span class="relation-text">related with</span>
+            </label>
+            <input type="text" name="anchor" value="LOVE" autocomplete="off"
+                   class="title-word" aria-label="second word of the binomial" />
+          </span>
+          <button type="button" class="graph-btn" id="graphBtn"
+                  aria-expanded="false" aria-controls="graphPanel"
+                  title="show graph for this word or binomial">⌬ graph</button>
+        </h1>
+        <button type="button" class="join-btn" id="joinBtn"
+                title="merge back into a single binomial item">⛓ join as one binomial</button>
+        <aside class="graph-panel" id="graphPanel" hidden>
+          <header class="graph-panel-head">
+            <h4>Other relations</h4>
+            <button type="button" class="graph-close" aria-label="close" id="graphClose">×</button>
+          </header>
+          <p class="graph-summary">
+            <em>Summary placeholder.</em> Will list nearby ratings of
+            <b class="graph-of-subject">TRUE</b> and the binomial
+            <b class="graph-of-binomial">TRUE — LOVE</b> from the local index
+            (and, once published, from 0asis).
+          </p>
+          <a class="graph-full-link" href="#" id="graphOpenFull">Open full graph →</a>
+        </aside>
+      </section>
+
+      <!-- Tabs -->
+      <div class="tabs-shell">
+        <div class="tabs-row">
+          <input type="radio" name="tab" id="tab-modify" />
+          <label class="tab-label" for="tab-modify">Modify words</label>
+          <input type="radio" name="tab" id="tab-join" />
+          <label class="tab-label" for="tab-join">Join words</label>
+          <input type="radio" name="tab" id="tab-opinions" />
+          <label class="tab-label" for="tab-opinions">Opinions</label>
+          <input type="radio" name="tab" id="tab-help" />
+          <label class="tab-label" for="tab-help">Help</label>
+          <div class="panels-area">
+            <article class="panel" id="panel-modify">
+              <p>Edit subject and anchor in the row above. Toggle group size below to switch between a 3-, 5- or 7-axis rating model — they are different relational levels, not nested.</p>
+            </article>
+            <article class="panel" id="panel-join">
+              <p>Combine multiple subjects into one rating session. Reserved for F6 (combo generator).</p>
+            </article>
+            <article class="panel" id="panel-opinions">
+              <p>Crowd ratings appear here once published to 0asis. For now this works fully offline; Save downloads a <code>.flove.json</code>, Publish is wired through the Publisher adapter (F2).</p>
+            </article>
+            <article class="panel" id="panel-help">
+              <p>Slide each scale 1–7. The five sense-pills under each scale say which of your declared senses informed that rating (multi-select inside one rater).</p>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="ribbon" id="livePhrase" aria-live="polite"></div>
+
+      <!-- Rater sense profile -->
+      <div class="rater-profile">
+        <span class="label">I rate with</span>
+        <label class="sense-toggle"><input type="checkbox" name="sense_hear"  checked /> 👂 hear</label>
+        <label class="sense-toggle"><input type="checkbox" name="sense_touch" checked /> 🖐️ touch</label>
+        <label class="sense-toggle"><input type="checkbox" name="sense_view"  checked /> 👁️ view</label>
+        <label class="sense-toggle"><input type="checkbox" name="sense_taste" checked /> 👅 taste</label>
+        <label class="sense-toggle"><input type="checkbox" name="sense_smell" checked /> 👃 smell</label>
+      </div>
+
+      <!-- Arity buttons. Each click APPENDS one rater of that arity to the
+           list below; clicking again appends the next available one. Drag
+           any rater by its handle to reorder. The default list shows the
+           5 binary raters (arity 2, the canonical bipolar interface). -->
+      <div class="rate-body">
+        <div class="group-size" role="group" aria-label="add rater of arity">
+          <span class="group-label">Add rater of</span>
+          <button type="button" class="num-btn" data-arity="2">2</button>
+          <span class="group-sep" aria-hidden="true"></span>
+          <button type="button" class="num-btn" data-arity="3">3</button>
+          <button type="button" class="num-btn" data-arity="4">4</button>
+          <button type="button" class="num-btn" data-arity="5">5</button>
+          <button type="button" class="num-btn" data-arity="7">7</button>
+          <a class="add-rater" href="rate/create.html" title="open the rate/create interface">+ add rater</a>
+        </div>
+
+        <section class="scales" id="scales"></section>
+      </div>
+
+    </form>
+  </main>
+
+  <script type="module">
+    import { floveIO } from './flove-io.js';
+
+    const form = document.getElementById('rate-form');
+    const livePhrase = document.getElementById('livePhrase');
+    const scalesEl = document.getElementById('scales');
+
+    // Raters indexed by ARITY. 2 / 3 / 4 / 5 / 7 are independent relational
+    // cardinalities (binary polarities, ternary triads, n-ary confluences),
+    // not nested subsets. Each rater carries its `arity` and the list of
+    // pole labels (length === arity). Imported from the prototypes at
+    //   DemosOldCSS/Puzzy/Relate/Rate/{index, Ranks, Intensonims}.
+    // Arity 4 is the only one still empty (no source raters in those files).
+    const RATERS = [
+      // arity 2 — bipolar (canonical from rate/index.html)
+      { arity: 2, axis: 'ABSTRACT-CONCRETE', poles: ['ABSTRACT', 'CONCRETE'] },
+      { arity: 2, axis: 'POSITIVE-NEGATIVE', poles: ['POSITIVE', 'NEGATIVE'] },
+      { arity: 2, axis: 'CLOSE-FAR',         poles: ['CLOSE',    'FAR']      },
+      { arity: 2, axis: 'PRIMARY-SECONDARY', poles: ['PRIMARY',  'SECONDARY']},
+      { arity: 2, axis: 'UNKNOWN-KNOWN',     poles: ['UNKNOWN',  'KNOWN']    },
+
+      // arity 3 — triadic (canonical + Ranks triads)
+      { arity: 3, axis: 'INTENSE-EQUAL-BANAL',          poles: ['INTENSE',   'EQUAL',         'BANAL']     },
+      { arity: 3, axis: 'SIMILAR-COMPLEMENT-DIFFERENT', poles: ['SIMILAR',   'COMPLEMENT',    'DIFFERENT'] },
+      { arity: 3, axis: 'ALEGRIA-AMOR-SABIDURIA',       poles: ['ALEGRIA',   'AMOR',          'SABIDURIA'] },
+      { arity: 3, axis: 'LOCAL-PERSONAL-SOCIAL',        poles: ['LOCAL',     'PERSONAL',      'SOCIAL']    },
+      { arity: 3, axis: 'COMPARTIR-INTERCAMBIAR-REGALAR', poles: ['COMPARTIR','INTERCAMBIAR','REGALAR']    },
+      { arity: 3, axis: 'ARTESANO-ECOLOGICO-OFERTA',    poles: ['ARTESANO',  'ECOLOGICO',     'OFERTA']    },
+      { arity: 3, axis: 'PORQUE-QUE-COMO',              poles: ['POR QUÉ',   'QUÉ',           'CÓMO']      },
+
+      // arity 5 — pentadic (Ranks pentads)
+      { arity: 5, axis: 'SENTIDOS',  poles: ['GUSTO',    'OLFATO',     'OÍDO',         'TACTO',         'VISTA']   },
+      { arity: 5, axis: 'GUSTOS',    poles: ['ÁCIDO',    'AGRIO',      'DULCE',        'UMAMI',         'SALADO']  },
+      { arity: 5, axis: 'PODERES',   poles: ['ECONOMÍA', 'JUDICIAL',   'MEDIA',        'MILITAR',       'POLÍTICO']},
+      { arity: 5, axis: 'PSI',       poles: ['MITOMANÍA','HIPERGAMIA', 'MASOQUISMO',   'HIBRISTOFILIA', 'SADISMO'] },
+      { arity: 5, axis: 'ELEMENTOS', poles: ['AGUA',     'AIRE',       'FUEGO',        'PLASMA',        'TIERRA']  },
+
+      // arity 7 — heptadic (Intensonims, RATY + RATIONALY groups)
+      { arity: 7, group: 'RATY',      axis: 'SIZY',     poles: ['Existential','Personal','Local','Cultural','Social','Global','Universal'] },
+      { arity: 7, group: 'RATY',      axis: 'JOINY',    poles: ['Equal','Companion','Mate','Friend','Close','Intimate','Couple']            },
+      { arity: 7, group: 'RATY',      axis: 'TASTY',    poles: ['Lovely','Bonding','Cute','Nice','Cool','Like','Ok']                         },
+      { arity: 7, group: 'RATY',      axis: 'SURPRISY', poles: ['Big','Great','Huge','Amazing','Marvelous','Awesome','Incredible']           },
+      { arity: 7, group: 'RATY',      axis: 'DEARY',    poles: ['Felt','Wanted','Wished','Desired','Flirted','Passionated','Loved']          },
+      { arity: 7, group: 'RATY',      axis: 'STATY',    poles: ['Novel','Emergent','Rising','Generative','Continuum','Progressive','Permanent'] },
+      { arity: 7, group: 'RATY',      axis: 'LIGHTY',   poles: ['Please','Fun','Satisfaction','Happy','Delight','Joy','Bliss']               },
+      { arity: 7, group: 'RATIONALY', axis: 'NEGATY',   poles: ['Impossible','Unobservable','Unknowable','Unfalsifiable','Unprobable','Unknown','Uncertain'] },
+      { arity: 7, group: 'RATIONALY', axis: 'POSY',     poles: ['Noise','Signal','Sign','Symbol','Icon','Archetype','Paradigm']              },
+      { arity: 7, group: 'RATIONALY', axis: 'ZERY',     poles: ['Occult','Shady','Obscure','Dark','Void','Empty','Nothing']                  },
+      { arity: 7, group: 'RATIONALY', axis: 'FORMALY',  poles: ['Hypothesis','Axiom','Principle','Theory','Prediction','Theorem','Conjecture'] },
+      { arity: 7, group: 'RATIONALY', axis: 'FUTURY',   poles: ['Drive','Intention','Purpose','Target','Plan','Project','Uthopia']           },
+      { arity: 7, group: 'RATIONALY', axis: 'DIGGY',    poles: ['Curiosity','Wonder','Inquiry','Discovery','Understanding','Learning','Teaching'] },
+      { arity: 7, group: 'RATIONALY', axis: 'SHOWY',    poles: ['Intuition','Guess','Belief','Evidence','Fact','Reality','Truth']            },
+    ];
+
+    const SENSES = [
+      { key: 'hear',  emoji: '👂' },
+      { key: 'touch', emoji: '🖐️' },
+      { key: 'view',  emoji: '👁️' },
+      { key: 'taste', emoji: '👅' },
+      { key: 'smell', emoji: '👃' },
+    ];
+
+    // Render pole labels:
+    //   arity 2 → left / right (positioned above the bar)
+    //   arity 3 → left / mid / right
+    //   arity ≥ 4 → labels listed BELOW the slider in an N-column grid
+    //              (mirrors the original Intensonims layout, readable for
+    //              long words). The rater axis name shows in a small header.
+    function renderRater(r) {
+      const arity = r.arity;
+      const polesAbove =
+        arity === 2 ? `<span class="pole left">${r.poles[0]}</span>
+                       <span class="pole right">${r.poles[1]}</span>`
+      : arity === 3 ? `<span class="pole left">${r.poles[0]}</span>
+                       <span class="pole mid">${r.poles[1]}</span>
+                       <span class="pole right">${r.poles[2]}</span>`
+      : '';
+      const polesBelow = arity >= 4
+        ? `<ul class="poles-list" style="grid-template-columns:repeat(${arity},1fr)">
+             ${r.poles.map(p => `<li>${p}</li>`).join('')}
+           </ul>`
+        : '';
+      const max = arity <= 3 ? 7 : arity;
+      const ticks = Array.from({length: max}, (_, i) => `<span>${i+1}</span>`).join('');
+      const senses = SENSES.map(se => `
+        <label class="sense-pill" data-sense="${se.key}" title="${se.key}">
+          <input type="checkbox" name="scale_${r.axis}_sense_${se.key}" />
+          <span aria-hidden="true">${se.emoji}</span>
+        </label>`).join('');
+      return `
+        <header class="rater-name">${r.axis}${r.group ? ` <small>· ${r.group}</small>` : ''}</header>
+        ${polesAbove}
+        <div class="axis-bar" aria-hidden="true"></div>
+        <input type="range" min="1" max="${max}" step="1" value="${Math.ceil(max/2)}" name="scale_${r.axis}" />
+        <div class="ticks" aria-hidden="true" style="grid-template-columns:repeat(${max},1fr)">${ticks}</div>
+        ${polesBelow}
+        <div class="senses-mini" role="group" aria-label="senses informing this rating">${senses}</div>
+      `;
+    }
+
+    // ---------- State-driven rater list (incremental + reorderable) ----------
+    // The visible list is an ordered array of axis ids. Clicking an arity
+    // button appends the next-not-yet-listed rater of that arity. Drag the
+    // handle of any rater to reorder up/down. Click × to remove it.
+    const state = {
+      list: RATERS.filter(r => r.arity === 2).map(r => r.axis),  // 5 binarios
+    };
+
+    function findRater(axis) { return RATERS.find(r => r.axis === axis); }
+
+    function render() {
+      // Preserve current form values across re-render
+      const values = {};
+      scalesEl.querySelectorAll('input[type="range"], input[type="checkbox"]').forEach(el => {
+        if (el.name) values[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+
+      scalesEl.innerHTML = '';
+      state.list.forEach(axis => {
+        const r = findRater(axis);
+        if (!r) return;
+        const node = document.createElement('article');
+        node.className = 'scale';
+        node.dataset.axis = r.axis;
+        node.dataset.arity = String(r.arity);
+        node.draggable = true;
+        node.innerHTML = `
+          <button type="button" class="scale-handle" tabindex="-1" aria-label="drag to reorder">⋮⋮</button>
+          <button type="button" class="scale-remove" data-axis="${r.axis}" aria-label="remove this rater">×</button>
+          ${renderRater(r)}
+        `;
+        scalesEl.appendChild(node);
+      });
+
+      // Restore values
+      scalesEl.querySelectorAll('input[type="range"], input[type="checkbox"]').forEach(el => {
+        if (el.name && values[el.name] !== undefined) {
+          if (el.type === 'checkbox') el.checked = values[el.name];
+          else                        el.value   = values[el.name];
+        }
+      });
+
+      buildPhrase();
+    }
+
+    // Click an arity number → append next available rater of that arity.
+    // No "select / deselect" semantics anymore — the buttons are pure adders.
+    document.querySelectorAll('.num-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const arity = +btn.dataset.arity;
+        const next = RATERS.find(r => r.arity === arity && !state.list.includes(r.axis));
+        if (next) {
+          state.list.push(next.axis);
+          render();
+        } else {
+          btn.animate(
+            [{ transform: 'translateX(0)' }, { transform: 'translateX(-3px)' },
+             { transform: 'translateX(3px)' }, { transform: 'translateX(0)' }],
+            { duration: 180 });
+        }
+      });
+    });
+
+    // Remove button (delegated)
+    scalesEl.addEventListener('click', e => {
+      const btn = e.target.closest('.scale-remove');
+      if (!btn) return;
+      state.list = state.list.filter(a => a !== btn.dataset.axis);
+      render();
+    });
+
+    // Drag-and-drop reordering (HTML5 native, no library)
+    let draggedNode = null;
+    scalesEl.addEventListener('dragstart', e => {
+      const node = e.target.closest('.scale');
+      if (!node) return;
+      draggedNode = node;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', node.dataset.axis);
+      requestAnimationFrame(() => node.classList.add('dragging'));
+    });
+    scalesEl.addEventListener('dragover', e => {
+      if (!draggedNode) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const target = e.target.closest('.scale');
+      if (!target || target === draggedNode) return;
+      const rect = target.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      if (before) target.before(draggedNode);
+      else        target.after(draggedNode);
+    });
+    scalesEl.addEventListener('dragend', () => {
+      if (draggedNode) draggedNode.classList.remove('dragging');
+      draggedNode = null;
+      // Sync state.list from DOM order
+      state.list = [...scalesEl.querySelectorAll('.scale')].map(n => n.dataset.axis);
+      buildPhrase();
+    });
+
+    function activeScales() {
+      return state.list.map(findRater).filter(Boolean);
+    }
+    function activeArities() {
+      return new Set(activeScales().map(r => r.arity));
+    }
+
+    render();
+
+    function buildPhrase() {
+      const subj   = (form.elements.subject?.value || 'It').trim() || 'It';
+      const anchor = (form.elements.anchor?.value  || 'LOVE').trim() || 'LOVE';
+      const isRelation = !!form.elements.rel?.checked;
+      const subject_clause = isRelation
+        ? `the relation ${subj} ↔ ${anchor}`
+        : `the binomial (${subj}, ${anchor})`;
+      const parts = activeScales().map(r => {
+        const v = parseInt(form.elements[`scale_${r.axis}`].value, 10);
+        const max = r.arity === 2 ? 7 : (r.arity === 3 ? 7 : r.arity);
+        let word;
+        if (r.arity === 2) {
+          word = v < 4 ? r.poles[0] : v > 4 ? r.poles[1] : 'balanced';
+        } else if (r.arity === 3) {
+          word = v < 4 ? r.poles[0] : v > 4 ? r.poles[2] : r.poles[1];
+        } else {
+          // arity ≥ 4: integer slider directly indexes a pole
+          word = r.poles[Math.min(Math.max(v - 1, 0), r.poles.length - 1)];
+        }
+        const senses = SENSES
+          .filter(se => form.elements[`scale_${r.axis}_sense_${se.key}`]?.checked)
+          .map(se => se.key);
+        const tag = senses.length ? ` (${senses.join('+')})` : '';
+        return word.toLowerCase() + tag;
+      });
+      livePhrase.textContent = `${subject_clause} reads as ${parts.join(', ')}.`;
+
+      // graph-panel summary mirrors the current subject/binomial
+      document.querySelector('.graph-of-subject').textContent  = subj;
+      document.querySelector('.graph-of-binomial').textContent = `${subj} — ${anchor}`;
+    }
+    form.addEventListener('input', buildPhrase);
+    form.addEventListener('change', buildPhrase);
+
+    // Graph panel toggle (placeholder content — F4 will wire real data)
+    const graphBtn   = document.getElementById('graphBtn');
+    const graphPanel = document.getElementById('graphPanel');
+    const graphClose = document.getElementById('graphClose');
+    graphBtn.addEventListener('click', () => {
+      const open = graphPanel.hasAttribute('hidden');
+      if (open) graphPanel.removeAttribute('hidden');
+      else      graphPanel.setAttribute('hidden', '');
+      graphBtn.setAttribute('aria-expanded', String(open));
+    });
+    graphClose.addEventListener('click', () => {
+      graphPanel.setAttribute('hidden', '');
+      graphBtn.setAttribute('aria-expanded', 'false');
+    });
+    document.getElementById('graphOpenFull').addEventListener('click', e => {
+      e.preventDefault();
+      // TODO F4: route to a fuller graph view — placeholder for now
+      alert('Full graph view: pending F4 (área común trazable).');
+    });
+
+    // "Join" button → leave relation mode, return to plain binomial
+    document.getElementById('joinBtn').addEventListener('click', () => {
+      const rel = document.getElementById('relation-toggle');
+      rel.checked = false;
+      buildPhrase();
+    });
+
+    // Custom snapshot: emit a FuzzyAnnotation per the §3 schema
+    const io = floveIO({});
+
+    function rateSnapshot() {
+      const raterSenses = SENSES
+        .filter(se => form.elements[`sense_${se.key}`]?.checked)
+        .map(se => se.key);
+      const ratings = activeScales().map(r => ({
+        axis:   r.axis,
+        arity:  r.arity,
+        value:  parseInt(form.elements[`scale_${r.axis}`].value, 10),
+        senses: SENSES
+          .filter(se => form.elements[`scale_${r.axis}_sense_${se.key}`]?.checked)
+          .map(se => se.key),
+      }));
+      const arities = [...activeArities()].sort((a,b)=>a-b);
+      return io.snapshot(form, {
+        fields: {
+          subject: form.elements.subject.value,
+          anchor:  form.elements.anchor.value,
+          target:  form.elements.rel?.checked ? 'relation' : 'binomial',
+          arities,                              // e.g. [2] or [3,4]
+        },
+        fuzzy: {
+          model:        arities.length === 1
+                          ? `${arities[0]}-arity`
+                          : `combo[${arities.join('+')}]`,
+          rater_senses: raterSenses,
+          ratings,
+        },
+      });
+    }
+
+    // Inject our own action bar so we can pass a custom snapshot
+    const bar = document.createElement('div');
+    bar.className = 'flove-action-bar';
+    bar.setAttribute('role', 'toolbar');
+    bar.innerHTML = `
+      <button type="button" class="flove-action-btn" data-action="copy">📋 copy</button>
+      <button type="button" class="flove-action-btn" data-action="save">💾 save</button>
+      <button type="button" class="flove-action-btn" data-action="share">↗ share</button>
+      <button type="button" class="flove-action-btn flove-action-btn--primary" data-action="publish" hidden>✺ publish</button>
+    `;
+    form.appendChild(bar);
+
+    io.bind({
+      form,
+      snapshot:   rateSnapshot,
+      copyBtn:    bar.querySelector('[data-action="copy"]'),
+      saveBtn:    bar.querySelector('[data-action="save"]'),
+      shareBtn:   bar.querySelector('[data-action="share"]'),
+      publishBtn: bar.querySelector('[data-action="publish"]'),
+    });
+  </script>
+</body>
+</html>

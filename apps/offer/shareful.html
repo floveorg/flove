@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
+<title>✺ flove · Shareful · Lending Conditions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../flove.css">
+<style>
+  :root{
+    --app-accent:        #8b5cf6;
+    --app-accent-soft:   #ede9fe;
+    --app-ink-on-accent: #2e1065;
+
+    --paper:       #fbfaff;
+    --paper-warm:  #f5f0ff;
+    --ink:         #1a1232;
+    --ink-soft:    #423066;
+    --muted:       #8a7eb0;
+    --line:        rgba(80,50,170,.08);
+    --line-strong: rgba(80,50,170,.16);
+
+    --accent:      #8b5cf6;
+    --accent-deep: #6d28d9;
+    --accent-soft: #ede9fe;
+    --accent-glow: rgba(139,92,246,.22);
+    --pink:        #ec4899;
+    --cyan:        #06b6d4;
+
+    --radius-sm: 12px;
+    --radius:    18px;
+    --radius-lg: 24px;
+    --radius-pill: 999px;
+    --shadow-xs: 0 1px 2px rgba(80,50,170,.05);
+    --shadow-sm: 0 4px 12px -4px rgba(80,50,170,.10);
+    --fast: .15s cubic-bezier(.2,.8,.2,1);
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-display: 'Fraunces', Georgia, serif;
+  }
+  *{ box-sizing:border-box }
+  body{
+    margin:0; font:15px/1.5 var(--font-ui); color:var(--ink);
+    background:
+      radial-gradient(900px 600px at 90% -10%, var(--accent-soft) 0%, transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, var(--paper-warm) 0%, transparent 55%),
+      var(--paper);
+    min-height:100vh; padding-bottom: 40px;
+  }
+  .flove-bar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(251,250,255,.78);
+    backdrop-filter:blur(14px) saturate(160%);
+    -webkit-backdrop-filter:blur(14px) saturate(160%);
+    border-bottom:1px solid var(--line-strong);
+  }
+  .flove-bar .flove-mark{ font-size:52px; color:var(--accent); filter:drop-shadow(0 0 6px var(--accent-glow)) }
+  .flove-bar .flove-app-name{ font-family:var(--font-display); font-weight:600; font-size:26px }
+  .flove-bar .flove-tag{ color:var(--muted) }
+  .flove-bar .flove-asterism{ animation-play-state:paused }
+  body:hover .flove-bar .flove-asterism, body:focus-within .flove-bar .flove-asterism{ animation-play-state:running }
+
+  .container{ max-width:980px; margin:0 auto; padding: 6px 18px 0 }
+
+  /* === Click-to-open app info panel ============================ */
+  .info-toggle{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
+  .app-name-toggle{
+    cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .app-name-toggle::after{
+    content: "▾";
+    font-size: .68em; color: var(--muted);
+    transition: transform var(--fast);
+  }
+  body:has(.info-toggle:checked) .app-name-toggle::after{ transform: rotate(180deg) }
+  .app-name-toggle:hover{ color: var(--accent-deep) }
+
+  .app-info{
+    display: none;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--paper-warm), transparent);
+  }
+  body:has(.info-toggle:checked) .app-info{ display: block }
+  .app-info .container{ padding: 22px 18px }
+  .app-info h1{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(1.7rem, 3vw, 2.3rem);
+    margin: 0; letter-spacing:-.01em;
+  }
+  .app-info h1 em{
+    font-style: italic;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .app-info p{ margin: 6px 0 0; color: var(--muted); font-size: .95rem }
+
+  .btn{
+    display:inline-flex; align-items:center; gap: 6px;
+    padding: 10px 16px; border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong); background: #fff; color: var(--ink);
+    font: 600 .85rem/1 var(--font-ui); cursor: pointer;
+    transition: all var(--fast); text-decoration: none; box-shadow: var(--shadow-xs);
+  }
+  .btn:hover{ border-color: var(--accent); color: var(--accent-deep); transform: translateY(-1px) }
+  .btn.primary{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 8px 18px -6px var(--accent-glow);
+  }
+  .btn.primary:hover{ color:#fff; filter:brightness(1.06) }
+  .btn.small{ padding: 8px 12px; font-size: .82rem }
+
+  /* === Section nav: big buttons row + sticky stepper =========== */
+  .secnav-radio{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
+
+  .section-buttons{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap:10px;
+    margin: 0 0 14px;
+  }
+  .section-btn{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    text-align:center;
+    padding: 18px 14px;
+    background:#fff;
+    border:1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    cursor:pointer; user-select:none;
+    font: 600 .92rem/1.25 var(--font-ui);
+    color: var(--ink);
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .section-btn:hover{
+    border-color: var(--accent); color: var(--accent-deep);
+    transform: translateY(-2px); box-shadow: var(--shadow-sm);
+  }
+  .section-btn .sb-icon{
+    width:30px; height:30px;
+    color: var(--accent);
+    transition: color var(--fast);
+  }
+  .section-btn .sb-icon svg{ width:100%; height:100%; display:block }
+  .lend-wrap:has(#sec-for:checked) .section-btn[data-sec="for"],
+  .lend-wrap:has(#sec-1:checked) .section-btn[data-sec="1"],
+  .lend-wrap:has(#sec-3:checked) .section-btn[data-sec="3"],
+  .lend-wrap:has(#sec-4:checked) .section-btn[data-sec="4"]{
+    border-color: transparent; color:#fff;
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    box-shadow: 0 10px 22px -8px var(--accent-glow);
+  }
+  .lend-wrap:has(#sec-for:checked) .section-btn[data-sec="for"] .sb-icon,
+  .lend-wrap:has(#sec-1:checked) .section-btn[data-sec="1"] .sb-icon,
+  .lend-wrap:has(#sec-3:checked) .section-btn[data-sec="3"] .sb-icon,
+  .lend-wrap:has(#sec-4:checked) .section-btn[data-sec="4"] .sb-icon{
+    color:#fff;
+  }
+
+  /* only the active section's card is shown */
+  #lend > .card{ display:none }
+  .lend-wrap:has(#sec-for:checked) #lend > .card[data-sec="for"],
+  .lend-wrap:has(#sec-1:checked) #lend > .card[data-sec="1"],
+  .lend-wrap:has(#sec-3:checked) #lend > .card[data-sec="3"],
+  .lend-wrap:has(#sec-4:checked) #lend > .card[data-sec="4"]{ display:block }
+  .lend-wrap:has(#sec-all:checked) #lend > .card{ display:block }
+
+  /* "All" button — last item on the right of the topbar, ~half size */
+  .topbar-all{
+    cursor:pointer; user-select:none;
+    padding: 3px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    background:#fff; color: var(--ink-soft);
+    font: 700 .6rem/1 var(--font-ui); letter-spacing:.03em;
+    transition: all var(--fast);
+  }
+  .topbar-all:hover{ border-color: var(--accent); color: var(--accent-deep) }
+  body:has(#sec-all:checked) .topbar-all{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color:#fff; border-color: transparent;
+    box-shadow: 0 6px 14px -4px var(--accent-glow);
+  }
+
+  /* "For" reason chips — shown in the "For" category section */
+  .for-reasons{ position:relative; width:100%; height:320px; transition: height .35s ease }
+  .for-col[data-expand="0"] .for-reasons{ height:200px }
+  .for-col[data-expand="1"] .for-reasons{ height:750px }    /* first click */
+  .for-col[data-expand="2"] .for-reasons{ height:1500px }   /* second click */
+  .for-reasons > .reason-chip{
+    position:absolute;
+    white-space:nowrap;
+    transition: left 4.6s ease-in-out, top 4.6s ease-in-out,
+                background var(--fast), border-color var(--fast), color var(--fast);
+    animation: chip-float 10s ease-in-out infinite;
+  }
+  .for-reasons > :nth-child(2){ animation-delay:-3.2s }
+  .for-reasons > :nth-child(3){ animation-delay:-6.5s }
+  .for-reasons > :nth-child(4){ animation-delay:-1.8s }
+  .for-reasons > :nth-child(5){ animation-delay:-5.1s }
+
+  /* parent / sub chips — parents are 2× the size of subs */
+  .reason-chip.parent-chip{
+    font: 600 1.4rem/1.15 var(--font-ui);
+    padding: 11px 18px;
+  }
+  .reason-chip.child-chip{
+    font: 500 .7rem/1.2 var(--font-ui);
+    padding: 5px 9px;
+  }
+  /* sub-chips — show selection by fill only, never highlight the border */
+  .reason-chip.child-chip:hover,
+  .reason-chip.child-chip:has(:checked){ border-color: var(--line-strong) }
+
+  /* cloud tabs start hidden — JS reveals them per expand step */
+  .reasons-cloud > .reason-chip{ display:none }
+
+  /* "+" beside each title — 3-step reveal of cloud tabs */
+  .for-col-head{ display:flex; align-items:center; gap:8px; margin:0 0 10px }
+  .for-col-head .for-col-title{ margin:0 }
+  .expand-plus{
+    width:26px; height:26px; flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    background:#fff; border:1px solid var(--line-strong);
+    color:var(--accent); cursor:pointer;
+    font:700 1.1rem/1 var(--font-ui);
+    box-shadow:var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .expand-plus:hover{ border-color:var(--accent); background:var(--accent-soft) }
+  .for-col[data-expand="1"] .expand-plus{ background:var(--accent-soft); border-color:var(--accent) }
+  .for-col[data-expand="2"] .expand-plus{
+    background:linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color:#fff; border-color:transparent;
+  }
+
+  /* docked reasons — a clicked tab drops into a 2-column grid below the cloud */
+  .for-docked{
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:6px; align-content:start; margin-top:14px;
+  }
+  .for-docked:empty{ margin:0 }
+  .for-docked .reason-chip{ white-space:normal }
+
+  /* "Close" sub-reasons — revealed in the Who section */
+  .close-subchips{ display:none; flex-wrap:wrap; gap:6px; margin-top:12px }
+  .scope-grid fieldset:has(#for-close:checked) .close-subchips{ display:flex }
+  /* hidden checkbox — selection shown via chip styling */
+  .reason-chip input[type=checkbox]{
+    position:absolute; opacity:0; pointer-events:none; width:1px; height:1px;
+  }
+  /* "+" add-reason button — floats in the cloud with the chips */
+  .card[data-sec="for"]{ position:relative }
+  .for-reasons .add-reason{
+    position:absolute; z-index:3;
+    transition: left 4.6s ease-in-out, top 4.6s ease-in-out;
+    animation: chip-float 10s ease-in-out infinite; animation-delay:-2.6s;
+  }
+  /* new-reason input — revealed top-left by the "+" */
+  .new-reason-input{
+    display:none;
+    margin-left:auto;
+    width:200px; max-width:45%;
+    padding:9px 12px;
+    border:1px solid var(--accent);
+    border-radius:var(--radius-sm);
+    background:#fff; color:var(--ink);
+    font:500 .85rem/1.2 var(--font-ui);
+    box-shadow:0 4px 14px -4px var(--accent-glow);
+  }
+  .new-reason-input.is-open{ display:block }
+  .new-reason-input:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-glow) }
+  @keyframes chip-float{
+    0%,100%{ transform:translateY(0) }
+    50%{ transform:translateY(-10px) }
+  }
+  .reason-chip{
+    display:inline-flex; align-items:center; gap:7px;
+    padding: 8px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    background:#fff; color: var(--ink);
+    font: 500 .85rem/1.2 var(--font-ui);
+    cursor:pointer;
+    transition: all var(--fast);
+  }
+  .reason-chip:hover{ border-color: var(--accent) }
+  .reason-chip:has(:checked){
+    background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep);
+  }
+
+  /* === Because / For — two-column reasons split ================ */
+  .for-grid{
+    display:grid; gap:14px;
+    grid-template-columns:1fr 1fr; align-items:start;
+  }
+  @media (max-width:640px){ .for-grid{ grid-template-columns:1fr } }
+  .for-col{ position:relative }
+  .for-col-title{
+    text-align:left; margin:0 0 10px;
+    font-family:var(--font-display); font-weight:600;
+    font-size:2.1rem; color:var(--accent-deep);
+  }
+
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius-lg);
+    padding:22px; margin: 0 0 18px; box-shadow: var(--shadow-sm);
+  }
+  .card.section{ padding: 18px 20px }
+  .card h2{
+    font-family:var(--font-display); font-weight:600;
+    font-size:1.05rem; margin:0 0 4px;
+    color: var(--accent-deep);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card .step-num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:50%;
+    background: var(--accent-soft); color: var(--accent-deep);
+    font: 700 .82rem/1 var(--font-ui);
+  }
+  p.helper{ color: var(--muted); margin: 4px 0 14px; font-size: .9rem }
+
+  .grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) }
+  fieldset{
+    border:1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px;
+    background: transparent;
+    min-width: 0;
+  }
+  legend{
+    padding: 0 8px; font: 700 11px/1 var(--font-ui); letter-spacing:.06em;
+    color: var(--ink-soft); text-transform: uppercase;
+    background:#fff; border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+  }
+  .choices, .stack{ display: grid; gap: 6px; margin-top: 8px }
+  .inline.choices{ display: flex; flex-wrap: wrap; gap: 8px }
+  .inline.choices label{ flex: 1 1 auto }
+  /* hidden inputs — selection shown via the option styling */
+  .choices input, .stack input{
+    position:absolute; opacity:0; pointer-events:none; width:1px; height:1px;
+  }
+
+  .choices label, .stack label{
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; gap: 10px;
+    padding: 9px 14px;
+    background:#fff;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    cursor:pointer;
+    font: 500 .9rem/1.3 var(--font-ui);
+    transition: all var(--fast);
+    position: relative;
+  }
+  .choices label:hover, .stack label:hover{ border-color: var(--accent) }
+  input[type=radio], input[type=checkbox]{
+    appearance:none;
+    width: 18px; height: 18px;
+    border-radius: 50%; border: 2px solid var(--line-strong); background: #fff;
+    flex-shrink: 0;
+    transition: all var(--fast); cursor:pointer; position: relative;
+  }
+  input[type=checkbox]{ border-radius: 4px }
+  input[type=radio]:checked, input[type=checkbox]:checked{
+    border-color: var(--accent); background: var(--accent);
+    box-shadow: inset 0 0 0 3px #fff;
+  }
+  input[type=checkbox]:checked{ box-shadow: none }
+  input[type=checkbox]:checked::after{
+    content:"✓"; position:absolute; inset:0; display:grid; place-items:center; color:#fff; font:700 11px/1 var(--font-ui);
+  }
+  .choices label:has(:checked), .stack label:has(:checked){
+    background: var(--accent-soft);
+    border-color: var(--accent); color: var(--accent-deep);
+  }
+
+  .inline{ display:flex; flex-wrap: wrap; gap: 10px }
+  .inline label{ flex: 1 1 240px }
+  .inline input[type=text]{
+    width:100%; padding: 11px 13px;
+    background:transparent; border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font: 14px/1.4 var(--font-ui); color: inherit;
+    transition: all var(--fast);
+  }
+  .inline input[type=text]:focus{
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* === Scope & Context: two-column layout ====================== */
+  .scope-grid{
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  @media (max-width: 640px){ .scope-grid{ grid-template-columns: 1fr } }
+  .scope-right{ display: grid; gap: 14px }
+
+  .ppl-label{
+    display: block;
+    font: 700 11px/1 var(--font-ui); letter-spacing: .06em;
+    color: var(--ink-soft); text-transform: uppercase;
+    margin: 14px 0 6px;
+  }
+  .ppl-input{
+    width: 100%; margin-top: 1.6rem; padding: 11px 13px;
+    background: transparent; border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font: 14px/1.4 var(--font-ui); color: inherit;
+    transition: all var(--fast);
+  }
+  .ppl-input:focus{
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* === Textarea field with magic / mic / file buttons ========== */
+  .ta-field{
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .ta-field .ta-magic-state{
+    position: absolute; opacity: 0; pointer-events: none;
+    width: 1px; height: 1px;
+  }
+  .ta-field textarea{
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font: 14px/1.5 var(--font-ui); color: inherit;
+    resize: vertical;
+    min-height: 5em;
+    transition: all var(--fast);
+  }
+  .ta-field textarea:focus{
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .ta-field .ta-magic{
+    position: absolute;
+    right: -10px; top: -12px;
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #fff; color: var(--accent);
+    border: 1px solid var(--line-strong);
+    cursor: pointer;
+    font: 1rem/1 var(--font-ui);
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+    z-index: 3;
+  }
+  .ta-field .ta-magic:hover{
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 6px 16px var(--accent-glow);
+    transform: translateY(-1px);
+  }
+  .ta-field:has(.ta-magic-state:checked) textarea{
+    border-color: var(--accent);
+    background: linear-gradient(180deg, #fff, var(--accent-soft));
+  }
+  .ta-field:has(.ta-magic-state:checked) .ta-magic{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: var(--accent-deep);
+  }
+  .ta-field .ta-bottom-tools{
+    position: absolute;
+    left: 50%; bottom: -16px;
+    transform: translateX(-50%);
+    display: inline-flex; gap: 6px;
+    z-index: 3;
+  }
+  /* pref-note field — mic sits on the centre of the left border */
+  .ta-field.pref-ta .ta-bottom-tools{
+    left: -16px; bottom: auto; top: 50%;
+    transform: translateY(-50%);
+  }
+  .ta-field .ta-tool{
+    position: relative;
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    cursor: pointer;
+    font: 1rem/1 var(--font-ui);
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .ta-field .ta-tool:hover{
+    border-color: var(--accent);
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+  }
+  .ta-field .ta-tool input[type=file]{
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+  }
+  .ta-field .ta-tool.has-file{
+    border-color: var(--accent);
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+  }
+
+  /* tree levels — 2 columns: first 2 blocks left, next 3 right */
+  .tree{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+  .tree-col{ display: grid; gap: 10px; align-content: start }
+  @media (max-width: 640px){ .tree{ grid-template-columns: 1fr } }
+  /* tree levels — each unlocked only once its parent group has a pick */
+  .lvl-2, .lvl-3, .lvl-4, .lvl-5{ transition: opacity var(--fast) }
+  .tree:not(:has(input[name="t1"]:checked)) .lvl-2,
+  .tree:not(:has(input[name="t2"]:checked)) .lvl-3,
+  .tree:not(:has(input[name="t3"]:checked)) .lvl-4,
+  .tree:not(:has(input[name="t4"]:checked)) .lvl-5{
+    opacity:.4; pointer-events:none;
+  }
+  /* past/current/future and similar/different hidden until + toggle */
+  .section[data-sec="4"] .lvl-2,
+  .section[data-sec="4"] .lvl-4{ display: none }
+  .section[data-sec="4"]:has(#tree-more-toggle:checked) .lvl-2,
+  .section[data-sec="4"]:has(#tree-more-toggle:checked) .lvl-4{ display: block }
+  .tree-more-wrap{ display: flex; justify-content: center; margin-top: 12px; position: relative }
+  .tree-more-wrap > input[type="checkbox"]{ position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px }
+
+  /* "+ Additional info" toggle below sections */
+  .extra-info-wrap{ display: flex; flex-direction: column; align-items: center; margin-top: 14px }
+  .extra-info-toggle{ position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px }
+  .extra-plus{
+    width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px dashed var(--line-strong);
+    color: var(--accent);
+    font: 700 1.2rem/1 var(--font-ui);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .extra-plus:hover{
+    border-style: solid; border-color: var(--accent);
+    background: var(--accent-soft); color: var(--accent-deep);
+    transform: translateY(-1px);
+  }
+  .extra-info-wrap:has(.extra-info-toggle:checked) .extra-plus{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: var(--accent-deep);
+    transform: rotate(45deg);
+  }
+  .extra-info{
+    display: none;
+    width: 100%; margin-top: 18px;
+    position: relative;
+  }
+  .extra-info-wrap:has(.extra-info-toggle:checked) .extra-info{ display: block }
+  .extra-info textarea{
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font: 14px/1.5 var(--font-ui); color: inherit;
+    resize: vertical;
+    min-height: 5em;
+    transition: all var(--fast);
+  }
+  .extra-info textarea:focus{
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .extra-info .ta-bottom-tools{
+    position: absolute;
+    left: 50%; bottom: -16px;
+    transform: translateX(-50%);
+    display: inline-flex; gap: 6px;
+    z-index: 3;
+  }
+
+  /* === Invitation — centered toggle button + collapsible card == */
+  .invite-block{ text-align:center; margin: 4px 0 18px }
+  .invite-toggle{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
+  .invite-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    cursor:pointer; user-select:none;
+    padding: 13px 32px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    background:#fff; color: var(--ink-soft);
+    font: 700 .98rem/1 var(--font-display);
+    box-shadow: var(--shadow-sm);
+    transition: background .45s ease, color .45s ease, border-color .45s ease,
+                box-shadow .45s ease, transform var(--fast);
+  }
+  .invite-btn:hover{ transform: translateY(-2px) }
+  .invite-btn::after{
+    content:"▾"; font-size:.8em; opacity:.7;
+    transition: transform var(--fast);
+  }
+  .invite-block:has(.invite-toggle:checked) .invite-btn::after{ transform: rotate(180deg) }
+
+  /* flamy-blue progression — one stage every 3 selections / texts */
+  .invite-btn[data-progress="1"]{ background:#eef4ff; color:#1e3a8a; border-color:#dbe6ff }
+  .invite-btn[data-progress="2"]{ background:#d4e4ff; color:#1e3a8a; border-color:transparent }
+  .invite-btn[data-progress="3"]{ background:linear-gradient(0deg,#3b82f6,#93c5fd); color:#fff; border-color:transparent }
+  .invite-btn[data-progress="4"]{
+    background:linear-gradient(0deg,#1d4ed8,#60a5fa);
+    color:#fff; border-color:transparent;
+    box-shadow:0 8px 24px -6px rgba(37,99,235,.55);
+  }
+  .invite-btn[data-progress="5"]{
+    background:linear-gradient(0deg,#1e3a8a,#3b82f6 60%,#7dd3fc);
+    color:#fff; border-color:transparent;
+    box-shadow:0 10px 30px -6px rgba(56,189,248,.6);
+  }
+  .invite-btn[data-progress="6"]{
+    background:linear-gradient(0deg,#1e3a8a,#2563eb 45%,#22d3ee 80%,#cffafe);
+    color:#fff; border-color:transparent;
+    animation: flame-flicker 1.7s ease-in-out infinite;
+  }
+  @keyframes flame-flicker{
+    0%,100%{ box-shadow:0 0 22px -2px rgba(56,189,248,.7), 0 10px 32px -6px rgba(37,99,235,.55) }
+    50%{ box-shadow:0 0 36px 3px rgba(56,189,248,.95), 0 12px 40px -4px rgba(37,99,235,.75) }
+  }
+
+  .invite-card{
+    display:none;
+    text-align:left;
+    margin-top:14px;
+    background: linear-gradient(135deg, var(--paper-warm), #fff);
+    border: 1px dashed var(--accent);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .invite-block:has(.invite-toggle:checked) .invite-card{ display:block }
+
+  .sentence{
+    margin: 8px 0 0;
+    font: 500 1.05rem/1.65 var(--font-display);
+    color: var(--ink);
+  }
+  .sentence strong{
+    color: var(--accent-deep); font-weight: 700;
+    background: var(--accent-soft); padding: 1px 6px; border-radius: 6px;
+  }
+  .sentence .seg{ display:none }
+  .sentence .sentence-gap{ display:block; height:.8em }
+  .lend-conditions:has(#for-close:checked) .seg.for-close,
+  .lend-conditions:has(#for-near:checked)  .seg.for-near,
+  .lend-conditions:has(#for-all:checked)   .seg.for-all,
+  .lend-conditions:has(#ts-where:checked)   .seg.ts-where,
+  .lend-conditions:has(#ts-backafter:checked) .seg.ts-backafter,
+  .lend-conditions:has(#ts-onrequest:checked) .seg.ts-onrequest,
+  .lend-conditions:has(#t-more:checked)  .seg.t-more,
+  .lend-conditions:has(#t-less:checked)  .seg.t-less,
+  .lend-conditions:has(#t-past:checked)    .seg.t-past,
+  .lend-conditions:has(#t-current:checked) .seg.t-current,
+  .lend-conditions:has(#t-future:checked)  .seg.t-future,
+  .lend-conditions:has(#t-experience:checked) .seg.t-experience,
+  .lend-conditions:has(#t-use:checked)        .seg.t-use,
+  .lend-conditions:has(#t-offering:checked)   .seg.t-offering,
+  .lend-conditions:has(#t-similar:checked)  .seg.t-similar,
+  .lend-conditions:has(#t-different:checked) .seg.t-different,
+  .lend-conditions:has(#t-offers:checked)   .seg.t-offers,
+  .lend-conditions:has(#t-things:checked)   .seg.t-things,
+  .lend-conditions:has(#t-relations:checked) .seg.t-relations{ display: inline }
+
+  .submit{
+    display:flex; justify-content:flex-end; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+  }
+
+  .toast{
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(12px);
+    background: var(--ink); color: #fff;
+    padding: 10px 18px; border-radius: var(--radius-pill);
+    font: 600 13px/1 var(--font-ui);
+    opacity: 0; pointer-events: none; transition: all .25s; z-index: 100;
+  }
+  .toast.is-visible{ opacity: 1; transform: translateX(-50%) translateY(0) }
+
+  @media print{
+    .flove-bar, .submit, .section-buttons, .invite-btn{ display:none !important }
+    .app-info{ display:block !important }
+    #lend > .card{ display:block !important }
+    .invite-card{ box-shadow:none; display:block !important }
+    body{ background:#fff }
+    .card{ box-shadow:none; border:1px solid #ccc }
+  }
+  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important } }
+</style>
+</head>
+<body>
+
+<input type="checkbox" id="info-toggle" class="info-toggle">
+
+<div class="flove-bar">
+  <a class="flove-home" href="../index.html" aria-label="Back to flove launcher">←</a>
+  <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.18em; overflow:visible;">
+    <defs>
+      <linearGradient id="g-shareful" x1="78" y1="82" x2="48" y2="14" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#8b5cf6"/>
+        <stop offset="55%" stop-color="#a855f7"/>
+        <stop offset="100%" stop-color="#ec4899"/>
+      </linearGradient>
+    </defs>
+    <g stroke="url(#g-shareful)" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M78 80 C 74 52, 58 34, 50 18"/>
+      <path d="M37 31 L50 16 L63 31"/>
+    </g>
+  </svg>
+  <label class="flove-app-name app-name-toggle" for="info-toggle">Shareful</label>
+  <span class="flove-spacer"></span>
+  <label class="topbar-all" for="sec-all">All</label>
+</div>
+
+<section class="app-info" id="app-info">
+  <div class="container">
+    <h1>SHAREFUL · <em>lending conditions</em></h1>
+    <p>Pick how, to whom, and under which preferences. A readable sentence builds itself.</p>
+  </div>
+</section>
+
+<main class="container">
+
+ <div class="lend-wrap">
+
+  <input type="radio" name="secnav" id="sec-for" class="secnav-radio" checked>
+  <input type="radio" name="secnav" id="sec-1" class="secnav-radio">
+  <input type="radio" name="secnav" id="sec-3" class="secnav-radio">
+  <input type="radio" name="secnav" id="sec-4" class="secnav-radio">
+  <input type="radio" name="secnav" id="sec-all" class="secnav-radio">
+
+  <div class="section-buttons">
+    <label class="section-btn" for="sec-for" data-sec="for">Reasons<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 4 16.5 4 9.7 4 6.7 6 5 8 5c2 0 4 2 4 2s2-2 4-2c2 0 4 1.7 4 4.7C20 16.5 12 21 12 21Z"/></svg></span></label>
+    <label class="section-btn" for="sec-1" data-sec="1">Who<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16 14.3c2.6.3 4.5 2.3 4.5 4.7"/></svg></span></label>
+    <label class="section-btn" for="sec-3" data-sec="3">Time / Space<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.3l3.4 2.2"/></svg></span></label>
+    <label class="section-btn" for="sec-4" data-sec="4">Preferences<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M16 7h4"/><path d="M4 12h3M11 12h9"/><path d="M4 17h7M15 17h5"/><circle cx="14" cy="7" r="2.3"/><circle cx="9" cy="12" r="2.3"/><circle cx="13" cy="17" r="2.3"/></svg></span></label>
+  </div>
+
+  <section class="lend-conditions" id="lend">
+
+    <div class="card section" data-sec="for">
+      <div class="for-grid">
+
+        <div class="for-col" data-expand="0">
+          <div class="for-col-head">
+            <button type="button" class="expand-plus" aria-label="Show more reasons" title="Show more reasons">＋</button>
+            <h3 class="for-col-title">Because</h3>
+            <input type="text" class="new-reason-input" placeholder="New reason…" aria-label="New reason">
+          </div>
+          <fieldset>
+            <div class="for-reasons reasons-cloud">
+              <label class="reason-chip parent-chip" data-pid="0"><input type="checkbox" name="reason"> I have plenty</label>
+              <label class="reason-chip parent-chip" data-pid="1"><input type="checkbox" name="reason"> it's just sitting there</label>
+              <label class="reason-chip parent-chip" data-pid="2"><input type="checkbox" name="reason"> I trust you</label>
+              <label class="reason-chip parent-chip" data-pid="3"><input type="checkbox" name="reason"> someone helped me once</label>
+              <label class="reason-chip parent-chip" data-pid="4"><input type="checkbox" name="reason"> it's fair</label>
+              <label class="reason-chip parent-chip" data-pid="5"><input type="checkbox" name="reason"> it's safer</label>
+
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> I have more than I need</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> it'd go unused otherwise</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> I won't miss it</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> lending it loses me nothing</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> it only gathers dust</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> I'm not using it anyway</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> trust has to start somewhere</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> I was lent to before</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> I'm passing it on</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> kindness should circulate</label>
+              <label class="reason-chip child-chip" data-parent="4"><input type="checkbox" name="reason"> no one should buy what they'll use once</label>
+              <label class="reason-chip child-chip" data-parent="4"><input type="checkbox" name="reason"> access shouldn't depend on money</label>
+              <label class="reason-chip child-chip" data-parent="4"><input type="checkbox" name="reason"> sharing evens things out</label>
+              <label class="reason-chip child-chip" data-parent="5"><input type="checkbox" name="reason"> I set the conditions</label>
+              <label class="reason-chip child-chip" data-parent="5"><input type="checkbox" name="reason"> conditions make sharing safe</label>
+
+              <button type="button" class="extra-plus add-reason" aria-label="Add a reason" title="Add a reason">＋</button>
+            </div>
+          </fieldset>
+          <div class="for-docked"></div>
+        </div>
+
+        <div class="for-col" data-expand="0">
+          <div class="for-col-head">
+            <button type="button" class="expand-plus" aria-label="Show more reasons" title="Show more reasons">＋</button>
+            <h3 class="for-col-title">For</h3>
+            <input type="text" class="new-reason-input" placeholder="New reason…" aria-label="New reason">
+          </div>
+          <fieldset>
+            <div class="for-reasons reasons-cloud">
+              <label class="reason-chip parent-chip" data-pid="0"><input type="checkbox" name="reason"> giving better</label>
+              <label class="reason-chip parent-chip" data-pid="1"><input type="checkbox" name="reason"> connecting</label>
+              <label class="reason-chip parent-chip" data-pid="2"><input type="checkbox" name="reason"> improving</label>
+              <label class="reason-chip parent-chip" data-pid="3"><input type="checkbox" name="reason"> building community</label>
+
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> happy to help</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> pay it forward</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> care is contagious</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> a shared item still feels mine</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> letting it travel</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> saves everyone money</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> less waste</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> better for the planet</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> objects want to circulate</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> to lend is to multiply</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> ownership is a loan from time</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> things gain stories when shared</label>
+
+              <button type="button" class="extra-plus add-reason" aria-label="Add a reason" title="Add a reason">＋</button>
+            </div>
+          </fieldset>
+          <div class="for-docked"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card section" data-sec="1">
+      <div class="scope-grid">
+        <fieldset>
+          <div class="choices inline bare">
+            <label><input type="checkbox" name="for" id="for-close"> Close</label>
+            <label><input type="checkbox" name="for" id="for-near"> Near</label>
+            <label><input type="checkbox" name="for" id="for-all"> All</label>
+          </div>
+          <div class="close-subchips">
+            <label class="reason-chip child-chip"><input type="checkbox" name="reason"> I trust my neighbours</label>
+            <label class="reason-chip child-chip"><input type="checkbox" name="reason"> so it reaches close people first</label>
+            <label class="reason-chip child-chip"><input type="checkbox" name="reason"> testing trust at small scale</label>
+          </div>
+          <input class="ppl-input" type="text" id="people" placeholder="e.g., friends, neighbors, community">
+        </fieldset>
+        <div class="scope-right">
+          <fieldset>
+            <div class="ta-field">
+              <input type="checkbox" class="ta-magic-state" id="purposes-magic-state">
+              <textarea id="purposes" rows="3" placeholder="Purposes: study, repair, event, research…"></textarea>
+              <label class="ta-magic" for="purposes-magic-state" aria-label="Magic" title="Magic">✦</label>
+              <div class="ta-bottom-tools">
+                <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="purposes-mic"></label>
+                <label class="ta-tool" aria-label="Upload file" title="File">📎<input type="file" id="purposes-file"></label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section" data-sec="3">
+      <fieldset>
+        <div class="choices inline">
+          <label><input type="radio" name="ts" id="ts-where"> Use it where it is</label>
+          <label><input type="radio" name="ts" id="ts-backafter"> Back after use</label>
+          <label><input type="radio" name="ts" id="ts-onrequest"> Back on request</label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <div class="ta-field">
+          <input type="checkbox" class="ta-magic-state" id="additional-magic-state">
+          <textarea id="additional" rows="3" placeholder="Anything else worth noting…"></textarea>
+          <label class="ta-magic" for="additional-magic-state" aria-label="Magic" title="Magic">✦</label>
+          <div class="ta-bottom-tools">
+            <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="additional-mic"></label>
+            <label class="ta-tool" aria-label="Upload file" title="File">📎<input type="file" id="additional-file"></label>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="card section" data-sec="4">
+      <div class="tree">
+        <div class="tree-col">
+          <fieldset>
+            <div class="ta-field pref-ta">
+              <input type="checkbox" class="ta-magic-state" id="pref-note-magic-state">
+              <textarea id="pref-note" rows="3" placeholder="Notes on your preferences…"></textarea>
+              <label class="ta-magic" for="pref-note-magic-state" aria-label="Magic" title="Magic">✦</label>
+              <div class="ta-bottom-tools">
+                <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="pref-note-mic"></label>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <div class="stack">
+              <label><input type="radio" name="t1" id="t-more"> More</label>
+              <label><input type="radio" name="t1" id="t-less"> Less</label>
+            </div>
+          </fieldset>
+          <fieldset class="lvl-2">
+            <div class="stack">
+              <label><input type="checkbox" name="t2" id="t-past"> Past</label>
+              <label><input type="checkbox" name="t2" id="t-current"> Current</label>
+              <label><input type="checkbox" name="t2" id="t-future"> Future</label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="tree-col">
+          <fieldset class="lvl-3">
+            <div class="stack">
+              <label><input type="checkbox" name="t3" id="t-experience"> Experience</label>
+              <label><input type="checkbox" name="t3" id="t-use"> Use</label>
+              <label><input type="checkbox" name="t3" id="t-offering"> Offering</label>
+            </div>
+          </fieldset>
+          <fieldset class="lvl-4">
+            <legend>of</legend>
+            <div class="stack">
+              <label><input type="checkbox" name="t4" id="t-similar"> Similar</label>
+              <label><input type="checkbox" name="t4" id="t-different"> Different</label>
+            </div>
+          </fieldset>
+          <fieldset class="lvl-5">
+            <div class="stack">
+              <label><input type="checkbox" name="t5" id="t-offers"> Offers</label>
+              <label><input type="checkbox" name="t5" id="t-things"> Things</label>
+              <label><input type="checkbox" name="t5" id="t-relations"> Relations</label>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="tree-more-wrap">
+        <input type="checkbox" id="tree-more-toggle">
+        <label class="extra-plus" for="tree-more-toggle" aria-label="Show more dimensions" title="Past · current · future · similar · different">＋</label>
+      </div>
+    </div>
+
+    <div class="invite-block">
+      <input type="checkbox" id="invite-toggle" class="invite-toggle">
+      <label class="invite-btn" for="invite-toggle" id="inviteBtn" data-progress="0">Invitation</label>
+      <div class="invite-card">
+      <p class="sentence" aria-live="polite" id="sentence">
+        I agree to lend this item
+        <span class="seg for-close"> for <strong>close</strong> people</span>
+        <span class="seg for-near"> for <strong>near</strong> people</span>
+        <span class="seg for-all"> for <strong>all</strong> people</span>
+        <span class="people-slot"></span>
+        <span class="purposes-slot"></span>.
+        I want you to use it
+        <span class="seg ts-where"><strong>where it is</strong></span>
+        <span class="seg ts-backafter">and <strong>bring it back after use</strong></span>
+        <span class="seg ts-onrequest">and <strong>bring it back on request</strong></span>.
+        <span class="sentence-gap" aria-hidden="true"></span>
+        Preferences of use will be resolved for the
+        <span class="seg t-more"><strong>more</strong></span>
+        <span class="seg t-less"><strong>less</strong></span>
+        <span class="seg t-past"><strong>past</strong></span>
+        <span class="seg t-current"><strong>current</strong></span>
+        <span class="seg t-future"><strong>future</strong></span>
+        <span class="seg t-experience"><strong>experience</strong></span>
+        <span class="seg t-use"><strong>use</strong></span>
+        <span class="seg t-offering"><strong>offering</strong></span>
+        of
+        <span class="seg t-similar"><strong>similar</strong></span>
+        <span class="seg t-different"><strong>different</strong></span>
+        <span class="seg t-offers"><strong>offers</strong></span>
+        <span class="seg t-things"><strong>things</strong></span>
+        <span class="seg t-relations"><strong>relations</strong></span>.
+      </p>
+      <div class="extra-info-wrap">
+        <input type="checkbox" class="extra-info-toggle" id="extra-invite-toggle">
+        <label class="extra-plus" for="extra-invite-toggle" aria-label="Add additional information" title="Additional information">＋</label>
+        <div class="extra-info">
+          <textarea id="extra-invite" rows="3" placeholder="Additional information…"></textarea>
+          <div class="ta-bottom-tools">
+            <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="extra-invite-mic"></label>
+            <label class="ta-tool" aria-label="Upload file" title="File">📎<input type="file" id="extra-invite-file"></label>
+          </div>
+        </div>
+      </div>
+      <div class="submit">
+        <button class="btn ghost" type="button" id="resetBtn2">Reset</button>
+        <button class="btn primary" type="button" id="copyBtn2">Copy phrase</button>
+      </div>
+      </div>
+    </div>
+
+  </section>
+
+ </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  const $  = (s,r=document) => r.querySelector(s);
+  const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+  const KEY = "flove:shareful:v1";
+
+  let toastT;
+  const toast = m => { const el=$("#toast"); el.textContent=m; el.classList.add("is-visible"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("is-visible"),1700); };
+
+  const pSlot = $(".people-slot");
+  const uSlot = $(".purposes-slot");
+
+  function updateSlots(){
+    const p = $("#people").value.trim();
+    const u = $("#purposes").value.trim();
+    pSlot.textContent = p ? ` (specifically: "${p}")` : "";
+    uSlot.textContent = u ? ` for purposes like "${u}"` : "";
+  }
+
+  // Invitation button — flamier blue every 3 selections / texts added
+  const inviteBtn = $("#inviteBtn");
+  function updateProgress(){
+    if (!inviteBtn) return;
+    let count = 0;
+    ["for","ts","t1","t2","t3","t4","t5","reason"].forEach(n => {
+      count += $$(`input[name="${n}"]:checked`).length;
+    });
+    ["#people","#purposes","#additional","#pref-note","#extra-invite"].forEach(s => {
+      const el = $(s);
+      if (el && el.value.trim()) count++;
+    });
+    inviteBtn.dataset.progress = String(Math.min(6, Math.floor(count / 3)));
+  }
+
+  // Reasons clouds — drifting cloud · 3-step "+" reveal · click a tab to dock it
+  $$(".reasons-cloud").forEach(cloud => {
+    const col = cloud.closest(".for-col");
+    const newInput = col ? col.querySelector(".new-reason-input") : null;
+    const addBtn = cloud.querySelector(".add-reason");
+    const expandBtn = col ? col.querySelector(".expand-plus") : null;
+    const dock = col ? col.querySelector(".for-docked") : null;
+
+    // each chip drifts gently around its own "home" cell so they stay spread out
+    const visibleChips = () =>
+      $$(":scope > .reason-chip, :scope > .add-reason", cloud)
+        .filter(c => c.style.display !== "none");
+    const drift = () => {
+      visibleChips().forEach(c => {
+        if (!c.dataset.homeX) return;
+        c.style.left = (+c.dataset.homeX + (Math.random()-0.5)*7) + "%";
+        c.style.top  = (+c.dataset.homeY + (Math.random()-0.5)*8) + "%";
+      });
+    };
+    const layout = () => {
+      const chips = visibleChips();
+      // shuffle so a group's children scatter across the cloud, not sit together
+      for (let i = chips.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [chips[i], chips[j]] = [chips[j], chips[i]];
+      }
+      const cols = Math.max(1, Math.ceil(Math.sqrt(chips.length)));
+      const rows = Math.max(1, Math.ceil(chips.length / cols));
+      chips.forEach((c,i) => {
+        c.dataset.homeX = (6 + ((i % cols) + 0.5) / cols * 70).toFixed(2);
+        c.dataset.homeY = (4 + (Math.floor(i / cols) + 0.5) / rows * 84).toFixed(2);
+      });
+      drift();
+    };
+
+    // 3 steps: 0 = two parents · 1 = all parents · 2 = all parents + children
+    function applyExpand(){
+      const state = +(col.dataset.expand || 0);
+      const parents = $$(":scope > .parent-chip", cloud);
+      const kids    = $$(":scope > .child-chip", cloud);
+      parents.forEach((p,i) => { p.style.display = (state >= 1 || i < 2) ? "inline-flex" : "none"; });
+      if (state >= 2){
+        kids.forEach(k => {
+          if (k.style.display !== "inline-flex"){
+            const p = cloud.querySelector('.parent-chip[data-pid="' + k.dataset.parent + '"]');
+            if (p && p.style.left){ k.style.left = p.style.left; k.style.top = p.style.top; }
+            k.style.display = "inline-flex";
+          }
+        });
+        setTimeout(layout, 40);
+      } else {
+        kids.forEach(k => { k.style.display = "none"; });
+        layout();
+      }
+    }
+    expandBtn?.addEventListener("click", () => {
+      col.dataset.expand = String(((+(col.dataset.expand || 0)) + 1) % 3);
+      applyExpand();
+    });
+
+    // click a tab → it docks into the 2-column grid below; click again → back to the cloud
+    cloud.addEventListener("change", e => {
+      const chip = e.target.closest(".reason-chip");
+      if (!chip || !dock || !cloud.contains(chip)) return;
+      if (e.target.checked){ chip.style.display = ""; dock.appendChild(chip); }
+    });
+    dock?.addEventListener("change", e => {
+      const chip = e.target.closest(".reason-chip");
+      if (!chip || e.target.checked) return;
+      chip.style.display = "inline-flex";
+      cloud.insertBefore(chip, addBtn || null);
+      layout();
+    });
+
+    applyExpand();
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches){
+      setInterval(drift, 4400);
+    }
+
+    // "+" in the cloud — type a custom reason; Enter adds it as a parent tab
+    const addChip = txt => {
+      const lbl = document.createElement("label");
+      lbl.className = "reason-chip parent-chip";
+      lbl.style.display = "inline-flex";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.name = "reason";
+      lbl.append(cb, document.createTextNode(" " + txt));
+      cloud.insertBefore(lbl, addBtn || null);
+      layout();
+    };
+    addBtn?.addEventListener("click", () => {
+      if (!newInput) return;
+      newInput.classList.toggle("is-open");
+      if (newInput.classList.contains("is-open")) newInput.focus();
+    });
+    newInput?.addEventListener("keydown", e => {
+      if (e.key === "Enter"){
+        e.preventDefault();
+        const txt = newInput.value.trim();
+        if (txt) addChip(txt);
+        newInput.value = "";
+        newInput.classList.remove("is-open");
+      } else if (e.key === "Escape"){
+        newInput.value = "";
+        newInput.classList.remove("is-open");
+      }
+    });
+  });
+
+  function snapshot(){
+    const radios = ["for","ts","t1","t2","t3","t4","t5"].reduce((o,name) => {
+      const r = document.querySelector(`input[name="${name}"]:checked`);
+      o[name] = r ? r.id : "";
+      return o;
+    }, {});
+    return Object.assign(radios, {
+      people:     $("#people").value,
+      purposes:   $("#purposes").value,
+      additional: $("#additional").value
+    });
+  }
+  function restore(){
+    let d; try{ d = JSON.parse(localStorage.getItem(KEY) || "null"); }catch(e){ return; }
+    if (!d) return;
+    ["for","ts","t1","t2","t3","t4","t5"].forEach(name => {
+      if (d[name]){ const el = document.getElementById(d[name]); if (el) el.checked = true; }
+    });
+    if (d.people)     $("#people").value     = d.people;
+    if (d.purposes)   $("#purposes").value   = d.purposes;
+    if (d.additional) $("#additional").value = d.additional;
+  }
+
+  // Highlight mic/file tools once a file is picked
+  $$(".ta-tool input[type=file]").forEach(inp => {
+    inp.addEventListener("change", () => {
+      inp.parentElement.classList.toggle("has-file", !!inp.files.length);
+    });
+  });
+  let saveT;
+  function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} }, 250); }
+
+  $("#lend").addEventListener("input", () => { updateSlots(); updateProgress(); });
+  $("#lend").addEventListener("change", () => { updateSlots(); updateProgress(); });
+
+  async function copyPhrase(){
+    const text = $("#sentence").textContent.replace(/\s+/g," ").trim();
+    try{ await navigator.clipboard.writeText(text); toast("Phrase copied"); }
+    catch(e){ toast("Couldn't copy"); }
+  }
+  $("#copyBtn")?.addEventListener("click", copyPhrase);
+  $("#copyBtn2")?.addEventListener("click", copyPhrase);
+
+  $("#exportBtn")?.addEventListener("click", () => {
+    const data = { ...snapshot(), phrase: $("#sentence").textContent.replace(/\s+/g," ").trim() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "shareful-conditions.json";
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 80);
+    toast("Exported JSON");
+  });
+  $("#printBtn")?.addEventListener("click", () => window.print());
+
+  function reset(){
+    if (!confirm("Reset all conditions?")) return;
+    try{ localStorage.removeItem(KEY); }catch(_){}
+    location.reload();
+  }
+  $("#resetBtn")?.addEventListener("click", reset);
+  $("#resetBtn2")?.addEventListener("click", reset);
+
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  updateSlots();
+  updateProgress();
+})();
+</script>
+</body>
+</html>

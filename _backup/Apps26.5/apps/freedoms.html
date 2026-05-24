@@ -1,0 +1,624 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes"/>
+  <title>✺ flove · Freedoms</title>
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Material+Symbols+Rounded:FILL@0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="flove.css">
+  <!-- SortableJS -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <style>
+    :root {
+      /* flove identity overrides — navy Freedoms */
+      --app-accent:        #1a5e9c;
+      --app-accent-soft:   #cfe2f5;
+      --app-ink-on-accent: #ffffff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f5f9ff; font-family: 'Inter', sans-serif; color: #0b1c2c;
+      line-height: 1.5; padding: 0 16px 24px;
+    }
+    .wrapper { max-width: 1200px; margin: 0 auto; }
+    
+    .site-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 0 12px; border-bottom: 1px solid rgba(0,35,70,0.08);
+      margin-bottom: 20px;
+    }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      background: #0a3146; color: white; width: 46px; height: 46px;
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .logo-text h1 { font-weight: 700; font-size: 1.8rem; letter-spacing: -0.02em; color: #0b2b44; }
+    .tagline { font-size: 0.8rem; color: #3f6b8c; font-weight: 500; }
+    
+    .menu-icon-btn {
+      background: white; border: 1px solid #cbdae6; width: 48px; height: 48px;
+      border-radius: 40px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.15s; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .menu-dropdown {
+      position: absolute; right: 16px; top: 80px; background: white;
+      border-radius: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+      padding: 12px; min-width: 200px; display: none; z-index: 100;
+      border: 1px solid #c7ddef;
+    }
+    .menu-dropdown a {
+      display: block; padding: 12px 18px; border-radius: 40px;
+      text-decoration: none; color: #1a4f73; font-weight: 500;
+    }
+    .menu-dropdown a:hover { background: #e2eefb; }
+
+    .mode-tabs {
+      display: flex; gap: 8px; margin-bottom: 24px;
+    }
+    .mode-tab {
+      background: transparent; border: 2px solid #b8cee4; padding: 12px 28px;
+      border-radius: 60px; font-weight: 700; font-size: 1.1rem; color: #1a4b6d;
+      cursor: pointer; transition: 0.15s;
+    }
+    .mode-tab.active {
+      background: #1a5e9c; border-color: #1a5e9c; color: white;
+    }
+
+    /* Draggable grid — hidden in rate mode */
+    .category-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 500px;
+      margin: 20px 0 30px;
+      background: #eaf0f8;
+      padding: 20px;
+      border-radius: 36px;
+      border: 2px dashed #9bb9d6;
+    }
+    body.rate-mode .category-grid { display: none; }
+
+    .slot {
+      background: rgba(255,255,255,0.6); backdrop-filter: blur(4px);
+      border-radius: 24px; min-height: 70px; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      border: 2px solid #b8cee4; box-shadow: 0 6px 12px rgba(0,0,0,0.02);
+      gap: 6px; padding: 8px;
+    }
+    .center-slot {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: 160px;
+    }
+
+    .category-tab {
+      background: white; padding: 8px 14px; border-radius: 60px;
+      font-weight: 700; font-size: 0.85rem; color: #0b3a57;
+      box-shadow: 0 4px 10px rgba(0,20,40,0.06); border: 1px solid #b1cbe2;
+      cursor: grab; user-select: none; display: inline-flex; align-items: center;
+      gap: 6px; width: fit-content;
+    }
+    .category-tab .micon { font-size: 20px; }
+    .category-tab:active { cursor: grabbing; }
+
+    /* Rate category tabs */
+    .rate-cat-tabs {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;
+    }
+    .rate-cat-tab {
+      background: white; border: 1px solid #b8cee4; padding: 10px 20px;
+      border-radius: 40px; font-weight: 600; color: #1a4b6d;
+      cursor: pointer; transition: 0.1s; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .rate-cat-tab.active {
+      background: #1a5e9c; border-color: #1a5e9c; color: white;
+    }
+
+    .dropdown-content {
+      display: none; position: absolute; background: white; border-radius: 20px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.12); padding: 12px; z-index: 50;
+      min-width: 200px; border: 1px solid #c7ddef;
+    }
+    .dropdown-content a {
+      display: block; padding: 10px 16px; border-radius: 40px;
+      text-decoration: none; color: #1a4f73; font-weight: 500;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(2px);
+      border-radius: 32px; padding: 24px 22px; margin-bottom: 30px;
+      box-shadow: 0 12px 30px -8px rgba(0,20,40,0.06);
+      border: 1px solid rgba(70,130,180,0.15);
+    }
+    .panel-title {
+      display: flex; align-items: center; gap: 12px; font-weight: 700;
+      font-size: 1.6rem; margin-bottom: 20px; color: #103a52;
+    }
+    .micon { font-family: 'Material Symbols Rounded'; font-weight: normal; font-size: 28px; vertical-align: middle; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+    fieldset.checks {
+      border: none; background: #ffffffd6; border-radius: 24px; padding: 18px 16px;
+    }
+    legend { font-weight: 700; color: #0e3a5a; display: flex; gap: 8px; }
+    label { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #e2ecf5; }
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: #1a5e9c; }
+    .btn.add {
+      background: none; border: 2px dashed #9bb7d4; border-radius: 40px;
+      padding: 10px 14px; font-weight: 600; color: #1a5e9c; display: inline-flex;
+      align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; width: 100%; justify-content: center;
+    }
+    .tree-list { list-style: none; margin-top: 10px; }
+    details {
+      background: #fafdff; border-radius: 20px; padding: 8px 12px;
+      border: 1px solid #d7e3ef;
+    }
+    summary {
+      font-weight: 700; padding: 8px 4px; cursor: pointer; display: flex;
+      align-items: center; gap: 12px; list-style: none;
+    }
+    .node-label { display: flex; align-items: center; gap: 8px; font-size: 1.15rem; }
+    .pill { background: #d4e2f0; padding: 4px 12px; border-radius: 40px; font-size: 0.75rem; font-weight: 700; }
+
+    /* Collapsed core half-size */
+    .core-collapsed {
+      margin-bottom: 24px;
+    }
+    .core-collapsed details {
+      background: #f2f7fd; border-radius: 24px;
+    }
+    .core-collapsed summary {
+      font-size: 1.3rem; padding: 12px 16px;
+    }
+
+    .phrase-panel {
+      background: #132e42; color: white; border-radius: 32px; padding: 24px; margin-top: 30px;
+    }
+    .phrase-display {
+      font-size: 1.2rem; background: #0a1e2c; padding: 20px; border-radius: 24px;
+      margin-bottom: 20px; border-left: 6px solid #5f9cd1;
+    }
+    .action-bar { display: flex; flex-wrap: wrap; gap: 12px; }
+    .action-btn {
+      background: #234a62; border: none; color: white; padding: 14px 24px;
+      border-radius: 60px; font-weight: 700; display: flex; align-items: center; gap: 10px; cursor: pointer;
+    }
+
+    .rate-view { display: none; }
+    .develop-view { display: block; }
+    body.rate-mode .rate-view { display: block; }
+    body.rate-mode .develop-view { display: none; }
+
+    .rate-title-input {
+      width: 100%; padding: 16px 20px; font-size: 1.5rem; font-weight: 700;
+      border: 2px solid #c7ddef; border-radius: 40px; margin-bottom: 24px;
+      background: white; color: #103a52;
+    }
+
+    .rate-category-panel { display: none; }
+    .rate-category-panel.active { display: block; }
+
+    .rating-mini {
+      display: flex; gap: 4px; margin-left: auto; align-items: center;
+    }
+    .rating-mini input { display: none; }
+    .rating-mini span {
+      width: 26px; height: 26px; border-radius: 30px; background: #e1ebf5;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; color: #1a4e70;
+      border: 2px solid transparent; cursor: pointer;
+    }
+    .rating-mini input:checked + span {
+      background: #1a5e9c; color: white; border-color: #a2c2e0;
+    }
+
+    /* voice input style */
+    .voice-field {
+      display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    }
+    .voice-field input {
+      flex:1; padding: 12px; border-radius: 40px; border: 1px solid #b8cee4;
+    }
+    .mic-btn {
+      background: white; border: 1px solid #b8cee4; border-radius: 40px;
+      width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .modal {
+      position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4);
+      display: none; align-items: center; justify-content: center; z-index: 200;
+    }
+    .modal-content {
+      background: white; border-radius: 32px; padding: 24px; max-width: 500px; width: 90%;
+      max-height: 80vh; overflow: auto;
+    }
+  </style>
+</head>
+<body class="develop-mode">
+
+<div class="flove-bar">
+  <a class="flove-home" href="index.html">←</a>
+  <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;"><defs><linearGradient id="g-freedoms" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ff3344"/><stop offset="50%" stop-color="#ff8a3a"/><stop offset="100%" stop-color="#ffd633"/></linearGradient></defs><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 50 Q30 30 50 50 Q70 30 86 50" stroke="url(#g-freedoms)" fill="none"/><path d="M50 50 L50 60" stroke="url(#g-freedoms)" fill="none"/><circle cx="50" cy="64" r="2.5" fill="url(#g-freedoms)" stroke="none"/></g></svg>
+  <span class="flove-app-name">freedoms</span>
+  <span class="flove-spacer"></span>
+  <span class="flove-tag">libertades vivas</span>
+</div>
+
+<header class="site-header">
+  <div class="logo-area">
+    <div class="logo-icon"><span class="micon">auto_awesome</span></div>
+    <div class="logo-text">
+      <h1>Freedom Standards</h1>
+      <div class="tagline">drag · dial · declare</div>
+    </div>
+  </div>
+  <div style="position:relative;">
+    <div class="menu-icon-btn" id="menuToggle"><span class="micon">menu</span></div>
+    <div class="menu-dropdown" id="menuDropdown">
+      <a href="#" id="aboutLink"><span class="micon">info</span> About</a>
+      <a href="#" id="prefsLink"><span class="micon">settings</span> Preferences</a>
+      <a href="#" id="treeMapLink"><span class="micon">account_tree</span> Tree map</a>
+      <a href="#" id="graphViewLink"><span class="micon">hub</span> Advanced graph</a>
+    </div>
+  </div>
+</header>
+
+<div class="mode-tabs">
+  <button class="mode-tab active" id="developTab">🛠️ Develop</button>
+  <button class="mode-tab" id="rateTab">⭐ Rate (1–5)</button>
+</div>
+
+<!-- DRAGGABLE CATEGORIES -->
+<div class="category-grid" id="categoryGrid">
+  <div class="slot" data-slot="tl"></div>
+  <div class="slot" data-slot="tr"></div>
+  <div class="slot center-slot" data-slot="center"></div>
+  <div class="slot" data-slot="bl"></div>
+  <div class="slot" data-slot="br"></div>
+</div>
+<div style="display: none;" id="categoryTabsContainer">
+  <div class="category-tab" data-cat="economy"><span class="micon">savings</span> Economy</div>
+  <div class="category-tab" data-cat="legal"><span class="micon">gavel</span> Legal</div>
+  <div class="category-tab" data-cat="media"><span class="micon">podcasts</span> Media</div>
+  <div class="category-tab" data-cat="military"><span class="micon">shield</span> Military</div>
+  <div class="category-tab" data-cat="politics"><span class="micon">account_balance</span> Politics</div>
+</div>
+
+<main class="wrapper">
+  <!-- DEVELOP VIEW -->
+  <div class="develop-view">
+    <div id="dynamicCategoryContent"></div>
+  </div>
+
+  <!-- RATE VIEW -->
+  <div class="rate-view">
+    <section class="panel">
+      <input type="text" class="rate-title-input" placeholder="Rate session title" value="Freedom baseline">
+      <div class="rate-cat-tabs">
+        <button class="rate-cat-tab active" data-rate-cat="economy">💰 Economy</button>
+        <button class="rate-cat-tab" data-rate-cat="legal">⚖️ Legal</button>
+        <button class="rate-cat-tab" data-rate-cat="media">📡 Media</button>
+        <button class="rate-cat-tab" data-rate-cat="military">🛡️ Military</button>
+        <button class="rate-cat-tab" data-rate-cat="politics">🏛️ Politics</button>
+      </div>
+      <div id="rate-panels-container"></div>
+    </section>
+  </div>
+
+  <!-- PHRASE SUMMARY -->
+  <section class="phrase-panel">
+    <div class="phrase-display" id="summaryPhrase">✨ Core: 5 standards · Rate core 3/5 · 12 total checks</div>
+    <div class="action-bar">
+      <button class="action-btn" id="copyBtn"><span class="micon">content_copy</span> Copy</button>
+      <button class="action-btn" id="magicBtn"><span class="micon">auto_awesome</span> Magic insight</button>
+      <button class="action-btn" id="shareBtn"><span class="micon">share</span> Share</button>
+      <button class="action-btn" id="publishBtn"><span class="micon">publish</span> Publish</button>
+    </div>
+  </section>
+</main>
+
+<!-- Modals for tree/graph -->
+<div class="modal" id="treeModal"><div class="modal-content"><h3>Tree map</h3><pre id="treeContent"></pre><button class="btn add" onclick="document.getElementById('treeModal').style.display='none'">Close</button></div></div>
+<div class="modal" id="graphModal"><div class="modal-content"><h3>Advanced graph</h3><div id="graphContent"></div><button class="btn add" onclick="document.getElementById('graphModal').style.display='none'">Close</button></div></div>
+
+<template id="tpl-standard-voice">
+  <div class="voice-field">
+    <input type="text" class="inline-edit" placeholder="Speak or type standard">
+    <button class="mic-btn" type="button"><span class="micon">mic</span></button>
+  </div>
+</template>
+<template id="tpl-category-node">
+  <li class="node"><details open><summary><span class="node-label"><span class="micon">folder</span> New</span></summary><fieldset class="checks"><button class="btn add add-standard">+ Add</button></fieldset></details></li>
+</template>
+
+<script>
+  (() => {
+    // Menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const menuDropdown = document.getElementById('menuDropdown');
+    menuToggle.addEventListener('click', (e) => { e.stopPropagation(); menuDropdown.style.display = menuDropdown.style.display === 'block' ? 'none' : 'block'; });
+    document.addEventListener('click', () => menuDropdown.style.display = 'none');
+
+    // Tabs
+    const developTab = document.getElementById('developTab');
+    const rateTab = document.getElementById('rateTab');
+    const body = document.body;
+    developTab.addEventListener('click', () => {
+      body.classList.remove('rate-mode'); body.classList.add('develop-mode');
+      developTab.classList.add('active'); rateTab.classList.remove('active');
+    });
+    rateTab.addEventListener('click', () => {
+      body.classList.add('rate-mode'); body.classList.remove('develop-mode');
+      rateTab.classList.add('active'); developTab.classList.remove('active');
+    });
+
+    // Drag & drop
+    const slots = document.querySelectorAll('.slot');
+    const tabs = [...document.querySelectorAll('.category-tab')];
+    const slotMap = { tl: slots[0], tr: slots[1], center: slots[2], bl: slots[3], br: slots[4] };
+    const catOrder = ['economy', 'legal', 'media', 'military', 'politics'];
+    catOrder.forEach((cat, i) => {
+      const tab = tabs.find(t => t.dataset.cat === cat);
+      const keys = ['tl','tr','center','bl','br'];
+      if(tab) slotMap[keys[i]].appendChild(tab);
+    });
+    slots.forEach(slot => new Sortable(slot, { group: 'categories', animation: 200, draggable: '.category-tab' }));
+
+    // ---------- CORE STANDARDS GENERATOR (per category) ----------
+    function generateCoreBlock(category) {
+      const coreStandards = {
+        economy: ['50%+ shareful ownership','50%+ free data','50%+ public tasks','Accepts directed donations','Bids 50%+ free wages'],
+        legal: ['Clear licensing terms','Open source friendly','GDPR compliance','Dispute mediation','Transparent contracts'],
+        media: ['Editorial independence','Public access channels','Decentralized social','Transparent moderation','Press freedom index'],
+        military: ['Defensive posture','Open supply chain','Whistleblower protection','Civilian oversight','Ethical AI use'],
+        politics: ['Participatory budgeting','Campaign finance reform','Civic tech integration','Open data policy','Voter access']
+      };
+      const standards = coreStandards[category] || coreStandards.economy;
+      const block = document.createElement('section'); block.className = 'core-collapsed';
+      block.innerHTML = `<details><summary><span class="micon">verified</span> Core Standards · ${category}</summary><div style="margin-top:20px;"><fieldset class="checks"><legend>Core</legend>`;
+      standards.forEach(s => { block.querySelector('fieldset').innerHTML += `<label><input type="checkbox" checked> ${s}</label>`; });
+      block.querySelector('fieldset').innerHTML += `<button class="btn add add-standard"><span class="micon">add</span> Add standard</button></fieldset></div></details>`;
+      return block;
+    }
+
+    // ----- DEVELOP CONTENT GENERATOR (includes core) -----
+    function generateDevelopContent(category) {
+      const container = document.getElementById('dynamicCategoryContent');
+      container.innerHTML = '';
+      const panel = document.createElement('section'); panel.className = 'tree panel';
+      const titles = { economy:'Economy · Practices', legal:'Legal · Frameworks', media:'Media · Channels', military:'Military · Security', politics:'Politics · Governance' };
+      const icons = { economy:'savings', legal:'gavel', media:'podcasts', military:'shield', politics:'account_balance' };
+      panel.innerHTML = `<h2 class="panel-title"><span class="micon">${icons[category]}</span> ${titles[category]}</h2>`;
+      
+      // Insert core block
+      panel.appendChild(generateCoreBlock(category));
+      
+      const treeList = document.createElement('ol'); treeList.className = 'tree-list';
+      const structures = {
+        economy: [{ name:'Project', icon:'rocket_launch', children:[{ name:'Task', icon:'checklist', children:[{ name:'Wage', icon:'payments' }] }] }, { name:'Meeting', icon:'forum' }],
+        legal: [{ name:'Contracts', icon:'description', children:[{ name:'Licenses', icon:'license' }] }, { name:'Compliance', icon:'policy' }, { name:'Dispute resolution', icon:'gavel' }],
+        media: [{ name:'Press', icon:'newspaper', children:[{ name:'Broadcast', icon:'podcasts' }] }, { name:'Social', icon:'group' }, { name:'Content moderation', icon:'verified' }],
+        military: [{ name:'Strategy', icon:'strategy' }, { name:'Logistics', icon:'local_shipping' }, { name:'Personnel', icon:'badge' }],
+        politics: [{ name:'Policy', icon:'policy' }, { name:'Elections', icon:'how_to_vote' }, { name:'Governance', icon:'account_balance' }]
+      };
+      
+      function buildNode(item) {
+        const li = document.createElement('li'); li.className = 'node';
+        const details = document.createElement('details'); details.open = true;
+        details.innerHTML = `<summary><span class="node-label"><span class="micon">${item.icon}</span> ${item.name}</span></summary>`;
+        const fieldset = document.createElement('fieldset'); fieldset.className = 'checks';
+        fieldset.innerHTML = `<legend>${item.name} standards</legend>`;
+        const defaults = {
+          'Project':['Short/mid/long tasks','Open commitment','Rewards proposed'],
+          'Task':['Accurate description','Visible to public'], 'Wage':['Simple living favoured'],
+          'Meeting':['Open agenda'], 'Contracts':['Clear terms'], 'Licenses':['Permissive'],
+          'Compliance':['GDPR'], 'Dispute resolution':['Mediation'], 'Press':['Independence'],
+          'Broadcast':['Public access'], 'Social':['Decentralized'], 'Content moderation':['Transparent'],
+          'Strategy':['Defensive'], 'Logistics':['Open supply'], 'Personnel':['Whistleblower'],
+          'Policy':['Participatory'], 'Elections':['Campaign finance'], 'Governance':['Civic tech']
+        };
+        (defaults[item.name] || ['Example']).forEach(t => { fieldset.innerHTML += `<label><input type="checkbox" checked> ${t}</label>`; });
+        fieldset.innerHTML += `<button class="btn add add-standard"><span class="micon">add</span> Add</button>`;
+        details.appendChild(fieldset);
+        if(item.children) {
+          const inner = document.createElement('ol'); inner.className = 'tree-list inner';
+          item.children.forEach(c => inner.appendChild(buildNode(c)));
+          details.appendChild(inner);
+        }
+        li.appendChild(details); return li;
+      }
+      structures[category].forEach(item => treeList.appendChild(buildNode(item)));
+      panel.appendChild(treeList);
+      panel.innerHTML += `<button class="btn add add-category"><span class="micon">add_circle</span> Add category</button>`;
+      container.appendChild(panel);
+    }
+    generateDevelopContent('economy');
+
+    // ----- RATE PANELS (similar to before) -----
+    const rateContainer = document.getElementById('rate-panels-container');
+    function buildRatePanel(category) {
+      const titles = { economy:'Economy', legal:'Legal', media:'Media', military:'Military', politics:'Politics' };
+      const standardsList = {
+        economy: { 'Project':['Short/mid/long tasks','Open commitment','Rewards proposed'], 'Task':['Accurate description','Visible to public'], 'Wage':['Simple living favoured'], 'Meeting':['Open agenda'] },
+        legal: { 'Contracts':['Clear terms','Open source friendly'], 'Licenses':['Permissive license'], 'Compliance':['GDPR ready'], 'Dispute resolution':['Mediation first'] },
+        media: { 'Press':['Editorial independence'], 'Broadcast':['Public access'], 'Social':['Decentralized'], 'Content moderation':['Transparent rules'] },
+        military: { 'Strategy':['Defensive posture'], 'Logistics':['Open supply chain'], 'Personnel':['Whistleblower protection'] },
+        politics: { 'Policy':['Participatory budgeting'], 'Elections':['Campaign finance reform'], 'Governance':['Civic tech integration'] }
+      };
+      let html = `<div class="rate-category-panel" id="rate-${category}"><h3>${titles[category]} ratings</h3>`;
+      const list = standardsList[category] || {};
+      Object.keys(list).forEach(key => {
+        html += `<div style="margin:16px 0 8px; font-weight:700;"><span class="micon">${getIcon(key)}</span> ${key}</div>`;
+        list[key].forEach(std => {
+          const id = `${category}-${key}-${std}`.replace(/\s+/g,'_');
+          html += `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #e2ecf5;">
+            <span style="flex:1;">${std}</span>
+            <div class="rating-mini">${[1,2,3,4,5].map(v => `<label><input type="radio" name="${id}" value="${v}" ${v===3?'checked':''}><span>${v}</span></label>`).join('')}</div>
+          </div>`;
+        });
+      });
+      html += `</div>`;
+      return html;
+    }
+    function getIcon(n) { const m={Project:'rocket_launch',Task:'checklist',Wage:'payments',Meeting:'forum',Contracts:'description',Licenses:'license',Compliance:'policy','Dispute resolution':'gavel',Press:'newspaper',Broadcast:'podcasts',Social:'group','Content moderation':'verified',Strategy:'strategy',Logistics:'local_shipping',Personnel:'badge',Policy:'policy',Elections:'how_to_vote',Governance:'account_balance'}; return m[n]||'label'; }
+    function refreshRatePanels(active='economy') {
+      rateContainer.innerHTML = ['economy','legal','media','military','politics'].map(c => buildRatePanel(c)).join('');
+      document.querySelectorAll('.rate-category-panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById(`rate-${active}`).classList.add('active');
+    }
+    refreshRatePanels('economy');
+
+    document.querySelectorAll('.rate-cat-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.rate-cat-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const cat = tab.dataset.rateCat;
+        document.querySelectorAll('.rate-category-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(`rate-${cat}`).classList.add('active');
+      });
+    });
+
+    // Dropdown from draggable tabs
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('.category-tab');
+      if(!tab) return;
+      e.stopPropagation();
+      const existing = document.querySelector('.temp-dropdown');
+      if(existing) existing.remove();
+      const cat = tab.dataset.cat;
+      const subs = { economy:['Project','Task','Wage','Meeting'], legal:['Contracts','Licenses','Compliance','Dispute'], media:['Press','Broadcast','Social','Moderation'], military:['Strategy','Logistics','Personnel'], politics:['Policy','Elections','Governance'] };
+      const dropdown = document.createElement('div'); dropdown.className = 'dropdown-content temp-dropdown';
+      subs[cat].forEach(sub => {
+        const a = document.createElement('a'); a.href='#'; a.textContent = sub;
+        a.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          generateDevelopContent(cat);
+          if(body.classList.contains('rate-mode')) {
+            body.classList.remove('rate-mode'); body.classList.add('develop-mode');
+            developTab.classList.add('active'); rateTab.classList.remove('active');
+          }
+          dropdown.remove();
+        });
+        dropdown.appendChild(a);
+      });
+      tab.parentNode.appendChild(dropdown); dropdown.style.display = 'block';
+      setTimeout(() => {
+        const close = (e) => { if(!dropdown.contains(e.target) && !tab.contains(e.target)) { dropdown.remove(); document.removeEventListener('click',close); } };
+        document.addEventListener('click', close);
+      }, 10);
+    });
+
+    // ----- VOICE RECORDING & ADD STANDARD (using Web Speech) -----
+    function handleAddStandard(btn) {
+      const fieldset = btn.closest('fieldset');
+      const tpl = document.querySelector('#tpl-standard-voice').content.cloneNode(true);
+      const voiceDiv = tpl.querySelector('.voice-field');
+      const micBtn = voiceDiv.querySelector('.mic-btn');
+      const input = voiceDiv.querySelector('input');
+      
+      // Speech recognition setup
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        micBtn.addEventListener('click', () => {
+          recognition.start();
+          micBtn.style.background = '#f0c0c0';
+        });
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          input.value = transcript;
+          micBtn.style.background = '';
+        };
+        recognition.onerror = () => { micBtn.style.background = ''; alert('Voice recognition error'); };
+        recognition.onend = () => { micBtn.style.background = ''; };
+      } else {
+        micBtn.addEventListener('click', () => { input.value = prompt('Enter standard text:') || input.value; });
+      }
+      
+      fieldset.insertBefore(voiceDiv, btn);
+    }
+
+    document.addEventListener('click', e => {
+      if(e.target.closest('.add-standard')) {
+        e.preventDefault();
+        handleAddStandard(e.target.closest('.add-standard'));
+        updatePhrase();
+      }
+      if(e.target.closest('.add-category')) {
+        e.preventDefault();
+        const tree = document.querySelector('.tree-list');
+        if(tree) tree.appendChild(document.querySelector('#tpl-category-node').content.cloneNode(true));
+      }
+      if(e.target.matches('input')) setTimeout(updatePhrase,20);
+    });
+
+    function updatePhrase() {
+      const core = document.querySelectorAll('[data-scope="project-core"] input:checked').length;
+      const total = document.querySelectorAll('.checks input[type=checkbox]:checked').length;
+      const rateChecked = document.querySelectorAll('.rating-mini input:checked').length;
+      document.getElementById('summaryPhrase').textContent = `📊 Core: ${core} · ${total} checks · ${rateChecked} ratings set.`;
+    }
+    updatePhrase();
+
+    // Action buttons
+    document.getElementById('copyBtn').addEventListener('click', ()=> navigator.clipboard?.writeText(document.getElementById('summaryPhrase').textContent));
+    document.getElementById('magicBtn').addEventListener('click', ()=>{
+      const checks = document.querySelectorAll('.checks input:checked').length;
+      const ratings = [...document.querySelectorAll('.rating-mini input:checked')].map(r=>r.value);
+      const avg = ratings.length ? (ratings.reduce((a,b)=>a+ +b,0)/ratings.length).toFixed(1) : '3.0';
+      document.getElementById('summaryPhrase').textContent = `✨ Insight: ${checks} commitments, avg rating ${avg}/5.`;
+    });
+    document.getElementById('shareBtn').addEventListener('click', ()=>{
+      const txt = document.getElementById('summaryPhrase').textContent;
+      if(navigator.share) navigator.share({title:'Freedom Standards', text:txt}); else alert(txt);
+    });
+    document.getElementById('publishBtn').addEventListener('click', ()=> alert('📢 Publish ready.'));
+
+    // Tree map & Graph view (simple text representation)
+    document.getElementById('treeMapLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      let treeText = '';
+      const cats = ['economy','legal','media','military','politics'];
+      cats.forEach(cat => {
+        treeText += `${cat.toUpperCase()}\n`;
+        const structures = {
+          economy: ['Project','Task','Wage','Meeting'],
+          legal: ['Contracts','Licenses','Compliance','Dispute resolution'],
+          media: ['Press','Broadcast','Social','Content moderation'],
+          military: ['Strategy','Logistics','Personnel'],
+          politics: ['Policy','Elections','Governance']
+        };
+        structures[cat].forEach(s => treeText += `  ├─ ${s}\n`);
+        treeText += '\n';
+      });
+      document.getElementById('treeContent').textContent = treeText;
+      document.getElementById('treeModal').style.display = 'flex';
+    });
+    document.getElementById('graphViewLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      const graphDiv = document.getElementById('graphContent');
+      graphDiv.innerHTML = '<p>Advanced graph: categories and links (demo)</p><ul>';
+      const cats = ['economy','legal','media','military','politics'];
+      cats.forEach(c => graphDiv.innerHTML += `<li>${c} → ${c} sub-areas (network view)</li>`);
+      graphDiv.innerHTML += '</ul>';
+      document.getElementById('graphModal').style.display = 'flex';
+    });
+    window.addEventListener('click', (e) => {
+      if(e.target.classList.contains('modal')) e.target.style.display = 'none';
+    });
+  })();
+</script>
+
+<a class="flove-footer-badge" href="index.html">
+  <span class="flove-asterism flove-asterism--still">✺</span> all apps
+</a>
+</body>
+</html>

@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>✺ Tree editor</title>
+<style>
+  :root{
+    --accent:#dc2626; --accent-deep:#991b1b; --accent-soft:#fee2e2;
+    --paper:#fffbfa; --ink:#1a0f0f; --ink-soft:#4a2a28; --muted:#8a6a68;
+    --line:rgba(120,30,30,.16); --ok:#15803d;
+    --font:'Inter',system-ui,sans-serif;
+  }
+  *{ box-sizing:border-box }
+  html,body{ margin:0 }
+  body{
+    font:14px/1.5 var(--font); color:var(--ink);
+    background:var(--paper); padding:0 0 80px;
+  }
+  body.dragging{ user-select:none; cursor:grabbing }
+
+  header{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:11px 18px; background:#fff; border-bottom:1px solid var(--line);
+  }
+  header h1{ font-size:.98rem; margin:0; font-weight:700 }
+  header .spacer{ flex:1 }
+  .btn{
+    border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    padding:7px 13px; border-radius:999px; font:600 .8rem var(--font);
+    cursor:pointer; transition:all .15s;
+  }
+  .btn:hover{ border-color:var(--accent); color:var(--accent-deep); background:var(--accent-soft) }
+  .btn.primary{ background:var(--accent); color:#fff; border-color:transparent }
+  .btn.primary:hover{ background:var(--accent-deep); color:#fff }
+  .btn.newitem{
+    background:var(--accent); color:#fff; border-color:transparent;
+    font-weight:800; letter-spacing:.01em;
+  }
+  .btn.newitem:hover{ background:var(--accent-deep); color:#fff }
+  .btn:disabled{ opacity:.45; pointer-events:none }
+
+  .staging{ display:flex; gap:6px; flex-wrap:wrap; align-items:center }
+  .staging:empty{ display:none }
+  .staging > *{ width:252px; margin:0 }
+  .staging .clause{ border-style:dashed; border-color:var(--accent); background:#fff }
+  .staging .cat-head{ border-style:dashed; border-color:var(--accent) }
+
+  main{ width:100%; padding:14px 18px }
+
+  /* ── import / export panels ── */
+  .io-panel{
+    margin:0 0 16px; background:#fff; border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px;
+  }
+  .io-panel h2{ font-size:.92rem; margin:0 0 8px }
+  .io-panel textarea{
+    width:100%; min-height:130px; resize:vertical;
+    border:1px solid var(--line); border-radius:9px; padding:10px;
+    font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:var(--ink); background:var(--paper);
+  }
+  .io-actions{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap }
+  .io-actions .hint{ color:var(--muted); font-size:.78rem }
+  .saved-tag{ color:var(--ok); font-size:.78rem }
+
+  /* ── tree as full-width columns ── */
+  .empty-msg{ color:var(--muted); font-size:.9rem; padding:18px 4px }
+  .kids{ margin-left:13px; border-left:1px dashed var(--line); padding-left:5px }
+  #tree > .kids{
+    margin:0; border-left:0; padding-left:0;
+    display:grid; gap:14px; align-items:start;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  @media(max-width:1280px){ #tree > .kids{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
+  @media(max-width:960px){  #tree > .kids{ grid-template-columns:repeat(2,minmax(0,1fr)) } }
+  @media(max-width:620px){  #tree > .kids{ grid-template-columns:1fr } }
+
+  .cat-head, .clause{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 7px; margin:3px 0;
+    background:#fff; border:1px solid var(--line); border-radius:9px;
+    cursor:grab;
+  }
+  .cat-head{ background:#fef2f0 }
+  .cat.depth0{
+    background:#fff; border:1px solid var(--line); border-radius:12px;
+    padding:8px 10px 10px;
+  }
+  .cat.depth0 > .cat-head{
+    background:var(--accent); border-color:transparent; margin:0 0 4px;
+    border-radius:9px; cursor:default;
+  }
+  .cat.depth0 > .cat-head .lab{ color:#fff; font-weight:800; letter-spacing:.04em }
+  .cat.depth0 > .cat-head .mini{ background:rgba(255,255,255,.2); color:#fff; border-color:transparent }
+  .cat.depth0 > .cat-head .mini:hover{ background:#fff; color:var(--accent-deep) }
+  .cat.depth0 > .cat-head .chev{ color:#fff; border-right-color:rgba(255,255,255,.35) }
+  .cat.depth0 > .cat-head .chev:hover{ background:rgba(255,255,255,.25); color:#fff }
+
+  .chev{
+    align-self:stretch; width:34px; flex-shrink:0; padding:0;
+    margin:-5px 6px -5px -7px;
+    display:grid; place-items:center;
+    border:0; border-right:1px solid var(--line);
+    border-radius:8px 0 0 8px;
+    background:transparent; color:var(--muted);
+    cursor:pointer; font-size:.95rem; line-height:1;
+    transition:background .15s, color .15s;
+  }
+  .chev:hover{ background:var(--accent-soft); color:var(--accent-deep) }
+
+  .lab{
+    flex:1; min-width:0; border:0; background:transparent;
+    font:inherit; color:inherit; padding:4px; outline:none; border-radius:5px;
+    cursor:text;
+  }
+  .lab:focus{ background:var(--accent-soft) }
+  .lab-cat{ font-weight:700 }
+  .mini{
+    width:23px; height:23px; flex-shrink:0; padding:0;
+    display:inline-grid; place-items:center;
+    border:1px solid var(--line); border-radius:50%;
+    background:#fff; color:var(--ink-soft); cursor:pointer; font-size:.85rem;
+    transition:all .15s;
+  }
+  .mini:hover{ border-color:var(--accent); color:var(--accent-deep); background:var(--accent-soft) }
+  .mini.del:hover{ background:var(--accent); color:#fff; border-color:transparent }
+  .mini.link{ color:var(--accent) }
+
+  /* selectable items — behaves like offer.html's clause selector */
+  .selbox{
+    width:20px; height:20px; flex-shrink:0; padding:0;
+    display:inline-grid; place-items:center;
+    border:1.5px solid rgba(120,30,30,.3); border-radius:6px;
+    background:#fff; color:transparent; cursor:pointer;
+    font-size:.78rem; line-height:1; transition:all .15s;
+  }
+  .selbox:hover{ border-color:var(--accent) }
+  .clause.is-sel{ background:var(--accent-soft); border-color:var(--accent) }
+  .clause.is-sel .selbox{ background:var(--accent); border-color:var(--accent); color:#fff }
+  /* when a sibling clause is picked, the unpicked ones dim to 50% */
+  .kids:has(> .clause.is-sel) > .clause:not(.is-sel){ opacity:.5 }
+
+  .dz{ height:4px; border-radius:5px; transition:height .1s, background .1s }
+  body.dragging .dz{ height:16px; background:rgba(220,38,38,.07) }
+  .dz.over{
+    height:34px; margin:3px 0; background:var(--accent-soft);
+    border:2px dashed var(--accent); box-shadow:0 0 0 3px rgba(220,38,38,.12);
+  }
+  .drag-source{ opacity:.35 }
+  .cat-head.drop-into{ box-shadow:0 0 0 3px rgba(220,38,38,.45) }
+  .clause.drop-into{ box-shadow:0 0 0 3px rgba(220,38,38,.45) }
+  .linknode{ background:#fff5f5; border-style:dashed; border-color:rgba(220,38,38,.4) }
+  .link-label{
+    flex:1; min-width:0; padding:4px; font-style:italic;
+    color:var(--accent-deep); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .drag-ghost{
+    position:fixed; left:0; top:0; z-index:9999; pointer-events:none;
+    padding:8px 13px; max-width:360px;
+    background:#fff; border:1.5px solid var(--accent); border-radius:9px;
+    box-shadow:0 16px 34px -10px rgba(60,10,10,.4);
+    font:600 .85rem var(--font); color:var(--ink);
+    transform:rotate(-1.6deg) scale(1.04);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✺ Tree editor</h1>
+  <button class="btn newitem" id="newItemBtn">✛ New</button>
+  <div class="staging" id="staging"></div>
+  <span class="spacer"></span>
+  <button class="btn" id="addRootBtn">+ item</button>
+  <button class="btn" id="resetBtn">↺ Clear</button>
+</header>
+
+<main>
+  <section class="io-panel">
+    <h2>① Import a tree</h2>
+    <textarea id="importText" placeholder="Paste an indented tree here, then press Build.
+
+Example —
+Fruit
+  Citrus
+    Orange
+    Lemon
+  Berries
+    Strawberry
+    Blueberry
+Vegetables
+  Leafy
+    Spinach
+
+Indentation sets the nesting. Leading bullets (•, -, *, +) and [tags] are optional and get stripped."></textarea>
+    <div class="io-actions">
+      <label class="btn">📂 Upload file<input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain" hidden></label>
+      <button class="btn primary" id="buildBtn">✦ Create tree</button>
+      <span class="hint">Indentation = nesting. The first depth shows expanded.</span>
+    </div>
+  </section>
+
+  <div id="tree"></div>
+
+  <section class="io-panel">
+    <h2>② Tree as text</h2>
+    <textarea id="out" readonly placeholder="Press “Generate text” to export the current tree…"></textarea>
+    <div class="io-actions">
+      <button class="btn primary" id="genBtn">Generate text</button>
+      <button class="btn" id="copyBtn">📋 Copy</button>
+      <span class="saved-tag" id="savedTag" hidden>copied ✓</span>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const KEY="flove:tree-editor:v1";
+let _uid=0;
+const nid=()=>"n"+(++_uid);
+
+let model=[];        // array of top-level nodes
+let staging=[];      // new items / links waiting to be placed
+
+/* node = {uid, label, kids:array|null, collapsed?, link?} */
+
+/* stable uids: keep saved ones, bump the counter past the max */
+function maxUidNum(nodes){
+  let m=0;
+  nodes.forEach(n=>{
+    const k=parseInt(String(n.uid).slice(1),10)||0;
+    if(k>m) m=k;
+    if(n.kids) m=Math.max(m,maxUidNum(n.kids));
+  });
+  return m;
+}
+try{
+  const s=localStorage.getItem(KEY);
+  if(s){
+    const o=JSON.parse(s);
+    model=o.model||[]; staging=o.staging||[];
+    _uid=Math.max(maxUidNum(model),maxUidNum(staging),_uid);
+  }
+}catch(e){}
+
+const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify({model,staging})); }catch(e){} };
+
+/* ── parse indented text into a tree ── */
+function parseTree(text){
+  const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.trim()!=="");
+  const roots=[], stack=[];
+  lines.forEach(line=>{
+    const m=line.match(/^(\s*)(.*)$/);
+    const indent=m[1].replace(/\t/g,"    ").length;
+    let label=m[2].trim()
+      .replace(/^([•▸▾▪◦*+–—\-]|↳)\s+/,"")     // leading bullet
+      .replace(/^(\d+[.\)]|[A-Za-z][.\)])\s+/,"")          // leading 1. / a)
+      .replace(/\s*\[[^\]]*\]\s*$/,"")                     // trailing [tag]
+      .trim();
+    const node={uid:nid(),label,kids:null};
+    while(stack.length && stack[stack.length-1].indent>=indent) stack.pop();
+    if(stack.length){
+      const p=stack[stack.length-1].node;
+      if(!p.kids) p.kids=[];
+      p.kids.push(node);
+    }else roots.push(node);
+    stack.push({indent,node});
+  });
+  (function setCollapsed(nodes,depth){
+    nodes.forEach(n=>{ if(n.kids){ n.collapsed=depth>0; setCollapsed(n.kids,depth+1); } });
+  })(roots,0);
+  return roots;
+}
+
+/* ── tree helpers ── */
+function findIn(uid,arr){
+  for(let i=0;i<arr.length;i++){
+    if(arr[i].uid===uid) return {node:arr[i],arr,index:i};
+    if(arr[i].kids){ const r=findIn(uid,arr[i].kids); if(r) return r; }
+  }
+  return null;
+}
+function find(uid){ return findIn(uid,model)||findIn(uid,staging); }
+function contains(node,uid){
+  if(node.uid===uid) return true;
+  return node.kids ? node.kids.some(k=>contains(k,uid)) : false;
+}
+function leafCount(node){
+  if(!node.kids) return 1;
+  return node.kids.reduce((c,k)=>c+leafCount(k),0);
+}
+function newItemCount(){ return staging.filter(n=>!n.kids&&!n.link).length; }
+
+function move(uid,parentUid,index){
+  const src=find(uid); if(!src) return;
+  let dst;
+  if(parentUid==="ROOT") dst=model;
+  else{
+    if(contains(src.node,parentUid)) return;
+    const p=find(parentUid); if(!p) return;
+    if(!p.node.kids) p.node.kids=[];
+    dst=p.node.kids;
+  }
+  src.arr.splice(src.index,1);
+  if(src.arr===dst && src.index<index) index--;
+  dst.splice(index,0,src.node);
+  save(); render();
+}
+
+function del(uid){
+  const r=find(uid); if(!r) return;
+  if(r.node.kids && leafCount(r.node)>0){
+    if(!confirm('Delete "'+r.node.label+'" and its '+leafCount(r.node)+' item(s)?')) return;
+  }
+  const gone=new Set();
+  (function g(n){ gone.add(n.uid); if(n.kids) n.kids.forEach(g); })(r.node);
+  r.arr.splice(r.index,1);
+  (function sweep(arr){
+    for(let i=arr.length-1;i>=0;i--){
+      if(arr[i].link && gone.has(arr[i].link)) arr.splice(i,1);
+      else if(arr[i].kids) sweep(arr[i].kids);
+    }
+  })(model);
+  for(let i=staging.length-1;i>=0;i--)
+    if(staging[i].link && gone.has(staging[i].link)) staging.splice(i,1);
+  save(); render();
+}
+
+/* turn a staged leaf into an empty parent-group */
+function toGroup(uid){
+  const r=find(uid); if(!r||r.node.kids) return;
+  r.node.kids=[]; r.node.collapsed=true;
+  save(); render();
+}
+
+/* spawn a linked copy of an item into the staging tray */
+function makeLink(uid){
+  if(!find(uid)) return;
+  staging.push({uid:nid(),link:uid});
+  save(); render();
+}
+
+/* selection toggle — a link toggles its original, so every copy mirrors it */
+function selBox(node){
+  const b=document.createElement("button");
+  b.type="button"; b.className="selbox"; b.textContent="✓";
+  b.title="Select / deselect";
+  b.addEventListener("click",()=>toggleSel(node.uid));
+  return b;
+}
+function toggleSel(uid){
+  const r=find(uid); if(!r) return;
+  const t=r.node.link ? (find(r.node.link)||{}).node : r.node;
+  if(!t) return;
+  t.selected=!t.selected;
+  save(); render();
+}
+
+/* ── render ── */
+let focusNext=null;
+
+function render(){
+  const root=document.getElementById("tree");
+  root.innerHTML="";
+  if(model.length) root.appendChild(renderList(model,"ROOT",0,false));
+  else{
+    const m=document.createElement("div");
+    m.className="empty-msg";
+    m.textContent="No tree yet — paste or upload an indented tree above and press “Build tree”.";
+    root.appendChild(m);
+  }
+  const st=document.getElementById("staging");
+  st.innerHTML="";
+  staging.forEach(n=>st.appendChild(nodeEl(n,1,"STAGING")));
+  document.getElementById("newItemBtn").disabled=newItemCount()>=3;
+  if(focusNext){
+    const el=document.querySelector('.lab[data-uid="'+focusNext+'"]');
+    if(el){ el.focus(); el.select(); }
+    focusNext=null;
+  }
+}
+
+function renderList(arr,parentUid,depth,withDz){
+  const box=document.createElement("div");
+  box.className="kids";
+  arr.forEach((node,i)=>{
+    if(withDz) box.appendChild(dz(parentUid,i));
+    box.appendChild(nodeEl(node,depth,parentUid));
+  });
+  if(withDz) box.appendChild(dz(parentUid,arr.length));
+  return box;
+}
+
+function dz(parentUid,index){
+  const d=document.createElement("div");
+  d.className="dz";
+  d.dataset.parent=parentUid;
+  d.dataset.index=index;
+  return d;
+}
+
+function chevron(node){
+  const c=document.createElement("button");
+  c.type="button"; c.className="chev";
+  c.textContent=node.collapsed?"+":"✕";
+  c.title=node.collapsed?"Expand":"Collapse";
+  c.addEventListener("click",()=>{ node.collapsed=!node.collapsed; save(); render(); });
+  return c;
+}
+
+function labelInput(node){
+  const inp=document.createElement("input");
+  inp.className=node.kids?"lab lab-cat":"lab";
+  inp.value=node.label;
+  inp.dataset.uid=node.uid;
+  inp.addEventListener("input",()=>{ node.label=inp.value; save(); });
+  if(!node.kids){
+    inp.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        const r=find(node.uid);
+        const fresh={uid:nid(),label:"",kids:null};
+        r.arr.splice(r.index+1,0,fresh);
+        focusNext=fresh.uid; save(); render();
+      }
+    });
+  }
+  return inp;
+}
+
+function miniBtn(glyph,cls,title,fn){
+  const b=document.createElement("button");
+  b.className="mini"+(cls?" "+cls:""); b.type="button";
+  b.textContent=glyph; b.title=title;
+  b.addEventListener("click",fn);
+  return b;
+}
+
+function nodeEl(node,depth,parentUid){
+  if(node.link){
+    const el=document.createElement("div");
+    el.className="clause linknode";
+    el.dataset.uid=node.uid;
+    const o=find(node.link);
+    if(o && o.node.selected) el.classList.add("is-sel");
+    const t=document.createElement("span");
+    t.className="link-label";
+    t.textContent="🔗 "+(o?(o.node.label||"(unnamed)"):"(original deleted)");
+    el.append(selBox(node),t,miniBtn("✕","del","Remove link",()=>del(node.uid)));
+    el.addEventListener("pointerdown",e=>armDrag(e,node.uid,el));
+    return el;
+  }
+  if(node.kids){
+    const el=document.createElement("div");
+    el.className="cat depth"+depth;
+    el.dataset.uid=node.uid;
+    const head=document.createElement("div");
+    head.className="cat-head";
+    head.dataset.dropinto=node.uid;
+    head.appendChild(chevron(node));
+    head.append(
+      labelInput(node),
+      miniBtn("✕","del","Delete",()=>del(node.uid))
+    );
+    if(depth>0) head.addEventListener("pointerdown",e=>armDrag(e,node.uid,el));
+    if(node.collapsed) el.append(head);
+    else el.append(head,renderList(node.kids,node.uid,depth+1,true));
+    return el;
+  }
+  const el=document.createElement("div");
+  el.className="clause";
+  el.dataset.uid=node.uid;
+  el.dataset.dropinto=node.uid;
+  if(node.selected) el.classList.add("is-sel");
+  el.appendChild(selBox(node));
+  el.appendChild(labelInput(node));
+  el.appendChild(miniBtn("🔗","link","Link a copy elsewhere",()=>makeLink(node.uid)));
+  if(parentUid==="STAGING")
+    el.appendChild(miniBtn("❏","","Make it a parent-group",()=>toGroup(node.uid)));
+  el.appendChild(miniBtn("✕","del","Delete",()=>del(node.uid)));
+  el.addEventListener("pointerdown",e=>armDrag(e,node.uid,el));
+  return el;
+}
+
+/* ── pointer drag & drop — grab anywhere on the row ── */
+let pending=null, drag=null;
+
+function armDrag(e,uid,sourceEl){
+  if(e.pointerType==="mouse" && e.button!==0) return;
+  if(e.target.closest(".mini,.chev,.selbox")) return;
+  pending={uid,sourceEl,x:e.clientX,y:e.clientY};
+}
+function beginDrag(){
+  const p=pending; pending=null;
+  const f=find(p.uid); if(!f) return;
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  const r=p.sourceEl.getBoundingClientRect();
+  const ghost=document.createElement("div");
+  ghost.className="drag-ghost";
+  ghost.textContent=(f.node.kids?"❏ ":f.node.link?"🔗 ":"• ")+(f.node.label||"(item)");
+  ghost.style.width=Math.min(r.width,360)+"px";
+  document.body.appendChild(ghost);
+  drag={uid:p.uid,sourceEl:p.sourceEl,ghost,offX:p.x-r.left,offY:p.y-r.top,target:null};
+  p.sourceEl.classList.add("drag-source");
+  document.body.classList.add("dragging");
+  moveGhost(p.x,p.y);
+}
+function moveGhost(x,y){
+  drag.ghost.style.left=(x-drag.offX)+"px";
+  drag.ghost.style.top =(y-drag.offY)+"px";
+}
+function nearestDz(x,y){
+  let best=null,bestCost=Infinity;
+  document.querySelectorAll(".dz, [data-dropinto]").forEach(d=>{
+    if(drag.sourceEl.contains(d)) return;
+    const r=d.getBoundingClientRect();
+    if(r.width===0||x<r.left-4||x>r.right+4) return;
+    const cost=Math.abs(y-(r.top+r.bottom)/2);
+    if(cost<bestCost){ bestCost=cost; best=d; }
+  });
+  return best;
+}
+document.addEventListener("pointermove",e=>{
+  if(pending && !drag){
+    if(Math.abs(e.clientX-pending.x)+Math.abs(e.clientY-pending.y)>6) beginDrag();
+  }
+  if(!drag) return;
+  e.preventDefault();
+  moveGhost(e.clientX,e.clientY);
+  if(e.clientY<74) window.scrollBy(0,-16);
+  else if(e.clientY>innerHeight-74) window.scrollBy(0,16);
+  const t=nearestDz(e.clientX,e.clientY);
+  if(t!==drag.target){
+    if(drag.target) drag.target.classList.remove("over","drop-into");
+    drag.target=t;
+    if(t) t.classList.add(t.classList.contains("dz")?"over":"drop-into");
+  }
+},{passive:false});
+function endDrag(commit){
+  if(!drag) return;
+  const d=drag; drag=null;
+  d.ghost.remove();
+  d.sourceEl.classList.remove("drag-source");
+  document.body.classList.remove("dragging");
+  if(d.target) d.target.classList.remove("over","drop-into");
+  if(commit && d.target){
+    if(d.target.classList.contains("dz")){
+      move(d.uid,d.target.dataset.parent,+d.target.dataset.index);
+    }else{
+      const cu=d.target.dataset.dropinto, c=find(cu);
+      if(c){
+        if(!c.node.kids) c.node.kids=[];
+        c.node.collapsed=false; move(d.uid,cu,0);
+      }
+    }
+  }
+}
+document.addEventListener("pointerup",()=>{ pending=null; endDrag(true); });
+document.addEventListener("pointercancel",()=>{ pending=null; endDrag(false); });
+
+/* ── export ── */
+function buildText(){
+  let out="";
+  (function walk(nodes,depth){
+    nodes.forEach(n=>{
+      const pad="  ".repeat(depth);
+      if(n.link){
+        const o=find(n.link);
+        out+=pad+"↳ "+(o?(o.node.label||"(unnamed)"):"(missing)")+"\n";
+      }else if(n.kids){
+        out+=pad+(n.label||"(item)")+"\n";
+        walk(n.kids,depth+1);
+      }else out+=pad+"• "+(n.label||"(item)")+"\n";
+    });
+  })(model,0);
+  return out;
+}
+
+/* ── toolbar ── */
+document.getElementById("buildBtn").addEventListener("click",()=>{
+  const t=document.getElementById("importText").value;
+  if(!t.trim()){ alert("Paste or upload some indented text first."); return; }
+  if(model.length && !confirm("Replace the current tree with the parsed one?")) return;
+  model=parseTree(t); staging=[]; save(); render();
+});
+document.getElementById("fileInput").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ document.getElementById("importText").value=rd.result; };
+  rd.readAsText(f);
+  e.target.value="";
+});
+document.getElementById("genBtn").addEventListener("click",()=>{
+  document.getElementById("out").value=buildText();
+});
+document.getElementById("copyBtn").addEventListener("click",()=>{
+  const ta=document.getElementById("out");
+  if(!ta.value) ta.value=buildText();
+  ta.removeAttribute("readonly"); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  ta.setAttribute("readonly","");
+  if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{});
+  const tag=document.getElementById("savedTag");
+  tag.hidden=false; setTimeout(()=>tag.hidden=true,1600);
+});
+document.getElementById("newItemBtn").addEventListener("click",()=>{
+  if(newItemCount()>=3) return;
+  const fresh={uid:nid(),label:"",kids:null};
+  staging.push(fresh); focusNext=fresh.uid; save(); render();
+});
+document.getElementById("addRootBtn").addEventListener("click",()=>{
+  model.push({uid:nid(),label:"NEW ITEM",kids:[],collapsed:false}); save(); render();
+});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  if(model.length && !confirm("Clear the whole tree?")) return;
+  model=[]; staging=[]; save(); render();
+});
+
+render();
+</script>
+</body>
+</html>

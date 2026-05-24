@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GenderWars</title>
+  <style>
+    /* ---------- Root & Theme ---------- */
+    :root{
+      --bg-0:#0b0f17;
+      --bg-1:#0f1522;
+      --fg-0:#eaf2ff;
+      --fg-dim:#9bb0d4;
+      --line:216 32% 22%;
+      --brand:265 84% 62%;        /* violet (primary) */
+      --brand-2:220 92% 60%;      /* blue (primary)   */
+      --violet:285 84% 62%;
+      --blue:210 92% 58%;
+      --accent:332 86% 62%;
+      --radius-2xl:22px;
+      --radius-xl:16px;
+      --glass:16px;
+
+      /* GenderWars top-bar gradient (same as flove social/genderwars icon) */
+      --gw-a:#ff3344;
+      --gw-b:#ff8a3a;
+      --gw-c:#ffd633;
+      --gw-mid:#ff8a3a;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      padding-top:62px;     /* form sits right below the fixed top bar */
+      font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif;
+      color:var(--fg-0);
+      background:
+        radial-gradient(1200px 800px at 10% 0%, #14203a 0%, transparent 60%),
+        radial-gradient(900px 700px at 100% 80%, #1a1030 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1) 60%, #0a0d14);
+      overflow-x:hidden;
+
+      /* state knobs the gradients react to */
+      --woman:0;
+      --man:0;
+      --typing:0;
+    }
+
+    body:has(input[name="iam"][value="Woman"]:checked){ --woman:1; }
+    body:has(input[name="iam"][value="Man"]:checked){ --man:1; }
+    body:has(.qs textarea:not(:placeholder-shown)),
+    body:has(.qs textarea:focus){ --typing:1; }
+
+    /* ---------- Weaving / fuzzy background ---------- */
+    .bg-orbit, .bg-weave{
+      position:fixed; inset:-15%; pointer-events:none; z-index:0;
+      will-change:transform, filter;
+    }
+    .bg-orbit{
+      background:
+        radial-gradient(46vmin 46vmin at 28% 32%,
+          hsla(var(--violet) / calc(.18 + var(--woman)*.38 + var(--typing)*.18)),
+          transparent 70%),
+        radial-gradient(38vmin 38vmin at 72% 78%,
+          hsla(var(--brand) / calc(.14 + var(--woman)*.32 + var(--typing)*.14)),
+          transparent 70%);
+      /* still for 15s, then loops continuously */
+      animation: weave-a 22s ease-in-out 15s infinite alternate;
+    }
+    .bg-weave{
+      background:
+        radial-gradient(50vmin 50vmin at 74% 28%,
+          hsla(var(--blue) / calc(.16 + var(--man)*.38 + var(--typing)*.18)),
+          transparent 70%),
+        radial-gradient(34vmin 34vmin at 22% 74%,
+          hsla(var(--brand-2) / calc(.12 + var(--man)*.30 + var(--typing)*.14)),
+          transparent 70%);
+      animation: weave-b 28s ease-in-out 15s infinite alternate;
+    }
+    /* Fuzzy hue + blur shift bake the "moving fuzzily while idle" feel
+       right into the keyframes — runs forever, no JS needed. */
+    @keyframes weave-a{
+      0%   { transform: translate(-3%, -2%) rotate(-4deg) scale(1);    filter: blur(46px) hue-rotate(-8deg) saturate(110%); }
+      33%  { transform: translate(4%, -6%) rotate(6deg)  scale(1.04);  filter: blur(58px) hue-rotate(14deg) saturate(125%); }
+      66%  { transform: translate(7%, 2%)  rotate(11deg) scale(1.02);  filter: blur(50px) hue-rotate(-4deg) saturate(115%); }
+      100% { transform: translate(9%, 5%)  rotate(15deg) scale(1.03);  filter: blur(54px) hue-rotate(22deg) saturate(130%); }
+    }
+    @keyframes weave-b{
+      0%   { transform: translate(3%, 4%)   rotate(3deg)   scale(1.02); filter: blur(48px) hue-rotate(0deg)  saturate(110%); }
+      33%  { transform: translate(-5%, 7%)  rotate(-8deg)  scale(1.05); filter: blur(60px) hue-rotate(18deg) saturate(120%); }
+      66%  { transform: translate(-7%, -1%) rotate(-12deg) scale(1.03); filter: blur(52px) hue-rotate(-6deg) saturate(115%); }
+      100% { transform: translate(-9%, -4%) rotate(-15deg) scale(1.01); filter: blur(56px) hue-rotate(10deg) saturate(125%); }
+    }
+
+    /* ---------- Top bar (crumbler-style, GenderWars colour) ---------- */
+    .flove-bar{
+      position:fixed; top:0; left:0; right:0; z-index:50;
+      display:flex; align-items:center; gap:14px;
+      padding:14px 22px;
+      font:600 26px/1.2 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      letter-spacing:.3px;
+      background:transparent;
+      pointer-events:none;
+      color:var(--gw-mid);
+    }
+    .flove-bar > *{pointer-events:auto}
+    .flove-mark-btn, .flove-name-btn{
+      background:transparent; border:0; padding:0; margin:0;
+      color:inherit; cursor:pointer; font:inherit;
+      display:inline-flex; align-items:center;
+    }
+    .flove-mark-btn{ padding:6px; border-radius:999px; }
+    .flove-name-btn{ padding:6px 12px; border-radius:999px; transition:transform .15s ease; }
+    .flove-name-btn:hover{ transform:translateY(-1px); }
+    .flove-mark-btn:focus-visible, .flove-name-btn:focus-visible,
+    .menu-btn:focus-visible{
+      outline:2px solid hsl(var(--violet)); outline-offset:3px;
+    }
+    .flove-bar .flove-mark{
+      width:2em; height:2em;
+      filter: drop-shadow(0 0 6px color-mix(in srgb, hsl(var(--violet)) 50%, transparent));
+      transition: transform .25s ease;
+    }
+    .flove-mark-btn:hover .flove-mark{ transform: rotate(-8deg) scale(1.04); }
+    .flove-bar .flove-app-name{
+      font-weight:800;
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 14px color-mix(in srgb, hsl(var(--violet)) 35%, transparent);
+    }
+    .flove-bar .flove-spacer{flex:1}
+
+    /* Transparent top-right menu — same violet/blue palette as the rest */
+    .top-menu{ position:relative; display:inline-block; }
+    .menu-btn{
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      border:0; cursor:pointer;
+      font-size:38px; line-height:1;
+      padding:.05em .25em;
+      filter: drop-shadow(0 0 10px color-mix(in srgb, hsl(var(--violet)) 55%, transparent));
+      transition:transform .15s ease, filter .15s ease;
+    }
+    .menu-btn:hover{
+      transform:scale(1.06);
+      filter: drop-shadow(0 0 14px color-mix(in srgb, hsl(var(--blue)) 70%, transparent));
+    }
+    /* Menu items unfurl horizontally to the LEFT of the ☰ button. Each
+       item is a pill-shaped button matching the form's button language. */
+    .menu-list{
+      position:absolute;
+      right: calc(100% + 10px);
+      top: 50%;
+      list-style:none; margin:0; padding:0;
+      display:flex; flex-direction:row; gap:8px;
+      z-index:80;
+      transform: translate(0, -50%);
+      transition: opacity .22s ease, transform .28s cubic-bezier(.2,.7,.3,1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* Override [hidden]'s display:none so we can transition. */
+    .menu-list[hidden]{
+      display:flex;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(12px, -50%);
+    }
+    .menu-list li{ margin:0; list-style:none; }
+    .menu-list li a{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:7px 14px;
+      text-decoration:none;
+      border-radius:999px;
+      border:1px solid hsl(var(--line) / .55);
+      background:
+        linear-gradient(rgba(14,18,30,.55), rgba(14,18,30,.55)) padding-box,
+        linear-gradient(135deg, hsla(285,84%,62%,.5), hsla(210,92%,58%,.5)) border-box;
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+      color: var(--fg-0);
+      font: 600 13px/1 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      letter-spacing:.25px;
+      white-space:nowrap;
+      transition: transform .15s ease, background .2s ease, box-shadow .2s ease, color .2s ease;
+      box-shadow: 0 4px 14px rgba(0,0,0,.35);
+    }
+    .menu-list li a:hover{
+      transform: translateY(-1px);
+      color:#fff;
+      background:
+        linear-gradient(rgba(20,24,42,.55), rgba(20,24,42,.55)) padding-box,
+        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.35), 0 0 0 4px hsla(285,84%,62%,.10);
+    }
+
+    /* ---------- Intro section (toggled by clicking "GenderWars") ---------- */
+    #introSection{
+      position:relative; z-index:1;
+      max-width:900px;
+      margin: 28px auto 12px;     /* room above for the close X overlap */
+      padding: 30px 20px 18px;    /* extra top room for the slogan + X */
+      background: linear-gradient(180deg, rgba(190,150,255,.06), rgba(130,200,255,.04));
+      border:1px solid hsla(285,84%,62%,.22);
+      border-radius:18px;
+      color:var(--fg-0);
+      font-size:.98rem; line-height:1.55;
+      backdrop-filter:blur(10px) saturate(130%);
+      -webkit-backdrop-filter:blur(10px) saturate(130%);
+      box-shadow:0 12px 32px -10px rgba(0,0,0,.55);
+    }
+    #introSection[hidden]{ display:none; }
+    #introSection p{ margin:0 0 .5em; }
+    #introSection p:last-child{ margin-bottom:0; }
+    #introSection strong{
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    /* Slogan + close X sit on the center top border of the intro. */
+    .intro-slogan{
+      position:absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 2px 14px;
+      font-size: .92rem;
+      font-style: italic;
+      font-weight: 700;
+      letter-spacing:.25px;
+      white-space:nowrap;
+      background:
+        linear-gradient(rgba(14,18,30,.95), rgba(14,18,30,.95)) padding-box,
+        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: transparent;
+      -webkit-background-clip: padding-box, border-box;
+      background-clip: padding-box, border-box;
+    }
+    /* Use a stacking trick: the gradient text sits in a child to avoid
+       conflict with the pill background-clip. */
+    .intro-slogan .intro-slogan-text{
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    .intro-close-btn{
+      position:absolute;
+      top: -22px;
+      right: 18px;
+      width: 40px; height: 40px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      font-size: 1.15rem; font-weight: 800; line-height: 1;
+      cursor: pointer;
+      display: grid; place-items: center;
+      z-index: 5;
+      box-shadow: 0 10px 28px hsla(265,84%,62%,.45);
+      transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .intro-close-btn:hover{
+      transform: scale(1.08) rotate(90deg);
+      box-shadow: 0 14px 36px hsla(210,92%,58%,.55);
+      filter: saturate(1.15);
+    }
+    .intro-close-btn:focus-visible{
+      outline: 3px solid hsla(285,84%,62%,.5);
+      outline-offset: 3px;
+    }
+
+    /* Sexy "See more" button — gradient-bordered, glowing pill */
+    .see-more-btn{
+      display:inline-flex; align-items:center; gap:8px;
+      margin: 10px 0 0;
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(rgba(14,18,30,.85), rgba(14,18,30,.85)) padding-box,
+        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
+      color: var(--fg-0);
+      cursor: pointer;
+      font: 700 .92rem/1 inherit;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.28), 0 0 0 0 hsla(285,84%,62%,.0);
+      transition: transform .15s ease, box-shadow .25s ease, color .2s ease, letter-spacing .25s ease;
+    }
+    .see-more-btn:hover{
+      transform: translateY(-1px);
+      color:#fff;
+      letter-spacing: .55px;
+      box-shadow: 0 12px 32px hsla(265,84%,62%,.45), 0 0 0 4px hsla(285,84%,62%,.14);
+    }
+    .see-more-btn .chev{
+      display:inline-block;
+      transition: transform .3s cubic-bezier(.2,.7,.3,1);
+    }
+    .see-more-btn[aria-expanded="true"] .chev{ transform: rotate(180deg); }
+
+    .intro-more{
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height .55s ease, opacity .35s ease .05s, margin-top .35s ease;
+      margin-top: 0;
+    }
+    .intro-more.is-open{
+      max-height: 1200px;
+      opacity: 1;
+      margin-top: 10px;
+    }
+    .intro-columns{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    @media (max-width: 560px){
+      .intro-columns{ grid-template-columns: 1fr; }
+    }
+    .intro-col h4{
+      margin: 0 0 8px;
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+    .slides{
+      position: relative;
+      height: 180px;
+      border-radius: 14px;
+      background: rgba(20,22,38,.4);
+      border: 1px solid hsl(var(--line) / .5);
+      overflow: hidden;
+    }
+    .slide{
+      position: absolute; inset: 0; margin: 0;
+      display: grid; place-items: center;
+      color: var(--fg-dim);
+      font-size: .92rem;
+      opacity: 0;
+      transition: opacity .5s ease;
+    }
+    .slide.is-active{ opacity: 1; }
+    .slides-dots{
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 6px;
+    }
+    .slides-dots span{
+      width: 8px; height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.25);
+      transition: background .25s ease, transform .25s ease;
+    }
+    .slides-dots span.is-on{
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      transform: scale(1.2);
+    }
+    .video-wrap{
+      height: 180px;
+      border-radius: 14px;
+      background: rgba(20,22,38,.4);
+      border: 1px solid hsl(var(--line) / .5);
+      overflow: hidden;
+      display: grid; place-items: center;
+    }
+    .video-wrap video{
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .video-placeholder{
+      color: var(--fg-dim);
+      text-align: center;
+      margin: 0; padding: 12px;
+      font-size: .9rem;
+    }
+
+    /* ---------- Layout shell ---------- */
+    .shell{
+      position:relative; z-index:1;
+      max-width:980px;
+      margin: 0 auto clamp(24px, 4vh, 48px);
+      padding: clamp(12px, 1.5vw, 24px);
+    }
+
+    /* ---------- Glass card ---------- */
+    .card{
+      backdrop-filter: blur(var(--glass));
+      -webkit-backdrop-filter: blur(var(--glass));
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid hsl(var(--line) / .5);
+      border-radius: var(--radius-2xl);
+      padding: clamp(18px, 2.2vw, 28px);
+      box-shadow: 0 10px 40px hsla(220, 50%, 2%, .6), 0 2px 8px hsla(220, 50%, 2%, .4) inset;
+    }
+
+    fieldset{ margin:0; padding:0; border:0; }
+    legend{
+      font-weight:700; color:var(--fg-0);
+      margin-bottom:.75rem; letter-spacing:.4px;
+    }
+
+    .who{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap:14px;
+      margin-bottom:22px;
+    }
+    @media (max-width:560px){ .who{ grid-template-columns:1fr; } }
+
+    /* Once a gender is chosen, retire the picker so everything below moves up. */
+    body:has(input[name="iam"]:checked) .who{
+      display:none;
+    }
+
+    /* Radio chips */
+    .radio-chip{ position:relative; display:block; }
+    .radio-chip input{
+      position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer;
+    }
+    .radio-chip .chip{
+      display:flex; align-items:center; gap:.7rem;
+      padding:14px 16px;
+      border-radius:var(--radius-xl);
+      border:1px solid hsl(var(--line) / .55);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      transition: transform .15s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+      box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 8px 18px rgba(0,0,0,.25);
+      user-select:none;
+    }
+    .radio-chip .icon{
+      display:inline-grid; place-items:center;
+      width:28px; height:28px; border-radius:12px;
+      background: linear-gradient(135deg, hsl(var(--violet)/.22), hsl(var(--blue)/.22));
+      font-size:16px;
+    }
+    .radio-chip:hover .chip{ transform:translateY(-1px); border-color: hsl(var(--brand)/.7); }
+    .radio-chip input:focus-visible + .chip{ outline:2px solid hsl(var(--brand)); outline-offset:3px; }
+
+    .radio-chip input[value="Woman"]:checked + .chip{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)),
+        linear-gradient(90deg, hsl(var(--violet)/.36), hsl(var(--brand)/.32));
+      border-color:transparent;
+      box-shadow:
+        0 0 0 1px hsl(var(--violet)/.45) inset,
+        0 16px 40px hsla(285,84%,62%,.28);
+    }
+    .radio-chip input[value="Man"]:checked + .chip{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)),
+        linear-gradient(90deg, hsl(var(--blue)/.36), hsl(var(--brand-2)/.32));
+      border-color:transparent;
+      box-shadow:
+        0 0 0 1px hsl(var(--blue)/.45) inset,
+        0 16px 40px hsla(210,92%,58%,.28);
+    }
+
+    /* ---------- Questions ---------- */
+    .qs{ display:grid; gap:22px; }
+    .q{ display:grid; gap:8px; position:relative; isolation:isolate; }
+    /* The label is kept for accessibility (screen readers) but visually
+       hidden — the question text now lives in the textarea placeholder. */
+    .q label{
+      position:absolute;
+      width:1px; height:1px;
+      padding:0; margin:-1px;
+      overflow:hidden;
+      clip:rect(0 0 0 0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    .other-gender{
+      font-weight:800; padding:0 .15em;
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    body:has(input[name="iam"][value="Woman"]:checked) .other-gender{
+      background: linear-gradient(90deg, hsl(var(--blue)), hsl(var(--brand-2)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    body:has(input[name="iam"][value="Man"]:checked) .other-gender{
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--brand)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    /* Field wrapper around the textarea */
+    .field{ position:relative; }
+    textarea{
+      width:100%;
+      resize:vertical;
+      min-height: 3.2em;          /* compact: ~2 rows */
+      padding:14px 16px;
+      color:var(--fg-0);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border: 1px solid hsl(var(--line) / .5);
+      border-radius:14px;
+      outline:none;
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease, min-height .4s ease;
+      font: inherit;
+      position:relative; z-index:1;
+    }
+    /* Expanded — enough room for ~1000 characters. */
+    .field.is-expanded textarea{ min-height: 18em; }
+
+    /* Tiny + button on the bottom-right border of the field */
+    .field-expand{
+      position:absolute;
+      bottom:-10px; right:-10px;
+      width:26px; height:26px;
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      font-size: .95rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor:pointer;
+      display:grid; place-items:center;
+      z-index:3;
+      box-shadow: 0 6px 14px hsla(265,84%,62%,.4);
+      transition: transform .25s ease, box-shadow .2s ease;
+    }
+    .field-expand:hover{
+      transform: scale(1.1);
+      box-shadow: 0 10px 22px hsla(210,92%,58%,.5);
+    }
+    .field-expand:focus-visible{
+      outline:3px solid hsla(285,84%,62%,.55); outline-offset:3px;
+    }
+    .field.is-expanded .field-expand{
+      transform: rotate(45deg);   /* + → ×, signalling collapse */
+    }
+    .field.is-expanded .field-expand:hover{
+      transform: rotate(45deg) scale(1.1);
+    }
+    textarea::placeholder{ color: hsl(220 20% 74% / .7); }
+    textarea:focus{
+      border-color: hsl(var(--brand)/.75);
+      box-shadow: 0 0 0 4px hsl(var(--brand)/.18);
+    }
+    body:has(input[name="iam"][value="Man"]:checked) textarea:focus{
+      border-color: hsl(var(--blue)/.85);
+      box-shadow: 0 0 0 4px hsl(var(--blue)/.22);
+    }
+    body:has(input[name="iam"][value="Woman"]:checked) textarea:focus{
+      border-color: hsl(var(--violet)/.85);
+      box-shadow: 0 0 0 4px hsl(var(--violet)/.22);
+    }
+
+    /* ---------- Flame border around each .q section ----------
+       Restored from the original "fire below the textarea" effect, now
+       distributed around the perimeter of the question section instead of
+       just under the textarea. Dark + shiny violet/blue. */
+    .fire{
+      position:absolute;
+      inset:-6px;
+      pointer-events:none;
+      border-radius:16px;
+      opacity:0;
+      transition: opacity 1.6s ease;
+      z-index:-1;
+      background:
+        /* corners */
+        radial-gradient(ellipse 18% 30% at   0%   0%, rgba( 48, 10, 110, .85), transparent 70%),
+        radial-gradient(ellipse 18% 30% at 100%   0%, rgba( 12, 28, 120, .85), transparent 70%),
+        radial-gradient(ellipse 18% 30% at   0% 100%, rgba(110, 60, 220, .85), transparent 70%),
+        radial-gradient(ellipse 18% 30% at 100% 100%, rgba(150,120, 255, .60), transparent 70%),
+        /* edge midpoints */
+        radial-gradient(ellipse 28% 18% at  50%  -4%, rgba( 48, 10, 110, .75), transparent 70%),
+        radial-gradient(ellipse 28% 18% at  50% 104%, rgba(110, 60, 220, .75), transparent 70%),
+        radial-gradient(ellipse 14% 28% at  -4%  50%, rgba(130,200, 255, .75), transparent 70%),
+        radial-gradient(ellipse 14% 28% at 104%  50%, rgba(190,150, 255, .75), transparent 70%);
+      filter: blur(8px) saturate(170%);
+      animation: flame-border 3.2s ease-in-out infinite alternate;
+    }
+    .fire::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        /* shiny inner accents distributed along the perimeter */
+        radial-gradient(ellipse 11% 18% at  30%  -2%, rgba(190,150, 255, .85), transparent 70%),
+        radial-gradient(ellipse 11% 18% at  70%  -2%, rgba(225,230, 255, .85), transparent 70%),
+        radial-gradient(ellipse 18% 11% at 102%  35%, rgba(130,200, 255, .80), transparent 70%),
+        radial-gradient(ellipse 18% 11% at 102%  65%, rgba(190,150, 255, .80), transparent 70%),
+        radial-gradient(ellipse 11% 18% at  30% 102%, rgba(225,230, 255, .80), transparent 70%),
+        radial-gradient(ellipse 11% 18% at  70% 102%, rgba(130,200, 255, .80), transparent 70%),
+        radial-gradient(ellipse 18% 11% at  -2%  35%, rgba(190,150, 255, .80), transparent 70%),
+        radial-gradient(ellipse 18% 11% at  -2%  65%, rgba(225,230, 255, .80), transparent 70%);
+      filter: blur(4px);
+      animation: flicker-border .3s steps(4) infinite;
+    }
+    .q:has(textarea:not(:placeholder-shown)) .fire{ opacity:.65; }
+    .q:has(textarea:focus:not(:placeholder-shown)) .fire{ opacity:.95; }
+    @keyframes flame-border{
+      0%   { transform: scale(1)    rotate(0deg);   filter: blur(7px)  saturate(160%) hue-rotate(0deg);  }
+      50%  { transform: scale(1.02) rotate(.5deg);  filter: blur(10px) saturate(185%) hue-rotate(15deg); }
+      100% { transform: scale(1.01) rotate(-.4deg); filter: blur(8px)  saturate(170%) hue-rotate(-8deg); }
+    }
+    @keyframes flicker-border{
+      0%   { opacity:.65; transform: scale(1);    }
+      33%  { opacity:.40; transform: scale(1.03); }
+      66%  { opacity:.95; transform: scale(.97);  }
+      100% { opacity:.55; transform: scale(1.02); }
+    }
+
+    .screen-fire{
+      position:fixed;
+      pointer-events:none;
+      z-index:0;
+      opacity:0;
+      transition: opacity 3.5s ease;
+      filter: blur(48px) saturate(160%);
+      will-change: transform;
+    }
+    .screen-fire--rb{
+      right:-12vw; bottom:-14vh;
+      width:62vw; height:62vh;
+      background:
+        radial-gradient(ellipse 55% 65% at 72% 88%, rgba( 48, 10, 110, .55), transparent 70%),
+        radial-gradient(ellipse 45% 55% at 82% 96%, rgba(110, 60, 220, .50), transparent 70%),
+        radial-gradient(ellipse 35% 45% at 92% 100%, rgba(150,120, 255, .40), transparent 70%),
+        radial-gradient(ellipse 25% 30% at 86% 94%, rgba(225,230, 255, .35), transparent 70%);
+      animation: screen-flame-rb 22s ease-in-out infinite alternate;
+    }
+    .screen-fire--l{
+      left:-14vw; top:8vh;
+      width:42vw; height:88vh;
+      background:
+        radial-gradient(ellipse 50% 35% at 28% 25%, rgba( 12, 28, 120, .50), transparent 70%),
+        radial-gradient(ellipse 45% 50% at 18% 50%, rgba(130,200, 255, .45), transparent 70%),
+        radial-gradient(ellipse 50% 60% at  8% 72%, rgba( 48, 10, 110, .50), transparent 70%),
+        radial-gradient(ellipse 28% 35% at 14% 60%, rgba(190,150, 255, .35), transparent 70%);
+      animation: screen-flame-l 28s ease-in-out infinite alternate;
+    }
+    body:has(.qs textarea:not(:placeholder-shown)) .screen-fire{ opacity:.55; }
+    body:has(.qs textarea:focus:not(:placeholder-shown)) .screen-fire{ opacity:.75; }
+
+    @keyframes screen-flame-rb{
+      0%   { transform: translate(0, 0)    scale(1);    filter: blur(46px) saturate(150%) hue-rotate(-6deg); }
+      50%  { transform: translate(-3%,-5%) scale(1.05); filter: blur(58px) saturate(170%) hue-rotate(8deg);  }
+      100% { transform: translate(2%, -8%) scale(1.03); filter: blur(50px) saturate(160%) hue-rotate(-2deg); }
+    }
+    @keyframes screen-flame-l{
+      0%   { transform: translate(0, 0)    scale(1);    filter: blur(48px) saturate(150%) hue-rotate(4deg);  }
+      50%  { transform: translate(3%, 4%)  scale(1.04); filter: blur(60px) saturate(170%) hue-rotate(-8deg); }
+      100% { transform: translate(5%,-3%)  scale(1.03); filter: blur(52px) saturate(160%) hue-rotate(6deg);  }
+    }
+
+    /* ---------- Action button group (lovy-style row with subitems) ---------- */
+    .button-group{ margin:26px 0 0; padding:6px 0 4px; }
+    .button-row{
+      display:flex; gap:28px;
+      flex-wrap:wrap;
+      align-items:center; justify-content:center;
+    }
+    .btn-with-subs{
+      position:relative;
+      display:inline-flex; flex-direction:column; align-items:center;
+    }
+    .btn-with-subs > .btn{
+      display:inline-flex; align-items:center; gap:.55rem;
+      padding:12px 22px;
+      border:1px solid hsl(var(--line) / .55);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      color:var(--fg-0);
+      border-radius:999px; cursor:pointer;
+      font:inherit; font-weight:700; font-size:1.02rem;
+      transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      white-space:nowrap;
+    }
+    .btn-with-subs > .btn:hover{
+      transform:translateY(-1px);
+      border-color: hsl(var(--brand)/.65);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+    }
+    .btn-with-subs > .btn--primary{
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      border-color:transparent;
+      box-shadow: 0 8px 24px hsla(265,84%,62%,.35), 0 1px 0 rgba(255,255,255,.18) inset;
+    }
+    .btn-with-subs > .btn--primary:hover{
+      box-shadow: 0 12px 30px hsla(265,84%,62%,.45);
+    }
+    .subitems{
+      position:absolute; left:50%; transform:translateX(-50%);
+      display:none; gap:8px; flex-wrap:nowrap;
+      z-index:60; padding:4px; white-space:nowrap;
+    }
+    .btn-with-subs.is-open > .subitems{ display:flex; }
+    .subitems--below{ top:calc(100% + 10px); }
+    .subitems--above{ bottom:calc(100% + 10px); }
+    .subitem{
+      padding:8px 14px;
+      border:1px solid hsl(var(--line) / .6);
+      background: rgba(20, 22, 38, .65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color:var(--fg-0);
+      border-radius:999px; cursor:pointer;
+      font:inherit; font-weight:600; font-size:.95rem;
+      transition: background .15s ease, transform .15s ease, border-color .15s ease;
+    }
+    .subitem:hover{
+      transform:translateY(-1px);
+      border-color: hsl(var(--brand)/.6);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(20,22,38,.65));
+    }
+    .subitem.is-active{
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff; border-color:transparent;
+    }
+
+    @media (max-width:620px){
+      .button-row{ gap:18px; }
+    }
+
+    /* ---------- Per-question delete X (top-right) ---------- */
+    .q-delete{
+      position:absolute;
+      top:-12px; right:-12px;
+      width:30px; height:30px;
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      font-size:.95rem; font-weight:800; line-height:1;
+      cursor:pointer;
+      display:grid; place-items:center;
+      z-index:5;
+      box-shadow:0 6px 16px hsla(265,84%,62%,.35);
+      opacity:0;
+      transition: opacity .25s ease, transform .25s ease, box-shadow .2s ease;
+    }
+    .q:hover .q-delete,
+    .q:focus-within .q-delete{ opacity:1; }
+    .q-delete:hover{
+      transform: scale(1.1) rotate(90deg);
+      box-shadow:0 10px 24px hsla(210,92%,58%,.5);
+    }
+    .q-delete:focus-visible{
+      opacity:1; outline:3px solid hsla(285,84%,62%,.55); outline-offset:3px;
+    }
+
+    /* ---------- Field tools (mic / file / magic) bottom-right ---------- */
+    .field{ position:relative; }    /* (already set above; safe duplicate) */
+    .field-tools{
+      position:absolute;
+      bottom:8px; right:10px;
+      display:flex; gap:5px;
+      z-index:2;
+    }
+    .ft-btn{
+      background: rgba(20,22,38,.5);
+      border:1px solid hsl(var(--line) / .55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius:999px;
+      width:30px; height:30px;
+      display:grid; place-items:center;
+      cursor:pointer;
+      font-size:.92rem;
+      color: var(--fg-0);
+      transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .ft-btn:hover{
+      transform: translateY(-1px);
+      border-color: hsl(var(--violet)/.7);
+      background: linear-gradient(135deg, hsla(285,84%,62%,.35), hsla(210,92%,58%,.35));
+      box-shadow: 0 6px 16px hsla(265,84%,62%,.3);
+    }
+    .ft-btn.is-recording{
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      border-color: transparent;
+      color:#fff;
+      animation: rec-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes rec-pulse{
+      0%, 100% { box-shadow: 0 0 0 0 hsla(285,84%,62%,.55); }
+      50%      { box-shadow: 0 0 0 10px hsla(285,84%,62%,0); }
+    }
+    /* Leave room for the tool buttons */
+    .qs textarea{ padding-right: 110px; }
+
+    /* ---------- More-questions controls ---------- */
+    .more-controls{
+      margin: 22px 0 6px;
+      display:flex; flex-direction:column; align-items:center; gap:14px;
+    }
+    .big-more-btn{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 14px 28px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(rgba(14,18,30,.85), rgba(14,18,30,.85)) padding-box,
+        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
+      color: var(--fg-0);
+      cursor: pointer;
+      font: 700 1rem/1 inherit;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      box-shadow: 0 10px 26px hsla(265,84%,62%,.28);
+      transition: transform .15s, box-shadow .25s, color .2s, letter-spacing .25s;
+    }
+    .big-more-btn:hover{
+      transform: translateY(-1px);
+      color:#fff;
+      letter-spacing: .55px;
+      box-shadow: 0 14px 36px hsla(265,84%,62%,.45), 0 0 0 4px hsla(285,84%,62%,.14);
+    }
+    /* Each group of 3 questions, with its own style toggle above */
+    .q-group{
+      position:relative;
+      margin-top: 22px;   /* one row of space above each group */
+    }
+
+    /* Style toggle: centered above its questions, with one row of space below */
+    .style-toggle{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin: 0 0 22px;    /* one row of space below the buttons */
+    }
+    .style-btn{
+      padding: 8px 16px;
+      border-radius:999px;
+      border:1px solid transparent;
+      background:
+        linear-gradient(rgba(14,18,30,.85), rgba(14,18,30,.85)) padding-box,
+        linear-gradient(135deg, hsla(285,84%,62%,.5), hsla(210,92%,58%,.5)) border-box;
+      color: var(--fg-0);
+      cursor:pointer;
+      font: 600 .88rem/1 inherit;
+      letter-spacing:.3px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.35);
+      transition: transform .15s, background .2s, color .2s, box-shadow .2s;
+    }
+    .style-btn:hover{
+      transform: translateY(-1px);
+      color:#fff;
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.35);
+    }
+    .style-btn.is-active{
+      color:#fff;
+      background:
+        linear-gradient(rgba(20,24,42,.55), rgba(20,24,42,.55)) padding-box,
+        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.5);
+    }
+    .style-btn.is-splashing{
+      animation: style-btn-splash 1.1s ease forwards;
+    }
+    @keyframes style-btn-splash{
+      0%   { box-shadow: 0 0 0 0   hsla(285,84%,62%,.7),
+                         0 0 0 0   hsla(210,92%,58%,.5); }
+      60%  { box-shadow: 0 0 0 28px hsla(285,84%,62%,0),
+                         0 0 0 54px hsla(210,92%,58%,0); }
+      100% { box-shadow: 0 0 0 70px hsla(285,84%,62%,0),
+                         0 0 0 120px hsla(210,92%,58%,0); }
+    }
+    /* Splash effect on the question text now lives on the textarea
+       (the label is visually hidden, so we glow the field instead). */
+    .q textarea.is-text-splashing{
+      animation: ta-splash 1.2s ease;
+    }
+    @keyframes ta-splash{
+      0%, 100% { box-shadow: 0 0 0 0 hsla(285,84%,62%,0); }
+      40%      { box-shadow: 0 0 18px 4px hsla(285,84%,62%,.55), 0 0 36px 10px hsla(210,92%,58%,.35); }
+      70%      { box-shadow: 0 0 10px 2px hsla(285,84%,62%,.30), 0 0 24px 6px hsla(210,92%,58%,.18); }
+    }
+
+    /* "Show more" / collapse X — each control row sits below its set. */
+    .more-row{
+      display:flex; justify-content:center; align-items:center;
+      gap:14px;
+      margin: 28px 0 6px;   /* 1 row of space above each control row */
+    }
+    .more-row.is-revealed{ margin-top: 36px; }   /* extra room after click (the "1 row down" effect) */
+
+    .collapse-x{
+      width:48px; height:48px;
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      font-size:1.25rem; font-weight:800; line-height:1;
+      cursor:pointer;
+      display:grid; place-items:center;
+      box-shadow: 0 10px 26px hsla(265,84%,62%,.45);
+      transition: transform .25s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .collapse-x:hover{
+      transform: scale(1.08) rotate(90deg);
+      box-shadow: 0 14px 36px hsla(210,92%,58%,.55);
+      filter: saturate(1.15);
+    }
+    .collapse-x[hidden]{ display:none; }
+    .big-more-btn[hidden]{ display:none; }
+
+    /* Inline "add a new question" form (appears above q1 when + is clicked) */
+    .new-q-form{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+      padding: 14px;
+      margin: 0 0 22px;
+      border-radius: 18px;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(rgba(14,18,30,.55), rgba(14,18,30,.55)) padding-box,
+        linear-gradient(135deg, hsla(285,84%,62%,.55), hsla(210,92%,58%,.55)) border-box;
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+      box-shadow: 0 10px 28px hsla(265,84%,62%,.18);
+    }
+    .new-q-form[hidden]{ display:none; }
+    .new-q-form input{
+      flex:1; min-width:200px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid hsl(var(--line) / .55);
+      background: rgba(20,22,38,.55);
+      color: var(--fg-0);
+      font: inherit;
+      outline:none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .new-q-form input:focus{
+      border-color: hsl(var(--violet)/.85);
+      box-shadow: 0 0 0 4px hsla(285,84%,62%,.18);
+    }
+    .new-q-form .ft-btn{ width:36px; height:36px; font-size:1rem; }
+    .save-q-btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 12px 22px;
+      border-radius:999px;
+      border:1px solid transparent;
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      cursor:pointer;
+      font: 700 .95rem/1 inherit;
+      letter-spacing:.3px;
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.32);
+      transition: transform .15s, box-shadow .2s, filter .2s;
+    }
+    .save-q-btn:hover{ transform: translateY(-1px); filter: saturate(1.1); }
+    .save-q-btn.is-splashing{
+      animation: save-splash 1s ease forwards;
+    }
+    @keyframes save-splash{
+      0%   { box-shadow: 0 8px 22px hsla(265,84%,62%,.32),
+                         0 0 0 0 hsla(285,84%,62%,.65),
+                         0 0 0 0 hsla(210,92%,58%,.45); }
+      60%  { box-shadow: 0 8px 22px hsla(265,84%,62%,.32),
+                         0 0 0 30px hsla(285,84%,62%,0),
+                         0 0 0 60px hsla(210,92%,58%,0); }
+      100% { box-shadow: 0 8px 22px hsla(265,84%,62%,.32),
+                         0 0 0 90px hsla(285,84%,62%,0),
+                         0 0 0 140px hsla(210,92%,58%,0); }
+    }
+
+    /* "+" button in the top bar — fades in with a final splash after Q3 */
+    .add-q-btn{
+      width:40px; height:40px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
+      color:#fff;
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+      display: grid; place-items: center;
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.4);
+      opacity: 0;
+      transform: scale(.5);
+      /* Arrives 3s after the Show-more button is fully shown (24s + 1s + 3s = 28s) */
+      animation: addq-arrive 1.4s cubic-bezier(.2,.7,.3,1) 28s forwards;
+      transition: transform .2s ease, filter .2s ease;
+    }
+    .add-q-btn:hover{
+      transform: scale(1.08) rotate(90deg);
+      filter: saturate(1.15);
+    }
+    .add-q-btn:focus-visible{
+      outline:3px solid hsla(285,84%,62%,.55); outline-offset:3px;
+    }
+    .add-q-btn.is-active{
+      transform: scale(1) rotate(45deg);
+    }
+    @keyframes addq-arrive{
+      0%   { opacity:0; transform: scale(.5);
+             box-shadow: 0 8px 22px hsla(265,84%,62%,.4),
+                         0 0 0 0 hsla(285,84%,62%,.0); }
+      45%  { opacity:1; transform: scale(1.12);
+             box-shadow: 0 8px 22px hsla(265,84%,62%,.4),
+                         0 0 0 0 hsla(285,84%,62%,.7); }
+      75%  { opacity:1; transform: scale(1);
+             box-shadow: 0 8px 22px hsla(265,84%,62%,.4),
+                         0 0 0 28px hsla(285,84%,62%,.15); }
+      100% { opacity:1; transform: scale(1);
+             box-shadow: 0 8px 22px hsla(265,84%,62%,.4),
+                         0 0 0 60px hsla(285,84%,62%,0); }
+    }
+
+    /* ---------- Resume "legible phrase" + actions ---------- */
+    .resume-phrase{
+      margin: 0 0 18px;
+      font-size: 1.02rem;
+      line-height: 1.6;
+      color: var(--fg-0);
+    }
+    .resume-phrase .rp-em{
+      font-weight: 800;
+      padding: 0 .12em;
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .resume-actions-row{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      margin: 6px 0 0;
+    }
+    .resume-actions-row .row-spacer{ flex:1; }
+    .btn-action{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 10px 18px;
+      border-radius:999px;
+      border:1px solid hsl(var(--line) / .55);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      color: var(--fg-0);
+      cursor:pointer;
+      font: 700 .95rem/1 inherit;
+      letter-spacing:.25px;
+      transition: transform .15s, background .2s, border-color .2s, box-shadow .2s;
+    }
+    .btn-action:hover{
+      transform: translateY(-1px);
+      border-color: hsl(var(--violet)/.7);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      box-shadow: 0 8px 22px hsla(265,84%,62%,.28);
+    }
+    .resume-action-sep{ height: 2.5rem; }   /* "two rows of separation" */
+    .resume-hint{
+      min-height: 1.2em;
+      margin: 10px 0 6px;
+      font-size: .92rem;
+      color: var(--fg-dim);
+      text-align: center;
+      font-style: italic;
+    }
+    .resume-hint:empty{ display:none; }
+
+    /* ---------- Resume section ---------- */
+    .resume-section{
+      position:relative; z-index:1;
+      max-width:980px;
+      margin: 18px auto 0;
+      padding: clamp(16px, 2vw, 24px);
+      border-radius: var(--radius-2xl);
+      border: 1px solid hsl(var(--line) / .5);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+      backdrop-filter: blur(var(--glass));
+      -webkit-backdrop-filter: blur(var(--glass));
+      box-shadow: 0 10px 40px hsla(220, 50%, 2%, .55);
+    }
+    .resume-section[hidden]{ display:none; }
+
+    /* Collapsed-by-default Resume reveal button — same design language as
+       the top-bar logo: gradient SVG mark + violet→blue wordmark text. */
+    .resume-toggle{
+      display:flex; align-items:center; justify-content:center;
+      gap:18px;
+      margin: 36px auto 0;
+      padding: 20px 44px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(rgba(14,18,30,.55), rgba(14,18,30,.55)) padding-box,
+        linear-gradient(135deg, hsla(285,84%,62%,.6), hsla(210,92%,58%,.6)) border-box;
+      cursor: pointer;
+      font: 800 2rem/1.2 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      letter-spacing: .4px;
+      box-shadow: 0 14px 36px hsla(265,84%,62%,.28);
+      transition: transform .2s ease, box-shadow .25s ease, filter .2s ease;
+      position:relative; z-index:1;
+    }
+    .resume-toggle:hover{
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 20px 48px hsla(265,84%,62%,.45), 0 0 0 4px hsla(285,84%,62%,.12);
+      filter: saturate(1.12);
+    }
+    .resume-toggle:focus-visible{
+      outline: 3px solid hsla(285,84%,62%,.55); outline-offset: 4px;
+    }
+    .resume-toggle[hidden]{ display:none; }
+    .resume-toggle .flove-mark{
+      width: 1.6em; height: 1.6em;
+      filter: drop-shadow(0 0 8px color-mix(in srgb, hsl(var(--violet)) 55%, transparent));
+    }
+    .resume-toggle .resume-word{
+      font-weight: 800;
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 16px color-mix(in srgb, hsl(var(--violet)) 35%, transparent);
+    }
+    .resume-title{
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      margin: 4px 0 14px;
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    /* ---------- Staggered fade-in of sections ----------
+       ID-scoped for the initial 3 questions so newly-saved/added questions
+       (different IDs) appear immediately, not after 11s. */
+    .who,
+    #q1, #q2, #q3,
+    .q-group:nth-of-type(1) > .style-toggle,
+    .more-controls > .more-row:first-child{
+      opacity:0;
+      animation: section-in 1s ease forwards;
+    }
+    /* .who at 3s. Q1 at 11s, Q2 at 16s, Q3 at 20s (finishes 21s).
+       Show-more arrives 3s after Q3 is fully displayed (24s),
+       the "+" arrives 3s after Show-more (28s). */
+    .who                                    { animation-delay: 3s;  }
+    .q-group:nth-of-type(1) > .style-toggle { animation-delay: 11s; }
+    #q1                                     { animation-delay: 11s; }
+    #q2                                     { animation-delay: 16s; }
+    #q3                                     { animation-delay: 20s; }
+    .more-controls > .more-row:first-child  { animation-delay: 24s; }
+    @keyframes section-in{
+      from { opacity:0; transform: translateY(8px); }
+      to   { opacity:1; transform: translateY(0);   }
+    }
+
+    /* Top bar: logo fades in over the first second, wordmark over the second.
+       Opacity-only because the bar is position:fixed. */
+    .flove-mark-btn, .flove-name-btn{
+      opacity:0;
+      animation: section-in-fixed 1s ease forwards;
+    }
+    .flove-mark-btn { animation-delay: 0s; }
+    .flove-name-btn { animation-delay: 1s; }
+    @keyframes section-in-fixed{
+      from { opacity:0; }
+      to   { opacity:1; }
+    }
+
+    /* ---------- Slogan: typed-out, in continuation of the title ---------- */
+    .flove-slogan{
+      display:inline-flex; align-items:baseline;
+      margin-left:14px;
+      font-size:.58em;             /* smaller than the title */
+      font-style:italic;
+      font-weight:600;
+      letter-spacing:.25px;
+      white-space:nowrap;
+      max-width:60vw;
+      overflow:hidden;
+      background: linear-gradient(90deg, hsl(var(--violet)), hsl(var(--blue)));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      opacity:0;
+      /* Comes in right after the logo (1s). Fades out 11s–12s as Q1 fades in. */
+      animation: slogan-in  1s ease 1s  forwards,
+                 slogan-out 1s ease 11s forwards;
+    }
+    .slogan-text{
+      display:inline-block;
+      overflow:hidden;
+      max-width:0;
+      vertical-align:bottom;
+      /* 50% quicker: 6s → 3s. 30 char steps for "Say it clearly, keep it classy". */
+      animation: slogan-type 3s steps(30, end) 1s forwards;
+    }
+    @keyframes slogan-in   { to { opacity:1; } }
+    @keyframes slogan-out  { to { opacity:0; } }
+    @keyframes slogan-type { to { max-width: 30ch; } }
+
+    /* The "straight line" at the end — the typing caret — completely fuzzy
+       and rounded. Blinks while typing (3 cycles over 3s, matches the
+       quicker type-on), then hides once the cursor reaches the end. */
+    .flove-slogan::after{
+      content:"";
+      display:inline-block;
+      width:6px; height:.95em;
+      margin-left:4px;
+      background: linear-gradient(180deg, hsl(var(--violet)), hsl(var(--blue)));
+      border-radius:10px;          /* rounded */
+      filter: blur(2px) saturate(140%);  /* completely fuzzy */
+      vertical-align:middle;
+      opacity:0;
+      animation: caret-blink 1s steps(2, end) 1s 3 forwards;
+    }
+    @keyframes caret-blink{
+      0%   { opacity:1; }
+      50%  { opacity:0; }
+      100% { opacity:0; }   /* settles hidden at the end of the 6th cycle */
+    }
+
+    @media print{
+      body{ background:#fff; color:#000; padding-top:0; }
+      .bg-orbit, .bg-weave, .flove-bar, .button-group, .fire, .screen-fire{ display:none; }
+      .card, .resume-section{ background:#fff; border:1px solid #bbb; box-shadow:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orbit"></div>
+  <div class="bg-weave"></div>
+  <div class="screen-fire screen-fire--rb" aria-hidden="true"></div>
+  <div class="screen-fire screen-fire--l"  aria-hidden="true"></div>
+
+  <div class="flove-bar">
+    <button type="button" class="flove-mark-btn" id="reloadBtn" aria-label="Reload page" title="Reload">
+      <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;">
+        <defs>
+          <linearGradient id="g-genderwars" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+            <stop offset="0%"   stop-color="hsl(285, 84%, 62%)"/>
+            <stop offset="100%" stop-color="hsl(210, 92%, 58%)"/>
+          </linearGradient>
+        </defs>
+        <g fill="none" stroke="url(#g-genderwars)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="18" fill="none"/>
+          <line x1="50" y1="68" x2="50" y2="86"/>
+          <line x1="42" y1="78" x2="58" y2="78"/>
+          <line x1="62" y1="38" x2="82" y2="18"/>
+          <path d="M70 14 L86 14 L86 30" fill="none"/>
+        </g>
+      </svg>
+    </button>
+    <button type="button" class="flove-name-btn" id="introBtn" aria-controls="introSection" aria-expanded="false" title="About GenderWars">
+      <span class="flove-app-name">GenderWars</span>
+    </button>
+    <span class="flove-slogan" aria-hidden="true"><span class="slogan-text">Say it clearly, keep it classy</span></span>
+    <span class="flove-spacer"></span>
+    <button type="button" class="add-q-btn" id="addQTopBtn" aria-label="Add new question" title="Add new question">+</button>
+    <div class="top-menu">
+      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">☰</button>
+      <ul class="menu-list" id="menuList" hidden role="menu">
+        <li role="none"><a role="menuitem" href="#" data-act="reset">↻ &nbsp;Reset form</a></li>
+        <li role="none"><a role="menuitem" href="#" data-act="about">ⓘ &nbsp;About GenderWars</a></li>
+        <li role="none"><a role="menuitem" href="../index.html">✺ &nbsp;All flove apps</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <section id="introSection" hidden aria-label="About GenderWars">
+    <span class="intro-slogan" aria-hidden="true"><span class="intro-slogan-text">Say it clearly, keep it classy.</span></span>
+    <button type="button" class="intro-close-btn" id="introCloseBtn" aria-label="Close intro">✕</button>
+
+    <p>Choose your side, then share what bothers you, what attracts you, and what you'd love the other gender to grow into.</p>
+    <p>Click <em>GenderWars</em> again, or the <strong>X</strong> above, to collapse this intro. Click the logo to reload.</p>
+
+    <button type="button" class="see-more-btn" id="seeMoreBtn" aria-expanded="false" aria-controls="introMore">
+      <span class="see-more-label">See more</span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </button>
+
+    <div class="intro-more" id="introMore">
+      <p>Every dislike is a like turned up too loud. Every like is a dislike that found its measure. GenderWars holds both sides at once, so the seam between them shows.</p>
+      <p>Pick a side, fill the three questions, then ask for the resume. Save, share, or publish what you wrote — at the pace that feels right.</p>
+      <div class="intro-columns">
+        <div class="intro-col">
+          <h4>Photos</h4>
+          <div class="slides" id="slides">
+            <figure class="slide is-active" data-i="0">Photo 1 · placeholder</figure>
+            <figure class="slide" data-i="1">Photo 2 · placeholder</figure>
+            <figure class="slide" data-i="2">Photo 3 · placeholder</figure>
+            <div class="slides-dots" id="slidesDots">
+              <span class="is-on"></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        <div class="intro-col">
+          <h4>Video</h4>
+          <div class="video-wrap">
+            <video id="introVideo" controls playsinline preload="metadata" poster="">
+              <source src="" type="video/mp4">
+              <p class="video-placeholder">Video placeholder — set a src on #introVideo.</p>
+            </video>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <main class="shell">
+    <form id="genderwars" class="card" method="post" action="#">
+      <input type="hidden" name="form_id" value="genderwars-v1" />
+
+      <fieldset class="who">
+        <legend>I am a</legend>
+
+        <label class="radio-chip">
+          <input type="radio" name="iam" value="Woman" required />
+          <span class="chip">
+            <span class="icon" aria-hidden="true">♀</span>
+            Woman
+          </span>
+        </label>
+
+        <label class="radio-chip">
+          <input type="radio" name="iam" value="Man" required />
+          <span class="chip">
+            <span class="icon" aria-hidden="true">♂</span>
+            Man
+          </span>
+        </label>
+      </fieldset>
+
+      <div class="new-q-form" id="newQForm" hidden>
+        <input type="text" id="newQInput" placeholder="Type your new question (use “the other gender” to substitute)…" maxlength="200" />
+        <button type="button" class="ft-btn ft-mic" data-ta="newQInput" aria-label="Voice input" title="Voice input">🎤</button>
+        <button type="button" class="save-q-btn" id="saveNewQBtn">💾 <span>Save</span></button>
+      </div>
+
+      <section class="qs">
+        <section class="q-group">
+          <nav class="style-toggle">
+            <button type="button" class="style-btn" data-style="formal">More formal</button>
+            <button type="button" class="style-btn" data-style="informal">More informal</button>
+          </nav>
+
+          <div class="q">
+            <span class="fire" aria-hidden="true"></span>
+            <button type="button" class="q-delete" aria-label="Delete question">✕</button>
+            <label for="q1">1. What don’t you like from <span class="other-gender">the other gender</span>?</label>
+            <div class="field">
+              <textarea id="q1" name="dislikes" rows="2" maxlength="1000" placeholder="Be specific, be respectful…"></textarea>
+              <div class="field-tools">
+                <button type="button" class="ft-btn ft-magic" data-ta="q1" aria-label="Suggest text" title="Suggest">✨</button>
+                <button type="button" class="ft-btn ft-file"  data-ta="q1" aria-label="Attach file"  title="Attach file">📎</button>
+                <button type="button" class="ft-btn ft-mic"   data-ta="q1" aria-label="Voice input"  title="Voice input">🎤</button>
+              </div>
+              <button type="button" class="field-expand" aria-label="Expand field" title="Expand to full size">+</button>
+            </div>
+          </div>
+
+          <div class="q">
+            <span class="fire" aria-hidden="true"></span>
+            <button type="button" class="q-delete" aria-label="Delete question">✕</button>
+            <label for="q2">2. What do you like from <span class="other-gender">the other gender</span>?</label>
+            <div class="field">
+              <textarea id="q2" name="likes" rows="2" maxlength="1000" placeholder="Sure there are many things..."></textarea>
+              <div class="field-tools">
+                <button type="button" class="ft-btn ft-magic" data-ta="q2" aria-label="Suggest text" title="Suggest">✨</button>
+                <button type="button" class="ft-btn ft-file"  data-ta="q2" aria-label="Attach file"  title="Attach file">📎</button>
+                <button type="button" class="ft-btn ft-mic"   data-ta="q2" aria-label="Voice input"  title="Voice input">🎤</button>
+              </div>
+              <button type="button" class="field-expand" aria-label="Expand field" title="Expand to full size">+</button>
+            </div>
+          </div>
+
+          <div class="q">
+            <span class="fire" aria-hidden="true"></span>
+            <button type="button" class="q-delete" aria-label="Delete question">✕</button>
+            <label for="q3">3. What would you like <span class="other-gender">the other gender</span> to develop more?</label>
+            <div class="field">
+              <textarea id="q3" name="their_growth" rows="2" maxlength="1000" placeholder="Growth in them you’d love to see…"></textarea>
+              <div class="field-tools">
+                <button type="button" class="ft-btn ft-magic" data-ta="q3" aria-label="Suggest text" title="Suggest">✨</button>
+                <button type="button" class="ft-btn ft-file"  data-ta="q3" aria-label="Attach file"  title="Attach file">📎</button>
+                <button type="button" class="ft-btn ft-mic"   data-ta="q3" aria-label="Voice input"  title="Voice input">🎤</button>
+              </div>
+              <button type="button" class="field-expand" aria-label="Expand field" title="Expand to full size">+</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <div class="more-controls" id="moreControls">
+        <div class="more-row" data-step="1">
+          <button type="button" class="big-more-btn" data-action="more">Show more</button>
+        </div>
+      </div>
+    </form>
+
+    <button type="button" class="resume-toggle" id="resumeToggle" aria-controls="resumeSection" aria-expanded="false">
+      <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;">
+        <g fill="none" stroke="url(#g-genderwars)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="18" fill="none"/>
+          <line x1="50" y1="68" x2="50" y2="86"/>
+          <line x1="42" y1="78" x2="58" y2="78"/>
+          <line x1="62" y1="38" x2="82" y2="18"/>
+          <path d="M70 14 L86 14 L86 30" fill="none"/>
+        </g>
+      </svg>
+      <span class="resume-word">Resume</span>
+    </button>
+
+    <section class="resume-section" id="resumeSection" aria-label="Resume" hidden>
+      <h2 class="resume-title">Resume</h2>
+      <p class="resume-phrase" id="resumePhrase">
+        As a <span class="rp-em" data-iam>—</span>, what I don’t like from <span class="rp-em" data-other>the other gender</span> is <span class="rp-em" data-answer="q1">—</span>. What I like from them is <span class="rp-em" data-answer="q2">—</span>. And I’d love them to develop more <span class="rp-em" data-answer="q3">—</span>.
+      </p>
+
+      <!-- First action row: Insights + Magic (left) — Copy (right) -->
+      <div class="resume-actions-row">
+        <button type="button" class="btn-action" id="insightsBtn">💡 <span>Insights</span></button>
+        <button type="button" class="btn-action" id="magicBtn">✨ <span>Magic</span></button>
+        <span class="row-spacer"></span>
+        <button type="button" class="btn-action" id="copyBtn">📋 <span>Copy</span></button>
+      </div>
+
+      <div class="resume-hint" id="resumeHint" aria-live="polite"></div>
+
+      <!-- Two rows of separation between the action rows -->
+      <div class="resume-action-sep"></div>
+
+      <!-- Second row: Save / Share / Publish (moved here from the form) -->
+      <div class="button-group">
+        <div class="button-row">
+          <div class="btn-with-subs" id="saveWrap">
+            <button type="button" class="btn" id="saveBtn" title="Save">🤲 <span>Save</span></button>
+            <div class="subitems subitems--below">
+              <button type="button" class="subitem" data-group="save" data-action="jpg">JPG</button>
+              <button type="button" class="subitem" data-group="save" data-action="html">HTML</button>
+              <button type="button" class="subitem" data-group="save" data-action="text">Text</button>
+              <button type="button" class="subitem" data-group="save" data-action="json">JSON</button>
+            </div>
+          </div>
+
+          <div class="btn-with-subs" id="shareWrap">
+            <button type="button" class="btn" id="shareBtn" title="Share">🤝 <span>Share</span></button>
+            <div class="subitems subitems--below">
+              <button type="button" class="subitem" data-group="share" data-action="whatsapp">WhatsApp</button>
+              <button type="button" class="subitem" data-group="share" data-action="telegram">Telegram</button>
+              <button type="button" class="subitem" data-group="share" data-action="mail">Mail</button>
+            </div>
+          </div>
+
+          <div class="btn-with-subs" id="publishWrap">
+            <div class="subitems subitems--above">
+              <button type="button" class="subitem" data-group="publish-platform" data-platform="Mastodon">Mastodon</button>
+              <button type="button" class="subitem" data-group="publish-platform" data-platform="Bluesky">Bluesky</button>
+              <button type="button" class="subitem" data-group="publish-platform" data-platform="X">X</button>
+            </div>
+            <button type="button" class="btn btn--primary" id="publishBtn" title="Publish">😊 <span>Publish</span></button>
+            <div class="subitems subitems--below">
+              <button type="button" class="subitem" data-group="publish-visibility" data-visibility="Public">Public</button>
+              <button type="button" class="subitem" data-group="publish-visibility" data-visibility="Friends">Friends</button>
+              <button type="button" class="subitem" data-group="publish-visibility" data-visibility="Private">Private</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function(){
+    // ----- "the other gender" → "men" / "women" -----
+    const LABEL_MAP = { Woman:'women', Man:'men' };
+    const DEFAULT   = 'the other gender';
+    const radios = document.querySelectorAll('input[name="iam"]');
+    const spans  = document.querySelectorAll('.other-gender');
+
+    const iamSpan    = document.querySelector('[data-iam]');
+    const otherSpans = document.querySelectorAll('[data-other]');
+    const answerEls  = {
+      q1: document.querySelector('[data-answer="q1"]'),
+      q2: document.querySelector('[data-answer="q2"]'),
+      q3: document.querySelector('[data-answer="q3"]'),
+    };
+
+    function syncOther(){
+      // Re-query every time so dynamically-added questions are covered.
+      const liveSpans  = document.querySelectorAll('.other-gender');
+      const liveOthers = document.querySelectorAll('[data-other]');
+      const liveIam    = document.querySelector('[data-iam]');
+      const checked = document.querySelector('input[name="iam"]:checked');
+      if (!checked){
+        liveSpans.forEach(s => s.textContent = DEFAULT);
+        liveOthers.forEach(s => s.textContent = DEFAULT);
+        if (liveIam) liveIam.textContent = '—';
+      } else {
+        const other = [...radios].find(r => r !== checked);
+        const label = other ? (LABEL_MAP[other.value] || other.value) : DEFAULT;
+        liveSpans.forEach(s => s.textContent = label);
+        liveOthers.forEach(s => s.textContent = label);
+        if (liveIam) liveIam.textContent = checked.value;
+      }
+      // The question text now lives in the textarea placeholder — keep it
+      // in sync with whatever the (hidden) label currently says.
+      syncPlaceholders();
+    }
+
+    // Copy each question's hidden-label text into its textarea placeholder.
+    function syncPlaceholders(){
+      document.querySelectorAll('.qs .q').forEach(q => {
+        const label = q.querySelector('label');
+        const ta    = q.querySelector('textarea');
+        if (!label || !ta) return;
+        ta.placeholder = (label.textContent || '').trim();
+      });
+    }
+    radios.forEach(r => r.addEventListener('change', syncOther));
+    syncOther();
+
+    // ----- Resume: live-sync the answers from the textareas -----
+    Object.keys(answerEls).forEach(id => {
+      const ta = document.getElementById(id);
+      const out = answerEls[id];
+      if (!ta || !out) return;
+      const refresh = () => { out.textContent = ta.value.trim() || '—'; };
+      ta.addEventListener('input', refresh);
+      refresh();
+    });
+
+    // ----- Top bar: logo reloads, name toggles intro -----
+    const reloadBtn = document.getElementById('reloadBtn');
+    const introBtn  = document.getElementById('introBtn');
+    const intro     = document.getElementById('introSection');
+
+    function setIntro(open){
+      if (open) intro.removeAttribute('hidden');
+      else      intro.setAttribute('hidden', '');
+      introBtn.setAttribute('aria-expanded', String(open));
+    }
+
+    reloadBtn.addEventListener('click', () => location.reload());
+    introBtn.addEventListener('click', () => setIntro(intro.hasAttribute('hidden')));
+
+    // Close X on the intro's top border
+    const introCloseBtn = document.getElementById('introCloseBtn');
+    introCloseBtn?.addEventListener('click', () => setIntro(false));
+
+    // "See more" — expands extra text + photos/video columns
+    const seeMoreBtn = document.getElementById('seeMoreBtn');
+    const introMore  = document.getElementById('introMore');
+    const seeMoreLabel = seeMoreBtn?.querySelector('.see-more-label');
+    seeMoreBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = introMore.classList.toggle('is-open');
+      seeMoreBtn.setAttribute('aria-expanded', String(open));
+      if (seeMoreLabel) seeMoreLabel.textContent = open ? 'See less' : 'See more';
+    });
+
+    // Photo slide auto-cycle (only while the intro is visible)
+    const slidesEl = document.getElementById('slides');
+    if (slidesEl){
+      const figures = [...slidesEl.querySelectorAll('.slide')];
+      const dots    = [...document.querySelectorAll('#slidesDots span')];
+      let slideIdx = 0;
+      setInterval(() => {
+        if (intro.hasAttribute('hidden') || !introMore.classList.contains('is-open')) return;
+        slideIdx = (slideIdx + 1) % figures.length;
+        figures.forEach((f, i) => f.classList.toggle('is-active', i === slideIdx));
+        dots.forEach((d, i)    => d.classList.toggle('is-on',    i === slideIdx));
+      }, 3500);
+    }
+
+    // ----- Right-side menu -----
+    const menuBtn  = document.getElementById('menuBtn');
+    const menuList = document.getElementById('menuList');
+    function setMenu(open){
+      if (open){ menuList.removeAttribute('hidden'); menuBtn.setAttribute('aria-expanded','true'); }
+      else     { menuList.setAttribute('hidden',''); menuBtn.setAttribute('aria-expanded','false'); }
+    }
+    menuBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      setMenu(menuList.hasAttribute('hidden'));
+    });
+    document.addEventListener('click', e => {
+      if (!menuList.hasAttribute('hidden') && !menuBtn.contains(e.target) && !menuList.contains(e.target)){
+        setMenu(false);
+      }
+    });
+    menuList.addEventListener('click', e => {
+      const a = e.target.closest('a[data-act]');
+      if (!a) return;
+      e.preventDefault();
+      const act = a.dataset.act;
+      if (act === 'reset'){
+        document.getElementById('genderwars').reset();
+        syncOther();
+        Object.values(answerEls).forEach(out => { if (out) out.textContent = '—'; });
+        setResumeHint('');
+      } else if (act === 'about'){
+        setIntro(intro.hasAttribute('hidden'));
+      }
+      setMenu(false);
+    });
+
+    // ----- Save / Share / Publish: open/close subitems -----
+    document.querySelectorAll('.btn-with-subs').forEach(wrap => {
+      const btn = wrap.querySelector(':scope > .btn');
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        document.querySelectorAll('.btn-with-subs').forEach(w => { if (w !== wrap) w.classList.remove('is-open'); });
+        wrap.classList.toggle('is-open');
+      });
+    });
+    document.addEventListener('click', e => {
+      document.querySelectorAll('.btn-with-subs').forEach(wrap => {
+        if (!wrap.contains(e.target)) wrap.classList.remove('is-open');
+      });
+    });
+    document.querySelectorAll('.subitem').forEach(s => {
+      s.addEventListener('click', e => {
+        e.stopPropagation();
+        const group = s.dataset.group;
+        if (group){
+          document.querySelectorAll('.subitem[data-group="'+group+'"]').forEach(x => x.classList.remove('is-active'));
+          s.classList.add('is-active');
+        }
+      });
+    });
+
+    // ===== Per-field expand toggle (event-delegated for dynamic questions) =====
+    document.addEventListener('click', e => {
+      const exp = e.target.closest('.field-expand');
+      if (!exp) return;
+      const field = exp.closest('.field');
+      if (!field) return;
+      field.classList.toggle('is-expanded');
+    });
+
+    // ===== Per-question delete (event-delegated, also covers added questions) =====
+    document.addEventListener('click', e => {
+      const x = e.target.closest('.q-delete');
+      if (!x) return;
+      const q = x.closest('.q');
+      if (!q) return;
+      const ta = q.querySelector('textarea');
+      const id = ta?.id;
+      q.remove();
+      if (id){
+        delete answerEls[id];
+        // For dynamically-added questions, also drop their phrase segment.
+        const phrase = document.getElementById('resumePhrase');
+        const ansSpan = phrase?.querySelector('[data-answer="' + id + '"]');
+        if (ansSpan && ansSpan.parentElement && ansSpan.parentElement !== phrase){
+          ansSpan.parentElement.remove();
+        }
+      }
+      renumberQuestions();
+    });
+
+    // Keep question numbers tidy after add/delete (labels start with "N.")
+    function renumberQuestions(){
+      const qs = document.querySelectorAll('.qs .q');
+      qs.forEach((q, i) => {
+        const lab = q.querySelector('label');
+        if (lab) lab.firstChild.nodeValue = (i + 1) + '. ' + lab.firstChild.nodeValue.replace(/^\d+\.\s*/, '');
+      });
+      // Numbers changed → the placeholders that mirror the labels must too.
+      syncPlaceholders();
+    }
+
+    // ===== Field tools: ✨ magic, 📎 file, 🎤 mic =====
+    const SUGGESTIONS = [
+      'Sometimes I notice that ',
+      'What surprises me is ',
+      'In my experience, ',
+      'I’ve come to admire ',
+      'I wish there was more ',
+      'It bothers me when ',
+      'There’s a beauty in ',
+      'I find myself drawn to '
+    ];
+
+    function getTA(btn){
+      const id = btn.dataset.ta;
+      if (id) return document.getElementById(id);
+      return btn.closest('.field')?.querySelector('textarea');
+    }
+    function bumpInput(ta){ ta.dispatchEvent(new Event('input', { bubbles:true })); }
+
+    document.addEventListener('click', e => {
+      // Magic suggestion
+      const magic = e.target.closest('.ft-magic');
+      if (magic){
+        const ta = getTA(magic);
+        if (!ta) return;
+        const s = SUGGESTIONS[Math.floor(Math.random() * SUGGESTIONS.length)];
+        ta.value = (ta.value ? ta.value.replace(/\s*$/, ' ') : '') + s;
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = ta.value.length;
+        bumpInput(ta);
+        return;
+      }
+      // File picker
+      const file = e.target.closest('.ft-file');
+      if (file){
+        const ta = getTA(file);
+        if (!ta) return;
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.style.display = 'none';
+        inp.addEventListener('change', () => {
+          const f = inp.files?.[0];
+          if (f){
+            ta.value = (ta.value ? ta.value.replace(/\s*$/, '\n') : '') + '[file: ' + f.name + ']';
+            bumpInput(ta);
+          }
+          inp.remove();
+        });
+        document.body.appendChild(inp);
+        inp.click();
+        return;
+      }
+      // Mic / voice
+      const mic = e.target.closest('.ft-mic');
+      if (mic){
+        const ta = getTA(mic);
+        if (!ta) return;
+        toggleMic(mic, ta);
+        return;
+      }
+    });
+
+    // ----- Speech recognition (Web Speech API where available) -----
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const micState = new WeakMap();  // btn -> { rec, baseValue }
+    function toggleMic(btn, ta){
+      if (!SR){
+        setResumeHint('Voice input is not supported in this browser.');
+        return;
+      }
+      const state = micState.get(btn);
+      if (state && state.rec){
+        try { state.rec.stop(); } catch(_){}
+        return;
+      }
+      const rec = new SR();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = (navigator.language || 'en-US');
+      const baseValue = ta.value ? ta.value.replace(/\s*$/, ' ') : '';
+      rec.onresult = (ev) => {
+        let final = '', interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++){
+          const r = ev.results[i];
+          if (r.isFinal) final += r[0].transcript;
+          else           interim += r[0].transcript;
+        }
+        ta.value = baseValue + final + interim;
+        bumpInput(ta);
+      };
+      rec.onend = () => {
+        btn.classList.remove('is-recording');
+        micState.delete(btn);
+      };
+      rec.onerror = () => {
+        btn.classList.remove('is-recording');
+        micState.delete(btn);
+        setResumeHint('Voice input stopped.');
+      };
+      try {
+        rec.start();
+        btn.classList.add('is-recording');
+        micState.set(btn, { rec, baseValue });
+      } catch (err){
+        setResumeHint('Could not start voice input.');
+      }
+    }
+
+    // ===== More questions =====
+    const POSSIBLE_QS = [
+      'What do you find confusing about <span class="other-gender">the other gender</span>?',
+      'What do you wish <span class="other-gender">the other gender</span> understood about you?',
+      'When have you been positively surprised by <span class="other-gender">the other gender</span>?',
+      'What’s a strength of <span class="other-gender">the other gender</span> you’d like to grow yourself?',
+      'What advice would you give to <span class="other-gender">the other gender</span>?',
+      'What’s a common misunderstanding between you and <span class="other-gender">the other gender</span>?',
+      'What have you learned from <span class="other-gender">the other gender</span>?',
+      'What’s a behaviour from <span class="other-gender">the other gender</span> you would never imitate?',
+      'What positive change have you seen in <span class="other-gender">the other gender</span> lately?',
+      'What is a question you’ve always wanted to ask <span class="other-gender">the other gender</span>?'
+    ];
+    let nextQIndex = 0;
+    let nextQId = 4;
+    const qsContainer = document.querySelector('.qs');
+
+    function makeQ(labelInnerHTML, placeholder){
+      const id = 'q' + (nextQId++);
+      const tempNum = qsContainer.querySelectorAll('.q').length + 1;
+      const q = document.createElement('div');
+      q.className = 'q';
+      q.innerHTML =
+        '<span class="fire" aria-hidden="true"></span>' +
+        '<button type="button" class="q-delete" aria-label="Delete question">✕</button>' +
+        '<label for="' + id + '">' + tempNum + '. ' + labelInnerHTML + '</label>' +
+        '<div class="field">' +
+          '<textarea id="' + id + '" name="' + id + '" rows="2" maxlength="1000" placeholder="' + (placeholder || 'Your thoughts here…') + '"></textarea>' +
+          '<div class="field-tools">' +
+            '<button type="button" class="ft-btn ft-magic" data-ta="' + id + '" aria-label="Suggest text" title="Suggest">✨</button>' +
+            '<button type="button" class="ft-btn ft-file"  data-ta="' + id + '" aria-label="Attach file"  title="Attach file">📎</button>' +
+            '<button type="button" class="ft-btn ft-mic"   data-ta="' + id + '" aria-label="Voice input"  title="Voice input">🎤</button>' +
+          '</div>' +
+          '<button type="button" class="field-expand" aria-label="Expand field" title="Expand to full size">+</button>' +
+        '</div>';
+      /* Caller appends; renumberQuestions() fixes the leading number afterward. */
+      return { q, id };
+    }
+    function bindAnswerSync(id){
+      const ta = document.getElementById(id);
+      const out = answerEls[id];
+      if (!ta || !out) return;
+      const refresh = () => { out.textContent = ta.value.trim() || '—'; };
+      ta.addEventListener('input', refresh);
+      refresh();
+    }
+    function addQuestionGroup(){
+      if (nextQIndex >= POSSIBLE_QS.length) return null;
+      const group = document.createElement('section');
+      group.className = 'q-group';
+      const nav = document.createElement('nav');
+      nav.className = 'style-toggle';
+      nav.innerHTML =
+        '<button type="button" class="style-btn" data-style="formal">More formal</button>' +
+        '<button type="button" class="style-btn" data-style="informal">More informal</button>';
+      group.appendChild(nav);
+
+      const added = [];
+      for (let i = 0; i < 3 && nextQIndex < POSSIBLE_QS.length; i++){
+        const labelHTML = POSSIBLE_QS[nextQIndex++];
+        const { q, id } = makeQ(labelHTML, 'Your thoughts here…');
+        group.appendChild(q);
+        addExtraResumeLine(id, labelHTML);
+        added.push(id);
+      }
+      qsContainer.appendChild(group);
+      renumberQuestions();
+      syncOther();
+      added.forEach(bindAnswerSync);
+      return group;
+    }
+    function addExtraResumeLine(id, labelHTML){
+      // Append to the resume phrase so new answers also show in the recap.
+      const p = document.getElementById('resumePhrase');
+      const text = (labelHTML.replace(/<[^>]+>/g, '').replace(/<span class="other-gender">the other gender<\/span>/g, '').trim());
+      const span = document.createElement('span');
+      span.innerHTML = ' Also: ' + labelHTML.replace(/<span class="other-gender">/g, '<span class="rp-em" data-other>') + ' <span class="rp-em" data-answer="' + id + '">—</span>.';
+      p.appendChild(span);
+      answerEls[id] = span.querySelector('[data-answer="' + id + '"]');
+    }
+    /* "Show more" cascade — up to 3 sets total.
+       Each Show-more click: turns its row into an X (for the new set) AND,
+       if a further set is still allowed, drops a fresh Show-more row below.
+       Each X removes its set and any sets/control-rows after it. */
+    const moreControls = document.getElementById('moreControls');
+    const MAX_SETS = 3;
+
+    function totalGroups(){
+      return qsContainer.querySelectorAll('.q-group').length;
+    }
+    function removeGroupRecursive(group){
+      if (!group) return;
+      group.querySelectorAll('.q textarea').forEach(ta => {
+        const id = ta.id;
+        if (!id) return;
+        delete answerEls[id];
+        const phrase = document.getElementById('resumePhrase');
+        const ansSpan = phrase?.querySelector('[data-answer="' + id + '"]');
+        if (ansSpan && ansSpan.parentElement && ansSpan.parentElement !== phrase){
+          ansSpan.parentElement.remove();
+        }
+      });
+      group.remove();
+    }
+    function addMoreRow(step){
+      const row = document.createElement('div');
+      row.className = 'more-row is-revealed';
+      row.dataset.step = String(step);
+      row.innerHTML = '<button type="button" class="big-more-btn" data-action="more">Show more</button>';
+      moreControls.appendChild(row);
+    }
+    function transformRowToX(row){
+      row.innerHTML = '<button type="button" class="collapse-x" data-action="collapse" aria-label="Collapse this set" title="Collapse">✕</button>';
+      row.classList.add('is-revealed');
+    }
+    function transformRowToShowMore(row){
+      row.innerHTML = '<button type="button" class="big-more-btn" data-action="more">Show more</button>';
+      row.classList.remove('is-revealed');
+    }
+
+    moreControls.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const row = btn.closest('.more-row');
+      if (!row) return;
+
+      if (btn.dataset.action === 'more'){
+        if (totalGroups() >= MAX_SETS) return;
+        if (nextQIndex >= POSSIBLE_QS.length) return;
+        const group = addQuestionGroup();
+        if (!group) return;
+        transformRowToX(row);
+        // After this click, if we're still below MAX_SETS, drop a fresh
+        // Show-more row below for the next set.
+        if (totalGroups() < MAX_SETS){
+          addMoreRow(Number(row.dataset.step) + 1);
+        }
+      } else if (btn.dataset.action === 'collapse'){
+        // Collapse THIS set and any sets/rows after it
+        const groups = [...qsContainer.querySelectorAll('.q-group')];
+        const myStep = Number(row.dataset.step);
+        // The Nth control row corresponds to the (N+1)th group
+        // (set 1 is the initial group, no control row added it).
+        const myGroupIndex = myStep;  // step 1 -> groups[1], step 2 -> groups[2]
+        for (let i = groups.length - 1; i >= myGroupIndex; i--){
+          removeGroupRecursive(groups[i]);
+        }
+        renumberQuestions();
+        // Remove any later more-rows
+        let next = row.nextElementSibling;
+        while (next){
+          const after = next.nextElementSibling;
+          next.remove();
+          next = after;
+        }
+        // Restore THIS row to "Show more" state
+        transformRowToShowMore(row);
+      }
+    });
+
+    // ===== More formal / More informal style switch (per group) =====
+    const QUESTION_STYLES = {
+      q1: {
+        neutral:  'What don’t you like from <other>?',
+        formal:   'What characteristics displease you about <other>?',
+        informal: 'What bugs you about <other>?'
+      },
+      q2: {
+        neutral:  'What do you like from <other>?',
+        formal:   'What qualities do you appreciate in <other>?',
+        informal: 'What do you dig about <other>?'
+      },
+      q3: {
+        neutral:  'What would you like <other> to develop more?',
+        formal:   'What attributes would you encourage <other> to cultivate further?',
+        informal: 'What would you wish <other> would step up on?'
+      }
+    };
+    function applyGroupStyle(group, style){
+      group.querySelectorAll('.q').forEach(q => {
+        const ta = q.querySelector('textarea');
+        const id = ta?.id;
+        const variants = QUESTION_STYLES[id];
+        if (!variants) return;   // only q1/q2/q3 have variants today
+        const label = q.querySelector('label');
+        if (!label) return;
+        const num = (label.firstChild?.nodeValue || '').match(/^(\d+)\.\s/)?.[1] || '1';
+        label.innerHTML = num + '. ' + (variants[style] || variants.neutral)
+          .replace(/<other>/g, '<span class="other-gender">the other gender</span>');
+      });
+      syncOther();
+    }
+    function splash(el, cls, dur){
+      el.classList.remove(cls);
+      void el.offsetWidth;          // restart animation
+      el.classList.add(cls);
+      setTimeout(() => el.classList.remove(cls), dur);
+    }
+    /* Delegated so dynamic groups participate without re-binding. */
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.style-btn');
+      if (!btn) return;
+      const group = btn.closest('.q-group');
+      if (!group) return;
+      const newStyle = btn.dataset.style;
+      const cur = group.dataset.style || 'neutral';
+      const groupBtns = group.querySelectorAll('.style-btn');
+      if (cur === newStyle){
+        group.dataset.style = 'neutral';
+        groupBtns.forEach(b => b.classList.remove('is-active'));
+        applyGroupStyle(group, 'neutral');
+      } else {
+        group.dataset.style = newStyle;
+        groupBtns.forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        applyGroupStyle(group, newStyle);
+      }
+      // Splash the clicked button and the textareas whose question changed
+      splash(btn, 'is-splashing', 1150);
+      group.querySelectorAll('.q textarea').forEach(ta =>
+        splash(ta, 'is-text-splashing', 1250));
+    });
+
+    // ===== "+" button in top bar: toggle the new-q form above q1 =====
+    const addQTopBtn = document.getElementById('addQTopBtn');
+    const newQForm   = document.getElementById('newQForm');
+    const newQInput  = document.getElementById('newQInput');
+    const saveNewQBtn= document.getElementById('saveNewQBtn');
+
+    addQTopBtn?.addEventListener('click', () => {
+      const hidden = newQForm.hasAttribute('hidden');
+      if (hidden){
+        newQForm.removeAttribute('hidden');
+        addQTopBtn.classList.add('is-active');
+        newQInput.focus();
+      } else {
+        newQForm.setAttribute('hidden','');
+        addQTopBtn.classList.remove('is-active');
+      }
+    });
+
+    saveNewQBtn?.addEventListener('click', () => {
+      const text = (newQInput.value || '').trim();
+      if (!text) return;
+      // Splash effect on the save button
+      saveNewQBtn.classList.remove('is-splashing');
+      // Force reflow so the animation can re-trigger
+      void saveNewQBtn.offsetWidth;
+      saveNewQBtn.classList.add('is-splashing');
+      setTimeout(() => saveNewQBtn.classList.remove('is-splashing'), 1100);
+
+      // Build the new question. Substitute "the other gender" (or "[other]")
+      // with the live span so the men/women swap works.
+      const labelHTML = text.replace(/the other gender|\[other\]/gi,
+        '<span class="other-gender">the other gender</span>');
+
+      const { q, id } = makeQ(labelHTML, 'Your thoughts here…');
+      // Insert at the top of the first q-group (above the original q1).
+      const firstGroup = qsContainer.querySelector('.q-group');
+      const firstQ = firstGroup?.querySelector('.q');
+      if (firstGroup && firstQ){
+        firstGroup.insertBefore(q, firstQ);
+      } else if (firstGroup){
+        firstGroup.appendChild(q);
+      } else {
+        qsContainer.appendChild(q);
+      }
+
+      addExtraResumeLine(id, labelHTML);
+      renumberQuestions();
+      syncOther();
+      bindAnswerSync(id);
+
+      // Clear input but keep the form visible so user can add more
+      newQInput.value = '';
+      newQInput.focus();
+    });
+
+    // ===== Copy / Insights / Creative =====
+    const resumePhrase = document.getElementById('resumePhrase');
+    const resumeHint   = document.getElementById('resumeHint');
+    function setResumeHint(msg){
+      if (!resumeHint) return;
+      resumeHint.textContent = msg || '';
+      if (msg){
+        clearTimeout(setResumeHint._t);
+        setResumeHint._t = setTimeout(() => { resumeHint.textContent = ''; }, 4500);
+      }
+    }
+
+    // Resume toggle — reveal the section once, hide the big launcher button.
+    const resumeToggle  = document.getElementById('resumeToggle');
+    const resumeSection = document.getElementById('resumeSection');
+    resumeToggle?.addEventListener('click', () => {
+      resumeSection.removeAttribute('hidden');
+      resumeToggle.setAttribute('hidden', '');
+      resumeToggle.setAttribute('aria-expanded', 'true');
+      resumeSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    document.getElementById('copyBtn')?.addEventListener('click', async () => {
+      const text = (resumePhrase?.innerText || '').replace(/\s+/g, ' ').trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        setResumeHint('Copied to clipboard.');
+      } catch {
+        setResumeHint('Clipboard not available.');
+      }
+    });
+
+    const INSIGHTS = [
+      'What you dislike too much is often a like turned up too loud.',
+      'A wish for them to grow is also a hint of what you’d nurture in yourself.',
+      'Both sides can be true at the same time. That’s usually where the hack lives.',
+      'Name the seam between like and dislike — that’s where insight hides.',
+      'Curiosity outlasts judgement. Try asking instead of telling.',
+      'What you admire, you can practise. What you resent, you can release.'
+    ];
+    let insightIdx = 0;
+    document.getElementById('insightsBtn')?.addEventListener('click', () => {
+      setResumeHint('💡 ' + INSIGHTS[insightIdx % INSIGHTS.length]);
+      insightIdx++;
+    });
+
+    document.getElementById('magicBtn')?.addEventListener('click', () => {
+      // Swap the q1 (dislike) and q2 (like) values to re-frame.
+      const a = document.getElementById('q1');
+      const b = document.getElementById('q2');
+      if (a && b && (a.value.trim() || b.value.trim())){
+        const tmp = a.value; a.value = b.value; b.value = tmp;
+        bumpInput(a); bumpInput(b);
+        setResumeHint('✨ Swapped your dislike and like — read it fresh.');
+      } else {
+        setResumeHint('✨ Fill in at least one answer to remix.');
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

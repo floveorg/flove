@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a bot · flovy</title>
+
+<style>
+/* ============================================================
+   Design tokens — kept compatible with flovy.html / flovy-newray.html
+   ============================================================ */
+:root{
+  --accent:        #e63a5f;
+  --accent-deep:   #b32444;
+  --accent-rgb:    230, 58, 95;
+  --accent-glow:   rgba(230, 58, 95, .35);
+  --ink:           #1a1a22;
+  --ink-soft:      #555562;
+  --ink-mute:      #888892;
+  --line:          rgba(0, 0, 0, .12);
+  --line-strong:   rgba(0, 0, 0, .22);
+  --fill-soft:     rgba(var(--accent-rgb), .06);
+  --fill-mid:      rgba(var(--accent-rgb), .14);
+  --fill-pressed: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  --panel-bg:      rgba(255, 255, 255, .88);
+  --panel-border:  rgba(0, 0, 0, .08);
+  --panel-shadow:  0 12px 36px rgba(0, 0, 0, .14);
+  --fast:          .18s ease-out;
+  --font-ui:       'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display:  'Georgia', 'Times New Roman', serif;
+  --font-mono:     'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+/* ── i18n: dual-span swap, mirroring flovy.html ──────────── */
+.t-es{ display: none; }
+body:has(#ui-lang-es:checked) .t-en{ display: none; }
+body:has(#ui-lang-es:checked) .t-es{ display: inline; }
+
+/* ── Compact when loaded inside a half-size modal iframe ── */
+@media (max-height: 600px), (max-width: 700px){
+  .page{ padding: 1rem 1rem 2rem; }
+  .page-head{ margin-bottom: .8rem; padding-bottom: .6rem; }
+  .page-title{ font-size: 1.4rem; }
+  .layout{ gap: 1rem; }
+}
+
+*{ box-sizing: border-box; }
+html, body{ margin: 0; padding: 0; }
+body{
+  min-height: 100vh;
+  font: 400 15px/1.5 var(--font-ui);
+  color: var(--ink);
+  background:
+    radial-gradient(60% 50% at 20% 0%,  rgba(var(--accent-rgb), .10), transparent 60%),
+    radial-gradient(50% 50% at 100% 100%, rgba(var(--accent-rgb), .06), transparent 60%),
+    linear-gradient(180deg, #fafafa, #f0eef2);
+  background-attachment: fixed;
+}
+
+.page{ max-width: 1200px; margin: 0 auto; padding: 2rem 1.4rem 4rem; }
+
+.page-head{
+  display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+  margin-bottom: 1.6rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.page-title{
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.8rem; font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--accent-deep);
+}
+.page-mark{
+  display: inline-block;
+  margin-right: .25rem;
+  font-size: 1.6rem; color: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+.page-sub{ margin: 0; color: var(--ink-soft); font-size: .92rem; }
+
+.layout{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 1.6rem;
+}
+@media (max-width: 900px){ .layout{ grid-template-columns: 1fr; } }
+
+.card{
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.fieldset{
+  border: 0; margin: 0;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-bottom: 1px dashed var(--line);
+}
+.fieldset:last-of-type{ border-bottom: 0; }
+.fieldset > legend{
+  display: flex; align-items: center; gap: .55rem;
+  padding: 0;
+  margin-bottom: .9rem;
+  font: 700 .72rem/1 var(--font-ui);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.fieldset > legend::before{
+  content: ""; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+}
+.fieldset .hint{
+  margin: -.45rem 0 .65rem;
+  font-size: .8rem; color: var(--ink-mute);
+}
+
+.grid{ display: grid; gap: .85rem 1rem; grid-template-columns: 1fr 1fr; }
+.grid .span-2{ grid-column: 1 / -1; }
+@media (max-width: 600px){ .grid{ grid-template-columns: 1fr; } }
+
+.field{ display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.field > label{
+  font: 600 .76rem/1.2 var(--font-ui);
+  color: var(--ink-soft);
+  letter-spacing: .02em;
+}
+.field > .var-name{
+  font: 400 .68rem/1 var(--font-mono);
+  color: var(--ink-mute);
+}
+.field input[type="text"],
+.field textarea{
+  width: 100%;
+  padding: .55rem .7rem;
+  font: 400 .9rem/1.35 var(--font-ui);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .9);
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  outline: none;
+  transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
+}
+.field input.glyph{
+  text-align: center;
+  font-size: 1.4rem;
+  font-family: var(--font-ui), 'Segoe UI Symbol', 'Apple Color Emoji';
+}
+.field textarea{ resize: vertical; min-height: 70px; font-family: var(--font-ui); }
+.field input:focus,
+.field textarea:focus{
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12);
+}
+.field input::placeholder,
+.field textarea::placeholder{ color: var(--ink-mute); font-style: italic; }
+
+/* preview chip */
+.preview-row{
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .75rem;
+  margin-top: .35rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .55);
+}
+.preview-arm{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--accent-deep);
+  font-size: .95rem;
+}
+.preview-text{ font-size: .82rem; color: var(--ink-soft); }
+.preview-text strong{ color: var(--ink); }
+
+/* output card — prompt-first layout */
+.output-card{
+  position: sticky; top: 1rem;
+  align-self: start;
+  display: flex; flex-direction: column;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+.btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .35rem;
+  padding: .55rem 1.2rem;
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  border: 0; border-radius: 999px;
+  background: var(--fill-pressed);
+  color: #fff;
+  cursor: pointer;
+  transition: filter var(--fast), transform var(--fast), background var(--fast);
+}
+.btn:hover{ filter: brightness(1.08); }
+.btn:active{ transform: scale(.97); }
+.btn--lg{ padding: .7rem 1.6rem; font-size: .92rem; }
+.btn--ghost{
+  background: transparent;
+  color: var(--accent-deep);
+  border: 2px solid rgba(var(--accent-rgb), .35);
+}
+.btn--ghost:hover{ background: var(--fill-soft); filter: none; }
+
+.prompt-actions{
+  display: flex; justify-content: center; align-items: center;
+  gap: .6rem;
+  margin-bottom: .8rem;
+}
+.prompt-area{
+  width: 100%;
+  min-height: 360px;
+  flex: 1;
+  padding: .9rem 1rem;
+  font: 400 .9rem/1.55 var(--font-ui);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .94);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.prompt-area:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12);
+}
+
+.code-toggle{ margin-top: .9rem; }
+.code-toggle > summary{
+  list-style: none;
+  display: flex; justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+.code-toggle > summary::-webkit-details-marker{ display: none; }
+.code-toggle > summary .btn::after{
+  content: "▾";
+  display: inline-block;
+  margin-left: .35rem;
+  font-size: .8em;
+  transition: transform var(--fast);
+}
+.code-toggle[open] > summary .btn::after{ transform: rotate(180deg); }
+
+.code-body{
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, .55);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.code-body .label{
+  display: block;
+  margin: 1rem 0 .35rem;
+  font: 600 .72rem/1.3 var(--font-ui);
+  color: var(--ink-soft);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.code-body .label:first-of-type{ margin-top: 0; }
+.code-body .label small{
+  display: block;
+  margin-top: .15rem;
+  font: 400 .68rem/1.4 var(--font-ui);
+  color: var(--ink-mute);
+  letter-spacing: 0; text-transform: none;
+}
+.code-body pre,
+.code-body code{
+  display: block;
+  width: 100%; min-height: 60px;
+  padding: .8rem .9rem; margin: 0;
+  font: 400 .78rem/1.55 var(--font-mono);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .94);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.code-body .btn-copy-all-wrap{
+  display: flex; justify-content: flex-end;
+  margin-top: .8rem;
+}
+
+.copy-feedback{
+  display: inline-block;
+  font-size: .76rem; font-weight: 600;
+  color: var(--accent-deep);
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+.copy-feedback.show{ opacity: 1; }
+
+/* "Add it" row — primary action, lives at the bottom of the form card */
+.add-it-row{
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: .6rem 1rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--line);
+  background: rgba(var(--accent-rgb), .04);
+  border-radius: 0 0 16px 16px;
+}
+.btn--big{
+  padding: .7rem 1.4rem;
+  font-size: .95rem;
+  letter-spacing: .03em;
+  box-shadow: 0 6px 18px var(--accent-glow);
+}
+.btn--big:hover{ box-shadow: 0 10px 26px var(--accent-glow); }
+.btn--big:disabled{
+  background: var(--ink-mute);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.add-it-feedback{
+  font: 600 .82rem/1.2 var(--font-ui);
+  color: var(--accent-deep);
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity var(--fast), transform var(--fast), color var(--fast);
+}
+.add-it-feedback.show{ opacity: 1; transform: none; }
+.add-it-feedback.err{ color: #b1261d; }
+.add-it-hint{
+  flex-basis: 100%;
+  margin: .15rem 0 0;
+  font-size: .78rem; color: var(--ink-mute);
+}
+
+/* ============================================================
+   Icon picker (popover with 100 emojis + upload)
+   ============================================================ */
+.icon-picker{ margin-top: .35rem; }
+.icon-picker > summary{
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .35rem .65rem;
+  font: 600 .72rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, .9);
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+  transition: background var(--fast), border-color var(--fast);
+}
+.icon-picker > summary::-webkit-details-marker{ display: none; }
+.icon-picker[open] > summary{
+  background: rgba(var(--accent-rgb), .08);
+  border-color: var(--accent);
+  border-style: solid;
+}
+.icon-picker > summary:hover{ background: #fff; }
+.icon-picker-body{
+  margin-top: .6rem;
+  padding: .8rem;
+  background: rgba(255, 255, 255, .95);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.icon-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  margin-bottom: .8rem;
+}
+.icon-opt{
+  width: 36px; height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-opt:hover{
+  background: rgba(var(--accent-rgb), .15);
+  border-color: var(--accent);
+}
+.icon-upload{
+  display: flex; align-items: flex-start; gap: .8rem;
+  padding-top: .6rem;
+  border-top: 1px dashed var(--line);
+}
+.icon-upload .btn-upload{
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .45rem .9rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--accent-deep);
+  cursor: pointer;
+  font: 700 .78rem/1 var(--font-ui);
+}
+.icon-upload .btn-upload:hover{ background: rgba(var(--accent-rgb), .15); }
+.icon-upload .upload-hint{
+  margin: 0;
+  font-size: .72rem;
+  color: var(--ink-mute);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   "Add more" sample lines — pure CSS toggle
+   ============================================================ */
+.hidden-ctl{ position: absolute; left: -99999px; opacity: 0; pointer-events: none; }
+.btn-sample-add{
+  display: inline-flex; align-items: center; gap: .25rem;
+  margin-top: .85rem;
+  padding: .4rem .85rem;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .6);
+  color: var(--ink-soft);
+  font: 600 .76rem/1 var(--font-ui);
+  cursor: pointer;
+  transition: background var(--fast), border-color var(--fast), color var(--fast);
+}
+.btn-sample-add:hover{
+  background: rgba(var(--accent-rgb), .1);
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+.grid-extra-samples{ display: none; margin-top: .85rem; }
+.fieldset:has(#bot-sample-expand:checked) .grid-extra-samples{ display: grid; }
+.fieldset:has(#bot-sample-expand:checked) .btn-sample-add{ display: none; }
+</style>
+</head>
+
+<body>
+
+<main class="page">
+
+  <input type="radio" name="ui-lang" id="ui-lang-en" hidden checked>
+  <input type="radio" name="ui-lang" id="ui-lang-es" hidden>
+
+  <header class="page-head">
+    <h1 class="page-title"><span class="page-mark">🤖</span> <span class="t-en">Add a bot</span><span class="t-es">Añadir un bot</span></h1>
+    <p class="page-sub"><span class="t-en">Fill the form. Copy the generated snippets into flovy.html — your bot joins Lovely, Joy &amp; Wisdom under the ✦ magic dropdown.</span><span class="t-es">Rellena el formulario. Copia los fragmentos generados en flovy.html — tu bot se sumará a Lovely, Joy y Wisdom bajo el desplegable ✦ magic.</span></p>
+  </header>
+
+  <div class="layout">
+
+    <!-- ============== FORM ============== -->
+    <section class="card" aria-label="Bot fields">
+      <form id="bot-form" autocomplete="off">
+
+      <fieldset class="fieldset">
+        <legend>Identity</legend>
+        <p class="hint">The bot ID is used as the radio suffix (<code>cheeky</code> → <code>#bot-choice-1-cheeky</code>). Short, lowercase, kebab-case.</p>
+        <div class="grid">
+          <div class="field">
+            <label for="bot-id">Bot ID</label>
+            <span class="var-name">id suffix</span>
+            <input type="text" id="bot-id" name="bot-id" value="cheeky" pattern="[a-z][a-z0-9-]*" required>
+          </div>
+          <div class="field">
+            <label for="bot-name">Bot display name</label>
+            <span class="var-name">title="Bot · NAME"</span>
+            <input type="text" id="bot-name" name="bot-name" value="Cheeky" required>
+          </div>
+          <div class="field">
+            <label for="bot-icon">Bot icon (emoji)</label>
+            <span class="var-name">.bot-arm content</span>
+            <input type="text" id="bot-icon" name="bot-icon" class="glyph" value="😈" required>
+            <details class="icon-picker" data-icon-picker-for="bot-icon">
+              <summary>📚 Pick from icon library…</summary>
+              <div class="icon-picker-body">
+                <div class="icon-grid" data-icon-grid></div>
+                <div class="icon-upload">
+                  <input type="file" id="bot-icon-upload" accept="image/*" hidden>
+                  <label for="bot-icon-upload" class="btn-upload">📁 Upload your own</label>
+                  <p class="upload-hint">SVG or square PNG/JPG. Suggested: <strong>64×64&nbsp;px</strong>, transparent background, under&nbsp;50&nbsp;KB. Larger files are accepted but may slow rendering on small UI cells.</p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="field">
+            <label>Preview</label>
+            <div class="preview-row">
+              <span class="preview-arm" id="preview-arm">😈</span>
+              <span class="preview-text">title=<strong id="preview-title">Bot · Cheeky</strong></span>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="fieldset">
+        <legend>Sample phrase</legend>
+        <p class="hint">Pre-filled text that loads into the entry-textarea when the bot is selected. The same line is duplicated across the 4 textareas (main, dup, extra, mini).</p>
+        <div class="grid">
+          <div class="field span-2">
+            <label for="bot-sample">Sample line</label>
+            <span class="var-name">entry-textarea--ID content</span>
+            <textarea id="bot-sample" name="bot-sample" rows="3" placeholder="A short line in this bot's voice…">Sneaky thought: what if we did the opposite, just for fun?</textarea>
+          </div>
+        </div>
+
+        <!-- Add more: pure-CSS toggle reveals 5 extra phrase fields -->
+        <input type="checkbox" id="bot-sample-expand" class="hidden-ctl">
+        <label for="bot-sample-expand" class="btn-sample-add" title="Show 5 more sample phrase fields">＋ Add more</label>
+        <div class="grid grid-extra-samples">
+          <div class="field span-2">
+            <label for="bot-sample-2">Sample line 2</label>
+            <textarea id="bot-sample-2" name="bot-sample-2" rows="3" placeholder="Another line in this bot's voice…"></textarea>
+          </div>
+          <div class="field span-2">
+            <label for="bot-sample-3">Sample line 3</label>
+            <textarea id="bot-sample-3" name="bot-sample-3" rows="3" placeholder="Another line in this bot's voice…"></textarea>
+          </div>
+          <div class="field span-2">
+            <label for="bot-sample-4">Sample line 4</label>
+            <textarea id="bot-sample-4" name="bot-sample-4" rows="3" placeholder="Another line in this bot's voice…"></textarea>
+          </div>
+          <div class="field span-2">
+            <label for="bot-sample-5">Sample line 5</label>
+            <textarea id="bot-sample-5" name="bot-sample-5" rows="3" placeholder="Another line in this bot's voice…"></textarea>
+          </div>
+          <div class="field span-2">
+            <label for="bot-sample-6">Sample line 6</label>
+            <textarea id="bot-sample-6" name="bot-sample-6" rows="3" placeholder="Another line in this bot's voice…"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      </form>
+
+      <!-- ============== ADD IT ============== -->
+      <div class="add-it-row">
+        <button type="button" class="btn btn--big" id="btn-add-it">＋ Add it</button>
+        <span class="add-it-feedback" id="add-it-feedback"></span>
+        <p class="add-it-hint">Injects the bot live into flovy.html (this tab only — refresh resets it).</p>
+      </div>
+    </section>
+
+    <!-- ============== OUTPUT (prompt + collapsible code) ============== -->
+    <aside class="card output-card" aria-label="Generated prompt">
+
+      <div class="prompt-actions">
+        <button type="button" class="btn btn--lg" id="btn-copy-prompt">Copy Prompt</button>
+        <span class="copy-feedback" id="copy-feedback">copied.</span>
+      </div>
+
+      <textarea class="prompt-area" id="prompt-area" spellcheck="false"
+                placeholder="Friendly prompt will appear here as you fill the form…"></textarea>
+
+      <details class="code-toggle">
+        <summary><span class="btn btn--ghost btn--lg">Display code</span></summary>
+        <div class="code-body">
+
+          <span class="label">① HTML — radio inputs
+            <small>Paste with the other <code>bot-choice-*</code> radios (the hidden state controls block, ~line 4150).</small>
+          </span>
+          <pre><code id="out-radios"></code></pre>
+
+          <span class="label">② HTML — bot-arm labels
+            <small>Paste each one inside its matching <code>.bot-arms</code> span, right after the 🔥 wisdom arm (4 places).</small>
+          </span>
+          <pre><code id="out-arms"></code></pre>
+
+          <span class="label">③ HTML — sample textareas
+            <small>Paste each one inside its matching <code>.entry-textareas</code> div, after the <code>entry-textarea--wisdom</code> (4 places).</small>
+          </span>
+          <pre><code id="out-textareas"></code></pre>
+
+          <span class="label">④ CSS — gate rules
+            <small>Append the new bot ID lines to the four <code>body:has(#bot-choice-…:checked)</code> rule blocks in flovy.html.</small>
+          </span>
+          <pre><code id="out-css"></code></pre>
+
+          <div class="btn-copy-all-wrap">
+            <button type="button" class="btn btn--ghost" id="btn-copy-all">Copy code</button>
+            <span class="copy-feedback" id="copy-all-feedback">copied.</span>
+          </div>
+
+        </div>
+      </details>
+
+    </aside>
+  </div>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const form       = $('bot-form');
+  const previewArm = $('preview-arm');
+  const previewT   = $('preview-title');
+  const outRadios  = $('out-radios');
+  const outArms    = $('out-arms');
+  const outTextareas = $('out-textareas');
+  const outCss     = $('out-css');
+  const outPrompt  = $('prompt-area');
+
+  const GROUPS = ['1', '2', 'extra', 'mini'];
+  const FIELD_CLASS = {
+    '1':     '.entry-field--main:not(.entry-field--dup)',
+    '2':     '.entry-field--dup',
+    'extra': '.entry-field--extra',
+    'mini':  '.entry-field--mini',
+  };
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function generate(){
+    const id     = ($('bot-id').value.trim() || 'my-bot').toLowerCase();
+    const name   = $('bot-name').value.trim() || id;
+    const icon   = $('bot-icon').value.trim() || '◇';
+    const sample = $('bot-sample').value;
+
+    // live preview
+    previewArm.textContent = icon;
+    previewT.textContent   = `Bot · ${name}`;
+
+    // ① radios
+    outRadios.textContent = GROUPS
+      .map(g => `<input type="radio" name="bot-choice-${g}" id="bot-choice-${g}-${id}" class="ctl">`)
+      .join('\n');
+
+    // ② bot-arms — note: extra/mini use 14-space indent in flovy.html, 1/2 use 16
+    outArms.textContent = GROUPS
+      .map(g => {
+        const pad = (g === '1' || g === '2') ? '                ' : '              ';
+        return `${pad}<label class="bot-arm" for="bot-choice-${g}-${id}" title="Bot · ${esc(name)}" aria-label="Bot ${esc(name)}">${esc(icon)}</label>`;
+      })
+      .join('\n');
+
+    // ③ textareas — same content per group
+    const safeSample = esc(sample);
+    outTextareas.textContent = GROUPS
+      .map(g => `<textarea class="entry-textarea entry-textarea--${id}" rows="2" cols="100" maxlength="1000" placeholder="What's in your love">${safeSample}</textarea>`)
+      .join('\n\n');
+
+    // ④ CSS gates
+    const hideDefault = GROUPS
+      .map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .entry-textarea--default,`)
+      .join('\n');
+    const showOwn = GROUPS
+      .map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .entry-textarea--${id},`)
+      .join('\n');
+    const highlight = GROUPS
+      .map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .bot-arm[for="bot-choice-${g}-${id}"],`)
+      .join('\n');
+    const showArms = GROUPS
+      .map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .bot-arms,`)
+      .join('\n');
+
+    outCss.textContent =
+`/* ─── add these lines into the matching existing blocks ─── */
+
+/* (a) Hide the default textarea when this bot is selected
+        → append into the "hide default" block (search: "entry-textarea--default") */
+${hideDefault}
+
+/* (b) Show this bot's textarea
+        → append into the "show entry-textarea--*" block */
+${showOwn}
+
+/* (c) Highlight the active bot-arm
+        → append into the .bot-arm[for="bot-choice-1-formal"] block */
+${highlight}
+
+/* (d) Keep .bot-arms open while this bot is selected
+        → append into the "display: flex" block for .bot-arms */
+${showArms}`;
+
+    // friendly prompt (only refresh if user hasn't edited the textarea)
+    if (!outPrompt.dataset.dirty){
+      outPrompt.value = buildPrompt(id, name, icon, sample);
+    }
+  }
+
+  function buildPrompt(id, name, icon, sample){
+    return (
+`Add a new bot to flovy:
+  • ID:     ${id}
+  • Name:   ${name}
+  • Icon:   ${icon}
+  • Sample: "${sample}"
+
+The bot joins Lovely 😍, Joy 😂 and Wisdom 🔥 under the ✦ magic dropdown next to each entry-textarea. When the user picks this bot, the sample line above is prefilled into the textarea.
+
+Please generate the matching HTML and CSS to add it to flovy.html, following the existing pattern:
+  – 4 radio inputs  (one per group: 1, 2, extra, mini)
+  – 4 <label class="bot-arm"> labels  (inserted in each .bot-arms, before the .bot-arm--more "+" button)
+  – 4 <textarea class="entry-textarea entry-textarea--${id}"> elements (one per .entry-textareas)
+  – 4 CSS gate-rule lines appended into the existing body:has(#bot-choice-…:checked) blocks (hide default, show own textarea, highlight active arm, keep .bot-arms open).`
+    );
+  }
+
+  // mark prompt as user-edited so generate() stops overwriting it
+  outPrompt.addEventListener('input', () => { outPrompt.dataset.dirty = '1'; });
+
+  /* ---- Copy Prompt: copies the textarea content ---- */
+  $('btn-copy-prompt').addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(outPrompt.value);
+      flash('copy-feedback');
+    }catch(_){
+      outPrompt.focus();
+      outPrompt.select();
+    }
+  });
+
+  form.addEventListener('input', generate);
+  form.addEventListener('change', generate);
+
+  /* ---- Add it: inject the new bot into the parent flovy.html ---- */
+  $('btn-add-it').addEventListener('click', () => {
+    const id     = ($('bot-id').value.trim() || '').toLowerCase();
+    const name   = $('bot-name').value.trim();
+    const icon   = $('bot-icon').value.trim();
+    const sample = $('bot-sample').value;
+    const fb     = $('add-it-feedback');
+
+    if (!/^[a-z][a-z0-9-]*$/.test(id)){
+      return showFeedback(fb, 'bot id must be lowercase, kebab-case', true);
+    }
+    if (!name || !icon){
+      return showFeedback(fb, 'name and icon are required', true);
+    }
+    const parentDoc = window.parent && window.parent.document;
+    if (!parentDoc || parentDoc === document){
+      return showFeedback(fb, 'open this form from the flovy.html modal', true);
+    }
+    if (parentDoc.getElementById(`bot-choice-1-${id}`)){
+      return showFeedback(fb, `bot "${id}" already exists`, true);
+    }
+
+    // ① radios — append into the parent body (joins the radio groups by name)
+    const radioFrag = parentDoc.createDocumentFragment();
+    for (const g of GROUPS){
+      const r = parentDoc.createElement('input');
+      r.type = 'radio';
+      r.name = `bot-choice-${g}`;
+      r.id   = `bot-choice-${g}-${id}`;
+      r.className = 'ctl';
+      radioFrag.appendChild(r);
+    }
+    // anchor: just before the first <header class="topbar"> if present, else body end
+    const topbar = parentDoc.querySelector('.topbar');
+    if (topbar) topbar.parentNode.insertBefore(radioFrag, topbar);
+    else parentDoc.body.appendChild(radioFrag);
+
+    // ② bot-arms — insert before the .bot-arm--more in each .bot-arms
+    parentDoc.querySelectorAll('.bot-arms').forEach((arms, i) => {
+      const g = GROUPS[i] || '1';
+      const arm = parentDoc.createElement('label');
+      arm.className = 'bot-arm';
+      arm.setAttribute('for', `bot-choice-${g}-${id}`);
+      arm.title       = `Bot · ${name}`;
+      arm.setAttribute('aria-label', `Bot ${name}`);
+      arm.textContent = icon;
+      const more = arms.querySelector('.bot-arm--more');
+      if (more) arms.insertBefore(arm, more);
+      else arms.appendChild(arm);
+    });
+
+    // ③ textareas — insert after the .entry-textarea--poetic in each .entry-textareas
+    parentDoc.querySelectorAll('.entry-textareas').forEach((wrap) => {
+      const ta = parentDoc.createElement('textarea');
+      ta.className = `entry-textarea entry-textarea--${id}`;
+      ta.rows = 2; ta.cols = 100; ta.maxLength = 1000;
+      ta.placeholder = "What's in your love";
+      ta.value = sample;
+      // anchor: prefer .ta-expand-btn so it survives bot renames; fallback to last textarea
+      const anchor = wrap.querySelector('.ta-expand-btn')
+                  || wrap.querySelector('.entry-textarea--wisdom');
+      if (anchor) wrap.insertBefore(ta, anchor);
+      else wrap.appendChild(ta);
+    });
+
+    // ④ CSS gates — inject one <style> into parent <head>
+    let style = parentDoc.getElementById(`bot-style-${id}`);
+    if (!style){
+      style = parentDoc.createElement('style');
+      style.id = `bot-style-${id}`;
+      parentDoc.head.appendChild(style);
+    }
+    const hideDefault = GROUPS.map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .entry-textarea--default`).join(',\n');
+    const showOwn     = GROUPS.map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .entry-textarea--${id}`).join(',\n');
+    const highlight   = GROUPS.map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .bot-arm[for="bot-choice-${g}-${id}"]`).join(',\n');
+    const showArms    = GROUPS.map(g => `body:has(#bot-choice-${g}-${id}:checked) ${FIELD_CLASS[g]} .bot-arms`).join(',\n');
+    style.textContent =
+`${hideDefault}{ display: none; }
+${showOwn}{ display: block; }
+${highlight}{
+  border-color: var(--accent);
+  background: var(--fill-mid);
+  color: var(--accent-deep);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+${showArms}{
+  display: flex;
+  pointer-events: auto;
+}`;
+
+    showFeedback(fb, `✓ "${name}" added — try ✦ on a textarea`, false);
+
+    // close the modal after a short pause
+    setTimeout(() => {
+      const cb = parentDoc.getElementById('new-bot-modal');
+      if (cb) cb.checked = false;
+    }, 900);
+  });
+
+  function showFeedback(el, msg, isErr){
+    el.textContent = msg;
+    el.classList.toggle('err', !!isErr);
+    el.classList.add('show');
+    clearTimeout(showFeedback._t);
+    showFeedback._t = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+
+  $('btn-copy-all').addEventListener('click', async () => {
+    const text =
+`<!-- 1. paste with the other bot-choice radios -->
+${outRadios.textContent}
+
+<!-- 2. paste inside each .bot-arms (4 places, after the 🔥 wisdom arm) -->
+${outArms.textContent}
+
+<!-- 3. paste inside each .entry-textareas (4 places, after entry-textarea--poetic) -->
+${outTextareas.textContent}
+
+${outCss.textContent}
+`;
+    try{
+      await navigator.clipboard.writeText(text);
+      flash('copy-all-feedback');
+    }catch(_){
+      const range = document.createRange();
+      range.selectNodeContents(outCss);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  });
+
+  function flash(id){
+    const el = $(id);
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1400);
+  }
+
+  generate();
+
+  // ── Icon picker: 100-emoji grid + custom upload ──────────────
+  const ICONS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","🤩","🥳","🤔","🤗","🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🦅","🦉","🦋","🐢","🐍","🦎","🐳","🐬","🐠","🐙","🦀","🐝","🐞","🦔","🌱","🌿","🍀","🌾","🌵","🌲","🌳","🌴","🌷","🌹","🌺","🌸","🌼","🌻","🌞","🌙","🌟","⭐","✨","⚡","🔥","💧","🌈","❄️","☀️","💎","🎵","🎨","📚","🔮","🎯","🚀","⛵","🌍","🏔","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","✌️","👋","✊","🤝","🙏","☯️"];
+  document.querySelectorAll('details.icon-picker').forEach(picker => {
+    const targetId = picker.dataset.iconPickerFor;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const grid = picker.querySelector('[data-icon-grid]');
+    if (grid && !grid.children.length){
+      const frag = document.createDocumentFragment();
+      ICONS.forEach(ic => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'icon-opt';
+        b.dataset.icon = ic; b.textContent = ic; b.title = ic;
+        frag.appendChild(b);
+      });
+      grid.appendChild(frag);
+    }
+    grid?.addEventListener('click', e => {
+      const btn = e.target.closest('.icon-opt'); if (!btn) return;
+      target.value = btn.dataset.icon;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      picker.open = false;
+    });
+    const upload = picker.querySelector('input[type="file"]');
+    upload?.addEventListener('change', () => {
+      const f = upload.files && upload.files[0]; if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        target.value = reader.result;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        picker.open = false;
+      };
+      reader.readAsDataURL(f);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

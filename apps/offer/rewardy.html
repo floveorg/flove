@@ -1,0 +1,1409 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rewardy</title>
+<meta name="application-name" content="Rewardy">
+<meta name="description" content="Rewardy — compare offers and reach providers on flove.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 12L60 40H90L66 58L75 88L50 70L25 88L34 58L10 40H40Z' fill='%237c3aed'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../flove.css">
+<style>
+  :root{
+    --app-accent:#7c3aed; --app-accent-soft:#ede9fe; --app-ink-on-accent:#2e1065;
+    --paper:#fbfaff; --paper-warm:#f3f0ff;
+    --ink:#1c1235; --ink-soft:#4a3a73; --muted:#8a7eb0;
+    --line:rgba(80,50,170,.08); --line-strong:rgba(80,50,170,.16);
+    --accent:#7c3aed; --accent-deep:#5b21b6; --accent-soft:#ede9fe; --accent-glow:rgba(124,58,237,.22);
+
+    /* Uniform card chrome — greys & blues, shared by every user card */
+    --card-accent:#5b78b0; --card-accent-soft:#e7ecf6;
+
+    /* Rater R·G·B (preview bars on cards + comparison categories) */
+    --souls:#ef4444; --trust:#22c55e; --deal:#3b82f6;
+
+    --radius-sm:12px; --radius:18px; --radius-lg:24px; --radius-pill:999px;
+    --shadow-xs:0 1px 2px rgba(80,50,170,.05);
+    --shadow-sm:0 4px 12px -4px rgba(80,50,170,.10);
+    --shadow:0 18px 40px -16px rgba(80,50,170,.18);
+    --fast:.15s cubic-bezier(.2,.8,.2,1);
+    --font-ui:'Inter',system-ui,sans-serif;
+    --font-display:'Fraunces',Georgia,serif;
+  }
+  *{ box-sizing:border-box }
+  html{ scroll-behavior:smooth }
+  body{
+    margin:0; font:15px/1.5 var(--font-ui); color:var(--ink);
+    background:
+      radial-gradient(900px 600px at 90% -10%, var(--accent-soft) 0%, transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, var(--paper-warm) 0%, transparent 55%),
+      var(--paper);
+    min-height:100vh; padding-bottom:40px;
+  }
+
+  /* ---- Top bar ---- */
+  .flove-bar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(251,250,255,.78);
+    backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%);
+    border-bottom:1px solid var(--line-strong); color:var(--ink);
+  }
+  .flove-bar .flove-mark{ font-size:26px; color:var(--accent); filter:drop-shadow(0 0 6px var(--accent-glow)) }
+  .brand{ display:inline-flex; align-items:center; gap:8px }
+  .brand .flove-app-name{ font-family:var(--font-display); font-weight:700; font-size:1.15rem }
+
+  /* topbar menu (right) */
+  .topmenu{ position:relative }
+  .menu-btn{
+    width:38px; height:38px; border-radius:12px;
+    border:1px solid var(--line-strong); background:#fff; color:var(--ink);
+    font-size:1.1rem; cursor:pointer; transition:all var(--fast);
+  }
+  .menu-btn:hover{ border-color:var(--accent); color:var(--accent-deep) }
+  .menu-pop{
+    position:absolute; right:0; top:calc(100% + 8px); min-width:210px;
+    background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:6px; display:flex; flex-direction:column; gap:2px;
+  }
+  .menu-pop[hidden]{ display:none }
+  .menu-item{
+    display:flex; align-items:center; gap:9px; padding:9px 12px;
+    border:none; background:none; border-radius:var(--radius-sm);
+    font:600 .88rem/1 var(--font-ui); color:var(--ink); text-align:left;
+    text-decoration:none; cursor:pointer; transition:background var(--fast);
+  }
+  .menu-item:hover{ background:var(--accent-soft); color:var(--accent-deep) }
+
+  .container{ max-width:1100px; margin:0 auto; padding:24px 18px 0 }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:10px 16px; border-radius:var(--radius-pill);
+    border:1px solid var(--line-strong); background:#fff; color:var(--ink);
+    font:600 .85rem/1 var(--font-ui); cursor:pointer;
+    transition:all var(--fast); text-decoration:none; box-shadow:var(--shadow-xs);
+  }
+  .btn:hover{ border-color:var(--card-accent); color:var(--card-accent); transform:translateY(-1px) }
+  .btn.primary{
+    background:linear-gradient(180deg,var(--card-accent),#3f5a8c);
+    color:#fff; border-color:transparent; box-shadow:0 8px 18px -6px rgba(63,90,140,.4);
+  }
+  .btn.primary:hover{ color:#fff }
+  .btn.small{ padding:8px 12px; font-size:.8rem }
+
+  /* coloured action buttons — 75% brighter */
+  .btn.primary, .magic-btn{ filter:brightness(1.75) }
+  .btn.primary:hover, .magic-btn:hover{ filter:brightness(1.9) }
+
+  /* ---- Cards: single checkable items, uniform grey-blue chrome ---- */
+  /* cards section — no white box; transparent so the page shows through */
+  .card{ background:transparent }
+  .slider{
+    display:flex; gap:14px; padding:18px 20px 22px;
+    overflow-x:auto; overflow-y:visible; scroll-snap-type:x proximity; scrollbar-width:thin;
+  }
+  .slider::-webkit-scrollbar{ height:8px }
+  .slider::-webkit-scrollbar-thumb{ background:var(--line-strong); border-radius:999px }
+
+  /* each slider cell — a card with its message button stacked below it */
+  .pcell{
+    flex:0 0 300px; scroll-snap-align:start;
+    display:flex; flex-direction:column; gap:11px;
+  }
+
+  .person-card{
+    position:relative; flex:1 1 auto; cursor:pointer;
+    padding:14px 14px 20px;
+    background:transparent; border:1px solid var(--line);
+    border-top:4px solid var(--card-accent); border-radius:var(--radius);
+    transition:box-shadow var(--fast),transform var(--fast),border-color var(--fast),background var(--fast);
+  }
+  .person-card:hover{ box-shadow:var(--shadow-sm); transform:translateY(-2px); border-color:var(--card-accent) }
+  .person-card:focus-visible{ outline:2px solid var(--card-accent); outline-offset:2px }
+  /* checked → background tinted to 30% of the shared grey-blue accent */
+  .person-card.selected{
+    background:color-mix(in srgb,var(--uc,var(--card-accent)) 30%,#fff);
+    border-color:var(--uc,var(--card-accent));
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--uc,var(--card-accent)) 32%,transparent), var(--shadow-sm);
+  }
+  /* selection group — unselected content fades to 50%; More boxes stay full */
+  .slider:has(.person-card.selected) .person-card:not(.selected) .p-top,
+  .slider:has(.person-card.selected) .person-card:not(.selected) .terms{
+    opacity:.5; transition:opacity var(--fast);
+  }
+
+  .p-top{ display:flex; gap:12px; align-items:flex-start }
+  .p-head{ flex:1; min-width:0; display:flex; align-items:flex-start; gap:9px }
+  .p-head .emoji{ font-size:1.6rem; line-height:1 }
+  .p-head .p-name{ display:flex; flex-direction:column; gap:1px; min-width:0 }
+  .p-head .nm-h{ font-family:var(--font-display); font-weight:600; font-size:1.1rem; color:var(--ink) }
+  .p-head .role{ color:var(--ink-soft); font-size:.82rem }
+
+  /* static R·G·B preview bars */
+  .p-rgb{ flex:0 0 110px; display:flex; flex-direction:column; gap:8px; padding-top:3px }
+  /* card preview bars — grey scale, darkest to lightest */
+  .bar.souls{ --sc:#404040 }
+  .bar.trust{ --sc:#7d7d7d }
+  .bar.deal { --sc:#b3b3b3 }
+  .bar .track{
+    display:block; height:12px; border-radius:var(--radius-pill);
+    background:transparent; overflow:hidden;
+  }
+  .bar .fill{
+    display:block; height:100%; width:var(--v); min-width:7px; border-radius:var(--radius-pill);
+    background:linear-gradient(90deg,color-mix(in srgb,var(--sc) 55%,#fff),var(--sc));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+  }
+
+  .terms{ margin:14px 0 0; color:var(--muted); font-size:.9rem }
+  .terms strong{ color:var(--card-accent); font-size:1.58rem; font-weight:700 }
+  .dot{ opacity:.6; margin:0 .4rem }
+
+  /* ---- More boxes ---- */
+  details.morebox{ margin-top:12px; border:1px dashed var(--line-strong); border-radius:var(--radius-sm); background:rgba(255,255,255,.5) }
+  details.morebox > summary{
+    list-style:none; cursor:pointer; padding:8px 12px;
+    font:600 .82rem/1.2 var(--font-ui); color:var(--ink-soft);
+    display:flex; align-items:center; gap:6px;
+  }
+  details.morebox > summary::-webkit-details-marker{ display:none }
+  details.morebox > summary::before{ content:"▸"; color:var(--accent); transition:transform var(--fast) }
+  details.morebox[open] > summary::before{ transform:rotate(90deg) }
+  details.morebox[open] > summary{ background:rgba(255,255,255,.7); border-bottom:1px solid var(--line) }
+  .morecontent{ padding:10px 12px; color:var(--ink-soft); font-size:.88rem }
+  .morecontent p{ margin:0 0 4px }
+
+  /* selectable sub-offers — no checkbox, selection shown by tint */
+  .offer-list{ display:flex; flex-direction:column; gap:5px; margin-top:6px }
+  .offer-item{
+    display:flex; align-items:center; gap:8px; width:100%;
+    padding:7px 9px; border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong); background:#fff;
+    font:inherit; text-align:left; cursor:pointer; transition:all var(--fast);
+  }
+  .offer-item:hover{ border-color:var(--card-accent) }
+  .offer-item.selected{ background:color-mix(in srgb,var(--card-accent) 14%,#fff); border-color:var(--card-accent) }
+  .oi-label{ flex:1; font-size:.84rem; color:var(--ink); min-width:0 }
+  .oi-info{ font-size:.76rem; color:var(--muted); white-space:nowrap }
+  .oi-info strong{ color:var(--card-accent); font-size:.98rem; font-weight:700 }
+
+  /* card tools — message + forward buttons, centred below the card */
+  .card-tools{ display:flex; justify-content:center; gap:8px }
+  .msg-btn, .fwd-btn{
+    width:112px; height:30px; border-radius:var(--radius-pill);
+    border:1px solid var(--line-strong); background:var(--accent-soft); color:var(--accent);
+    font-size:.95rem; cursor:pointer; transition:all var(--fast);
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .msg-btn:hover, .fwd-btn:hover{ background:#fff; border-color:var(--accent) }
+  .fwd-wrap{ position:relative; display:inline-flex }
+  /* dropdown opens upward, over the card */
+  .fwd-menu{
+    position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
+    width:212px; z-index:40;
+    background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:6px; display:flex; flex-direction:column; gap:2px;
+  }
+  .fwd-menu[hidden]{ display:none }
+  .fwd-cat{ position:relative }
+  .fwd-cat-label{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px; border-radius:var(--radius-sm);
+    font:600 .82rem/1 var(--font-ui); color:var(--ink); cursor:pointer;
+    transition:background var(--fast);
+  }
+  .fwd-cat-label:hover{ background:var(--accent-soft); color:var(--accent-deep) }
+  .fwd-caret{ color:var(--muted); font-size:.66rem }
+  /* submenu flies out to the right of its category */
+  .fwd-sub{
+    position:absolute; left:calc(100% + 4px); top:-6px; min-width:172px; z-index:41;
+    display:none; flex-direction:column; gap:2px;
+    background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:6px;
+  }
+  .fwd-cat:hover > .fwd-sub, .fwd-cat.open > .fwd-sub{ display:flex }
+  .fwd-item{
+    display:flex; align-items:center; gap:7px; padding:8px 10px;
+    border:none; background:none; border-radius:var(--radius-sm);
+    font:600 .82rem/1 var(--font-ui); color:var(--ink); text-align:left;
+    cursor:pointer; transition:background var(--fast); white-space:nowrap;
+  }
+  .fwd-item:hover{ background:var(--accent-soft); color:var(--accent-deep) }
+  .fwd-save{ color:var(--accent-deep); margin-top:2px }
+
+  /* big centred "add 6 more users" button */
+  .addmore{ display:flex; justify-content:center; margin-top:20px }
+  .add-btn{
+    width:64px; height:64px; border-radius:50%; border:none; cursor:pointer;
+    background:linear-gradient(180deg,var(--accent),var(--accent-deep)); color:#fff;
+    font:300 2.6rem/1 var(--font-ui); display:grid; place-items:center;
+    box-shadow:var(--shadow); transition:transform var(--fast),filter var(--fast);
+  }
+  .add-btn:hover{ transform:scale(1.08); filter:brightness(1.1) }
+  .add-btn:disabled{ opacity:.4; cursor:not-allowed; transform:none }
+
+  /* users added by + — a wrapping row below, no horizontal scroll */
+  .more-users{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-top:20px }
+  .more-users:empty{ display:none }
+
+  /* toast — max-6 notice */
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    z-index:300; max-width:min(440px,92vw);
+    background:var(--ink); color:#fff; padding:13px 18px;
+    border-radius:var(--radius); box-shadow:var(--shadow);
+    font:600 .86rem/1.45 var(--font-ui);
+  }
+  .toast[hidden]{ display:none }
+
+  /* ---- Comparison section ---- */
+  .compare{ margin-top:14px; padding:16px 20px; background:#fff; border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm) }
+  .cmp-bar{ display:flex; justify-content:center; margin:0 0 14px }
+
+  /* view selector — radio segmented control */
+  .views-ctl{
+    display:inline-flex; gap:2px; padding:3px;
+    background:#fff; border:1px solid var(--line-strong);
+    border-radius:var(--radius-pill); box-shadow:var(--shadow-xs);
+  }
+  .vw-input{ position:absolute; opacity:0; width:0; height:0; pointer-events:none }
+  .vw{
+    cursor:pointer; padding:7px 15px; border-radius:var(--radius-pill);
+    font:700 .8rem/1 var(--font-ui); color:var(--ink-soft); transition:all var(--fast);
+  }
+  .vw:hover{ color:var(--card-accent) }
+  .vw-input:checked + .vw{
+    background:linear-gradient(180deg,var(--card-accent),#3f5a8c); color:#fff;
+  }
+  .vw-input:focus-visible + .vw{ outline:2px solid var(--card-accent); outline-offset:2px }
+
+  /* clickable colour legend — names ×2 big, click to expand/collapse */
+  .cmp-legend{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 14px }
+  .cmp-legend:empty{ display:none }
+  .legend-chip{
+    display:flex; flex-direction:column; align-items:center; gap:0;
+    padding:6px 16px; border-radius:var(--radius);
+    border:2px solid var(--lc); background:color-mix(in srgb,var(--lc) 13%,#fff);
+    cursor:pointer; transition:all var(--fast); font-family:var(--font-ui);
+  }
+  .legend-chip .lc-name{ font:600 1.45rem/1 var(--font-display); color:var(--lc) }
+  .legend-chip .lc-role{ font:600 .72rem/1 var(--font-ui); color:var(--muted); margin-top:2px }
+  .legend-chip:hover{ transform:translateY(-1px); box-shadow:var(--shadow-sm) }
+  .legend-chip.collapsed{ opacity:.4; filter:grayscale(.55) }
+  .legend-chip.collapsed .lc-name{ text-decoration:line-through }
+
+  /* bars view — bare vertical bars in one row, all on the same baseline */
+  .bars-row{
+    display:flex; flex-wrap:nowrap; align-items:flex-end; justify-content:space-evenly;
+    width:100%; gap:14px; padding:12px 4px 0;
+  }
+  .bars-row.compact{ gap:8px }
+  .bars-row.compact .rgroup-bars{ gap:5px }
+  .bars-row.compact .vbar-track{ width:20px }
+  .rgroup{ display:flex; flex-direction:column; gap:8px }
+  .rgroup-label{
+    text-align:center; font:800 .64rem/1 var(--font-ui);
+    letter-spacing:.07em; text-transform:uppercase; color:var(--rtc);
+  }
+  .rgroup.souls{ --rtc:var(--souls) } .rgroup.trust{ --rtc:var(--trust) } .rgroup.deal{ --rtc:var(--deal) }
+  .rgroup-bars{ display:flex; align-items:flex-end; gap:14px }
+  .vbar-track{
+    width:30px; height:clamp(300px,55vh,520px); display:flex; align-items:flex-end;
+    border-radius:8px; background:transparent; overflow:hidden;
+  }
+  .vbar-fill{
+    width:100%; height:var(--v); border-radius:8px 8px 0 0;
+    background:linear-gradient(0deg,var(--uc),color-mix(in srgb,var(--uc) 55%,#fff));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4); animation:growv .5s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes growv{ from{ height:0 } }
+
+  /* "Per area" view — three horizontal category bars with user-coloured nodes */
+  .cmp-area{ display:flex; flex-direction:column; gap:20px; padding:16px 8px 8px }
+  .cmp-area[hidden]{ display:none }
+  .area-row.souls{ --rtc:var(--souls) } .area-row.trust{ --rtc:var(--trust) } .area-row.deal{ --rtc:var(--deal) }
+  .area-rowhead{
+    font:800 .64rem/1 var(--font-ui); letter-spacing:.07em; text-transform:uppercase;
+    color:var(--rtc); margin-bottom:9px;
+  }
+  .area-track{
+    position:relative; height:10px; border-radius:var(--radius-pill);
+    background:color-mix(in srgb,var(--rtc) 18%,transparent); margin:14px 12px;
+  }
+  .area-node{
+    position:absolute; top:50%; transform:translate(-50%,-50%);
+    width:26px; height:26px; border-radius:50%;
+    background:var(--uc); border:2px solid #fff; color:#fff;
+    display:grid; place-items:center; font:800 .64rem/1 var(--font-ui);
+    box-shadow:var(--shadow-sm); cursor:default;
+  }
+
+  /* spider view — static chart, fixed clickable category titles ---- */
+  .cmp-spider{ display:none; text-align:center }
+  .radar-wrap{ position:relative; display:inline-block }
+  .radar{ width:min(640px,92vw); height:auto; display:inline-block }
+  .radar .grid{ fill:none; stroke:var(--line-strong); stroke-width:1 }
+  .radar .axis{ stroke:var(--line-strong); stroke-width:1 }
+  .radar .poly-layer polygon{ stroke-linejoin:round }
+  /* category titles — stay fixed while the geometry rotates; click to focus */
+  .axis-label{
+    position:absolute; transform:translate(-50%,-50%); z-index:3;
+    padding:5px 11px; border-radius:var(--radius-pill);
+    border:1.5px solid var(--alc); background:#fff; color:var(--alc);
+    font:800 .64rem/1 var(--font-ui); letter-spacing:.06em; cursor:pointer;
+    transition:all var(--fast);
+  }
+  .axis-label.s{ --alc:var(--souls) } .axis-label.t{ --alc:var(--trust) } .axis-label.d{ --alc:var(--deal) }
+  .axis-label:hover{ transform:translate(-50%,-50%) scale(1.06) }
+  .axis-label.active{ background:var(--alc); color:#fff }
+  .axis-label.pos-s{ top:5%;  left:50% }
+  .axis-label.pos-t{ top:71%; left:86% }
+  .axis-label.pos-d{ top:71%; left:14% }
+  .spider-note{ margin:8px 0 0; color:var(--muted); font-size:.8rem }
+
+  /* axial view — parallel category axes with user polylines */
+  .cmp-axial{ text-align:center }
+  .cmp-axial[hidden]{ display:none }
+  .axial{ width:min(520px,94vw); height:auto; display:inline-block }
+  .axial .axis{ stroke:var(--line-strong); stroke-width:1.5 }
+  .axial .ax-cap{ font:800 10px var(--font-ui); letter-spacing:.05em }
+  .axial .ax-cap.s{ fill:var(--souls) }
+  .axial .ax-cap.t{ fill:var(--trust) }
+  .axial .ax-cap.d{ fill:var(--deal) }
+
+  /* ---- "Message" modal — half the interface ---- */
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:200; padding:20px;
+    background:rgba(28,18,53,.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-backdrop[hidden]{ display:none }
+  .modal{
+    width:min(620px,94vw); height:min(560px,88vh);
+    background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:22px; position:relative; display:flex; flex-direction:column; gap:12px;
+  }
+  .modal-close{
+    position:absolute; top:12px; right:14px; width:28px; height:28px; border-radius:50%;
+    border:1px solid var(--line-strong); background:#fff; color:var(--muted);
+    font-weight:700; cursor:pointer; transition:all var(--fast);
+  }
+  .modal-close:hover{ border-color:var(--accent); color:var(--accent-deep) }
+  .modal-title{ font-family:var(--font-display); font-weight:600; font-size:1.3rem; margin:0; padding-right:34px }
+  .modal-field{
+    flex:1; width:100%; min-height:150px; resize:none; padding:14px;
+    border-radius:var(--radius); border:1px solid var(--line-strong);
+    font:15px/1.55 var(--font-ui); color:var(--ink); background:var(--paper);
+  }
+  .modal-field:focus{ outline:2px solid var(--accent-glow); border-color:var(--accent) }
+
+  /* profile links — shown when forwarding a card to a favourite user */
+  .modal-links{ display:flex; flex-direction:column; gap:5px; margin:-2px 0 2px }
+  .modal-links[hidden]{ display:none }
+  .modal-link{
+    width:max-content; font:700 .85rem/1.3 var(--font-ui);
+    color:var(--accent-deep); text-decoration:none;
+  }
+  .modal-link:hover{ text-decoration:underline }
+
+  /* magic suggestion bots — centred below the field */
+  .modal-magic{ display:flex; flex-direction:column; align-items:center; gap:9px }
+  .magic-btn{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:9px 18px; border-radius:var(--radius-pill); border:none; cursor:pointer;
+    background:linear-gradient(120deg,var(--accent),#ec4899); color:#fff;
+    font:700 .82rem/1 var(--font-ui); box-shadow:0 7px 18px -6px var(--accent-glow);
+    transition:filter var(--fast),transform var(--fast);
+  }
+  .magic-btn:hover{ transform:translateY(-1px) }
+  .bot-tray{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center }
+  .bot-tray[hidden]{ display:none }
+  .bot-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 12px; border-radius:var(--radius-pill);
+    border:1px solid var(--line-strong); background:#fff; color:var(--ink-soft);
+    font:600 .78rem/1 var(--font-ui); cursor:pointer; transition:all var(--fast);
+  }
+  .bot-chip:hover{ border-color:var(--accent); color:var(--accent-deep); background:var(--accent-soft) }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px }
+
+  /* ---- Mobile / print / motion ---- */
+  @media (max-width:620px){ .pcell{ flex-basis:86vw } }
+  @media print{
+    .flove-bar,.cmp-bar,.card-tools,.addmore,.modal-backdrop{ display:none !important }
+    body{ background:#fff }
+    .card,.compare{ box-shadow:none; border:1px solid #ccc }
+  }
+  @media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important } }
+</style>
+</head>
+<body>
+
+<div class="flove-bar">
+  <a class="flove-home" href="../index.html" aria-label="Back to flove launcher">←</a>
+  <span class="brand">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.18em; overflow:visible;">
+      <defs>
+        <linearGradient id="g-reward" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#7c3aed"/>
+          <stop offset="55%" stop-color="#a855f7"/>
+          <stop offset="100%" stop-color="#ec4899"/>
+        </linearGradient>
+      </defs>
+      <g fill="url(#g-reward)" stroke="none">
+        <path d="M50 10 L60 38 L90 38 L66 56 L75 86 L50 68 L25 86 L34 56 L10 38 L40 38 Z"/>
+        <circle cx="30" cy="92" r="5"/><circle cx="50" cy="96" r="5"/><circle cx="70" cy="92" r="5"/>
+      </g>
+    </svg>
+    <span class="flove-app-name">Rewardy</span>
+  </span>
+  <span class="flove-spacer"></span>
+  <div class="topmenu">
+    <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">☰</button>
+    <div class="menu-pop" id="menuPop" hidden>
+      <a class="menu-item" href="../index.html">🏠 flove launcher</a>
+      <button type="button" class="menu-item" id="menuPrint">🖨️ Print</button>
+      <button type="button" class="menu-item" id="menuReset">↻ Reset comparison</button>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+
+  <section class="card">
+    <div class="slider" id="cardSlider">
+
+      <!-- Bob -->
+      <div class="pcell">
+      <article class="person-card" data-id="bob" role="checkbox" tabindex="0" aria-checked="false" aria-label="Toggle Bob in comparison">
+        <div class="p-top">
+          <div class="p-head">
+            <span class="emoji">🛠️</span>
+            <span class="p-name"><span class="nm-h">Bob</span><span class="role">Labour help</span></span>
+          </div>
+          <div class="p-rgb">
+            <div class="bar souls"><span class="track"><span class="fill" style="--v:42%"></span></span></div>
+            <div class="bar trust"><span class="track"><span class="fill" style="--v:60%"></span></span></div>
+            <div class="bar deal"><span class="track"><span class="fill" style="--v:65%"></span></span></div>
+          </div>
+        </div>
+        <p class="terms"><strong>10</strong> H$</p>
+        <details class="morebox">
+          <summary>More</summary>
+          <div class="morecontent">
+            <p>Disponibilidad: fines de semana</p>
+            <p>Herramientas: kit básico</p>
+            <details class="morebox">
+              <summary>More offers from Bob</summary>
+              <div class="offer-list">
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🧹 Limpieza" data-info="2 h/sem · 4 H$">
+                  <span class="oi-label">🧹 Limpieza</span>
+                  <span class="oi-info"><strong>2</strong> h/sem <span class="dot">•</span> <strong>4</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🪚 Arreglos carpintería" data-info="1.5 h/tarea · 8 H$">
+                  <span class="oi-label">🪚 Arreglos carpintería</span>
+                  <span class="oi-info"><strong>1.5</strong> h/tarea <span class="dot">•</span> <strong>8</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🚚 Pequeñas mudanzas" data-info="1 h$ · 6 H$">
+                  <span class="oi-label">🚚 Pequeñas mudanzas</span>
+                  <span class="oi-info"><strong>1</strong> h$ <span class="dot">•</span> <strong>6</strong> H$</span>
+                </button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </article>
+      </div>
+
+      <!-- Alice -->
+      <div class="pcell">
+      <article class="person-card" data-id="alice" role="checkbox" tabindex="0" aria-checked="false" aria-label="Toggle Alice in comparison">
+        <div class="p-top">
+          <div class="p-head">
+            <span class="emoji">🏠</span>
+            <span class="p-name"><span class="nm-h">Alice</span><span class="role">Home sitting</span></span>
+          </div>
+          <div class="p-rgb">
+            <div class="bar souls"><span class="track"><span class="fill" style="--v:60%"></span></span></div>
+            <div class="bar trust"><span class="track"><span class="fill" style="--v:80%"></span></span></div>
+            <div class="bar deal"><span class="track"><span class="fill" style="--v:25%"></span></span></div>
+          </div>
+        </div>
+        <p class="terms"><strong>3</strong> H/sem <span class="dot">•</span> <strong>1</strong> h$</p>
+        <details class="morebox">
+          <summary>More</summary>
+          <div class="morecontent">
+            <p>Apto mascotas, revisión de correo</p>
+            <p>Tardes preferidas</p>
+            <details class="morebox">
+              <summary>More offers from Alice</summary>
+              <div class="offer-list">
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🌿 Cuidado de plantas" data-info="1 h/sem · 2 H$">
+                  <span class="oi-label">🌿 Cuidado de plantas</span>
+                  <span class="oi-info"><strong>1</strong> h/sem <span class="dot">•</span> <strong>2</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🐶 Paseo de perros" data-info="0.5 h · 3 H$">
+                  <span class="oi-label">🐶 Paseo de perros</span>
+                  <span class="oi-info"><strong>0.5</strong> h <span class="dot">•</span> <strong>3</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="📦 Recogida de paquetes" data-info="a demanda · 1 H$">
+                  <span class="oi-label">📦 Recogida de paquetes</span>
+                  <span class="oi-info">a demanda <span class="dot">•</span> <strong>1</strong> H$</span>
+                </button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </article>
+      </div>
+
+      <!-- Charlie -->
+      <div class="pcell">
+      <article class="person-card" data-id="charlie" role="checkbox" tabindex="0" aria-checked="false" aria-label="Toggle Charlie in comparison">
+        <div class="p-top">
+          <div class="p-head">
+            <span class="emoji">🔧</span>
+            <span class="p-name"><span class="nm-h">Charlie</span><span class="role">Fix &amp; errands</span></span>
+          </div>
+          <div class="p-rgb">
+            <div class="bar souls"><span class="track"><span class="fill" style="--v:55%"></span></span></div>
+            <div class="bar trust"><span class="track"><span class="fill" style="--v:35%"></span></span></div>
+            <div class="bar deal"><span class="track"><span class="fill" style="--v:70%"></span></span></div>
+          </div>
+        </div>
+        <p class="terms"><strong>2</strong> H/sem <span class="dot">•</span> <strong>0.5</strong> h$</p>
+        <details class="morebox">
+          <summary>More</summary>
+          <div class="morecontent">
+            <p>Gestiones pequeñas y reparaciones básicas</p>
+            <p>Horario flexible</p>
+            <details class="morebox">
+              <summary>More offers from Charlie</summary>
+              <div class="offer-list">
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🧺 Lavandería y doblado" data-info="1.5 h/sem · 3 H$">
+                  <span class="oi-label">🧺 Lavandería y doblado</span>
+                  <span class="oi-info"><strong>1.5</strong> h/sem <span class="dot">•</span> <strong>3</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🧯 Mantenimiento básico" data-info="por tarea · 5 H$">
+                  <span class="oi-label">🧯 Mantenimiento básico</span>
+                  <span class="oi-info">por tarea <span class="dot">•</span> <strong>5</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🛒 Recados locales" data-info="1 h · 2 H$">
+                  <span class="oi-label">🛒 Recados locales</span>
+                  <span class="oi-info"><strong>1</strong> h <span class="dot">•</span> <strong>2</strong> H$</span>
+                </button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </article>
+      </div>
+
+      <!-- Dana -->
+      <div class="pcell">
+      <article class="person-card" data-id="dana" role="checkbox" tabindex="0" aria-checked="false" aria-label="Toggle Dana in comparison">
+        <div class="p-top">
+          <div class="p-head">
+            <span class="emoji">🌿</span>
+            <span class="p-name"><span class="nm-h">Dana</span><span class="role">Garden care</span></span>
+          </div>
+          <div class="p-rgb">
+            <div class="bar souls"><span class="track"><span class="fill" style="--v:70%"></span></span></div>
+            <div class="bar trust"><span class="track"><span class="fill" style="--v:55%"></span></span></div>
+            <div class="bar deal"><span class="track"><span class="fill" style="--v:48%"></span></span></div>
+          </div>
+        </div>
+        <p class="terms"><strong>4</strong> H/sem <span class="dot">•</span> <strong>1</strong> h$</p>
+        <details class="morebox">
+          <summary>More</summary>
+          <div class="morecontent">
+            <p>Mano verde, herramientas propias</p>
+            <p>Mañanas preferidas</p>
+            <details class="morebox">
+              <summary>More offers from Dana</summary>
+              <div class="offer-list">
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🌳 Poda y recorte" data-info="2 h/tarea · 7 H$">
+                  <span class="oi-label">🌳 Poda y recorte</span>
+                  <span class="oi-info"><strong>2</strong> h/tarea <span class="dot">•</span> <strong>7</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🌻 Plantación de temporada" data-info="3 h · 9 H$">
+                  <span class="oi-label">🌻 Plantación de temporada</span>
+                  <span class="oi-info"><strong>3</strong> h <span class="dot">•</span> <strong>9</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="♻️ Montaje de compostera" data-info="1.5 h · 5 H$">
+                  <span class="oi-label">♻️ Montaje de compostera</span>
+                  <span class="oi-info"><strong>1.5</strong> h <span class="dot">•</span> <strong>5</strong> H$</span>
+                </button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </article>
+      </div>
+
+      <!-- Erin -->
+      <div class="pcell">
+      <article class="person-card" data-id="erin" role="checkbox" tabindex="0" aria-checked="false" aria-label="Toggle Erin in comparison">
+        <div class="p-top">
+          <div class="p-head">
+            <span class="emoji">📚</span>
+            <span class="p-name"><span class="nm-h">Erin</span><span class="role">Tutoring</span></span>
+          </div>
+          <div class="p-rgb">
+            <div class="bar souls"><span class="track"><span class="fill" style="--v:38%"></span></span></div>
+            <div class="bar trust"><span class="track"><span class="fill" style="--v:72%"></span></span></div>
+            <div class="bar deal"><span class="track"><span class="fill" style="--v:58%"></span></span></div>
+          </div>
+        </div>
+        <p class="terms"><strong>2</strong> H/sem <span class="dot">•</span> <strong>1.5</strong> h$</p>
+        <details class="morebox">
+          <summary>More</summary>
+          <div class="morecontent">
+            <p>Matemáticas e idiomas</p>
+            <p>Tardes-noche</p>
+            <details class="morebox">
+              <summary>More offers from Erin</summary>
+              <div class="offer-list">
+                <button type="button" class="offer-item" aria-pressed="false" data-label="✏️ Apoyo con deberes" data-info="1 h/sem · 3 H$">
+                  <span class="oi-label">✏️ Apoyo con deberes</span>
+                  <span class="oi-info"><strong>1</strong> h/sem <span class="dot">•</span> <strong>3</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="📝 Preparación de exámenes" data-info="2 h/sem · 6 H$">
+                  <span class="oi-label">📝 Preparación de exámenes</span>
+                  <span class="oi-info"><strong>2</strong> h/sem <span class="dot">•</span> <strong>6</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="📖 Club de lectura" data-info="1.5 h/sem · 2 H$">
+                  <span class="oi-label">📖 Club de lectura</span>
+                  <span class="oi-info"><strong>1.5</strong> h/sem <span class="dot">•</span> <strong>2</strong> H$</span>
+                </button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </article>
+      </div>
+
+      <!-- Frank -->
+      <div class="pcell">
+      <article class="person-card" data-id="frank" role="checkbox" tabindex="0" aria-checked="false" aria-label="Toggle Frank in comparison">
+        <div class="p-top">
+          <div class="p-head">
+            <span class="emoji">🚲</span>
+            <span class="p-name"><span class="nm-h">Frank</span><span class="role">Delivery runs</span></span>
+          </div>
+          <div class="p-rgb">
+            <div class="bar souls"><span class="track"><span class="fill" style="--v:50%"></span></span></div>
+            <div class="bar trust"><span class="track"><span class="fill" style="--v:44%"></span></span></div>
+            <div class="bar deal"><span class="track"><span class="fill" style="--v:82%"></span></span></div>
+          </div>
+        </div>
+        <p class="terms"><strong>5</strong> H/sem <span class="dot">•</span> <strong>0.5</strong> h$</p>
+        <details class="morebox">
+          <summary>More</summary>
+          <div class="morecontent">
+            <p>Mensajero en bici, centro ciudad</p>
+            <p>Horario amplio</p>
+            <details class="morebox">
+              <summary>More offers from Frank</summary>
+              <div class="offer-list">
+                <button type="button" class="offer-item" aria-pressed="false" data-label="🛒 Compra de supermercado" data-info="1 h · 3 H$">
+                  <span class="oi-label">🛒 Compra de supermercado</span>
+                  <span class="oi-info"><strong>1</strong> h <span class="dot">•</span> <strong>3</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="💊 Recogida de farmacia" data-info="0.5 h · 2 H$">
+                  <span class="oi-label">💊 Recogida de farmacia</span>
+                  <span class="oi-info"><strong>0.5</strong> h <span class="dot">•</span> <strong>2</strong> H$</span>
+                </button>
+                <button type="button" class="offer-item" aria-pressed="false" data-label="📄 Entrega de documentos" data-info="0.5 h · 2 H$">
+                  <span class="oi-label">📄 Entrega de documentos</span>
+                  <span class="oi-info"><strong>0.5</strong> h <span class="dot">•</span> <strong>2</strong> H$</span>
+                </button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </article>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="addmore">
+    <button type="button" class="add-btn" id="addMore" aria-label="Add 6 more users">+</button>
+  </div>
+
+  <!-- users added by the + button — a wrapping row below, no extra lateral scroll -->
+  <div class="more-users" id="moreUsers"></div>
+
+  <!-- Comparison -->
+  <section class="compare">
+    <!-- clickable colour legend — tap a name to expand/collapse that person -->
+    <div class="cmp-legend" id="cmpLegend"></div>
+
+    <!-- view selector — radios; the checked view shows directly below -->
+    <div class="cmp-bar">
+      <div class="views-ctl" role="radiogroup" aria-label="Comparison view">
+        <input type="radio" name="cmpview" id="vw-bars" class="vw-input" value="bars" checked>
+        <label for="vw-bars" class="vw">▥ Bars</label>
+        <input type="radio" name="cmpview" id="vw-spider" class="vw-input" value="spider">
+        <label for="vw-spider" class="vw">◈ Spider</label>
+        <input type="radio" name="cmpview" id="vw-axial" class="vw-input" value="axial">
+        <label for="vw-axial" class="vw">▦ Axial</label>
+        <input type="radio" name="cmpview" id="vw-area" class="vw-input" value="area">
+        <label for="vw-area" class="vw">▤ Per area</label>
+      </div>
+    </div>
+
+    <!-- the checked view renders directly below -->
+    <div class="cmp-bars" id="barsView" hidden>
+      <div class="bars-row" id="barsRow"></div>
+    </div>
+
+    <!-- Per area view -->
+    <div class="cmp-area" id="areaView" hidden></div>
+
+    <!-- Axial view — parallel category axes, one polyline per user -->
+    <div class="cmp-axial" id="axialView" hidden>
+      <svg class="axial" viewBox="0 0 320 240" aria-label="Axial chart">
+        <line class="axis" x1="55" y1="20" x2="55" y2="200"/>
+        <line class="axis" x1="160" y1="20" x2="160" y2="200"/>
+        <line class="axis" x1="265" y1="20" x2="265" y2="200"/>
+        <g id="axialLayer"></g>
+        <text class="ax-cap s" x="55" y="224" text-anchor="middle">SOULS</text>
+        <text class="ax-cap t" x="160" y="224" text-anchor="middle">TRUST</text>
+        <text class="ax-cap d" x="265" y="224" text-anchor="middle">DEAL</text>
+      </svg>
+    </div>
+
+    <!-- Spider view -->
+    <div class="cmp-spider" id="spiderView">
+      <div class="radar-wrap" id="radarWrap">
+        <svg class="radar" id="radar" viewBox="0 0 260 260" aria-label="Spider chart">
+          <polygon class="grid" points="130,20 225.3,185 34.7,185"/>
+          <line class="axis" x1="130" y1="130" x2="130" y2="20"/>
+          <line class="axis" x1="130" y1="130" x2="225.3" y2="185"/>
+          <line class="axis" x1="130" y1="130" x2="34.7" y2="185"/>
+          <g class="poly-layer" id="polyLayer"></g>
+        </svg>
+        <button type="button" class="axis-label s pos-s" data-axis="s">SOULS</button>
+        <button type="button" class="axis-label t pos-t" data-axis="t">TRUST</button>
+        <button type="button" class="axis-label d pos-d" data-axis="d">DEAL</button>
+      </div>
+      <p class="spider-note" id="spiderNote">Select cards to draw their triangles · click a category title to focus its nodes.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- "Message" modal -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button type="button" class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <h2 class="modal-title" id="modalTitle">Message</h2>
+    <textarea class="modal-field" id="modalField"></textarea>
+    <div class="modal-links" id="modalLinks" hidden></div>
+    <div class="modal-magic">
+      <button type="button" class="magic-btn" id="magicBtn">✨ Magic suggestions</button>
+      <div class="bot-tray" id="botTray" hidden></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="modalCancel">Cancel</button>
+      <button type="button" class="btn primary" id="modalSend">Send message</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* offer data — id keyed; s/t/d are the three ratings */
+  var PEOPLE = {
+    bob:    { name:'Bob',     role:'Labour help',   s:42, t:60, d:65 },
+    alice:  { name:'Alice',   role:'Home sitting',  s:60, t:80, d:25 },
+    charlie:{ name:'Charlie', role:'Fix & errands', s:55, t:35, d:70 },
+    dana:   { name:'Dana',    role:'Garden care',   s:70, t:55, d:48 },
+    erin:   { name:'Erin',    role:'Tutoring',      s:38, t:72, d:58 },
+    frank:  { name:'Frank',   role:'Delivery runs', s:50, t:44, d:82 }
+  };
+  /* per-person palette — high-contrast rainbow from red (selection order) */
+  var RAINBOW = ['#b91c1c','#f97316','#a16207','#16a34a','#1e3a8a','#a855f7'];
+  var RGROUPS = [['s','souls','SOULS'],['t','trust','TRUST'],['d','deal','DEAL']];
+
+  /* suggestion bots — inject canned text into the message field */
+  var BOTS = [
+    { icon:'🤝', name:'Friendly hello', text:'¡Hola! Me ha encantado tu oferta y me gustaría saber más.' },
+    { icon:'📅', name:'Ask availability', text:'¿Qué disponibilidad tienes los próximos días?' },
+    { icon:'🔄', name:'Propose a swap', text:'Puedo ofrecerte algo a cambio dentro de flove, ¿te interesa?' },
+    { icon:'🙏', name:'Polite close', text:'Gracias de antemano, quedo a la espera de tu respuesta.' }
+  ];
+
+  var order     = [];        /* selection order — drives each person's colour */
+  var collapsed = new Set(); /* people toggled off in the views (expand/collapse) */
+  var view       = 'bars';   /* current view */
+  var spiderArea = null;     /* category focus inside the spider ('s'|'t'|'d'|null) */
+
+  var slider     = document.getElementById('cardSlider');
+  var legend     = document.getElementById('cmpLegend');
+  var barsView   = document.getElementById('barsView');
+  var barsRow    = document.getElementById('barsRow');
+  var areaView   = document.getElementById('areaView');
+  var spiderView = document.getElementById('spiderView');
+  var polyLayer  = document.getElementById('polyLayer');
+  var spiderNote = document.getElementById('spiderNote');
+  var axialView  = document.getElementById('axialView');
+  var axialLayer = document.getElementById('axialLayer');
+
+  var cardOf = {}, cellOf = {}, allIds = [];   /* card registry */
+
+  function colorOf(id){ return RAINBOW[order.indexOf(id) % RAINBOW.length]; }
+
+  var toast = document.getElementById('toast'), toastTimer = null;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.hidden = true; }, 4800);
+  }
+
+  /* ---- card = single checkable item · max 6 selected at once ---- */
+  function toggleCard(card){
+    var id = card.dataset.id, i = order.indexOf(id);
+    if(i > -1){
+      order.splice(i,1);
+      card.classList.remove('selected');
+      card.setAttribute('aria-checked','false');
+      collapsed.delete(id);
+    } else {
+      if(order.length >= 6){
+        showToast('You can just select 6 users for comparisions. Unselect some of the ones actually selected to select some more users to compare');
+        return;
+      }
+      order.push(id);
+      card.classList.add('selected');
+      card.setAttribute('aria-checked','true');
+    }
+    render();
+  }
+
+  /* ---- forward / save tools ---- */
+  var APPS = ['WhatsApp','Telegram','Email','Messages'];
+  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  /* dropdown lists — several types of users, plus groups (group names as items) */
+  var USER_LISTS = [
+    { icon:'★',  name:'Favourite users', users:['Lucía','Marc','Tom','Nadia'] },
+    { icon:'🕘', name:'Recent users',    users:['Sofía','Diego','Emma'] },
+    { icon:'📍', name:'Nearby users',    users:['Pablo','Wei','Aïcha'] },
+    { icon:'👥', name:'Groups',          users:['Vecinos del barrio','Familia flove','Trueque Madrid'] }
+  ];
+
+  function closeAllMenus(){
+    document.querySelectorAll('.fwd-menu').forEach(function(m){ m.hidden = true; });
+    document.querySelectorAll('.fwd-cat.open').forEach(function(c){ c.classList.remove('open'); });
+  }
+  document.addEventListener('click', closeAllMenus);
+
+  function saveCard(card){
+    var id = card.dataset.id, saved;
+    try{ saved = JSON.parse(localStorage.getItem('rewardy.saved') || '[]'); }catch(_){ saved = []; }
+    if(saved.indexOf(id) < 0) saved.push(id);
+    try{ localStorage.setItem('rewardy.saved', JSON.stringify(saved)); }catch(_){ }
+  }
+
+  /* a category whose submenu of names flies out to its right */
+  function buildCat(icon, name, names, onPick){
+    var cat = document.createElement('div');
+    cat.className = 'fwd-cat';
+    var label = document.createElement('div');
+    label.className = 'fwd-cat-label';
+    label.innerHTML = '<span>' + icon + ' ' + name + '</span><span class="fwd-caret">▸</span>';
+    label.addEventListener('click', function(e){
+      e.stopPropagation();
+      var isOpen = cat.classList.contains('open');
+      cat.parentNode.querySelectorAll('.fwd-cat.open').forEach(function(c){ c.classList.remove('open'); });
+      if(!isOpen) cat.classList.add('open');
+    });
+    var sub = document.createElement('div');
+    sub.className = 'fwd-sub';
+    names.forEach(function(nm){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'fwd-item'; b.textContent = nm;
+      b.addEventListener('click', function(){ onPick(nm, b); });
+      sub.appendChild(b);
+    });
+    cat.appendChild(label);
+    cat.appendChild(sub);
+    return cat;
+  }
+
+  /* message + forward buttons, shown below the card */
+  function buildTools(card){
+    var tools = document.createElement('div');
+    tools.className = 'card-tools';
+
+    var msg = document.createElement('button');
+    msg.type = 'button'; msg.className = 'msg-btn'; msg.title = 'Message'; msg.textContent = '✉';
+    msg.addEventListener('click', function(e){ e.stopPropagation(); closeAllMenus(); openModal(card, null); });
+
+    var wrap = document.createElement('div');
+    wrap.className = 'fwd-wrap';
+    var fbtn = document.createElement('button');
+    fbtn.type = 'button'; fbtn.className = 'fwd-btn'; fbtn.title = 'Forward or save'; fbtn.textContent = '▾';
+    var menu = document.createElement('div');
+    menu.className = 'fwd-menu'; menu.hidden = true;
+    menu.addEventListener('click', function(e){ e.stopPropagation(); });
+
+    USER_LISTS.forEach(function(list){
+      menu.appendChild(buildCat(list.icon, list.name, list.users, function(nm){
+        closeAllMenus(); openModal(card, nm);
+      }));
+    });
+
+    if(isMobile){
+      menu.appendChild(buildCat('📱', 'Forward via app', APPS, function(nm, b){
+        b.textContent = '✓ Sent to ' + nm;
+        setTimeout(function(){ closeAllMenus(); b.textContent = nm; }, 800);
+      }));
+    } else {
+      var save = document.createElement('button');
+      save.type = 'button'; save.className = 'fwd-item fwd-save';
+      save.textContent = '💾 Save card locally';
+      save.addEventListener('click', function(){
+        saveCard(card);
+        save.textContent = '✓ Saved locally';
+        setTimeout(function(){ closeAllMenus(); save.textContent = '💾 Save card locally'; }, 900);
+      });
+      menu.appendChild(save);
+    }
+
+    fbtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var was = menu.hidden;
+      closeAllMenus();
+      menu.hidden = !was;
+    });
+
+    wrap.appendChild(fbtn);
+    wrap.appendChild(menu);
+    tools.appendChild(msg);
+    tools.appendChild(wrap);
+    return tools;
+  }
+
+  /* wire one slider cell — card toggle, sub-offers, forward tools */
+  function registerCell(cell){
+    var card = cell.querySelector('.person-card');
+    var id = card.dataset.id;
+    cardOf[id] = card; cellOf[id] = cell; allIds.push(id);
+
+    card.addEventListener('click', function(e){
+      if(e.target.closest('details') || e.target.closest('.card-tools')) return;
+      toggleCard(card);
+    });
+    card.addEventListener('keydown', function(e){
+      if((e.key === 'Enter' || e.key === ' ') &&
+         !e.target.closest('details') && !e.target.closest('.card-tools')){
+        e.preventDefault();
+        toggleCard(card);
+      }
+    });
+    cell.querySelectorAll('.offer-item').forEach(function(item){
+      item.addEventListener('click', function(){
+        var on = item.classList.toggle('selected');
+        item.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+    cell.appendChild(buildTools(card));
+  }
+  Array.prototype.slice.call(document.querySelectorAll('.pcell')).forEach(registerCell);
+  var sliderIds = allIds.slice();   /* the original six — only these reorder in the slider */
+
+  /* ---- view switching (radio segmented control) ---- */
+  function applyView(){
+    barsView.hidden  = !(view === 'bars'  && order.length > 0);
+    areaView.hidden  = !(view === 'area'  && order.length > 0);
+    axialView.hidden = !(view === 'axial' && order.length > 0);
+    spiderView.style.display = (view === 'spider') ? 'block' : 'none';
+  }
+  document.querySelectorAll('.vw-input').forEach(function(radio){
+    radio.addEventListener('change', function(){
+      if(radio.checked){ view = radio.value; applyView(); }
+    });
+  });
+
+  /* ---- legend: clickable colour chips — multi-toggle expand/collapse ---- */
+  function renderLegend(){
+    legend.innerHTML = '';
+    order.forEach(function(id){
+      var p = PEOPLE[id];
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'legend-chip' + (collapsed.has(id) ? ' collapsed' : '');
+      chip.style.setProperty('--lc', colorOf(id));
+      chip.innerHTML = '<span class="lc-name">' + p.name + '</span>' +
+                       '<span class="lc-role">' + p.role + '</span>';
+      chip.addEventListener('click', function(){
+        if(collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+        render();
+      });
+      legend.appendChild(chip);
+    });
+  }
+
+  /* ---- bars view: bare bars, one row, grouped rr · gg · bb ---- */
+  function renderBars(){
+    barsRow.innerHTML = '';
+    var shown = order.filter(function(id){ return !collapsed.has(id); });
+    barsRow.classList.toggle('compact', shown.length >= 4);
+
+    RGROUPS.forEach(function(r){
+      var group = document.createElement('div');
+      group.className = 'rgroup ' + r[1];
+      var label = document.createElement('div');
+      label.className = 'rgroup-label';
+      label.textContent = r[2];
+      var bars = document.createElement('div');
+      bars.className = 'rgroup-bars';
+
+      shown.forEach(function(id){
+        var v = PEOPLE[id][r[0]];
+        var track = document.createElement('span');
+        track.className = 'vbar-track';
+        track.style.setProperty('--uc', colorOf(id));
+        track.style.setProperty('--v', v + '%');
+        track.innerHTML = '<span class="vbar-fill"></span>';
+        bars.appendChild(track);
+      });
+
+      group.appendChild(label);
+      group.appendChild(bars);
+      barsRow.appendChild(group);
+    });
+  }
+
+  /* ---- per-area view: three horizontal bars with user-coloured nodes ---- */
+  function renderArea(){
+    areaView.innerHTML = '';
+    RGROUPS.forEach(function(r){
+      var row = document.createElement('div');
+      row.className = 'area-row ' + r[1];
+      var head = document.createElement('div');
+      head.className = 'area-rowhead';
+      head.textContent = r[2];
+      var track = document.createElement('div');
+      track.className = 'area-track';
+
+      order.forEach(function(id){
+        if(collapsed.has(id)) return;
+        var v = PEOPLE[id][r[0]];
+        var node = document.createElement('span');
+        node.className = 'area-node';
+        node.style.setProperty('--uc', colorOf(id));
+        node.style.left = v + '%';
+        node.textContent = v;
+        node.title = PEOPLE[id].name + ' · ' + v;
+        track.appendChild(node);
+      });
+
+      row.appendChild(head);
+      row.appendChild(track);
+      areaView.appendChild(row);
+    });
+  }
+
+  /* ---- spider geometry: centre 130,130 · radius 110 at 100% ---- */
+  function radarPoint(value, axis){
+    var r = 110 * (value / 100);
+    if(axis === 's') return [130, 130 - r];
+    if(axis === 't') return [130 + 0.86603 * r, 130 + 0.5 * r];
+    return [130 - 0.86603 * r, 130 + 0.5 * r];
+  }
+  function svgEl(tag){ return document.createElementNS('http://www.w3.org/2000/svg', tag); }
+
+  function renderSpider(){
+    polyLayer.innerHTML = '';
+    order.forEach(function(id){
+      if(collapsed.has(id)) return;
+      var p = PEOPLE[id], c = colorOf(id);
+
+      if(spiderArea){
+        /* focused on one category — show only that node */
+        var pt = radarPoint(p[spiderArea], spiderArea);
+        var dot = svgEl('circle');
+        dot.setAttribute('cx', pt[0]); dot.setAttribute('cy', pt[1]);
+        dot.setAttribute('r', '7');
+        dot.setAttribute('fill', c);
+        dot.setAttribute('stroke', '#fff');
+        dot.setAttribute('stroke-width', '2');
+        polyLayer.appendChild(dot);
+      } else {
+        /* full triangle */
+        var pts = [ radarPoint(p.s,'s'), radarPoint(p.t,'t'), radarPoint(p.d,'d') ]
+          .map(function(co){ return co[0].toFixed(1) + ',' + co[1].toFixed(1); }).join(' ');
+        var poly = svgEl('polygon');
+        poly.setAttribute('points', pts);
+        poly.setAttribute('fill', c);
+        poly.setAttribute('fill-opacity', '0.24');
+        poly.setAttribute('stroke', c);
+        poly.setAttribute('stroke-width', '2.4');
+        polyLayer.appendChild(poly);
+      }
+    });
+    spiderNote.hidden = order.length > 0;
+  }
+
+  /* paint selected cards with their rainbow colour and float them to the front */
+  function syncCards(){
+    allIds.forEach(function(id){
+      if(order.indexOf(id) > -1) cardOf[id].style.setProperty('--uc', colorOf(id));
+      else cardOf[id].style.removeProperty('--uc');
+    });
+    /* reorder only the original slider cards — selected first, then the rest */
+    order.forEach(function(id){
+      if(sliderIds.indexOf(id) > -1) slider.appendChild(cellOf[id]);
+    });
+    sliderIds.forEach(function(id){
+      if(order.indexOf(id) === -1) slider.appendChild(cellOf[id]);
+    });
+  }
+
+  /* ---- axial view: parallel category axes, one polyline per user ---- */
+  function renderAxial(){
+    axialLayer.innerHTML = '';
+    var AX = { s:55, t:160, d:265 };
+    function ay(v){ return 200 - (v / 100) * 180; }
+    order.forEach(function(id){
+      if(collapsed.has(id)) return;
+      var p = PEOPLE[id], c = colorOf(id);
+      var line = svgEl('polyline');
+      line.setAttribute('points',
+        AX.s + ',' + ay(p.s).toFixed(1) + ' ' +
+        AX.t + ',' + ay(p.t).toFixed(1) + ' ' +
+        AX.d + ',' + ay(p.d).toFixed(1));
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke', c);
+      line.setAttribute('stroke-width', '2.6');
+      line.setAttribute('stroke-linejoin', 'round');
+      axialLayer.appendChild(line);
+      [['s',p.s],['t',p.t],['d',p.d]].forEach(function(n){
+        var dot = svgEl('circle');
+        dot.setAttribute('cx', AX[n[0]]);
+        dot.setAttribute('cy', ay(n[1]).toFixed(1));
+        dot.setAttribute('r', '4.6');
+        dot.setAttribute('fill', c);
+        dot.setAttribute('stroke', '#fff');
+        dot.setAttribute('stroke-width', '1.6');
+        axialLayer.appendChild(dot);
+      });
+    });
+  }
+
+  function render(){
+    applyView();
+    renderLegend();
+    renderBars();
+    renderArea();
+    renderAxial();
+    renderSpider();
+    syncCards();
+  }
+
+  /* ---- spider: fixed category titles — click to focus their nodes ---- */
+  document.querySelectorAll('.axis-label').forEach(function(lbl){
+    lbl.addEventListener('click', function(){
+      var ax = lbl.dataset.axis;
+      spiderArea = (spiderArea === ax) ? null : ax;
+      document.querySelectorAll('.axis-label').forEach(function(l){
+        l.classList.toggle('active', l.dataset.axis === spiderArea);
+      });
+      renderSpider();
+    });
+  });
+
+  /* ---- topbar menu ---- */
+  var menuBtn = document.getElementById('menuBtn');
+  var menuPop = document.getElementById('menuPop');
+  function setMenu(open){
+    menuPop.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  menuBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    setMenu(menuPop.hidden);
+  });
+  document.addEventListener('click', function(e){
+    if(!menuPop.hidden && !e.target.closest('.topmenu')) setMenu(false);
+  });
+  document.getElementById('menuPrint').addEventListener('click', function(){
+    setMenu(false); window.print();
+  });
+  document.getElementById('menuReset').addEventListener('click', function(){
+    setMenu(false);
+    order.length = 0; collapsed.clear();
+    allIds.forEach(function(id){
+      cardOf[id].classList.remove('selected'); cardOf[id].setAttribute('aria-checked','false');
+    });
+    document.querySelectorAll('.offer-item.selected').forEach(function(o){
+      o.classList.remove('selected'); o.setAttribute('aria-pressed','false');
+    });
+    render();
+  });
+
+  /* ---- "Message" modal — intro text + selections live inside the field ---- */
+  var backdrop = document.getElementById('modalBackdrop');
+  var mTitle   = document.getElementById('modalTitle');
+  var mField   = document.getElementById('modalField');
+  var modalLinks = document.getElementById('modalLinks');
+  var magicBtn = document.getElementById('magicBtn');
+  var botTray  = document.getElementById('botTray');
+  var sendBtn  = document.getElementById('modalSend');
+
+  function openModal(card, favName){
+    var id = card.dataset.id, p = PEOPLE[id];
+    var mainTerms = card.querySelector('.terms').textContent.replace(/\s+/g,' ').trim();
+    var lines = [];
+
+    if(favName){
+      /* forwarding to a favourite user — no intro greeting, keep the selections */
+      mTitle.textContent = 'Forward ' + p.name + "'s card to " + favName;
+    } else {
+      mTitle.textContent = 'Message ' + p.name;
+      lines.push('Hi ' + p.name + ", I saw you in Rewardy and I'm interested in your:");
+    }
+    lines.push('• Main offer · ' + mainTerms);
+    card.querySelectorAll('.offer-item.selected').forEach(function(it){
+      lines.push('• ' + it.dataset.label + ' · ' + it.dataset.info);
+    });
+    lines.push('');
+    mField.value = lines.join('\n');
+
+    /* profile links — shown only when forwarding to a favourite user */
+    modalLinks.innerHTML = '';
+    if(favName){
+      var a1 = document.createElement('a');
+      a1.className = 'modal-link'; a1.href = '#u/me'; a1.textContent = '▸ My profile';
+      var a2 = document.createElement('a');
+      a2.className = 'modal-link'; a2.href = '#c/' + id;
+      a2.textContent = "▸ " + p.name + "'s card profile";
+      modalLinks.appendChild(a1);
+      modalLinks.appendChild(a2);
+    }
+    modalLinks.hidden = !favName;
+
+    botTray.hidden = true;
+    sendBtn.textContent = favName ? 'Forward' : 'Send message';
+    sendBtn.disabled = false;
+    backdrop.hidden = false;
+    mField.focus();
+    mField.setSelectionRange(mField.value.length, mField.value.length);
+  }
+  function closeModal(){ backdrop.hidden = true; }
+
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  backdrop.addEventListener('click', function(e){ if(e.target === backdrop) closeModal(); });
+  window.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !backdrop.hidden) closeModal(); });
+
+  sendBtn.addEventListener('click', function(){
+    sendBtn.textContent = 'Sent ✓';
+    sendBtn.disabled = true;
+    setTimeout(closeModal, 850);
+  });
+
+  /* magic suggestion bots — reveal on click, inject text into the field */
+  BOTS.forEach(function(bot){
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'bot-chip';
+    chip.textContent = bot.icon + ' ' + bot.name;
+    chip.addEventListener('click', function(){
+      mField.value = mField.value.replace(/\s*$/,'') + '\n' + bot.text;
+      mField.focus();
+      mField.setSelectionRange(mField.value.length, mField.value.length);
+    });
+    botTray.appendChild(chip);
+  });
+  magicBtn.addEventListener('click', function(){ botTray.hidden = !botTray.hidden; });
+
+  /* ---- 6 more real users, added by the + button into the row below ---- */
+  var EXTRAS = [
+    { id:'marina', name:'Marina', emoji:'🧸', role:'Childcare', s:65, t:78, d:40,
+      terms:'<strong>3</strong> H/sem <span class="dot">•</span> <strong>1</strong> h$',
+      note:'Tardes y fines de semana, con experiencia',
+      offers:[ {l:'🍼 Cuidado de bebés', i:'2 h · 5 H$'}, {l:'📚 Apoyo escolar', i:'1 h/sem · 3 H$'}, {l:'🎪 Fiestas infantiles', i:'3 h · 9 H$'} ] },
+    { id:'hugo', name:'Hugo', emoji:'🎨', role:'Painting & deco', s:48, t:52, d:75,
+      terms:'<strong>8</strong> H$',
+      note:'Interiores, trabajo limpio y rápido',
+      offers:[ {l:'🖌️ Pintura de habitación', i:'4 h · 10 H$'}, {l:'🪜 Trabajos en altura', i:'por tarea · 7 H$'}, {l:'🖼️ Murales decorativos', i:'5 h · 14 H$'} ] },
+    { id:'olivia', name:'Olivia', emoji:'🍳', role:'Home cooking', s:72, t:64, d:55,
+      terms:'<strong>2</strong> H/sem <span class="dot">•</span> <strong>1.5</strong> h$',
+      note:'Cocina casera y catering pequeño',
+      offers:[ {l:'🥘 Comida semanal', i:'2 h/sem · 6 H$'}, {l:'🎂 Repostería', i:'por encargo · 5 H$'}, {l:'🥗 Menús saludables', i:'1.5 h · 4 H$'} ] },
+    { id:'leo', name:'Leo', emoji:'📦', role:'Moving help', s:40, t:58, d:80,
+      terms:'<strong>6</strong> H$',
+      note:'Furgoneta propia, centro y alrededores',
+      offers:[ {l:'🛋️ Mudanzas pequeñas', i:'2 h · 8 H$'}, {l:'📦 Embalaje', i:'1 h · 3 H$'}, {l:'🪑 Montaje de muebles', i:'1.5 h · 5 H$'} ] },
+    { id:'sara', name:'Sara', emoji:'🗣️', role:'Language exchange', s:80, t:70, d:35,
+      terms:'<strong>1</strong> H/sem <span class="dot">•</span> <strong>0.5</strong> h$',
+      note:'Inglés y francés, todos los niveles',
+      offers:[ {l:'💬 Conversación', i:'1 h/sem · 2 H$'}, {l:'📝 Corrección de textos', i:'por texto · 3 H$'}, {l:'✈️ Preparación de viajes', i:'1 h · 2 H$'} ] },
+    { id:'noah', name:'Noah', emoji:'🐾', role:'Pet care', s:58, t:66, d:62,
+      terms:'<strong>4</strong> H/sem <span class="dot">•</span> <strong>1</strong> h$',
+      note:'Amante de los animales, con referencias',
+      offers:[ {l:'🐕 Paseo de perros', i:'0.5 h · 3 H$'}, {l:'🏠 Cuidado en casa', i:'a demanda · 5 H$'}, {l:'🐈 Visitas a gatos', i:'0.5 h · 2 H$'} ] }
+  ];
+
+  function buildCell(p){
+    var offers = p.offers.map(function(o){
+      return '<button type="button" class="offer-item" aria-pressed="false" data-label="' + o.l +
+             '" data-info="' + o.i + '"><span class="oi-label">' + o.l +
+             '</span><span class="oi-info">' + o.i + '</span></button>';
+    }).join('');
+    var cell = document.createElement('div');
+    cell.className = 'pcell';
+    cell.innerHTML =
+      '<article class="person-card" data-id="' + p.id + '" role="checkbox" tabindex="0" ' +
+        'aria-checked="false" aria-label="Toggle ' + p.name + ' in comparison">' +
+        '<div class="p-top">' +
+          '<div class="p-head"><span class="emoji">' + p.emoji + '</span>' +
+          '<span class="p-name"><span class="nm-h">' + p.name + '</span>' +
+          '<span class="role">' + p.role + '</span></span></div>' +
+          '<div class="p-rgb">' +
+            '<div class="bar souls"><span class="track"><span class="fill" style="--v:' + p.s + '%"></span></span></div>' +
+            '<div class="bar trust"><span class="track"><span class="fill" style="--v:' + p.t + '%"></span></span></div>' +
+            '<div class="bar deal"><span class="track"><span class="fill" style="--v:' + p.d + '%"></span></span></div>' +
+          '</div>' +
+        '</div>' +
+        '<p class="terms">' + p.terms + '</p>' +
+        '<details class="morebox"><summary>More</summary><div class="morecontent">' +
+          '<p>' + p.note + '</p>' +
+          '<details class="morebox"><summary>More offers from ' + p.name + '</summary>' +
+          '<div class="offer-list">' + offers + '</div></details>' +
+        '</div></details>' +
+      '</article>';
+    return cell;
+  }
+
+  var moreUsers = document.getElementById('moreUsers');
+  document.getElementById('addMore').addEventListener('click', function(){
+    EXTRAS.forEach(function(p){
+      PEOPLE[p.id] = p;
+      var cell = buildCell(p);
+      moreUsers.appendChild(cell);   /* a wrapping row below — no extra lateral scroll */
+      registerCell(cell);
+    });
+    this.disabled = true;
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

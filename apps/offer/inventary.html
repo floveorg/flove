@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes"/>
+  <title>✺ flove · Inventary</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="../flove.css">
+  <style>
+    :root {
+      /* flove identity overrides — navy Inventary */
+      --app-accent:        #1e4a6b;
+      --app-accent-soft:   #b9d2e5;
+      --app-ink-on-accent: #ffffff;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+    }
+
+    body {
+      background: #f5f9ff;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0.6rem 0.6rem 1.2rem;
+      color: #1a2e3f;
+      line-height: 1.4;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── MyFamily-style header: bigger logo + info panel ── */
+    .flove-bar {
+      font-size: 22px;
+      padding: 12px 18px;
+      gap: 14px;
+      background: transparent;
+      border-bottom: 0;
+      box-shadow: none;
+    }
+    .flove-bar .flove-mark { width: 2em; height: 2em; }
+    .flove-bar .flove-app-name {
+      font-size: 1em;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--app-accent);
+    }
+    .flove-bar .flove-mark-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+    .app-name-toggle {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      letter-spacing: inherit;
+      color: var(--app-accent);
+      cursor: pointer;
+      transition: opacity 0.2s, color 0.2s;
+    }
+    .app-name-toggle:hover { opacity: 0.78; }
+    .app-name-toggle:focus-visible {
+      outline: 2px solid var(--app-accent);
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+    .app-name-toggle[aria-expanded="true"] { color: #0a2a44; }
+
+    .info-panel {
+      position: relative;
+      max-width: 480px;
+      margin: 0.8rem auto 1.2rem;
+      padding: 1.4rem 1.5rem 1.5rem;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid var(--app-accent-soft);
+      border-radius: 22px;
+      box-shadow: 0 16px 36px -12px rgba(30, 74, 107, 0.25);
+      display: none;
+      animation: info-panel-pop 0.28s cubic-bezier(.2,.8,.2,1);
+      z-index: 5;
+    }
+    .info-panel.is-open { display: block; }
+    .info-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--app-accent);
+      background: #ffffff;
+      color: var(--app-accent);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 14px -4px rgba(30, 74, 107, 0.3);
+      transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+      z-index: 2;
+    }
+    .info-close:hover {
+      background: var(--app-accent);
+      color: #ffffff;
+      transform: scale(1.06);
+    }
+    .info-close svg { width: 22px; height: 22px; fill: none; }
+    .info-content {
+      max-width: 760px;
+      margin: 0 auto;
+      padding-right: 56px;
+      color: #1c3a55;
+    }
+    .info-content h3 {
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: #0f2f44;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+    .info-content p { margin: 0 0 0.5rem; font-size: 0.92rem; line-height: 1.55; }
+    .info-hint { color: #58738c; font-style: italic; font-size: 0.85rem; }
+    .info-video-frame {
+      margin-top: 0.9rem;
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, var(--app-accent-soft), #8aaecb);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+    .info-video-frame::before {
+      content: '🎬  Intro video';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(15, 47, 68, 0.6);
+      font-style: italic;
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+    .info-video {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+      z-index: 1;
+    }
+    @keyframes info-panel-pop {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .info-panel { animation: none; }
+    }
+
+    /* tabs – icons only, two rows: visible + collapsible-extra */
+    .tabs-wrapper {
+      margin: 0.4rem 0 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      justify-content: stretch;
+      flex-wrap: nowrap;
+      overflow-x: visible;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tabs--extra { display: none; }
+    .tabs--extra.is-open { display: flex; }
+
+    .tab {
+      background: white;
+      border: 1px solid #d3e0ea;
+      color: #1e405b;
+      flex: 1 1 0;
+      min-width: 0;
+      height: 40px;
+      border-radius: 14px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: flex .25s, max-width .25s, background .15s, color .15s, border-color .15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      padding: 2px 4px;
+      overflow: hidden;
+    }
+
+    .tab .tab-label {
+      display: none;
+      font-size: 0.55rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      text-transform: uppercase;
+      line-height: 1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tab.active {
+      background: #1e4a6b;
+      border-color: #1e4a6b;
+      color: white;
+      flex: 2.5 1 auto;
+      max-width: 50%;
+      padding: 2px 10px;
+    }
+    .tab.active .tab-label { display: inline-block; }
+
+    .tab i { font-size: 1.2rem; }
+
+    .tab-plus {
+      background: var(--app-accent-soft);
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+      font-weight: 700;
+    }
+    .tab-plus[aria-expanded="true"] {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: white;
+      transform: rotate(45deg);
+    }
+
+    /* table */
+    .table-wrapper {
+      background: white;
+      border-radius: 18px;
+      padding: 0.1rem 0 0.2rem;
+      box-shadow: 0 6px 14px -6px rgba(0, 20, 40, 0.06);
+      border: 1px solid #e0eaf3;
+      overflow: hidden;
+      margin-bottom: 1.2rem;
+    }
+
+    .table {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+
+    .thead .tr {
+      border-bottom: 2px solid #cbdbe9;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+    }
+    /* full-cell colored header titles aligned with the 4 tabbed cells */
+    .thead .th.col-have { background: #c8e6c9; color: #1f4f2c; }
+    .thead .th.col-wish { background: #bbdefb; color: #0e3f6f; }
+    .thead .th.col-want { background: #ffe0b2; color: #74440a; }
+    .thead .th.col-need { background: #ffcdd2; color: #71161e; }
+    .thead .th.col-item { background: #f2f7fc; color: #1a405b; }
+
+    .tr {
+      display: table-row;
+      cursor: pointer;
+    }
+
+    .th, .td {
+      display: table-cell;
+      padding: 8px 4px;
+      vertical-align: middle;
+      border-bottom: 1px solid #e6ecf3;
+      text-align: center;
+    }
+
+    .col-item {
+      width: 20%;
+      text-align: left;
+      font-weight: 520;
+      font-size: 0.75rem;
+      padding-left: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .col-item .item-cat-icon {
+      font-size: 0.85em;
+      margin-right: 6px;
+      color: var(--app-accent);
+      opacity: 0.55;
+      width: 1em;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .col-have, .col-wish, .col-want, .col-need {
+      width: 20%;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* keep header titles strictly aligned with cells below */
+    .thead .th { padding: 8px 4px; }
+    .tbody .td { padding: 8px 4px; }
+
+    /* cell selected states (no checkbox) */
+    .td.selected-have {
+      background: #c8e6c9;
+      position: relative;
+    }
+    .td.selected-wish {
+      background: #bbdefb;
+    }
+    .td.selected-want {
+      background: #ffe0b2;
+    }
+    .td.selected-need {
+      background: #ffcdd2;
+    }
+
+    /* signs inside priority cells · ONLY visible when the cell is selected */
+    .tbody .tr.row .td.col-have.selected-have::before {
+      content: "+";
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #2b7a4b;
+    }
+    .tbody .tr.row .td.col-wish.selected-wish::before {
+      content: "•";
+      font-weight: 700;
+      font-size: 1.4rem;
+      line-height: 0.5;
+      color: #2f6eb0;
+    }
+    .tbody .tr.row .td.col-want.selected-want::before {
+      content: "−";
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #d18e1a;
+    }
+    .tbody .tr.row .td.col-need.selected-need::before {
+      content: "/";
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #c7362b;
+    }
+    /* suppress the old ::after dot indicator on body rows */
+    .tbody .tr.row .td.selected-have::after,
+    .tbody .tr.row .td.selected-wish::after,
+    .tbody .tr.row .td.selected-want::after,
+    .tbody .tr.row .td.selected-need::after {
+      content: none;
+    }
+
+    /* keep the items column neutral · no priority/new-row color bleed */
+    .tbody .tr.row .td.col-item {
+      background: #fff;
+    }
+
+    /* row priority indicator · colored left border only, no cell-bg bleed */
+    .tbody .tr[data-priority="need"] { border-left: 4px solid #c7362b; }
+    .tbody .tr[data-priority="want"] { border-left: 4px solid #d18e1a; }
+    .tbody .tr[data-priority="wish"] { border-left: 4px solid #2f6eb0; }
+    .tbody .tr[data-priority="have"] { border-left: 4px solid #2b7a4b; }
+
+    .tr.hidden-row {
+      display: none;
+    }
+
+    /* newly-added rows · 60% larger than baseline · no cell-bg color */
+    .tbody .tr.is-new .td {
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
+    .tbody .tr.is-new .col-item {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .tbody .tr.is-new .td::after {
+      font-size: 25px;
+    }
+
+    /* phrase panel */
+    .phrase-panel {
+      background: white;
+      border-radius: 20px;
+      padding: 1.4rem 0.8rem 0.8rem;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.02);
+      border: 1px solid #dee9f2;
+      position: relative;
+      margin-top: 1.4rem;
+    }
+    /* expand pill on the top-middle border of the resume panel */
+    .phrase-panel .expand-btn {
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      align-self: auto;
+      background: white;
+      border: 1px solid var(--app-accent);
+      color: var(--app-accent);
+      padding: 0.4rem 0.95rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 10px rgba(30, 74, 107, 0.12);
+      z-index: 3;
+      transition: background .15s, color .15s, transform .15s;
+    }
+    .phrase-panel .expand-btn:hover {
+      background: var(--app-accent);
+      color: #fff;
+      transform: translateX(-50%) translateY(-1px);
+    }
+    .phrase-panel .expand-btn .chev { font-size: .7rem; }
+
+    /* master toggle · 'My selected things' title for the whole resume section */
+    .phrase-master-btn {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      color: var(--app-accent);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: inherit;
+      padding: 6px 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-radius: 14px;
+      transition: background .15s, color .15s;
+    }
+    .phrase-master-btn:hover {
+      background: var(--app-accent-soft);
+    }
+    .phrase-master-btn .phrase-master-label { flex: 1 1 auto; text-align: center; }
+    .phrase-master-btn .chev {
+      transition: transform .2s;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+    .phrase-master-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+    .phrase-content { display: none; margin-top: 12px; }
+    .phrase-panel.is-master-open .phrase-content { display: block; }
+
+    .phrase-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .phrase-line {
+      border-radius: 14px;
+      border: 1px solid;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .phrase-line .pl-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.45rem 0.8rem;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      overflow: visible;
+    }
+    .phrase-line .pl-title { font-weight: 600; }
+    /* swap title text when section is expanded */
+    .phrase-line .pl-title-open { display: none; }
+    .phrase-line.open .pl-title-closed { display: none; }
+    .phrase-line.open .pl-title-open { display: inline; }
+    /* pill follows the title in flow; chevron is pushed to the right */
+    .phrase-line .pl-head .extra-toggle { margin-left: 4px; position: relative; }
+    .phrase-line .pl-head .pl-chev {
+      margin-left: auto;
+      transition: transform 0.18s;
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+    /* section-level pill toggle (HAVE → shareable, WISH/WANT/NEED → much) */
+    .phrase-line .pl-head .extra-toggle {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid currentColor;
+      color: inherit;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: .02em;
+      opacity: 0.55;
+      transition: opacity .15s, background .15s, color .15s;
+    }
+    .phrase-line .pl-head .extra-toggle:hover { opacity: 1; }
+    .phrase-line .pl-head .extra-toggle[aria-pressed="true"] {
+      background: currentColor;
+      opacity: 1;
+    }
+    .phrase-line.phrase-have .pl-head .extra-toggle[aria-pressed="true"] { color: #1e4a2c; background: #1e4a2c; }
+    .phrase-line.phrase-have .pl-head .extra-toggle[aria-pressed="true"]::after,
+    .phrase-line.phrase-wish .pl-head .extra-toggle[aria-pressed="true"]::after,
+    .phrase-line.phrase-want .pl-head .extra-toggle[aria-pressed="true"]::after,
+    .phrase-line.phrase-need .pl-head .extra-toggle[aria-pressed="true"]::after { content: ""; }
+    .phrase-line .pl-head .extra-toggle[aria-pressed="true"] {
+      color: #fff !important;
+      background: rgba(0,0,0,0.5);
+    }
+    .phrase-line.phrase-have .pl-head .extra-toggle[aria-pressed="true"] { background: #2b7a4b; }
+    .phrase-line.phrase-wish .pl-head .extra-toggle[aria-pressed="true"] { background: #2f6eb0; }
+    .phrase-line.phrase-want .pl-head .extra-toggle[aria-pressed="true"] { background: #d18e1a; }
+    .phrase-line.phrase-need .pl-head .extra-toggle[aria-pressed="true"] { background: #c7362b; }
+
+    /* thunder-zap: pill doubles in size on click and a few bolts splash around it */
+    .phrase-line .pl-head .extra-toggle.zap {
+      animation: thunder-pop .65s cubic-bezier(.2,.7,.2,1.2);
+      z-index: 4;
+    }
+    @keyframes thunder-pop {
+      0%   { transform: scale(1);   }
+      35%  { transform: scale(2);   }
+      60%  { transform: scale(1.3); }
+      100% { transform: scale(1);   }
+    }
+    .thunder-bolt {
+      position: absolute;
+      pointer-events: none;
+      font-size: 1rem;
+      line-height: 1;
+      opacity: 1;
+      filter: drop-shadow(0 0 4px rgba(255, 235, 100, 0.8));
+      animation: thunder-fly .7s cubic-bezier(.2,.7,.2,1) forwards;
+      z-index: 5;
+      user-select: none;
+    }
+    @keyframes thunder-fly {
+      0%   { transform: translate(0, 0) rotate(var(--r, 0deg)) scale(.6); opacity: 1; }
+      60%  { transform: translate(var(--dx, 0px), var(--dy, 0px)) rotate(var(--r, 0deg)) scale(1.4); opacity: 1; }
+      100% { transform: translate(calc(var(--dx, 0px) * 1.4), calc(var(--dy, 0px) * 1.4)) rotate(var(--r, 0deg)) scale(.4); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .phrase-line .pl-head .extra-toggle.zap { animation: none; }
+      .thunder-bolt { animation: none; opacity: 0; }
+    }
+    .phrase-line.open .pl-head .pl-chev { transform: rotate(180deg); }
+    .phrase-line i { width: 18px; }
+    .phrase-line.phrase-have { background: #e2f3e2; border-color: #b2d6b8; color: #1e4a2c; }
+    .phrase-line.phrase-have i { color: #2b7a4b; }
+    .phrase-line.phrase-wish { background: #e1ecfc; border-color: #b3cae8; color: #154170; }
+    .phrase-line.phrase-wish i { color: #2f6eb0; }
+    .phrase-line.phrase-want { background: #fff1dd; border-color: #ecd1a4; color: #6e4711; }
+    .phrase-line.phrase-want i { color: #d18e1a; }
+    .phrase-line.phrase-need { background: #ffe9e7; border-color: #efc1bd; color: #71161e; }
+    .phrase-line.phrase-need i { color: #c7362b; }
+    .phrase-items {
+      display: none;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0 0.55rem 0.6rem;
+    }
+    .phrase-line.open .phrase-items { display: flex; }
+    .phrase-items .sel-item { background: rgba(255,255,255,0.78); }
+
+    /* ── action buttons inside resume panel (two rows · diesafe-style) ── */
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 3.2rem;
+      margin-top: 14px;
+    }
+    .action-buttons .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .action-buttons .row > .btn,
+    .action-buttons .row > .btn-with-subs { flex: 1 1 0; min-width: 0; }
+    .btn-with-subs {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .btn-with-subs .btn { width: 100%; }
+
+    .subitems {
+      display: flex;
+      gap: 4px;
+      justify-content: stretch;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: max-height 0.25s ease, opacity 0.18s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+    .btn-with-subs.is-open .subitems {
+      max-height: 64px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .subitems-above {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: calc(100% + 4px);
+    }
+    .subitem {
+      background: #fff;
+      border: 1px solid #c2d6e6;
+      color: var(--app-accent);
+      padding: 6px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+      flex: 1 1 0;
+      min-width: 0;
+      transition: all 0.15s;
+    }
+    .subitem:hover { background: var(--app-accent-soft); border-color: var(--app-accent); }
+    .subitem-radio { position: absolute; opacity: 0; pointer-events: none; width:0; height:0; }
+    .subitem.is-radio { display: inline-flex; align-items: center; justify-content: center; }
+    .subitems:has(.subitem-radio[data-r="0"]:checked) .subitem.is-radio[data-r="0"],
+    .subitems:has(.subitem-radio[data-r="1"]:checked) .subitem.is-radio[data-r="1"],
+    .subitems:has(.subitem-radio[data-r="2"]:checked) .subitem.is-radio[data-r="2"] {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: #fff;
+    }
+
+    /* diesafe-style pill buttons */
+    .btn {
+      background: #fff;
+      border: 1px solid var(--app-accent);
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: var(--app-accent);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform .15s, background .15s, color .15s, box-shadow .15s;
+    }
+    .btn i { font-size: 0.78rem; }
+    .btn:hover {
+      background: var(--app-accent);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(30, 74, 107, 0.18);
+    }
+    .btn-with-subs.is-open > .btn { background: var(--app-accent); color: #fff; }
+
+    .hint-area {
+      margin-top: 10px;
+      text-align: center;
+      min-height: 22px;
+      font-size: 0.82rem;
+      color: var(--app-accent);
+      padding: 6px 8px;
+    }
+
+    /* ── locked label row inside tbody ── */
+    .tbody .tr.label-row { cursor: default; }
+    .tbody .tr.label-row .td {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      cursor: default;
+      user-select: none;
+    }
+    .tbody .tr.label-row .td.col-have { background: #c8e6c9; color: #1f4f2c; }
+    .tbody .tr.label-row .td.col-wish { background: #bbdefb; color: #0e3f6f; }
+    .tbody .tr.label-row .td.col-want { background: #ffe0b2; color: #74440a; }
+    .tbody .tr.label-row .td.col-need { background: #ffcdd2; color: #71161e; }
+    .tbody .tr.label-row .td::after { content: none !important; }
+
+    .foot {
+      margin-top: 1rem;
+      text-align: center;
+      color: #58738c;
+      font-size: 0.65rem;
+    }
+
+    /* expand panel: per-item checkbox + notes */
+    .expand-section {
+      margin-top: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .expand-btn {
+      align-self: center;
+      background: white;
+      border: 1px solid #c2d6e6;
+      color: #1e405b;
+      padding: 0.5rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 550;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .expand-btn .chev { transition: transform 0.2s; }
+    .expand-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+    .expand-empty {
+      color: #5e7c95;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 0.5rem;
+    }
+    .sel-item {
+      background: #f6fafd;
+      border: 1px solid #e0eaf3;
+      border-radius: 14px;
+      padding: 0.55rem 0.7rem;
+      margin-bottom: 0.55rem;
+    }
+    .sel-item:last-child { margin-bottom: 0; }
+    .sel-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 0.45rem;
+      overflow: visible;
+    }
+    .sel-name {
+      font-weight: 600;
+      color: #0f2f44;
+      font-size: 0.85rem;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .sel-row .item-cat-icon {
+      flex: 0 0 auto;
+      font-size: 0.9em;
+      color: var(--app-accent);
+      opacity: 0.6;
+      margin-right: 2px;
+      width: 1em;
+      text-align: center;
+    }
+    /* push the chevron / anything after the pills to the far right */
+    .sel-row > .sel-spacer { flex: 1 1 auto; }
+    /* per-item pill toggle (Shareable on HAVE / Much on WISH/WANT/NEED) */
+    .sel-row .extra-toggle {
+      flex: 0 0 auto;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(30, 74, 107, 0.25);
+      color: #2c4d68;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background .15s, border-color .15s, color .15s, transform .15s;
+    }
+    .sel-row .extra-toggle:hover { border-color: var(--app-accent); }
+    .sel-row .extra-toggle[aria-pressed="true"] {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: #fff;
+    }
+    /* sub-pills (maybe/unlikely for Shareable · very for Much) — 20% smaller */
+    .sel-row .sub-pill {
+      flex: 0 0 auto;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(30, 74, 107, 0.22);
+      color: #2c4d68;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.59rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .sel-row .sub-pill:hover { border-color: var(--app-accent); }
+    .sel-row .sub-pill[aria-pressed="true"] {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: #fff;
+    }
+    .sel-row .sub-pill[hidden] { display: none; }
+    /* + add-sub-pill — more inviting/dashed border */
+    .sel-row .sub-pill--add {
+      background: transparent;
+      border: 1.5px dashed var(--app-accent);
+      color: var(--app-accent);
+      padding: 1px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .sel-row .sub-pill--add:hover {
+      background: var(--app-accent-soft);
+      border-style: solid;
+      color: var(--app-accent);
+      transform: scale(1.06);
+    }
+    .sel-row .sub-pill--add[aria-pressed="true"] {
+      background: var(--app-accent);
+      border-style: solid;
+      color: #fff;
+    }
+    /* offer.html intro panel — toggled by the + sub-pill */
+    .offer-info {
+      display: none;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(185, 210, 229, 0.4);
+      border: 1px dashed var(--app-accent);
+      border-radius: 12px;
+      font-size: 0.76rem;
+      line-height: 1.45;
+      color: #1c3a55;
+    }
+    .offer-info.is-open { display: block; }
+    .offer-info a {
+      color: var(--app-accent);
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px solid var(--app-accent);
+    }
+    .offer-info a:hover {
+      color: #0a2a44;
+      border-bottom-color: #0a2a44;
+    }
+    .sel-notes {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 0.4rem;
+    }
+    .note {
+      background: #e8f1f9;
+      border-radius: 10px;
+      padding: 4px 6px 4px 10px;
+      font-size: 0.78rem;
+      color: #1c3a55;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .note-text { flex: 1; word-break: break-word; }
+    .note-del {
+      background: transparent;
+      border: none;
+      color: #b34237;
+      cursor: pointer;
+      padding: 0 4px;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+    .add-note {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .add-note-row {
+      display: flex;
+      gap: 6px;
+    }
+    .add-note-row input[type="text"] {
+      flex: 1;
+      border: 1px solid #c8d8e6;
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      background: white;
+      color: #1c3a55;
+      min-width: 0;
+    }
+    .note-save {
+      border: none;
+      background: #1e4a6b;
+      color: white;
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      opacity: 0.5;
+      transition: opacity .15s, transform .1s;
+    }
+    .note-save:hover,
+    .note-save:focus,
+    .note-save:active { opacity: 1; }
+    .note-save:active { transform: scale(0.97); }
+    .add-note-tools {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding-top: 4px;
+      border-top: 1px dashed #d4e0ec;
+    }
+    .add-note-tools .tools-left  { justify-self: start; }
+    .add-note-tools .tools-right { justify-self: end; }
+    .add-note-tools .tools-center {
+      display: inline-flex;
+      gap: 14px;
+      justify-self: center;
+    }
+    .note-worthing {
+      border: 1.5px solid transparent;
+      background:
+        linear-gradient(#fff, #fff) padding-box,
+        linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-accent) 100%) border-box;
+      border-radius: 999px;
+      padding: 5px 14px;
+      color: var(--app-accent);
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: inherit;
+      box-shadow: 0 2px 6px -2px rgba(30, 74, 107, 0.18);
+      transition: background .2s, color .2s, transform .2s, box-shadow .2s;
+    }
+    .note-worthing:hover {
+      background:
+        linear-gradient(135deg, var(--app-accent-soft), var(--app-accent)) padding-box,
+        linear-gradient(135deg, var(--app-accent-soft), var(--app-accent)) border-box;
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 5px 12px -2px rgba(30, 74, 107, 0.32);
+    }
+    .sel-item.is-worthy-open .note-worthing {
+      background:
+        linear-gradient(135deg, var(--app-accent-soft), var(--app-accent)) padding-box,
+        linear-gradient(135deg, var(--app-accent-soft), var(--app-accent)) border-box;
+      color: #fff;
+    }
+    /* ── 8 ascending Worthy bars ─────────────────────────────────── */
+    .worthy-bars {
+      display: none;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 4px;
+      margin-top: 8px;
+      padding: 8px 4px 2px;
+      border-top: 1px dashed #d4e0ec;
+    }
+    .sel-item.is-worthy-open .worthy-bars { display: flex; }
+    .worthy-bar {
+      flex: 1;
+      border: 1px solid var(--app-accent-soft);
+      background: #fff;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      transition: background .15s, border-color .15s, transform .12s;
+    }
+    .worthy-bar:hover {
+      background: var(--app-accent-soft);
+      transform: scaleY(1.08);
+      transform-origin: bottom;
+    }
+    .worthy-bar.is-selected {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+    }
+    /* once a bar is selected, dim the others to 50% */
+    .worthy-bars:has(.worthy-bar.is-selected) .worthy-bar:not(.is-selected) {
+      opacity: 0.5;
+    }
+    .worthy-bar:nth-child(1) { height: 10px; }
+    .worthy-bar:nth-child(2) { height: 13px; }
+    .worthy-bar:nth-child(3) { height: 16px; }
+    .worthy-bar:nth-child(4) { height: 19px; }
+    .worthy-bar:nth-child(5) { height: 22px; }
+    .worthy-bar:nth-child(6) { height: 26px; }
+    .worthy-bar:nth-child(7) { height: 30px; }
+    .worthy-bar:nth-child(8) { height: 34px; }
+    .note-mic,
+    .note-file {
+      border: 1px solid #c8d8e6;
+      background: white;
+      border-radius: 12px;
+      padding: 6px 12px;
+      color: #1e4a6b;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .note-mic:hover,
+    .note-file:hover { background: #eef3f8; border-color: var(--app-accent); }
+    .note-mic.is-recording {
+      background: #c7362b;
+      border-color: #c7362b;
+      color: #fff;
+    }
+    .note-file input[type="file"] { display: none; }
+
+    /* ── topbar hamburger menu (flovy-valid pattern) ─────────────── */
+    .flove-bar { position: relative; }
+    .flove-spacer { flex: 1 1 auto; }
+
+    /* ── topbar 'All' button (moved from tabs) ───────────────────── */
+    .topbar-all-btn {
+      background: #fff;
+      border: 1px solid var(--app-accent-soft);
+      color: var(--app-accent);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 8px;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .topbar-all-btn:hover {
+      border-color: var(--app-accent);
+    }
+    .topbar-all-btn.active {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: #fff;
+    }
+
+    .inventary-menu-wrap { position: relative; display: inline-flex; align-items: center; }
+    .inventary-menu-ctl { display: none; }
+    .inventary-menu-btn {
+      cursor: pointer;
+      width: 1.8em;
+      height: 1.8em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--app-accent);
+      font-size: 1.1em;
+      line-height: 1;
+      transition: background .15s, transform .15s;
+      user-select: none;
+    }
+    .inventary-menu-btn:hover { background: rgba(30,74,107,0.1); }
+    body:has(.inventary-menu-ctl:checked) .inventary-menu-btn {
+      background: var(--app-accent);
+      color: #fff;
+    }
+    .inventary-menu-list {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      list-style: none;
+      margin: 0;
+      padding: 6px;
+      min-width: 200px;
+      background: #fff;
+      border: 1px solid var(--app-accent-soft);
+      border-radius: 14px;
+      box-shadow: 0 14px 32px -8px rgba(30, 74, 107, 0.28);
+      display: none;
+      z-index: 30;
+    }
+    body:has(.inventary-menu-ctl:checked) .inventary-menu-list { display: block; }
+    .inventary-menu-list li { display: block; }
+    .inventary-menu-list .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 8px 12px;
+      border: 0;
+      background: transparent;
+      color: #1c3a55;
+      font-size: 0.86rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 10px;
+      font-family: inherit;
+    }
+    .inventary-menu-list .menu-item:hover { background: var(--app-accent-soft); color: var(--app-accent); }
+    .inventary-menu-list .menu-sep {
+      height: 1px;
+      background: var(--app-accent-soft);
+      margin: 4px 6px;
+    }
+    .inventary-menu-list .menu-ic { font-size: 1rem; width: 18px; text-align: center; }
+
+    /* ── label-row col-item · magic + bots + input field ─────────── */
+    .tbody .tr.label-row .td.col-item {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 500;
+      overflow: visible;
+      padding: 4px 4px 4px 6px;
+      background: #f2f7fc;
+    }
+    .col-item-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .inventary-add-btn {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px dashed var(--app-accent);
+      background: #fff;
+      color: var(--app-accent);
+      border-radius: 50%;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      transition: background .15s, border-style .15s, transform .15s, color .15s;
+    }
+    .inventary-add-btn:hover {
+      background: var(--app-accent-soft);
+      border-style: solid;
+      transform: scale(1.08);
+    }
+    .inventary-add-btn:active {
+      background: var(--app-accent);
+      color: #fff;
+    }
+    .inventary-add-btn i { font-size: 0.72rem; }
+    .inventary-magic-ctl { display: none; }
+    .inventary-magic-btn {
+      cursor: pointer;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid var(--app-accent-soft);
+      box-shadow: 0 1px 3px rgba(30, 74, 107, 0.18);
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: background .15s, transform .15s, box-shadow .15s;
+      user-select: none;
+    }
+    .inventary-magic-btn:hover {
+      background: var(--app-accent-soft);
+      transform: scale(1.08);
+    }
+    body:has(.inventary-magic-ctl:checked) .inventary-magic-btn {
+      background: var(--app-accent-soft);
+      transform: rotate(15deg);
+    }
+    .inventary-bots {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      display: none;
+      gap: 4px;
+      z-index: 6;
+      background: #fff;
+      border: 1px solid var(--app-accent-soft);
+      border-radius: 999px;
+      padding: 3px 8px;
+      box-shadow: 0 6px 14px rgba(30, 74, 107, 0.22);
+    }
+    body:has(.inventary-magic-ctl:checked) .inventary-bots { display: inline-flex; }
+    .inventary-bot {
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 0;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background .15s, transform .15s;
+    }
+    .inventary-bot:hover {
+      background: rgba(30, 74, 107, 0.12);
+      transform: scale(1.2);
+    }
+    .inventary-new-input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--app-accent-soft);
+      background: #fff;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+      color: #1a405b;
+      padding: 5px 8px;
+      transition: border-color .15s, box-shadow .15s;
+      font-family: inherit;
+    }
+    .inventary-new-input:focus {
+      outline: none;
+      border-color: var(--app-accent);
+      box-shadow: 0 0 0 2px rgba(30, 74, 107, 0.12);
+    }
+    .inventary-new-input::placeholder {
+      color: #6b8aa3;
+      font-style: italic;
+      font-weight: 400;
+      text-transform: none;
+    }
+    /* magic open · input gets a tinted bg; collapsed returns to original */
+    body:has(.inventary-magic-ctl:checked) .inventary-new-input {
+      background: var(--app-accent-soft);
+      border-color: var(--app-accent);
+    }
+    /* obvious feedback when a bot fills the input */
+    .inventary-new-input.is-bot-filled {
+      border-color: var(--app-accent);
+      box-shadow: 0 0 0 2px rgba(30, 74, 107, 0.18);
+      animation: bot-fill-flash 0.55s ease;
+    }
+    @keyframes bot-fill-flash {
+      0%   { background: var(--app-accent); color: #fff; transform: scale(1.04); }
+      60%  { background: var(--app-accent-soft); color: #1a405b; }
+      100% { background: #fff; color: #1a405b; transform: scale(1); }
+    }
+
+    /* X clear button — visible only when bot has filled the input */
+    .inventary-clear-btn {
+      display: none;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      border: 1px solid var(--app-accent);
+      background: #fff;
+      color: var(--app-accent);
+      border-radius: 50%;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s, transform .15s;
+    }
+    .inventary-clear-btn:hover {
+      background: var(--app-accent);
+      color: #fff;
+      transform: scale(1.08);
+    }
+    .col-item-inner:has(.inventary-new-input.is-bot-filled) .inventary-clear-btn {
+      display: inline-flex;
+    }
+
+    /* ── extra Expand button row at the bottom of action-buttons ─── */
+    .action-buttons .row--expand { margin-top: -1.6rem; }
+    .action-buttons .row--expand .btn { flex: 1 1 auto; }
+
+    /* ── paginator (30 items per page) ───────────────────────────── */
+    .paginator {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin: 0.2rem 0 1rem;
+      padding: 6px 8px;
+      flex-wrap: wrap;
+    }
+    .page-btn {
+      background: #fff;
+      border: 1px solid var(--app-accent);
+      color: var(--app-accent);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      transition: background .15s, color .15s, transform .12s;
+    }
+    .page-btn:hover:not(:disabled) {
+      background: var(--app-accent);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .page-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .page-info {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--app-accent);
+      min-width: 72px;
+      text-align: center;
+    }
+    .tr.hidden-page { display: none; }
+
+    /* ── responsive breakpoints ──────────────────────────────────── */
+
+    /* móvil medio (≤480px) — rango típico de smartphone moderno */
+    @media (max-width: 480px) {
+      body { padding: 0.5rem 0.45rem 1rem; }
+      .flove-bar { padding: 10px 12px; gap: 10px; }
+      .info-panel { padding: 1.1rem 1.1rem 1.2rem; border-radius: 18px; }
+      .info-content { padding-right: 48px; }
+      .action-buttons { gap: 2.4rem; }
+      .action-buttons .row { gap: 6px; }
+      .hint-area { font-size: 0.78rem; }
+      .paginator { gap: 8px; }
+    }
+
+    /* móvil estrecho (≤360px) — iPhone SE y similares */
+    @media (max-width: 360px) {
+      body { padding: 0.4rem 0.35rem 0.9rem; font-size: 0.95rem; }
+      .flove-bar { font-size: 18px; padding: 8px 10px; gap: 8px; }
+      .flove-bar .flove-mark { width: 1.7em; height: 1.7em; }
+      .tab { height: 36px; font-size: 0.9rem; }
+      .tab i { font-size: 1.05rem; }
+      .tab.active { max-width: 56%; padding: 2px 6px; }
+      .th, .td { padding: 6px 2px; }
+      .col-item { font-size: 0.7rem; padding-left: 6px; }
+      .thead .tr { font-size: 0.7rem; }
+      .btn { padding: 8px 10px; font-size: 0.76rem; }
+      .page-btn { padding: 5px 10px; font-size: 0.74rem; }
+      .page-info { min-width: 56px; font-size: 0.76rem; }
+      .action-buttons { gap: 2rem; }
+      .sel-row .extra-toggle { padding: 3px 9px; font-size: 0.7rem; }
+      .sel-row .sub-pill { padding: 2px 8px; font-size: 0.56rem; }
+      .info-close { width: 38px; height: 38px; }
+    }
+
+    /* landscape móvil — pantallas anchas y bajas, recuperar vertical */
+    @media (orientation: landscape) and (max-height: 500px) {
+      body { padding: 0.35rem 0.6rem 0.8rem; }
+      .flove-bar { padding: 6px 14px; }
+      .info-panel { margin: 0.5rem auto 0.8rem; padding: 0.9rem 1.2rem 1rem; }
+      .tab { height: 34px; }
+      .action-buttons { gap: 1.6rem; margin-top: 8px; }
+    }
+
+    /* tablet / desktop (≥640px) — aprovechar el ancho extra */
+    @media (min-width: 640px) {
+      body { padding: 1rem 1rem 1.6rem; }
+      .app { max-width: 600px; }
+      .info-panel { max-width: 600px; }
+      .info-content { max-width: 820px; }
+      .flove-bar { padding: 14px 22px; }
+      .action-buttons { gap: 3.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="flove-bar">
+  <a href="inventary.html" class="flove-mark-link" aria-label="reload">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;"><defs><linearGradient id="g-inventary" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ffd28a"/><stop offset="50%" stop-color="#ffd633"/><stop offset="100%" stop-color="#6dd933"/></linearGradient></defs><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="34" width="64" height="48" rx="3" stroke="url(#g-inventary)" fill="none"/><line x1="50" y1="34" x2="50" y2="82" stroke="url(#g-inventary)"/><line x1="18" y1="50" x2="82" y2="50" stroke="url(#g-inventary)"/><path d="M38 28 Q44 14 50 28 Q56 14 62 28 L62 34 L38 34 Z" fill="url(#g-inventary)" stroke="none"/></g></svg>
+  </a>
+  <button type="button" class="flove-app-name app-name-toggle" id="titleBtn" title="Go to resume">Inventary</button>
+  <span class="flove-spacer"></span>
+  <button type="button" class="topbar-all-btn" id="topbarAllBtn" data-cat="all" title="Show all categories" aria-label="All">
+    <i class="fas fa-border-all"></i> All
+  </button>
+  <span class="inventary-menu-wrap">
+    <input type="checkbox" id="inventaryMenuOpen" class="inventary-menu-ctl">
+    <label class="inventary-menu-btn" for="inventaryMenuOpen" title="Menu" aria-label="Menu" tabindex="0">☰</label>
+    <ul class="inventary-menu-list" role="menu" aria-label="Inventary menu">
+      <li><button type="button" class="menu-item" data-action="expand-all"><span class="menu-ic">⤡</span>See all</button></li>
+      <li><button type="button" class="menu-item" data-action="collapse-all"><span class="menu-ic">⤢</span>Collapse all</button></li>
+      <li class="menu-sep" role="separator" aria-hidden="true"></li>
+      <li><button type="button" class="menu-item" data-action="reset"><span class="menu-ic">↺</span>Reset selections</button></li>
+      <li><button type="button" class="menu-item" data-action="toggle-cats"><span class="menu-ic">▦</span>Toggle categories</button></li>
+      <li class="menu-sep" role="separator" aria-hidden="true"></li>
+      <li><button type="button" class="menu-item" data-action="help"><span class="menu-ic">💡</span>Help</button></li>
+      <li><button type="button" class="menu-item" data-action="about"><span class="menu-ic">ⓘ</span>About</button></li>
+    </ul>
+  </span>
+</div>
+
+<div class="app">
+  <!-- Tabs: 1 visible row + 1 collapsible extra row, each row holds 8 buttons -->
+  <div class="tabs-wrapper">
+    <div class="tabs" id="categoryTabs"></div>
+    <div class="tabs tabs--extra" id="categoryTabsExtra"></div>
+  </div>
+
+  <!-- Table with clickable cells (no thead — first body row is a fixed label row) -->
+  <div class="table-wrapper">
+    <div class="table" role="table">
+      <div class="tbody" id="tableBody">
+        <div class="tr label-row" data-locked="1">
+          <span class="td col-item">
+            <span class="col-item-inner">
+              <input type="text" class="inventary-new-input" id="inventaryNewInput" placeholder="New thing here" aria-label="New thing">
+              <button type="button" class="inventary-clear-btn" id="inventaryClearBtn" title="Clear bot suggestion" aria-label="Clear bot suggestion">×</button>
+              <input type="checkbox" id="inventaryMagic" class="inventary-magic-ctl">
+              <label class="inventary-magic-btn" for="inventaryMagic" title="Magic · suggest a name" aria-label="Magic" tabindex="0">✨</label>
+              <button type="button" class="inventary-add-btn" id="inventaryAddBtn" title="Save to top" aria-label="Save to top"><i class="fas fa-floppy-disk"></i></button>
+              <span class="inventary-bots" role="group" aria-label="Bots">
+                <button type="button" class="inventary-bot" data-bot="lovely" title="Bot · lovely" aria-label="Bot lovely">😍</button>
+                <button type="button" class="inventary-bot" data-bot="joy" title="Bot · joy" aria-label="Bot joy">😂</button>
+                <button type="button" class="inventary-bot" data-bot="wisdom" title="Bot · wisdom" aria-label="Bot wisdom">🔥</button>
+              </span>
+            </span>
+          </span>
+          <span class="td col-have">HAVE</span>
+          <span class="td col-wish">WISH</span>
+          <span class="td col-want">WANT</span>
+          <span class="td col-need">NEED</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paginator · 30 items per page -->
+  <div class="paginator" id="paginator" aria-label="Pagination">
+    <button class="page-btn" id="prevPageBtn" type="button" aria-label="Previous page">
+      <i class="fas fa-chevron-left"></i> Prev
+    </button>
+    <span class="page-info" id="pageInfo">1 / 1</span>
+    <button class="page-btn" id="nextPageBtn" type="button" aria-label="Next page">
+      Next <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- Resume / phrase rows · master 'My selected things' toggle + per-section headers -->
+  <div class="phrase-panel" id="phrasePanel">
+    <button class="phrase-master-btn" id="phraseMasterBtn" type="button" aria-expanded="false">
+      <span class="phrase-master-label">Selected things</span>
+      <i class="fas fa-chevron-down chev"></i>
+    </button>
+    <div class="phrase-content" id="phraseContent">
+    <div class="phrase-rows" id="phraseRows">
+      <div class="phrase-line phrase-have" data-type="have">
+        <div class="pl-head">
+          <i class="fas fa-check-circle"></i>
+          <span class="pl-title">
+            <span class="pl-title-closed"><span id="haveCount">0</span> HAVE</span>
+            <span class="pl-title-open">Haves</span>
+          </span>
+          <i class="fas fa-chevron-down pl-chev"></i>
+        </div>
+        <div class="phrase-items" id="phraseItemsHave"></div>
+      </div>
+      <div class="phrase-line phrase-wish" data-type="wish">
+        <div class="pl-head">
+          <i class="fas fa-star"></i>
+          <span class="pl-title">
+            <span class="pl-title-closed"><span id="wishCount">0</span> WISH</span>
+            <span class="pl-title-open">Wishes</span>
+          </span>
+          <i class="fas fa-chevron-down pl-chev"></i>
+        </div>
+        <div class="phrase-items" id="phraseItemsWish"></div>
+      </div>
+      <div class="phrase-line phrase-want" data-type="want">
+        <div class="pl-head">
+          <i class="fas fa-fire"></i>
+          <span class="pl-title">
+            <span class="pl-title-closed"><span id="wantCount">0</span> WANT</span>
+            <span class="pl-title-open">Wants</span>
+          </span>
+          <i class="fas fa-chevron-down pl-chev"></i>
+        </div>
+        <div class="phrase-items" id="phraseItemsWant"></div>
+      </div>
+      <div class="phrase-line phrase-need" data-type="need">
+        <div class="pl-head">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span class="pl-title">
+            <span class="pl-title-closed"><span id="needCount">0</span> NEED</span>
+            <span class="pl-title-open">Needs</span>
+          </span>
+          <i class="fas fa-chevron-down pl-chev"></i>
+        </div>
+        <div class="phrase-items" id="phraseItemsNeed"></div>
+      </div>
+    </div>
+
+    <!-- Two rows of pill buttons (diesafe-style): Insights/Creative/Copy + Save/Share/Publish -->
+    <div class="action-buttons">
+      <div class="row">
+        <button class="btn" id="insightsBtn" type="button"><i class="fas fa-brain"></i> Insights</button>
+        <button class="btn" id="creativeBtn" type="button"><i class="fas fa-wand-magic-sparkles"></i> Creative</button>
+        <button class="btn" id="copyBtn" type="button"><i class="far fa-copy"></i> Copy</button>
+      </div>
+      <div class="row">
+        <div class="btn-with-subs" id="saveWrap">
+          <button class="btn" id="saveBtn" type="button"><i class="fas fa-download"></i> Save</button>
+          <div class="subitems">
+            <button class="subitem" data-group="save" data-action="html" type="button">HTML</button>
+            <button class="subitem" data-group="save" data-action="text" type="button">Text</button>
+            <button class="subitem" data-group="save" data-action="json" type="button">JSON</button>
+          </div>
+        </div>
+        <div class="btn-with-subs" id="shareWrap">
+          <button class="btn" id="shareBtn" type="button"><i class="fas fa-share-alt"></i> Share</button>
+          <div class="subitems">
+            <button class="subitem" data-group="share" data-action="whatsapp" type="button">WhatsApp</button>
+            <button class="subitem" data-group="share" data-action="telegram" type="button">Telegram</button>
+            <button class="subitem" data-group="share" data-action="mail" type="button">Mail</button>
+          </div>
+        </div>
+        <div class="btn-with-subs" id="publishWrap">
+          <div class="subitems subitems-above">
+            <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP0" data-r="0" data-platform="Mastodon" aria-hidden="true">
+            <label class="subitem is-radio" for="pubP0" data-r="0" data-group="publish">Mastodon</label>
+            <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP1" data-r="1" data-platform="Bluesky" aria-hidden="true">
+            <label class="subitem is-radio" for="pubP1" data-r="1" data-group="publish">Bluesky</label>
+            <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP2" data-r="2" data-platform="X" aria-hidden="true">
+            <label class="subitem is-radio" for="pubP2" data-r="2" data-group="publish">X</label>
+          </div>
+          <button class="btn" id="publishBtn" type="button"><i class="fas fa-cloud-upload-alt"></i> Publish</button>
+          <div class="subitems">
+            <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV0" data-r="0" data-visibility="Public" aria-hidden="true">
+            <label class="subitem is-radio" for="pubV0" data-r="0" data-group="publish">Public</label>
+            <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV1" data-r="1" data-visibility="Friends" aria-hidden="true">
+            <label class="subitem is-radio" for="pubV1" data-r="1" data-group="publish">Friends</label>
+            <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV2" data-r="2" data-visibility="Private" aria-hidden="true">
+            <label class="subitem is-radio" for="pubV2" data-r="2" data-group="publish">Private</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hint-area" id="hintMessage" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    "use strict";
+
+    // ---------- CATEGORIES (icons only · 'all' lives in the topbar) ----------
+    const categories = [
+      { id: 'salud', label: 'Health', icon: 'fa-heart-pulse', class: 'cat-salud' },
+      { id: 'alimentos', label: 'Food', icon: 'fa-utensils', class: 'cat-alimentos' },
+      { id: 'infra', label: 'Home', icon: 'fa-house-chimney', class: 'cat-infra' },
+      { id: 'comms', label: 'Comms', icon: 'fa-wifi', class: 'cat-comms' },
+      { id: 'trabajo', label: 'Work', icon: 'fa-briefcase', class: 'cat-trabajo' },
+      { id: 'educa', label: 'Education', icon: 'fa-graduation-cap', class: 'cat-educa' },
+      { id: 'ropa', label: 'Clothing', icon: 'fa-shirt', class: 'cat-ropa' },
+      { id: 'outdoor', label: 'Outdoor', icon: 'fa-tree', class: 'cat-outdoor' },
+      { id: 'viaje', label: 'Travel', icon: 'fa-plane', class: 'cat-viaje' },
+      { id: 'servicios', label: 'Services', icon: 'fa-bell-concierge', class: 'cat-servicios' },
+      { id: 'm-sica', label: 'Music', icon: 'fa-music', class: 'cat-m-sica' },
+      { id: 'hobby', label: 'Hobbies', icon: 'fa-palette', class: 'cat-hobby' },
+      { id: 'eventos', label: 'Events', icon: 'fa-calendar-star', class: 'cat-eventos' },
+      { id: 'mascotas', label: 'Pets', icon: 'fa-paw', class: 'cat-mascotas' },
+      { id: 'varios', label: 'Other', icon: 'fa-shapes', class: 'cat-varios' }
+    ];
+
+    // ---------- DEMO ITEMS (≥23 per category · ordered to match categories[]) ----------
+    const demoItems = [
+      // Health
+      ['First aid kit', 'cat-salud'], ['Thermometer', 'cat-salud'], ['Vitamins', 'cat-salud'],
+      ['Pain reliever', 'cat-salud'], ['Bandages', 'cat-salud'], ['Face masks', 'cat-salud'],
+      ['Hand sanitizer', 'cat-salud'], ['Prescription glasses', 'cat-salud'], ['Sunscreen', 'cat-salud'],
+      ['Antiseptic', 'cat-salud'], ['Vitamin D', 'cat-salud'], ['Probiotics', 'cat-salud'],
+      ['Mouth guard', 'cat-salud'], ['Inhaler', 'cat-salud'], ['Eye drops', 'cat-salud'],
+      ['Cough syrup', 'cat-salud'], ['Allergy pills', 'cat-salud'], ['Blood pressure monitor', 'cat-salud'],
+      ['Heating pad', 'cat-salud'], ['Ice pack', 'cat-salud'], ['Massage roller', 'cat-salud'],
+      ['Hot water bottle', 'cat-salud'], ['Disinfectant wipes', 'cat-salud'],
+      // Food
+      ['Rice', 'cat-alimentos'], ['Pasta', 'cat-alimentos'], ['Olive oil', 'cat-alimentos'],
+      ['Canned tomatoes', 'cat-alimentos'], ['Coffee', 'cat-alimentos'], ['Bread', 'cat-alimentos'],
+      ['Eggs', 'cat-alimentos'], ['Milk', 'cat-alimentos'], ['Butter', 'cat-alimentos'],
+      ['Cheese', 'cat-alimentos'], ['Yogurt', 'cat-alimentos'], ['Salt', 'cat-alimentos'],
+      ['Sugar', 'cat-alimentos'], ['Flour', 'cat-alimentos'], ['Tea', 'cat-alimentos'],
+      ['Honey', 'cat-alimentos'], ['Fresh fruit', 'cat-alimentos'], ['Vegetables', 'cat-alimentos'],
+      ['Chicken', 'cat-alimentos'], ['Fish', 'cat-alimentos'], ['Beans', 'cat-alimentos'],
+      ['Cereal', 'cat-alimentos'], ['Chocolate', 'cat-alimentos'], ['Drinking water', 'cat-alimentos'],
+      // Home
+      ['Room', 'cat-infra'], ['Couch', 'cat-infra'], ['Kitchen', 'cat-infra'],
+      ['Bathroom', 'cat-infra'], ['Garden', 'cat-infra'], ['Parking', 'cat-infra'],
+      ['Storage', 'cat-infra'], ['Bed', 'cat-infra'], ['Dining table', 'cat-infra'],
+      ['Bookshelf', 'cat-infra'], ['Curtains', 'cat-infra'], ['Rug', 'cat-infra'],
+      ['Lamp', 'cat-infra'], ['Mirror', 'cat-infra'], ['Vacuum cleaner', 'cat-infra'],
+      ['Iron', 'cat-infra'], ['Washing machine', 'cat-infra'], ['Dishwasher', 'cat-infra'],
+      ['Refrigerator', 'cat-infra'], ['Oven', 'cat-infra'], ['Smoke alarm', 'cat-infra'],
+      ['Tool kit', 'cat-infra'], ['Broom', 'cat-infra'], ['Swimming pool', 'cat-infra'],
+      // Comms
+      ['Smartphone', 'cat-comms'], ['Laptop', 'cat-comms'], ['WiFi router', 'cat-comms'],
+      ['Headphones', 'cat-comms'], ['Power bank', 'cat-comms'], ['Tablet', 'cat-comms'],
+      ['Smartwatch', 'cat-comms'], ['Charger cable', 'cat-comms'], ['Bluetooth speaker', 'cat-comms'],
+      ['Webcam', 'cat-comms'], ['Microphone (USB)', 'cat-comms'], ['External hard drive', 'cat-comms'],
+      ['USB stick', 'cat-comms'], ['SIM card', 'cat-comms'], ['E-reader', 'cat-comms'],
+      ['Wireless mouse', 'cat-comms'], ['Keyboard', 'cat-comms'], ['Phone case', 'cat-comms'],
+      ['Screen protector', 'cat-comms'], ['Monitor', 'cat-comms'], ['Printer', 'cat-comms'],
+      ['Mesh extender', 'cat-comms'], ['Internet plan', 'cat-comms'], ['VPN subscription', 'cat-comms'],
+      // Work
+      ['Standing desk', 'cat-trabajo'], ['Office chair', 'cat-trabajo'], ['Mentor', 'cat-trabajo'],
+      ['Coworking pass', 'cat-trabajo'], ['New project', 'cat-trabajo'], ['Calendar', 'cat-trabajo'],
+      ['Whiteboard', 'cat-trabajo'], ['Stationery', 'cat-trabajo'], ['Business cards', 'cat-trabajo'],
+      ['Resume update', 'cat-trabajo'], ['LinkedIn profile', 'cat-trabajo'], ['Network event', 'cat-trabajo'],
+      ['Pen set', 'cat-trabajo'], ['Stapler', 'cat-trabajo'], ['Sticky notes', 'cat-trabajo'],
+      ['Folder organizer', 'cat-trabajo'], ['Work notebook', 'cat-trabajo'], ['Desk lamp', 'cat-trabajo'],
+      ['Time tracker', 'cat-trabajo'], ['Productivity app', 'cat-trabajo'], ['Headset', 'cat-trabajo'],
+      ['Briefcase', 'cat-trabajo'], ['Document scanner', 'cat-trabajo'],
+      // Education
+      ['Online course', 'cat-educa'], ['Reading list', 'cat-educa'], ['Language partner', 'cat-educa'],
+      ['Library card', 'cat-educa'], ['Workshop (course)', 'cat-educa'], ['Textbook', 'cat-educa'],
+      ['Private tutor', 'cat-educa'], ['Study group', 'cat-educa'], ['Flashcards', 'cat-educa'],
+      ['Note-taking app', 'cat-educa'], ['Highlighter', 'cat-educa'], ['Calculator', 'cat-educa'],
+      ['Graph paper', 'cat-educa'], ['Encyclopedia', 'cat-educa'], ['Document templates', 'cat-educa'],
+      ['Audiobook subscription', 'cat-educa'], ['Practice exam', 'cat-educa'], ['Lab kit', 'cat-educa'],
+      ['Atlas', 'cat-educa'], ['Dictionary', 'cat-educa'], ['Mind map app', 'cat-educa'],
+      ['School backpack', 'cat-educa'], ['School supplies', 'cat-educa'],
+      // Clothing
+      ['Winter coat', 'cat-ropa'], ['Rain coat', 'cat-ropa'], ['Sneakers', 'cat-ropa'],
+      ['Boots', 'cat-ropa'], ['Sandals', 'cat-ropa'], ['Jeans', 'cat-ropa'],
+      ['T-shirt', 'cat-ropa'], ['Sweater', 'cat-ropa'], ['Hoodie', 'cat-ropa'],
+      ['Dress', 'cat-ropa'], ['Suit', 'cat-ropa'], ['Socks', 'cat-ropa'],
+      ['Underwear', 'cat-ropa'], ['Pajamas', 'cat-ropa'], ['Workout clothes', 'cat-ropa'],
+      ['Belt', 'cat-ropa'], ['Hat', 'cat-ropa'], ['Scarf', 'cat-ropa'],
+      ['Gloves', 'cat-ropa'], ['Swimsuit', 'cat-ropa'], ['Watch', 'cat-ropa'],
+      ['Sunglasses', 'cat-ropa'], ['Formal shoes', 'cat-ropa'],
+      // Outdoor
+      ['Tent', 'cat-outdoor'], ['Sleeping bag', 'cat-outdoor'], ['Hiking boots', 'cat-outdoor'],
+      ['Camping stove', 'cat-outdoor'], ['Backpack', 'cat-outdoor'], ['Water bottle', 'cat-outdoor'],
+      ['Flashlight', 'cat-outdoor'], ['Compass', 'cat-outdoor'], ['Trail map', 'cat-outdoor'],
+      ['Trekking poles', 'cat-outdoor'], ['Rain jacket', 'cat-outdoor'], ['Insect repellent', 'cat-outdoor'],
+      ['Binoculars', 'cat-outdoor'], ['Multi-tool', 'cat-outdoor'], ['Fire starter', 'cat-outdoor'],
+      ['Tarp', 'cat-outdoor'], ['Headlamp', 'cat-outdoor'], ['Camping chair', 'cat-outdoor'],
+      ['Cooler', 'cat-outdoor'], ['Sleeping pad', 'cat-outdoor'], ['Hammock', 'cat-outdoor'],
+      ['Hiking socks', 'cat-outdoor'], ['Bike', 'cat-outdoor'],
+      // Travel
+      ['Plane ticket', 'cat-viaje'], ['Suitcase', 'cat-viaje'], ['Travel insurance', 'cat-viaje'],
+      ['City guide', 'cat-viaje'], ['Translator app', 'cat-viaje'], ['Passport', 'cat-viaje'],
+      ['Visa', 'cat-viaje'], ['Currency exchange', 'cat-viaje'], ['Adapter plug', 'cat-viaje'],
+      ['Travel pillow', 'cat-viaje'], ['Eye mask', 'cat-viaje'], ['Earplugs', 'cat-viaje'],
+      ['Hotel booking', 'cat-viaje'], ['Carry-on bag', 'cat-viaje'], ['Travel wallet', 'cat-viaje'],
+      ['Phrasebook', 'cat-viaje'], ['Day pack', 'cat-viaje'], ['Reusable bottle', 'cat-viaje'],
+      ['Packing cubes', 'cat-viaje'], ['Travel SIM', 'cat-viaje'], ['Local map', 'cat-viaje'],
+      ['Travel sunglasses', 'cat-viaje'], ['Comfortable shoes', 'cat-viaje'],
+      // Services
+      ['Cleaning', 'cat-servicios'], ['Laundry', 'cat-servicios'], ['Gardening', 'cat-servicios'],
+      ['Babysitting', 'cat-servicios'], ['Tutoring', 'cat-servicios'], ['Pet sitting', 'cat-servicios'],
+      ['House sitting', 'cat-servicios'], ['Hairdresser', 'cat-servicios'], ['Massage', 'cat-servicios'],
+      ['Therapist', 'cat-servicios'], ['Dentist', 'cat-servicios'], ['Doctor visit', 'cat-servicios'],
+      ['Lawyer', 'cat-servicios'], ['Accountant', 'cat-servicios'], ['Mover', 'cat-servicios'],
+      ['Painter', 'cat-servicios'], ['Plumber', 'cat-servicios'], ['Electrician', 'cat-servicios'],
+      ['Mechanic', 'cat-servicios'], ['IT support', 'cat-servicios'], ['Personal trainer', 'cat-servicios'],
+      ['Life coach', 'cat-servicios'], ['Translator service', 'cat-servicios'],
+      // Music
+      ['Guitar', 'cat-m-sica'], ['Piano', 'cat-m-sica'], ['Ukulele', 'cat-m-sica'],
+      ['Microphone', 'cat-m-sica'], ['Music lessons', 'cat-m-sica'], ['Drums', 'cat-m-sica'],
+      ['Studio headphones', 'cat-m-sica'], ['MIDI keyboard', 'cat-m-sica'], ['Tuner', 'cat-m-sica'],
+      ['Capo', 'cat-m-sica'], ['Music stand', 'cat-m-sica'], ['Sheet music', 'cat-m-sica'],
+      ['Audio interface', 'cat-m-sica'], ['Studio monitors', 'cat-m-sica'], ['Cajón', 'cat-m-sica'],
+      ['Harmonica', 'cat-m-sica'], ['Recorder', 'cat-m-sica'], ['Guitar picks', 'cat-m-sica'],
+      ['Metronome', 'cat-m-sica'], ['Digital piano', 'cat-m-sica'], ['Streaming subscription', 'cat-m-sica'],
+      ['Live concert ticket', 'cat-m-sica'], ['Songwriting notebook', 'cat-m-sica'],
+      // Hobbies
+      ['Watercolor set', 'cat-hobby'], ['Yoga mat', 'cat-hobby'], ['Camera', 'cat-hobby'],
+      ['Knitting needles', 'cat-hobby'], ['Bonsai tree', 'cat-hobby'], ['Sketchbook', 'cat-hobby'],
+      ['Acrylic paints', 'cat-hobby'], ['Easel', 'cat-hobby'], ['Embroidery hoop', 'cat-hobby'],
+      ['Sewing machine', 'cat-hobby'], ['Garden seeds', 'cat-hobby'], ['Origami paper', 'cat-hobby'],
+      ['Puzzles', 'cat-hobby'], ['Chess set', 'cat-hobby'], ['Card deck', 'cat-hobby'],
+      ['Dance class', 'cat-hobby'], ['Painting class', 'cat-hobby'], ['Pottery clay', 'cat-hobby'],
+      ['Calligraphy pen', 'cat-hobby'], ['Lego set', 'cat-hobby'], ['Bird feeder', 'cat-hobby'],
+      ['Skateboard', 'cat-hobby'], ['Yoga blocks', 'cat-hobby'],
+      // Events
+      ['Concert ticket', 'cat-eventos'], ['Workshop event', 'cat-eventos'], ['Conference', 'cat-eventos'],
+      ['Party supplies', 'cat-eventos'], ['Exhibition', 'cat-eventos'], ['Retreat', 'cat-eventos'],
+      ['Festival pass', 'cat-eventos'], ['Birthday party', 'cat-eventos'], ['Wedding gift', 'cat-eventos'],
+      ['Anniversary plan', 'cat-eventos'], ['Picnic basket', 'cat-eventos'], ['Camp event', 'cat-eventos'],
+      ['Sports event', 'cat-eventos'], ['Theater ticket', 'cat-eventos'], ['Movie night', 'cat-eventos'],
+      ['Cinema pass', 'cat-eventos'], ['Reunion', 'cat-eventos'], ['Networking event', 'cat-eventos'],
+      ['Photo booth', 'cat-eventos'], ['Decorations', 'cat-eventos'], ['Catering', 'cat-eventos'],
+      ['DJ booking', 'cat-eventos'], ['Photographer', 'cat-eventos'],
+      // Pets
+      ['Dog food', 'cat-mascotas'], ['Cat litter', 'cat-mascotas'], ['Leash', 'cat-mascotas'],
+      ['Vet visit', 'cat-mascotas'], ['Pet bed', 'cat-mascotas'], ['Pet carrier', 'cat-mascotas'],
+      ['Chew toy', 'cat-mascotas'], ['Pet shampoo', 'cat-mascotas'], ['Pet brush', 'cat-mascotas'],
+      ['Collar', 'cat-mascotas'], ['Pet treats', 'cat-mascotas'], ['Cat tree', 'cat-mascotas'],
+      ['Aquarium', 'cat-mascotas'], ['Bird cage', 'cat-mascotas'], ['Pet camera', 'cat-mascotas'],
+      ['Scratching post', 'cat-mascotas'], ['Pet insurance', 'cat-mascotas'], ['Microchip', 'cat-mascotas'],
+      ['Pet training class', 'cat-mascotas'], ['Dog walker', 'cat-mascotas'], ['Grooming', 'cat-mascotas'],
+      ['Flea treatment', 'cat-mascotas'], ['Pet door', 'cat-mascotas'],
+      // Other
+      ['Books', 'cat-varios'], ['Board games', 'cat-varios'], ['Art supplies', 'cat-varios'],
+      ['Pet food', 'cat-varios'], ['Gift card', 'cat-varios'], ['Batteries', 'cat-varios'],
+      ['Notebook', 'cat-varios'], ['Pen', 'cat-varios'], ['Umbrella', 'cat-varios'],
+      ['Reusable bags', 'cat-varios'], ['Wallet', 'cat-varios'], ['Keychain', 'cat-varios'],
+      ['Lighter', 'cat-varios'], ['Candles', 'cat-varios'], ['Photo album', 'cat-varios'],
+      ['Mug', 'cat-varios'], ['Plant pot', 'cat-varios'], ['Cutlery set', 'cat-varios'],
+      ['Toolbox', 'cat-varios'], ['Sewing kit', 'cat-varios'], ['Wall calendar', 'cat-varios'],
+      ['Small flashlight', 'cat-varios'], ['Trash bags', 'cat-varios']
+    ];
+
+    // ---------- RENDER TABS (one visible row + 1 collapsible extra row · 8 buttons per row) ----------
+    const tabsDiv = document.getElementById('categoryTabs');
+    const tabsExtraDiv = document.getElementById('categoryTabsExtra');
+    const ROW1_COUNT = 7; // first 7 tabs in row 1 + plus button = 8 slots
+    function tabHtml(cat) {
+      return `<div class="tab" data-cat="${cat.id}" data-catclass="${cat.class}" title="${cat.label}"><i class="fas ${cat.icon}"></i><span class="tab-label">${cat.label}</span></div>`;
+    }
+    function renderTabs() {
+      const row1 = categories.slice(0, ROW1_COUNT);
+      const row2 = categories.slice(ROW1_COUNT);
+      tabsDiv.innerHTML = row1.map(tabHtml).join('') +
+        (row2.length ? `<button class="tab tab-plus" id="tabsPlusBtn" type="button" aria-expanded="false" aria-controls="categoryTabsExtra" title="More categories"><i class="fas fa-plus"></i></button>` : '');
+      tabsExtraDiv.innerHTML = row2.map(tabHtml).join('');
+    }
+    renderTabs();
+    // wire plus button to toggle the extras row
+    const tabsPlusBtn = document.getElementById('tabsPlusBtn');
+    if (tabsPlusBtn) {
+      tabsPlusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = tabsExtraDiv.classList.toggle('is-open');
+        tabsPlusBtn.setAttribute('aria-expanded', String(open));
+      });
+    }
+
+    // ---------- ITEM → ICON MAP (FA6 free; items not in map render without icon) ----------
+    const itemIconMap = {
+      // Health
+      'First aid kit': 'fa-suitcase-medical', 'Thermometer': 'fa-temperature-half',
+      'Vitamins': 'fa-pills', 'Pain reliever': 'fa-pills', 'Bandages': 'fa-bandage',
+      'Face masks': 'fa-mask-face', 'Hand sanitizer': 'fa-pump-soap',
+      'Prescription glasses': 'fa-glasses', 'Sunscreen': 'fa-sun',
+      'Vitamin D': 'fa-pills', 'Probiotics': 'fa-pills', 'Mouth guard': 'fa-tooth',
+      'Inhaler': 'fa-lungs', 'Eye drops': 'fa-eye', 'Allergy pills': 'fa-pills',
+      'Blood pressure monitor': 'fa-heart-pulse', 'Ice pack': 'fa-snowflake',
+      // Food
+      'Rice': 'fa-bowl-rice', 'Coffee': 'fa-mug-hot', 'Bread': 'fa-bread-slice',
+      'Eggs': 'fa-egg', 'Cheese': 'fa-cheese', 'Tea': 'fa-mug-saucer',
+      'Fresh fruit': 'fa-apple-whole', 'Vegetables': 'fa-carrot',
+      'Chicken': 'fa-drumstick-bite', 'Fish': 'fa-fish', 'Cereal': 'fa-wheat-awn',
+      'Drinking water': 'fa-glass-water',
+      // Home
+      'Room': 'fa-door-open', 'Couch': 'fa-couch', 'Bathroom': 'fa-bath',
+      'Garden': 'fa-seedling', 'Parking': 'fa-square-parking', 'Bed': 'fa-bed',
+      'Bookshelf': 'fa-book', 'Lamp': 'fa-lightbulb', 'Tool kit': 'fa-toolbox',
+      'Broom': 'fa-broom', 'Swimming pool': 'fa-person-swimming',
+      // Comms
+      'Smartphone': 'fa-mobile-screen', 'Laptop': 'fa-laptop', 'WiFi router': 'fa-wifi',
+      'Headphones': 'fa-headphones', 'Power bank': 'fa-battery-full',
+      'Tablet': 'fa-tablet-screen-button', 'Charger cable': 'fa-plug',
+      'Webcam': 'fa-camera', 'Microphone (USB)': 'fa-microphone',
+      'External hard drive': 'fa-hard-drive', 'SIM card': 'fa-sim-card',
+      'E-reader': 'fa-book-open-reader', 'Wireless mouse': 'fa-computer-mouse',
+      'Keyboard': 'fa-keyboard', 'Monitor': 'fa-display', 'Printer': 'fa-print',
+      'Internet plan': 'fa-globe', 'VPN subscription': 'fa-shield-halved',
+      // Work
+      'Office chair': 'fa-chair', 'Mentor': 'fa-user-tie',
+      'Coworking pass': 'fa-id-card', 'New project': 'fa-folder-plus',
+      'Calendar': 'fa-calendar', 'Whiteboard': 'fa-chalkboard',
+      'Business cards': 'fa-id-card', 'Resume update': 'fa-file-lines',
+      'Network event': 'fa-people-group', 'Pen set': 'fa-pen',
+      'Sticky notes': 'fa-note-sticky', 'Folder organizer': 'fa-folder',
+      'Work notebook': 'fa-book', 'Desk lamp': 'fa-lightbulb',
+      'Time tracker': 'fa-clock', 'Headset': 'fa-headset',
+      'Briefcase': 'fa-briefcase',
+      // Education
+      'Reading list': 'fa-list', 'Language partner': 'fa-language',
+      'Library card': 'fa-id-card', 'Workshop (course)': 'fa-screwdriver-wrench',
+      'Textbook': 'fa-book', 'Private tutor': 'fa-chalkboard-user',
+      'Study group': 'fa-users', 'Flashcards': 'fa-clone',
+      'Note-taking app': 'fa-note-sticky', 'Highlighter': 'fa-highlighter',
+      'Calculator': 'fa-calculator', 'Encyclopedia': 'fa-book',
+      'Document templates': 'fa-file', 'Audiobook subscription': 'fa-headphones',
+      'Practice exam': 'fa-pen-to-square', 'Lab kit': 'fa-flask',
+      'Atlas': 'fa-earth-americas', 'Dictionary': 'fa-book',
+      'Mind map app': 'fa-diagram-project',
+      // Clothing
+      'Rain coat': 'fa-cloud-rain', 'T-shirt': 'fa-shirt', 'Suit': 'fa-user-tie',
+      'Socks': 'fa-socks', 'Workout clothes': 'fa-dumbbell', 'Gloves': 'fa-mitten',
+      'Swimsuit': 'fa-person-swimming', 'Watch': 'fa-clock',
+      'Sunglasses': 'fa-sun',
+      // Outdoor
+      'Tent': 'fa-campground', 'Sleeping bag': 'fa-bed',
+      'Water bottle': 'fa-bottle-water', 'Compass': 'fa-compass',
+      'Trail map': 'fa-map', 'Rain jacket': 'fa-cloud-rain',
+      'Insect repellent': 'fa-bug-slash', 'Binoculars': 'fa-binoculars',
+      'Multi-tool': 'fa-screwdriver-wrench', 'Fire starter': 'fa-fire',
+      'Camping chair': 'fa-chair', 'Cooler': 'fa-snowflake',
+      'Hiking socks': 'fa-socks', 'Bike': 'fa-bicycle',
+      // Travel
+      'Plane ticket': 'fa-plane-departure', 'Suitcase': 'fa-suitcase',
+      'Travel insurance': 'fa-shield-halved', 'City guide': 'fa-book',
+      'Translator app': 'fa-language', 'Passport': 'fa-passport',
+      'Visa': 'fa-stamp', 'Currency exchange': 'fa-money-bill-transfer',
+      'Adapter plug': 'fa-plug', 'Eye mask': 'fa-eye-slash',
+      'Hotel booking': 'fa-hotel', 'Carry-on bag': 'fa-suitcase-rolling',
+      'Travel wallet': 'fa-wallet', 'Phrasebook': 'fa-book',
+      'Reusable bottle': 'fa-bottle-water', 'Travel SIM': 'fa-sim-card',
+      'Local map': 'fa-map-location-dot', 'Travel sunglasses': 'fa-sun',
+      // Services
+      'Cleaning': 'fa-broom', 'Laundry': 'fa-soap', 'Gardening': 'fa-leaf',
+      'Babysitting': 'fa-baby', 'Tutoring': 'fa-chalkboard-user',
+      'Pet sitting': 'fa-paw', 'House sitting': 'fa-house',
+      'Hairdresser': 'fa-scissors', 'Massage': 'fa-hand-sparkles',
+      'Therapist': 'fa-couch', 'Dentist': 'fa-tooth',
+      'Doctor visit': 'fa-user-doctor', 'Lawyer': 'fa-scale-balanced',
+      'Accountant': 'fa-calculator', 'Mover': 'fa-truck-moving',
+      'Painter': 'fa-paint-roller', 'Plumber': 'fa-wrench',
+      'Electrician': 'fa-bolt', 'Mechanic': 'fa-screwdriver-wrench',
+      'IT support': 'fa-headset', 'Personal trainer': 'fa-dumbbell',
+      'Life coach': 'fa-handshake', 'Translator service': 'fa-language',
+      // Music
+      'Guitar': 'fa-guitar', 'Microphone': 'fa-microphone',
+      'Music lessons': 'fa-music', 'Drums': 'fa-drum',
+      'Studio headphones': 'fa-headphones', 'MIDI keyboard': 'fa-keyboard',
+      'Music stand': 'fa-music', 'Sheet music': 'fa-music',
+      'Cajón': 'fa-drum', 'Guitar picks': 'fa-guitar',
+      'Streaming subscription': 'fa-headphones',
+      'Live concert ticket': 'fa-ticket', 'Songwriting notebook': 'fa-music',
+      // Hobbies
+      'Watercolor set': 'fa-palette', 'Camera': 'fa-camera',
+      'Bonsai tree': 'fa-tree', 'Sketchbook': 'fa-pencil',
+      'Acrylic paints': 'fa-palette', 'Easel': 'fa-palette',
+      'Garden seeds': 'fa-seedling', 'Puzzles': 'fa-puzzle-piece',
+      'Chess set': 'fa-chess', 'Dance class': 'fa-music',
+      'Painting class': 'fa-palette', 'Calligraphy pen': 'fa-pen-fancy',
+      'Lego set': 'fa-cube', 'Bird feeder': 'fa-dove',
+      // Events
+      'Concert ticket': 'fa-ticket', 'Workshop event': 'fa-screwdriver-wrench',
+      'Festival pass': 'fa-ticket', 'Birthday party': 'fa-cake-candles',
+      'Wedding gift': 'fa-gift', 'Anniversary plan': 'fa-heart',
+      'Picnic basket': 'fa-basket-shopping', 'Camp event': 'fa-campground',
+      'Sports event': 'fa-trophy', 'Theater ticket': 'fa-masks-theater',
+      'Movie night': 'fa-film', 'Cinema pass': 'fa-film',
+      'Reunion': 'fa-users', 'Networking event': 'fa-people-group',
+      'Photo booth': 'fa-camera-retro', 'Catering': 'fa-utensils',
+      'DJ booking': 'fa-headphones', 'Photographer': 'fa-camera',
+      // Pets
+      'Dog food': 'fa-bone', 'Vet visit': 'fa-user-doctor',
+      'Pet bed': 'fa-bed', 'Pet carrier': 'fa-suitcase',
+      'Pet treats': 'fa-bone', 'Cat tree': 'fa-tree',
+      'Aquarium': 'fa-fish', 'Bird cage': 'fa-dove',
+      'Pet camera': 'fa-camera', 'Pet insurance': 'fa-shield-halved',
+      'Microchip': 'fa-microchip', 'Pet training class': 'fa-graduation-cap',
+      'Dog walker': 'fa-dog', 'Grooming': 'fa-scissors',
+      'Flea treatment': 'fa-bug-slash', 'Pet door': 'fa-door-open',
+      // Other
+      'Books': 'fa-book', 'Board games': 'fa-dice',
+      'Art supplies': 'fa-palette', 'Pet food': 'fa-bone',
+      'Gift card': 'fa-gift', 'Batteries': 'fa-battery-full',
+      'Notebook': 'fa-book', 'Pen': 'fa-pen', 'Umbrella': 'fa-umbrella',
+      'Reusable bags': 'fa-bag-shopping', 'Wallet': 'fa-wallet',
+      'Keychain': 'fa-key', 'Lighter': 'fa-fire',
+      'Photo album': 'fa-images', 'Mug': 'fa-mug-hot',
+      'Plant pot': 'fa-seedling', 'Cutlery set': 'fa-utensils',
+      'Toolbox': 'fa-toolbox', 'Wall calendar': 'fa-calendar',
+      'Trash bags': 'fa-trash'
+    };
+
+    // ---------- BUILD TABLE (cells without checkboxes) ----------
+    const tbody = document.getElementById('tableBody');
+    function iconHtml(itemName) {
+      const icon = itemIconMap[itemName];
+      return icon ? `<i class="fas ${icon} item-cat-icon" aria-hidden="true"></i>` : '';
+    }
+    function buildRow(itemName, catClass) {
+      const div = document.createElement('div');
+      div.className = `tr row ${catClass}`;
+      div.setAttribute('data-category', catClass.replace('cat-', ''));
+      div.innerHTML = `
+        <span class="td col-item">${iconHtml(itemName)}${itemName}</span>
+        <span class="td col-have" data-type="have"></span>
+        <span class="td col-wish" data-type="wish"></span>
+        <span class="td col-want" data-type="want"></span>
+        <span class="td col-need" data-type="need"></span>
+      `;
+      return div;
+    }
+
+    demoItems.forEach(([name, catClass]) => tbody.appendChild(buildRow(name, catClass)));
+
+    // ---------- HELPERS ----------
+    function getRows() {
+      // exclude the locked label row at the top of tbody
+      return Array.from(document.querySelectorAll('.tbody .tr.row:not(.label-row)'));
+    }
+
+    // Determine priority for row highlight
+    function updateRowPriority(row) {
+      const need = row.querySelector('.col-need')?.classList.contains('selected-need');
+      const want = row.querySelector('.col-want')?.classList.contains('selected-want');
+      const wish = row.querySelector('.col-wish')?.classList.contains('selected-wish');
+      const have = row.querySelector('.col-have')?.classList.contains('selected-have');
+      let priority = '';
+      if (need) priority = 'need';
+      else if (want) priority = 'want';
+      else if (wish) priority = 'wish';
+      else if (have) priority = 'have';
+      row.setAttribute('data-priority', priority);
+    }
+
+    function updateAllHighlights() {
+      getRows().forEach(r => updateRowPriority(r));
+    }
+
+    // Counts for phrase
+    const haveSpan = document.getElementById('haveCount');
+    const wishSpan = document.getElementById('wishCount');
+    const wantSpan = document.getElementById('wantCount');
+    const needSpan = document.getElementById('needCount');
+
+    function updateCounts() {
+      // count ALL selections, regardless of active category filter
+      const visible = getRows();
+      let have = 0, wish = 0, want = 0, need = 0;
+      visible.forEach(r => {
+        if (r.querySelector('.col-have')?.classList.contains('selected-have')) have++;
+        if (r.querySelector('.col-wish')?.classList.contains('selected-wish')) wish++;
+        if (r.querySelector('.col-want')?.classList.contains('selected-want')) want++;
+        if (r.querySelector('.col-need')?.classList.contains('selected-need')) need++;
+      });
+      haveSpan.textContent = have;
+      wishSpan.textContent = wish;
+      wantSpan.textContent = want;
+      needSpan.textContent = need;
+    }
+
+    // Cell click handler (toggle selection) — ignores the locked label row
+    function handleCellClick(e) {
+      const cell = e.target.closest('.td');
+      if (!cell) return;
+      const row = cell.closest('.tr');
+      if (!row || row.classList.contains('label-row')) return;
+      if (!row.classList.contains('row')) return;
+
+      const type = cell.dataset.type; // 'have','wish','want','need'
+      if (!type) return;
+
+      // Toggle the selected class on this cell
+      cell.classList.toggle(`selected-${type}`);
+
+      // Update row priority and counts
+      updateRowPriority(row);
+      updateCounts();
+    }
+
+    // Tab filtering — selectors include all rows of tabs + the topbar 'All' button
+    let activeCat = null;
+    let lastSpecificCat = null; // remembers last selected category (not 'all') for All-deselect restore
+    const tabs = document.querySelectorAll('.tabs .tab:not(.tab-plus)');
+    const topbarAllBtn = document.getElementById('topbarAllBtn');
+    function filterByCategory(catId) {
+      // toggle behavior
+      if (catId !== null && catId === activeCat) {
+        // deselecting 'all' restores the previously selected specific category
+        if (catId === 'all' && lastSpecificCat) {
+          catId = lastSpecificCat;
+        } else {
+          catId = null;
+        }
+      }
+      const catInfo = catId ? categories.find(c => c.id === catId) : null;
+      const targetClass = catInfo ? catInfo.class : '';
+      const showAll = !catId || catId === 'all';
+      getRows().forEach(row => {
+        if (showAll || row.classList.contains(targetClass)) {
+          row.classList.remove('hidden-row');
+        } else {
+          row.classList.add('hidden-row');
+        }
+      });
+      tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.cat === catId));
+      if (topbarAllBtn) topbarAllBtn.classList.toggle('active', catId === 'all');
+      // remember the last specific category for All-deselect restoration
+      if (catId && catId !== 'all') lastSpecificCat = catId;
+      activeCat = catId;
+      currentPage = 0;
+      applyPagination();
+      updateCounts();
+    }
+    if (topbarAllBtn) topbarAllBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      filterByCategory('all');
+    });
+
+    // ---------- PAGINATION (20 items per page) ----------
+    const PAGE_SIZE = 20;
+    let currentPage = 0;
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const pageInfo    = document.getElementById('pageInfo');
+
+    function applyPagination() {
+      const filtered = getRows().filter(r => !r.classList.contains('hidden-row'));
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (currentPage >= totalPages) currentPage = totalPages - 1;
+      if (currentPage < 0) currentPage = 0;
+      const start = currentPage * PAGE_SIZE;
+      const end   = start + PAGE_SIZE;
+      getRows().forEach(r => r.classList.remove('hidden-page'));
+      filtered.forEach((r, i) => {
+        if (i < start || i >= end) r.classList.add('hidden-page');
+      });
+      if (pageInfo) pageInfo.textContent = `${currentPage + 1} / ${totalPages}`;
+      if (prevPageBtn) prevPageBtn.disabled = currentPage === 0;
+      if (nextPageBtn) nextPageBtn.disabled = currentPage >= totalPages - 1;
+    }
+    if (prevPageBtn) prevPageBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (currentPage > 0) { currentPage--; applyPagination(); }
+    });
+    if (nextPageBtn) nextPageBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentPage++;
+      applyPagination();
+    });
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => filterByCategory(tab.dataset.cat));
+    });
+
+    // Attach cell click listeners (delegation)
+    tbody.addEventListener('click', handleCellClick);
+
+    // ---------- TITLE → scroll to resume ----------
+    const titleBtn = document.getElementById('titleBtn');
+    const phrasePanel = document.getElementById('phrasePanel');
+    if (titleBtn && phrasePanel) {
+      titleBtn.addEventListener('click', () => {
+        phrasePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    // ---------- 'My selected things' master toggle ----------
+    const phraseMasterBtn = document.getElementById('phraseMasterBtn');
+    if (phraseMasterBtn && phrasePanel) {
+      phraseMasterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = phrasePanel.classList.toggle('is-master-open');
+        phraseMasterBtn.setAttribute('aria-expanded', String(open));
+      });
+    }
+
+    // ---------- INSIGHTS / CREATIVE / COPY ----------
+    const insightsBtn = document.getElementById('insightsBtn');
+    const creativeBtn = document.getElementById('creativeBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    let insightStep = 0;
+    insightsBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const h = +haveSpan.textContent, w = +wishSpan.textContent, wa = +wantSpan.textContent, n = +needSpan.textContent;
+      const total = h + w + wa + n;
+      let hint;
+      if (insightStep === 0) {
+        hint = total === 0
+          ? '🌱 Tap any cell to start — anything you need or wish for.'
+          : `🌱 ${total} marks so far · each one sharpens what you ask of the world.`;
+      } else if (insightStep === 1) {
+        hint = n > 0
+          ? `⚠️ ${n} NEED · prioritize these before they turn into emergencies.`
+          : '🪶 No NEED for now · your basics are covered.';
+      } else if (insightStep === 2) {
+        hint = wa > w
+          ? `🎯 More WANT (${wa}) than WISH (${w}) · you are in action mode.`
+          : `💭 More WISH (${w}) than WANT (${wa}) · you are dreaming, give it time.`;
+      } else if (insightStep === 3) {
+        hint = h > 0
+          ? `🤝 ${h} HAVE · see which you can share — someone needs them.`
+          : '📦 Nothing marked as HAVE yet — tap what you already own.';
+      } else {
+        hint = '✺ What you have, what you ask for and what you give are the same wheel · turn it slowly.';
+      }
+      setHint(hint);
+      insightStep = (insightStep + 1) % 5;
+    });
+
+    creativeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const grouped = itemsByType();
+      const pick = arr => arr.length ? arr[Math.floor(Math.random() * arr.length)] : null;
+      const haveOne = pick(grouped.have), wishOne = pick(grouped.wish);
+      const wantOne = pick(grouped.want), needOne = pick(grouped.need);
+      if (![haveOne, wishOne, wantOne, needOne].some(Boolean)) {
+        setHint('✨ Tick some cells and I will craft a sentence from them.');
+        return;
+      }
+      const parts = [];
+      if (haveOne) parts.push(`I have <em>${escapeHtml(haveOne.name)}</em>`);
+      if (wishOne) parts.push(`I dream of <em>${escapeHtml(wishOne.name)}</em>`);
+      if (wantOne) parts.push(`I am looking for <em>${escapeHtml(wantOne.name)}</em>`);
+      if (needOne) parts.push(`I need <em>${escapeHtml(needOne.name)}</em>`);
+      setHint(`✨ Today ${parts.join(', ')}.`);
+    });
+
+    copyBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(plainText());
+        setHint('📋 Copied to clipboard.');
+      } catch {
+        prompt('Copy:', plainText());
+      }
+    });
+
+    // ---------- SAVE / SHARE / PUBLISH (goddess-style reveal) ----------
+    const hintMessage = document.getElementById('hintMessage');
+    function setHint(html) { hintMessage.innerHTML = html; }
+    const saveBtn = document.getElementById('saveBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const publishBtn = document.getElementById('publishBtn');
+    const wraps = {
+      save: document.getElementById('saveWrap'),
+      share: document.getElementById('shareWrap'),
+      publish: document.getElementById('publishWrap'),
+    };
+    function closeAllWraps(except) {
+      Object.values(wraps).forEach(w => { if (w !== except) w.classList.remove('is-open'); });
+    }
+    function toggleWrap(wrap) {
+      const wasOpen = wrap.classList.contains('is-open');
+      closeAllWraps();
+      if (!wasOpen) wrap.classList.add('is-open');
+    }
+    saveBtn.addEventListener('click', e => { e.stopPropagation(); toggleWrap(wraps.save); });
+    shareBtn.addEventListener('click', e => { e.stopPropagation(); toggleWrap(wraps.share); });
+    publishBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (wraps.publish.classList.contains('is-open')) {
+        const plat = document.querySelector('input[name="publishPlatform"]:checked');
+        const vis  = document.querySelector('input[name="publishVisibility"]:checked');
+        const platName = plat?.dataset.platform   || '—';
+        const visName  = vis?.dataset.visibility  || '—';
+        const total = +haveSpan.textContent + +wishSpan.textContent + +wantSpan.textContent + +needSpan.textContent;
+        setHint(`<i class="fas fa-cloud-upload-alt"></i> Published · ${platName} · ${visName} (${total} items).`);
+        wraps.publish.classList.remove('is-open');
+      } else {
+        closeAllWraps();
+        wraps.publish.classList.add('is-open');
+      }
+    });
+    Object.values(wraps).forEach(w => w.addEventListener('click', e => e.stopPropagation()));
+    document.addEventListener('click', () => closeAllWraps());
+
+    function selectionsByItem() {
+      const out = [];
+      getRows().forEach(r => {
+        const item = r.querySelector('.col-item')?.textContent.trim() || '';
+        const have = r.querySelector('.col-have')?.classList.contains('selected-have');
+        const wish = r.querySelector('.col-wish')?.classList.contains('selected-wish');
+        const want = r.querySelector('.col-want')?.classList.contains('selected-want');
+        const need = r.querySelector('.col-need')?.classList.contains('selected-need');
+        if (have || wish || want || need) out.push({ item, have, wish, want, need });
+      });
+      return out;
+    }
+    function plainText() {
+      const sel = selectionsByItem();
+      if (!sel.length) return 'inventary · no selections yet';
+      return ['inventary snapshot', ...sel.map(s => {
+        const tags = [];
+        if (s.have) tags.push('HAVE'); if (s.wish) tags.push('WISH');
+        if (s.want) tags.push('WANT'); if (s.need) tags.push('NEED');
+        return `· ${s.item} — ${tags.join(' / ')}`;
+      })].join('\n');
+    }
+    function buildFullHTML() {
+      const sel = selectionsByItem();
+      const rows = sel.map(s => {
+        const cell = (on, color) => `<td style="padding:6px 10px;text-align:center;background:${on?color:'transparent'};border:1px solid #d8e0e8;">${on?'●':''}</td>`;
+        return `<tr><td style="padding:6px 10px;border:1px solid #d8e0e8;font-weight:500;">${s.item}</td>${cell(s.have,'#c8e6c9')}${cell(s.wish,'#bbdefb')}${cell(s.want,'#ffe0b2')}${cell(s.need,'#ffcdd2')}</tr>`;
+      }).join('');
+      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>inventary snapshot</title></head>
+<body style="font-family:system-ui;padding:2rem;background:#f5f9ff;color:#1a2e3f;">
+<h1>inventary snapshot</h1>
+<table style="border-collapse:collapse;width:100%;max-width:720px;">
+<thead><tr><th style="padding:6px 10px;border:1px solid #d8e0e8;text-align:left;">item</th><th style="padding:6px 10px;background:#c8e6c9;border:1px solid #d8e0e8;">HAVE</th><th style="padding:6px 10px;background:#bbdefb;border:1px solid #d8e0e8;">WISH</th><th style="padding:6px 10px;background:#ffe0b2;border:1px solid #d8e0e8;">WANT</th><th style="padding:6px 10px;background:#ffcdd2;border:1px solid #d8e0e8;">NEED</th></tr></thead>
+<tbody>${rows || '<tr><td colspan="5" style="padding:1rem;text-align:center;color:#5e7c95;">no selections yet</td></tr>'}</tbody>
+</table>
+<p style="margin-top:2rem;color:#58738c;font-size:.85rem;">generated ${new Date().toLocaleString()}</p>
+</body></html>`;
+    }
+    function jsonData() {
+      return { generated: new Date().toISOString(), items: selectionsByItem() };
+    }
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function shareUrl(target) {
+      const txt = `inventary · ${plainText().slice(0, 220)}`;
+      const enc = encodeURIComponent(txt);
+      const page = encodeURIComponent(location.href);
+      switch (target) {
+        case 'whatsapp': return `https://wa.me/?text=${enc}%20${page}`;
+        case 'telegram': return `https://t.me/share/url?url=${page}&text=${enc}`;
+        case 'mail':     return `mailto:?subject=${encodeURIComponent('inventary snapshot')}&body=${enc}%0A%0A${page}`;
+      }
+    }
+    const subActions = {
+      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'inventary_snapshot.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
+      'save:text': () => { downloadBlob(new Blob([plainText()], {type:'text/plain'}), 'inventary_snapshot.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
+      'save:json': () => { downloadBlob(new Blob([JSON.stringify(jsonData(), null, 2)], {type:'application/json'}), 'inventary_snapshot.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
+      'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
+      'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
+      'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },
+    };
+    document.querySelectorAll('.subitem').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const fn = subActions[`${btn.dataset.group}:${btn.dataset.action}`];
+        if (fn) fn();
+        if (btn.dataset.group !== 'publish') closeAllWraps();
+      });
+    });
+
+    // ---------- EXPAND PANEL (per-category — each section toggles itself) ----------
+    const phraseLines = {
+      have: document.querySelector('.phrase-line.phrase-have'),
+      wish: document.querySelector('.phrase-line.phrase-wish'),
+      want: document.querySelector('.phrase-line.phrase-want'),
+      need: document.querySelector('.phrase-line.phrase-need'),
+    };
+    const phraseItems = {
+      have: document.getElementById('phraseItemsHave'),
+      wish: document.getElementById('phraseItemsWish'),
+      want: document.getElementById('phraseItemsWant'),
+      need: document.getElementById('phraseItemsNeed'),
+    };
+
+    // per-(item,type) state. shareable applies to HAVE, much to WISH/WANT/NEED.
+    const itemState = {};
+    function stateKey(name, type) { return `${type}::${name}`; }
+    function ensureItemState(key) {
+      if (!itemState[key]) itemState[key] = { shareable: false, much: false, maybe: false, unlikely: false, very: false, notes: [], worthy: null, worthyOpen: false, offerOpen: false };
+      return itemState[key];
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function rowCatClass(row) {
+      return (row.dataset.category ? `cat-${row.dataset.category}` : '') || '';
+    }
+    function itemsByType() {
+      // collect ALL selections, regardless of active category filter
+      const result = { have: [], wish: [], want: [], need: [] };
+      getRows().forEach(row => {
+        const name = row.querySelector('.col-item')?.textContent.trim() || '';
+        const catClass = rowCatClass(row);
+        ['have','wish','want','need'].forEach(t => {
+          if (row.querySelector(`.col-${t}`)?.classList.contains(`selected-${t}`)) {
+            result[t].push({ name, catClass });
+          }
+        });
+      });
+      return result;
+    }
+
+    function renderItemCard(name, type) {
+      const key = stateKey(name, type);
+      const st = ensureItemState(key);
+      const keyAttr = escapeHtml(key);
+      const notesHtml = st.notes.map((n, idx) =>
+        `<div class="note"><span class="note-text">${escapeHtml(n)}</span><button class="note-del" data-key="${keyAttr}" data-idx="${idx}" aria-label="delete note">×</button></div>`
+      ).join('');
+
+      // per-item pills: HAVE → Shareable + maybe + unlikely + custom + ＋ (right of name);
+      //                 WISH/WANT/NEED → very + Much (right of name, "very" left of Much)
+      let pillsHtml = '';
+      if (type === 'have') {
+        const subHidden = st.shareable ? '' : 'hidden';
+        const customs = (st.customSubs || []).map((c, i) =>
+          `<button type="button" class="sub-pill" data-key="${keyAttr}" data-custom-idx="${i}" aria-pressed="${c.pressed}" ${subHidden}>${escapeHtml(c.label)}</button>`
+        ).join('');
+        pillsHtml = `
+          <button type="button" class="extra-toggle" data-key="${keyAttr}" data-extra="shareable" aria-pressed="${st.shareable}">Shareable</button>
+          <button type="button" class="sub-pill" data-key="${keyAttr}" data-value="maybe" aria-pressed="${st.maybe}" ${subHidden}>maybe</button>
+          <button type="button" class="sub-pill" data-key="${keyAttr}" data-value="unlikely" aria-pressed="${st.unlikely}" ${subHidden}>unlikely</button>
+          ${customs}
+          <button type="button" class="sub-pill sub-pill--add" data-key="${keyAttr}" data-action="add-sub" title="More options" aria-label="More options" aria-pressed="${!!st.offerOpen}" ${subHidden}>＋</button>
+        `;
+      } else {
+        const subHidden = st.much ? '' : 'hidden';
+        pillsHtml = `
+          <button type="button" class="sub-pill" data-key="${keyAttr}" data-value="very" aria-pressed="${st.very}" ${subHidden}>very</button>
+          <button type="button" class="extra-toggle" data-key="${keyAttr}" data-extra="much" aria-pressed="${st.much}">Much</button>
+        `;
+      }
+
+      return `
+        <div class="sel-item${type === 'have' && st.worthyOpen ? ' is-worthy-open' : ''}">
+          <div class="sel-row">
+            ${iconHtml(name)}
+            <span class="sel-name">${escapeHtml(name)}</span>
+            ${pillsHtml}
+          </div>
+          <div class="sel-notes">${notesHtml}</div>
+          <div class="add-note">
+            <div class="add-note-row">
+              <input type="text" data-key="${keyAttr}" placeholder="add additional info…">
+              <button class="note-save" type="button" data-key="${keyAttr}">Save</button>
+            </div>
+            <div class="add-note-tools">
+              <div class="tools-left"></div>
+              <div class="tools-center">
+                <button class="note-mic" type="button" data-key="${keyAttr}" title="voice note" aria-label="voice note">
+                  <i class="fas fa-microphone"></i>
+                </button>
+                <label class="note-file" title="attach file" aria-label="attach file">
+                  <i class="fas fa-paperclip"></i>
+                  <input type="file" data-key="${keyAttr}">
+                </label>
+              </div>
+              <div class="tools-right">${type === 'have' ? `<button class="note-worthing" type="button" data-key="${keyAttr}" title="Worth it" aria-pressed="${!!st.worthyOpen}">Worth it</button>` : ''}</div>
+            </div>
+            ${type === 'have' ? `
+              <div class="worthy-bars" role="group" aria-label="Worth it level">
+                ${[1,2,3,4,5,6,7,8].map(n =>
+                  `<button type="button" class="worthy-bar${st.worthy === n ? ' is-selected' : ''}" data-key="${keyAttr}" data-w="${n}" aria-label="Worth it ${n}/8" title="${n}/8"></button>`
+                ).join('')}
+              </div>
+              <div class="offer-info${st.offerOpen ? ' is-open' : ''}" data-key="${keyAttr}">
+                Share it with the network? Take it to <a href="offer.html">Offer ↗</a> to offer what you already have.
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // section-level state for shareable / much toggles in pl-head
+    const sectionFlags = { have: { shareable: false }, wish: { much: false }, want: { much: false }, need: { much: false } };
+
+    function renderAllCategories() {
+      const grouped = itemsByType();
+      ['have','wish','want','need'].forEach(type => {
+        const entries = grouped[type];
+        phraseItems[type].innerHTML = entries.length
+          ? entries.map(e => renderItemCard(e.name, type)).join('')
+          : '<div class="expand-empty">No items in this category yet.</div>';
+      });
+    }
+
+    function setAllOpen(open) {
+      Object.values(phraseLines).forEach(line => line.classList.toggle('open', open));
+    }
+
+    // toggle a single category by clicking its head — but ignore clicks on the inline pill toggle
+    Object.entries(phraseLines).forEach(([type, line]) => {
+      line.querySelector('.pl-head').addEventListener('click', (e) => {
+        if (e.target.closest('.extra-toggle')) return; // pill handles its own click
+        const willOpen = !line.classList.contains('open');
+        if (willOpen) renderAllCategories(); // ensure freshness
+        line.classList.toggle('open', willOpen);
+      });
+    });
+
+    // section-level pill toggle (shareable on HAVE; much on WISH/WANT/NEED)
+    function thunderZap(btn) {
+      btn.classList.remove('zap');
+      // restart animation
+      void btn.offsetWidth;
+      btn.classList.add('zap');
+      btn.addEventListener('animationend', () => btn.classList.remove('zap'), { once: true });
+
+      // splash a few bolts around the pill
+      const head = btn.closest('.pl-head, .sel-row');
+      if (!head) return;
+      const headRect = head.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      const cx = btnRect.left - headRect.left + btnRect.width / 2;
+      const cy = btnRect.top  - headRect.top  + btnRect.height / 2;
+      const angles = [-90, -45, 0, 45, 90, 135, 180, 225];
+      angles.forEach((deg, i) => {
+        const bolt = document.createElement('span');
+        bolt.className = 'thunder-bolt';
+        bolt.textContent = '⚡';
+        bolt.setAttribute('aria-hidden', 'true');
+        const rad = (deg * Math.PI) / 180;
+        const dist = 30 + Math.random() * 18;
+        bolt.style.left = (cx - 8) + 'px';
+        bolt.style.top  = (cy - 8) + 'px';
+        bolt.style.setProperty('--dx', `${Math.cos(rad) * dist}px`);
+        bolt.style.setProperty('--dy', `${Math.sin(rad) * dist}px`);
+        bolt.style.setProperty('--r', `${(Math.random() * 60 - 30)}deg`);
+        bolt.style.animationDelay = `${i * 18}ms`;
+        head.appendChild(bolt);
+        bolt.addEventListener('animationend', () => bolt.remove(), { once: true });
+      });
+    }
+    // per-item pill toggles are wired via delegation on #phraseRows below.
+
+    // delegated handlers across all four phrase-items containers
+    document.getElementById('phraseRows').addEventListener('click', (e) => {
+      // per-item Shareable / Much toggle
+      const xt = e.target.closest('.sel-row .extra-toggle');
+      if (xt) {
+        e.stopPropagation();
+        const key = xt.dataset.key;
+        const extra = xt.dataset.extra; // 'shareable' or 'much'
+        const st = ensureItemState(key);
+        st[extra] = !st[extra];
+        xt.setAttribute('aria-pressed', String(st[extra]));
+        // reveal/hide sibling sub-pills; collapsing also resets their state
+        xt.closest('.sel-row').querySelectorAll('.sub-pill').forEach(sp => {
+          sp.hidden = !st[extra];
+          if (st[extra]) return;
+          if (sp.classList.contains('sub-pill--add')) return; // no state
+          sp.setAttribute('aria-pressed', 'false');
+          if (sp.dataset.value !== undefined) {
+            st[sp.dataset.value] = false;
+          } else if (sp.dataset.customIdx !== undefined) {
+            const idx = parseInt(sp.dataset.customIdx, 10);
+            if (st.customSubs && st.customSubs[idx]) {
+              st.customSubs[idx].pressed = false;
+            }
+          }
+        });
+        thunderZap(xt);
+        return;
+      }
+      // + sub-pill — toggle the offer.html intro panel below the card
+      const addSub = e.target.closest('.sel-row .sub-pill--add');
+      if (addSub) {
+        e.stopPropagation();
+        const key = addSub.dataset.key;
+        const st = ensureItemState(key);
+        st.offerOpen = !st.offerOpen;
+        addSub.setAttribute('aria-pressed', String(st.offerOpen));
+        const card = addSub.closest('.sel-item');
+        const info = card?.querySelector('.offer-info');
+        if (info) info.classList.toggle('is-open', st.offerOpen);
+        return;
+      }
+      // sub-pill (maybe / unlikely / very / custom) — independent toggle
+      const sp = e.target.closest('.sel-row .sub-pill');
+      if (sp) {
+        e.stopPropagation();
+        const key = sp.dataset.key;
+        const st = ensureItemState(key);
+        if (sp.dataset.customIdx !== undefined) {
+          const idx = parseInt(sp.dataset.customIdx, 10);
+          if (st.customSubs && st.customSubs[idx]) {
+            st.customSubs[idx].pressed = !st.customSubs[idx].pressed;
+            sp.setAttribute('aria-pressed', String(st.customSubs[idx].pressed));
+          }
+        } else {
+          const val = sp.dataset.value;
+          st[val] = !st[val];
+          sp.setAttribute('aria-pressed', String(st[val]));
+        }
+        return;
+      }
+      // Worthy button — toggle the 8 worthy bars below
+      const worth = e.target.closest('.note-worthing');
+      if (worth) {
+        e.stopPropagation();
+        const key = worth.dataset.key;
+        const st = ensureItemState(key);
+        st.worthyOpen = !st.worthyOpen;
+        const card = worth.closest('.sel-item');
+        if (card) card.classList.toggle('is-worthy-open', st.worthyOpen);
+        worth.setAttribute('aria-pressed', String(st.worthyOpen));
+        return;
+      }
+      // Worthy bar click — set the level (or clear if pressing the same one)
+      const wbar = e.target.closest('.worthy-bar');
+      if (wbar) {
+        e.stopPropagation();
+        const key = wbar.dataset.key;
+        const n = parseInt(wbar.dataset.w, 10);
+        const st = ensureItemState(key);
+        st.worthy = (st.worthy === n) ? null : n;
+        const bars = wbar.closest('.worthy-bars');
+        bars.querySelectorAll('.worthy-bar').forEach(b => {
+          b.classList.toggle('is-selected', parseInt(b.dataset.w, 10) === st.worthy);
+        });
+        return;
+      }
+      // mic button — Web Speech API if available, else manual prompt
+      const mic = e.target.closest('.note-mic');
+      if (mic) {
+        e.stopPropagation();
+        const key = mic.dataset.key;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SR && !mic.classList.contains('is-recording')) {
+          const rec = new SR();
+          rec.lang = navigator.language || 'es-ES';
+          rec.continuous = false;
+          rec.interimResults = false;
+          mic.classList.add('is-recording');
+          rec.onresult = (ev) => {
+            const t = Array.from(ev.results).map(r => r[0].transcript).join(' ').trim();
+            if (t) {
+              ensureItemState(key).notes.push(`🎤 ${t}`);
+              renderAllCategories();
+            }
+          };
+          rec.onend = () => mic.classList.remove('is-recording');
+          rec.onerror = () => mic.classList.remove('is-recording');
+          try { rec.start(); } catch { mic.classList.remove('is-recording'); }
+        } else {
+          const txt = prompt('🎤 voice note:');
+          if (txt && txt.trim()) {
+            ensureItemState(key).notes.push(`🎤 ${txt.trim()}`);
+            renderAllCategories();
+          }
+        }
+        return;
+      }
+      if (e.target.classList.contains('note-save')) {
+        const key = e.target.dataset.key;
+        const input = e.target.closest('.add-note').querySelector('input[type="text"]');
+        const val = input.value.trim();
+        if (!val) return;
+        ensureItemState(key).notes.push(val);
+        renderAllCategories();
+      } else if (e.target.classList.contains('note-del')) {
+        const key = e.target.dataset.key;
+        const idx = parseInt(e.target.dataset.idx, 10);
+        if (itemState[key]) {
+          itemState[key].notes.splice(idx, 1);
+          renderAllCategories();
+        }
+      }
+    });
+    document.getElementById('phraseRows').addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.matches('input[type="file"][data-key]')) {
+        const f = t.files && t.files[0];
+        if (f) {
+          ensureItemState(t.dataset.key).notes.push(`📎 ${f.name}`);
+          t.value = '';
+          renderAllCategories();
+        }
+      }
+    });
+    document.getElementById('phraseRows').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.matches('.add-note input[type="text"]')) {
+        e.preventDefault();
+        e.target.closest('.add-note').querySelector('.note-save')?.click();
+      }
+    });
+
+    // refresh the per-category lists when selections or filters change
+    function maybeRefreshExpand() {
+      const anyOpen = Object.values(phraseLines).some(l => l.classList.contains('open'));
+      if (anyOpen) renderAllCategories();
+    }
+    tbody.addEventListener('click', () => requestAnimationFrame(maybeRefreshExpand));
+    tabs.forEach(tab => tab.addEventListener('click', () => requestAnimationFrame(maybeRefreshExpand)));
+
+    // ── topbar menu actions ──────────────────────────────────────
+    const menuCtl = document.getElementById('inventaryMenuOpen');
+    function closeMenu() { if (menuCtl) menuCtl.checked = false; }
+    document.querySelectorAll('.inventary-menu-list .menu-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        if (action === 'expand-all') {
+          if (phrasePanel) {
+            phrasePanel.classList.add('is-master-open');
+            phraseMasterBtn?.setAttribute('aria-expanded', 'true');
+          }
+          setAllOpen(true);
+        } else if (action === 'collapse-all') {
+          setAllOpen(false);
+        }
+        else if (action === 'reset') {
+          getRows().forEach(r => {
+            ['have','wish','want','need'].forEach(t => {
+              r.querySelector(`.col-${t}`)?.classList.remove(`selected-${t}`);
+            });
+            updateRowPriority(r);
+          });
+          updateCounts();
+          if (Object.values(phraseLines).some(l => l.classList.contains('open'))) renderAllCategories();
+          setHint('↺ Selections reset.');
+        } else if (action === 'toggle-cats') {
+          if (tabsPlusBtn) tabsPlusBtn.click();
+        } else if (action === 'help') {
+          setHint('💡 Tap any cell to toggle HAVE/WISH/WANT/NEED · priority NEED > WANT > WISH > HAVE.');
+        } else if (action === 'about') {
+          setHint('✺ Inventary · a sheet of things you have, wish, want and need.');
+        }
+        closeMenu();
+      });
+    });
+    // close menu on outside click
+    document.addEventListener('click', (e) => {
+      if (!menuCtl || !menuCtl.checked) return;
+      if (e.target.closest('.inventary-menu-wrap')) return;
+      closeMenu();
+    });
+
+    // ── magic ✨ + lovely / joy / wisdom bots in the label-row ────
+    const magicCtl  = document.getElementById('inventaryMagic');
+    const newInput  = document.getElementById('inventaryNewInput');
+    const botPools = {
+      lovely: ['Yoga mat', 'Guitar', 'Watercolor set', 'Bonsai tree', 'Books', 'Pet food', 'Tutoring', 'Knitting needles', 'Coffee', 'Babysitting'],
+      joy:    ['Party supplies', 'Board games', 'Concert ticket', 'Ukulele', 'Bike', 'Camping stove', 'Workshop', 'Drums', 'Gift card'],
+      wisdom: ['Library card', 'Online course', 'Mentor', 'Reading list', 'Language partner', 'Notebook', 'First aid kit', 'Translator app']
+    };
+    function botPick(bot) {
+      const pool = botPools[bot] || [];
+      if (!pool.length) return '';
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+    document.querySelectorAll('.inventary-bot').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const suggestion = botPick(btn.dataset.bot);
+        if (suggestion && newInput) {
+          // restart the flash animation reliably
+          newInput.classList.remove('is-bot-filled');
+          void newInput.offsetWidth;
+          newInput.value = suggestion;
+          newInput.classList.add('is-bot-filled');
+          newInput.focus();
+        }
+        if (magicCtl) magicCtl.checked = false;
+      });
+    });
+
+    // X clear button removes the bot suggestion (and the visible marker)
+    const clearBtn = document.getElementById('inventaryClearBtn');
+    if (clearBtn && newInput) {
+      clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        newInput.value = '';
+        newInput.classList.remove('is-bot-filled');
+        newInput.focus();
+      });
+    }
+    // Typing manually clears the bot-fill marker
+    if (newInput) {
+      newInput.addEventListener('input', () => newInput.classList.remove('is-bot-filled'));
+    }
+
+    // Add a new thing at the top of the list, regardless of the active filter
+    function addNewThingAtTop() {
+      const name = newInput?.value.trim();
+      if (!name) { newInput?.focus(); return; }
+      const row = buildRow(name, 'cat-varios');
+      row.classList.add('is-new');
+      const labelRow = tbody.querySelector('.label-row');
+      if (labelRow && labelRow.nextSibling) {
+        tbody.insertBefore(row, labelRow.nextSibling);
+      } else {
+        tbody.appendChild(row);
+      }
+      // reset filter + page so the new row is visible regardless of current state
+      currentPage = 0;
+      activeCat = null;
+      filterByCategory(null);
+      newInput.value = '';
+      newInput.classList.remove('is-bot-filled');
+      setHint(`✚ "${escapeHtml(name)}" added to the top.`);
+    }
+
+    if (newInput) {
+      newInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        addNewThingAtTop();
+      });
+    }
+    const addBtn = document.getElementById('inventaryAddBtn');
+    if (addBtn) {
+      addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addNewThingAtTop();
+      });
+    }
+
+    // Initialize · first category is active by default, resume sections start collapsed
+    filterByCategory(categories[0]?.id || null);
+    updateAllHighlights();
+    updateCounts();
+  })();
+</script>
+
+</body>
+</html>

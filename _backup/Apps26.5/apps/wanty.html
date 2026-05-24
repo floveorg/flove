@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>✺ flove</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Merriweather:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="flove.css">
+  <style>
+    /* flove identity overrides — dusty blue Esencia */
+    :root {
+      --app-accent:        #1f6390;
+      --app-accent-soft:   #c0d4e8;
+      --app-ink-on-accent: #ffffff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #d9e6f2;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 0.5rem 0.5rem;
+    }
+
+    /* fixed top bar override — myfamily-style: bigger logo + bold app name */
+    .flove-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; font-size: 22px; padding: 12px 18px; gap: 14px; }
+    .flove-bar .flove-mark-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+    .flove-bar .flove-mark { width: 2em; height: 2em; }
+    .flove-bar .flove-app-name {
+      font-size: 1em;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      font-family: 'Merriweather', serif;
+      color: #103a58;
+    }
+    .app-name-toggle {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      letter-spacing: inherit;
+      color: inherit;
+      cursor: pointer;
+      transition: opacity 0.2s, color 0.2s;
+    }
+    .app-name-toggle:hover { opacity: 0.78; }
+    .app-name-toggle:focus-visible {
+      outline: 2px solid var(--app-accent);
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+    .app-name-toggle[aria-expanded="true"] { color: var(--app-accent); }
+
+    /* ---------- INFO PANEL (between header and main card) ---------- */
+    .info-panel {
+      position: fixed;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 40;
+      width: calc(100% - 1rem);
+      max-width: 600px;
+      padding: 1.4rem 1.6rem 1.6rem;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(67, 112, 152, 0.18);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px -12px rgba(16, 52, 90, 0.28);
+      display: none;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      animation: info-panel-pop 0.28s ease;
+    }
+    .info-panel.is-open { display: block; }
+    .info-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--app-accent);
+      background: #ffffff;
+      color: var(--app-accent);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 14px -4px rgba(16, 52, 90, 0.25);
+      transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+      z-index: 2;
+    }
+    .info-close:hover {
+      background: var(--app-accent);
+      color: #ffffff;
+      transform: scale(1.06);
+    }
+    .info-close:focus-visible {
+      outline: 3px solid var(--app-accent);
+      outline-offset: 3px;
+    }
+    .info-close svg { width: 22px; height: 22px; fill: none; }
+    .info-content {
+      max-width: 760px;
+      margin: 0 auto;
+      padding-right: 60px;
+      color: #1f3e58;
+    }
+    .info-content h3 {
+      font-family: 'Merriweather', serif;
+      font-weight: 500;
+      font-size: 1.45rem;
+      color: #103a58;
+      margin-bottom: 0.7rem;
+      letter-spacing: -0.01em;
+    }
+    .info-content p { margin: 0 0 0.7rem; line-height: 1.55; }
+    .info-hint { color: #5b7d9b; font-style: italic; font-size: 0.92rem; }
+    .info-video-frame {
+      margin-top: 1rem;
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, #c0d4e8, #aac6df);
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(16, 52, 90, 0.1);
+    }
+    .info-video-frame::before {
+      content: '🎬  Intro video';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(16, 52, 90, 0.55);
+      font-family: 'Merriweather', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      pointer-events: none;
+    }
+    .info-video {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+      z-index: 1;
+    }
+    @keyframes info-panel-pop {
+      from { opacity: 0; transform: translate(-50%, -6px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .info-panel { animation: none; }
+    }
+    @media (max-width: 640px) {
+      .info-close { width: 44px; height: 44px; top: 12px; right: 12px; }
+      .info-close svg { width: 20px; height: 20px; }
+      .info-content { padding-right: 54px; }
+      .info-content h3 { font-size: 1.25rem; }
+    }
+
+    /* ---------- INVITATION CARD (phrase + buttons grouped at bottom, myfamily-style) ---------- */
+    .invitation-card {
+      background: transparent;
+      border: 1px solid rgba(67, 112, 152, 0.22);
+      border-left: 6px solid var(--app-accent);
+      border-radius: 22px;
+      padding: 1.1rem 1.3rem 1.2rem;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .invitation-card .readable-phrase {
+      margin: 0;
+      box-shadow: none;
+      border: 1px solid rgba(67, 112, 152, 0.12);
+    }
+
+    /* ---------- ACTION BUTTONS · simple row (myfamily-style) ---------- */
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    /* Save / Share / Publish in goddess-style 3-col grid with reveal-subitems.
+       margin-top gives the requested "one row of separation" between
+       the two rows of buttons. */
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 2.6rem;
+      align-items: flex-start;
+    }
+
+    .app-card {
+      width: 100%;
+      max-width: 600px;
+      height: calc(100vh - 64px);
+      max-height: calc(100vh - 64px);
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 2rem;
+      box-shadow: 0 20px 40px -10px rgba(16, 52, 90, 0.2);
+      border: 1px solid rgba(255,255,255,0.8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 0.9rem 0.9rem 1rem;
+      gap: 0.8rem;
+    }
+
+    /* fields list — flat list of pill buttons; row-gap leaves one row of empty space between wrapping rows */
+    .fields-list { display: flex; flex-wrap: wrap; column-gap: 6px; row-gap: 2.6rem; }
+    .field-btn {
+      font-size: 0.78rem;
+      background: #dee9f3;
+      padding: 0.35rem 0.95rem;
+      border-radius: 30px;
+      color: #1b4d72;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      border: 1px solid #b8d0e6;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      font-family: 'Inter', sans-serif;
+    }
+    .field-btn:hover { background: #c0d4e8; }
+    .field-btn.has-content { background: #aac6df; color: #0a2c44; }
+    .field-btn.active {
+      background: var(--app-accent);
+      color: var(--app-ink-on-accent);
+      border-color: var(--app-accent);
+    }
+
+    /* editor — appears when a field is active */
+    .editor-area { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.2rem 0.2rem 0; }
+    .editor-area.empty { display: none; }
+    .field-title { font-weight: 700; font-size: 1rem; color: #103a58; }
+    .entries-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .entry-item { display: flex; align-items: flex-start; gap: 6px; }
+    .entry-item textarea {
+      flex: 1;
+      padding: 0.55rem 0.85rem;
+      border: 2px solid #c7ddef;
+      border-radius: 18px;
+      font-size: 16px;
+      font-family: 'Inter', sans-serif;
+      background: white;
+      resize: vertical;
+      line-height: 1.4;
+      min-height: 4.4em;
+    }
+    .remove-entry-btn {
+      background: none; border: none; color: #8fadc9;
+      font-size: 1rem; cursor: pointer; padding: 4px; align-self: center;
+    }
+    .action-buttons-row { display: flex; align-items: center; gap: 8px; }
+    .voice-btn, .add-entry-btn {
+      background: transparent;
+      border: 1.5px dashed #2f7eb3;
+      border-radius: 30px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: #1f6390; font-size: 1rem; cursor: pointer;
+    }
+    .voice-btn.recording {
+      background: #ff6b6b; color: white;
+      border-color: #ff6b6b; border-style: solid;
+    }
+
+    /* legible phrase — auto-summary of all field entries */
+    .readable-phrase {
+      background: white;
+      padding: 0.9rem 1rem;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #1f3e58;
+      border: 1px solid rgba(67, 112, 152, 0.12);
+      box-shadow: 0 6px 14px -10px rgba(16, 52, 90, 0.18);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .readable-phrase.empty { color: #7f9ab5; font-style: italic; }
+
+    /* save / share / publish button group (mirrors goddess.html) */
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 0.2rem;
+      align-items: flex-start;
+    }
+    .btn-with-subs {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      min-width: 0;
+      position: relative;
+    }
+    .subitems-above {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: calc(100% + 4px);
+    }
+    .btn-with-subs .btn { width: 100%; }
+    .subitems {
+      display: flex;
+      gap: 2px;
+      justify-content: stretch;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: max-height 0.25s ease, opacity 0.18s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+    .btn-with-subs.is-open .subitems {
+      max-height: 64px; opacity: 1;
+      transform: translateY(0); pointer-events: auto;
+    }
+    .subitem {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #c7ddef;
+      color: #1f3e58;
+      padding: 5px 1px;
+      border-radius: 0;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      cursor: pointer;
+      flex: 1 1 0;
+      min-width: 0;
+      transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .subitem:hover { background: #fff; border-color: #94b8d6; }
+
+    .subitem-radio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+    .subitem.is-radio { display: inline-flex; align-items: center; justify-content: center; }
+    .subitems:has(.subitem-radio[data-r="0"]:checked) .subitem.is-radio[data-r="0"],
+    .subitems:has(.subitem-radio[data-r="1"]:checked) .subitem.is-radio[data-r="1"],
+    .subitems:has(.subitem-radio[data-r="2"]:checked) .subitem.is-radio[data-r="2"] {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: var(--app-ink-on-accent);
+    }
+
+    .btn {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #b8d0e6;
+      padding: 9px 8px;
+      border-radius: 999px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+      color: #103a58;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn i { color: #2f76a6; font-size: 0.8rem; }
+    .btn:hover { background: #fff; border-color: var(--app-accent); }
+    .btn.btn--primary {
+      background: var(--app-accent);
+      border-color: var(--app-accent);
+      color: var(--app-ink-on-accent);
+    }
+    .btn.btn--primary i { color: rgba(255,255,255,0.85); }
+    .btn.btn--primary:hover { background: #14506e; border-color: #14506e; color: var(--app-ink-on-accent); }
+    .btn-with-subs.is-open > .btn {
+      background: #fff;
+      border-color: var(--app-accent);
+    }
+
+    .insight-panel {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 16px;
+      padding: 0.9rem 1rem;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #1f3e58;
+      border-left: 4px solid var(--app-accent);
+      white-space: pre-wrap;
+      box-shadow: 0 4px 10px -8px rgba(16, 52, 90, 0.18);
+    }
+    .insight-panel[hidden] { display: none; }
+    .btn.is-default {
+      background: var(--app-accent-soft);
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+      font-weight: 700;
+    }
+
+    .hint-area {
+      text-align: center;
+      min-height: 32px;
+      font-size: 0.9rem;
+      color: #1f3e58;
+      padding: 6px 12px;
+    }
+    .hint-area a { color: var(--app-accent); text-decoration: underline; }
+
+    @media (max-width: 480px) {
+      .app-card { height: calc(100vh - 56px); max-height: calc(100vh - 56px); border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="flove-bar">
+  <a href="wanty.html" class="flove-mark-link" aria-label="reload">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;"><defs><linearGradient id="g-wanty" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ff8a8a"/><stop offset="50%" stop-color="#ff8a3a"/><stop offset="100%" stop-color="#ffd28a"/></linearGradient></defs><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M50 12 L56 44 L88 50 L56 56 L50 88 L44 56 L12 50 L44 44 Z" fill="url(#g-wanty)" stroke="none"/></g></svg>
+  </a>
+  <button type="button" class="flove-app-name app-name-toggle" id="aboutBtn" aria-expanded="false" aria-controls="infoPanel" title="About Wanty">Wanty</button>
+  <span class="flove-spacer"></span>
+</div>
+
+<aside class="info-panel" id="infoPanel" role="dialog" aria-label="About Wanty" aria-hidden="true">
+  <button type="button" class="info-close" id="infoCloseBtn" aria-label="Close">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <div class="info-content">
+    <h3>Welcome to Wanty ✦</h3>
+    <p>A flat list of essences — abilities, habits, hobbies, roles, ideas, plans, wants, needs, wishes. Pick a field, write or speak, and watch your legible phrase build itself in real time.</p>
+    <p>Copy, share or publish when you're ready.</p>
+    <p class="info-hint">Tip: tap the microphone in any field to add a spoken nuance.</p>
+    <div class="info-video-frame">
+      <video class="info-video" controls preload="none" poster="">
+        <!-- Add your intro video here, e.g.:
+             <source src="wanty-intro.mp4" type="video/mp4"> -->
+      </video>
+    </div>
+  </div>
+</aside>
+
+<div class="app-card">
+  <div class="main-content">
+    <div class="fields-list" id="fieldsList"></div>
+    <div class="editor-area empty" id="editorArea"></div>
+
+    <div class="hint-area" id="hintMessage"></div>
+
+    <div class="invitation-card">
+      <div class="readable-phrase empty" id="readablePhrase">Pick a field and write to see your legible phrase…</div>
+      <div class="insight-panel" id="insightPanel" hidden></div>
+      <div class="action-buttons">
+        <button class="btn" id="insightBtn"><i class="fas fa-lightbulb"></i> Insight</button>
+        <button class="btn" id="creativeBtn"><i class="fas fa-sync-alt"></i> Creative</button>
+        <button class="btn" id="copyBtn"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+      <div class="button-group">
+        <div class="btn-with-subs" id="saveWrap">
+          <button class="btn" id="saveBtn"><i class="fas fa-download"></i> Save</button>
+          <div class="subitems">
+            <button class="subitem" data-group="save" data-action="jpg">JPG</button>
+            <button class="subitem" data-group="save" data-action="html">HTML</button>
+            <button class="subitem" data-group="save" data-action="text">Text</button>
+            <button class="subitem" data-group="save" data-action="json">JSON</button>
+          </div>
+        </div>
+        <div class="btn-with-subs" id="shareWrap">
+          <button class="btn" id="shareBtn"><i class="fas fa-share-alt"></i> Share</button>
+          <div class="subitems">
+            <button class="subitem" data-group="share" data-action="whatsapp">WhatsApp</button>
+            <button class="subitem" data-group="share" data-action="telegram">Telegram</button>
+            <button class="subitem" data-group="share" data-action="mail">Mail</button>
+          </div>
+        </div>
+        <div class="btn-with-subs" id="publishWrap">
+          <div class="subitems subitems-above">
+            <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP0" data-r="0" data-platform="Mastodon" aria-hidden="true">
+            <label class="subitem is-radio" for="pubP0" data-r="0" data-group="publish">Mastodon</label>
+            <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP1" data-r="1" data-platform="Bluesky" aria-hidden="true">
+            <label class="subitem is-radio" for="pubP1" data-r="1" data-group="publish">Bluesky</label>
+            <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP2" data-r="2" data-platform="X" aria-hidden="true">
+            <label class="subitem is-radio" for="pubP2" data-r="2" data-group="publish">X</label>
+          </div>
+          <button class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i> Publish</button>
+          <div class="subitems subitems-below">
+            <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV0" data-r="0" data-visibility="Public" aria-hidden="true">
+            <label class="subitem is-radio" for="pubV0" data-r="0" data-group="publish">Public</label>
+            <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV1" data-r="1" data-visibility="Friends" aria-hidden="true">
+            <label class="subitem is-radio" for="pubV1" data-r="1" data-group="publish">Friends</label>
+            <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV2" data-r="2" data-visibility="Private" aria-hidden="true">
+            <label class="subitem is-radio" for="pubV2" data-r="2" data-group="publish">Private</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    "use strict";
+
+    const fields = [
+      'Ability', 'Habit', 'Hobby', 'Role', 'Skill',
+      'Interest', 'Preference', 'Projection', 'Idea', 'Willing',
+      'Plan', 'Project', 'Mission', 'Purpose',
+      'Want', 'Need', 'Demand', 'Request', 'Pledge', 'Wish', 'Like'
+    ];
+
+    let activeField = null;
+    const fieldData = {};
+    fields.forEach(f => { fieldData[f] = ['']; });
+
+    const fieldsList = document.getElementById('fieldsList');
+    const editorArea = document.getElementById('editorArea');
+    const phraseEl   = document.getElementById('readablePhrase');
+    const hintEl     = document.getElementById('hintMessage');
+
+    // Voice recognition (English)
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+    }
+    function startVoice(callback) {
+      if (!recognition) { alert('Your browser does not support voice recognition.'); return; }
+      recognition.onresult = (e) => callback(e.results[0][0].transcript);
+      recognition.onerror = (e) => alert('Voice error: ' + e.error);
+      recognition.start();
+    }
+
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function fieldHasContent(name) { return (fieldData[name] || []).some(v => v.trim() !== ''); }
+    function filledFields() {
+      return fields.filter(fieldHasContent).map(n => ({ name: n, values: fieldData[n].filter(v => v.trim() !== '') }));
+    }
+    function setHint(html) { hintEl.innerHTML = html; }
+
+    function renderFields() {
+      fieldsList.innerHTML = '';
+      fields.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'field-btn';
+        if (fieldHasContent(name)) btn.classList.add('has-content');
+        if (activeField === name) btn.classList.add('active');
+        btn.textContent = name;
+        btn.addEventListener('click', () => {
+          activeField = (activeField === name) ? null : name;
+          renderFields();
+          renderEditor();
+        });
+        fieldsList.appendChild(btn);
+      });
+    }
+
+    function renderEditor() {
+      if (!activeField) {
+        editorArea.classList.add('empty');
+        editorArea.innerHTML = '';
+        return;
+      }
+      editorArea.classList.remove('empty');
+      const values = fieldData[activeField];
+      const entriesHTML = values.map((v, i) => `
+        <div class="entry-item">
+          <textarea data-idx="${i}" rows="2" placeholder="Tell me your ${activeField.toLowerCase()}…">${escapeHTML(v)}</textarea>
+          ${values.length > 1 ? `<button class="remove-entry-btn" data-idx="${i}" aria-label="remove"><i class="fas fa-times-circle"></i></button>` : ''}
+        </div>`).join('');
+
+      editorArea.innerHTML = `
+        <div class="field-title">${activeField}</div>
+        <div class="entries-list">${entriesHTML}</div>
+        <div class="action-buttons-row">
+          <button class="voice-btn" id="voiceBtn" aria-label="voice"><i class="fas fa-microphone"></i></button>
+          <button class="add-entry-btn" id="addEntryBtn" aria-label="add"><i class="fas fa-plus"></i></button>
+        </div>
+      `;
+      editorArea.querySelectorAll('textarea').forEach(ta => {
+        ta.addEventListener('input', e => {
+          fieldData[activeField][+e.target.dataset.idx] = e.target.value;
+          renderPhrase();
+        });
+        ta.addEventListener('blur', renderFields);
+      });
+      editorArea.querySelectorAll('.remove-entry-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          fieldData[activeField].splice(+btn.dataset.idx, 1);
+          if (!fieldData[activeField].length) fieldData[activeField] = [''];
+          renderEditor(); renderFields(); renderPhrase();
+        });
+      });
+      document.getElementById('voiceBtn').addEventListener('click', function () {
+        const self = this;
+        self.classList.add('recording');
+        startVoice((text) => {
+          self.classList.remove('recording');
+          if (text) {
+            const arr = fieldData[activeField];
+            const lastEmpty = arr.findIndex(v => v.trim() === '');
+            if (lastEmpty >= 0) arr[lastEmpty] = text; else arr.push(text);
+            renderEditor(); renderFields(); renderPhrase();
+          }
+        });
+        setTimeout(() => self.classList.remove('recording'), 5000);
+      });
+      document.getElementById('addEntryBtn').addEventListener('click', () => {
+        fieldData[activeField].push('');
+        renderEditor();
+      });
+    }
+
+    // Build the legible phrase from filled fields
+    function buildPhrase() {
+      const parts = filledFields().map(f => `${f.name}: ${f.values.join(', ')}.`);
+      return parts.join(' ');
+    }
+    function renderPhrase() {
+      const text = buildPhrase();
+      if (text) {
+        phraseEl.classList.remove('empty');
+        phraseEl.textContent = text;
+      } else {
+        phraseEl.classList.add('empty');
+        phraseEl.textContent = 'Pick a field and write to see your legible phrase…';
+      }
+    }
+
+    // ── Copy (simple one-shot) ──
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn?.addEventListener('click', async () => {
+      const phrase = buildPhrase() || 'Pick a field and write to see your legible phrase…';
+      try {
+        await navigator.clipboard.writeText(phrase);
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 1500);
+      } catch (err) {
+        setHint('<i class="fas fa-info-circle"></i> Could not copy. Select and copy manually.');
+      }
+    });
+
+    // ── Save / Share / Publish wraps (goddess-style reveal-subitems) ──
+    const wraps = {
+      save:    document.getElementById('saveWrap'),
+      share:   document.getElementById('shareWrap'),
+      publish: document.getElementById('publishWrap'),
+    };
+    function closeAllWraps(except) {
+      Object.values(wraps).forEach(w => { if (w && w !== except) w.classList.remove('is-open'); });
+    }
+    function toggleWrap(wrap) {
+      const wasOpen = wrap.classList.contains('is-open');
+      closeAllWraps();
+      if (!wasOpen) wrap.classList.add('is-open');
+    }
+    document.getElementById('saveBtn')?.addEventListener('click', e => { e.stopPropagation(); toggleWrap(wraps.save); });
+    document.getElementById('shareBtn')?.addEventListener('click', e => { e.stopPropagation(); toggleWrap(wraps.share); });
+    document.getElementById('publishBtn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      if (wraps.publish.classList.contains('is-open')) {
+        const plat = document.querySelector('input[name="publishPlatform"]:checked');
+        const vis  = document.querySelector('input[name="publishVisibility"]:checked');
+        const platName = plat?.dataset.platform   || '—';
+        const visName  = vis?.dataset.visibility  || '—';
+        setHint(`<i class="fas fa-cloud-upload-alt"></i> Published · ${platName} · ${visName} (${filledFields().length} fields).`);
+        wraps.publish.classList.remove('is-open');
+      } else {
+        closeAllWraps();
+        wraps.publish.classList.add('is-open');
+      }
+    });
+    Object.values(wraps).forEach(w => w?.addEventListener('click', e => e.stopPropagation()));
+    document.addEventListener('click', () => closeAllWraps());
+
+    // ── Save / Share helpers ──
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function buildFullHTML() {
+      const phrase = escapeHTML(buildPhrase() || '(empty)');
+      return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Wanty</title></head>
+<body style="background:#d9e6f2; display:flex; justify-content:center; min-height:100vh; padding:24px; font-family:Inter, system-ui;">
+<div style="max-width:560px; width:100%; background:#fff; padding:1.4rem 1.6rem; border-radius:1.4rem; box-shadow:0 16px 32px -16px rgba(16,52,90,0.25);">
+<h2 style="color:#0a314b; margin-bottom:0.6rem;">Wanty</h2>
+<p style="color:#1f3e58; line-height:1.55; white-space:pre-wrap;">${phrase}</p>
+</div>
+</body></html>`;
+    }
+    function renderJPG(cb) {
+      const W = 720, lineHeight = 22;
+      const phrase = buildPhrase() || '(empty)';
+      const tmp = document.createElement('canvas').getContext('2d');
+      tmp.font = '14px Inter, system-ui';
+      const maxWidth = W - 80;
+      const words = phrase.split(/\s+/);
+      const lines = [];
+      let line = '';
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (tmp.measureText(test).width > maxWidth) { lines.push(line); line = w; }
+        else { line = test; }
+      }
+      if (line) lines.push(line);
+      const H = Math.max(220, 90 + lines.length * lineHeight + 30);
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#d9e6f2'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff';
+      const padX = 24, padY = 24;
+      ctx.fillRect(padX, padY, W - padX*2, H - padY*2);
+      ctx.fillStyle = '#0a314b';
+      ctx.font = '700 22px Inter, system-ui';
+      ctx.fillText('Wanty', padX + 16, padY + 36);
+      ctx.fillStyle = '#1f3e58';
+      ctx.font = '14px Inter, system-ui';
+      lines.forEach((ln, i) => ctx.fillText(ln, padX + 16, padY + 70 + i * lineHeight));
+      canvas.toBlob(cb, 'image/jpeg', 0.92);
+    }
+    function shareUrl(target) {
+      const txt = `Wanty · ${buildPhrase() || '(empty)'}`;
+      const enc = encodeURIComponent(txt);
+      const page = encodeURIComponent(location.href);
+      switch (target) {
+        case 'whatsapp': return `https://wa.me/?text=${enc}%20${page}`;
+        case 'telegram': return `https://t.me/share/url?url=${page}&text=${enc}`;
+        case 'mail':     return `mailto:?subject=${encodeURIComponent('Wanty')}&body=${enc}%0A%0A${page}`;
+      }
+    }
+    const subActions = {
+      'save:jpg':  () => { renderJPG(blob => { if (!blob) { setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; } downloadBlob(blob, 'wanty.jpg'); setHint('<i class="fas fa-check-circle"></i> JPG downloaded.'); }); },
+      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'wanty.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
+      'save:text': () => { downloadBlob(new Blob([buildPhrase() + '\n'], {type:'text/plain'}), 'wanty.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
+      'save:json': () => { const out = {}; filledFields().forEach(f => { out[f.name] = f.values; }); downloadBlob(new Blob([JSON.stringify(out, null, 2)], {type:'application/json'}), 'wanty.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
+      'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
+      'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
+      'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },
+    };
+    document.querySelectorAll('.subitem').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const fn = subActions[`${btn.dataset.group}:${btn.dataset.action}`];
+        if (fn) fn();
+        if (btn.dataset.group !== 'publish') closeAllWraps();
+      });
+    });
+
+    // ── Insight (loop of 5 · general + custom · text shows above buttons) ──
+    const insightBtn = document.getElementById('insightBtn');
+    const insightPanel = document.getElementById('insightPanel');
+    const insightTexts = [
+      // 0 · general
+      () => '✦ Wanty is a flat list of essences — abilities, hobbies, ideas, plans, wants, wishes. There is no order, no hierarchy.',
+      // 1 · custom
+      () => {
+        const f = filledFields();
+        return f.length
+          ? `🔢 ${f.length} of ${fields.length} essences shaped so far. Keep adding — each one sharpens the picture.`
+          : '🔢 Empty essence — start with one field. Even one word makes a beginning.';
+      },
+      // 2 · general
+      () => '🌱 The legible phrase below grows from the fields you fill. Read it aloud once in a while — your shape speaks back.',
+      // 3 · custom
+      () => {
+        const f = filledFields();
+        if (!f.length) return '👁 Pick a field, write or speak — your essence appears here.';
+        return `👁 Your essence touches: ${f.map(x => x.name).join(' · ')}.`;
+      },
+      // 4 · general
+      () => '💡 When you feel ready, copy / share / publish to keep your wants close — or to invite someone in.',
+    ];
+    let insightStep = 0;
+    insightBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      const text = insightTexts[insightStep]();
+      if (insightPanel) {
+        insightPanel.textContent = text;
+        insightPanel.hidden = false;
+      }
+      insightStep = (insightStep + 1) % insightTexts.length;
+    });
+
+    // ── Creative (loop · highlights default view) ──
+    const creativeBtn = document.getElementById('creativeBtn');
+    let creativeStep = 0;
+    const creativeIntros = [
+      '— a first draft of you —\n\n',
+      '— a freer mix —\n\n',
+      '— a poem of you —\n\n'
+    ];
+    function applyCreativeHighlight() {
+      creativeBtn?.classList.toggle('is-default', creativeStep === 0);
+    }
+    function renderCreativePhrase() {
+      const base = buildPhrase();
+      if (!base) {
+        phraseEl.classList.add('empty');
+        phraseEl.textContent = 'Pick a field and write to see your legible phrase…';
+        return;
+      }
+      phraseEl.classList.remove('empty');
+      phraseEl.textContent = creativeStep === 0 ? base : (creativeIntros[creativeStep - 1] + base);
+    }
+    creativeBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      creativeStep = (creativeStep + 1) % 4;
+      renderCreativePhrase();
+      applyCreativeHighlight();
+      setHint(creativeStep === 0
+        ? '<i class="fas fa-leaf"></i> default view'
+        : `<i class="fas fa-sync-alt"></i> creative mix · ${creativeStep} of 3`);
+    });
+    document.addEventListener('input', () => {
+      if (creativeStep !== 0) { creativeStep = 0; applyCreativeHighlight(); }
+    });
+    applyCreativeHighlight();
+
+    // ── Info panel (title toggles · close button + ESC dismiss) ──
+    const aboutBtn = document.getElementById('aboutBtn');
+    const infoPanel = document.getElementById('infoPanel');
+    const infoCloseBtn = document.getElementById('infoCloseBtn');
+    function setInfoOpen(open) {
+      infoPanel.classList.toggle('is-open', open);
+      aboutBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      infoPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (open) infoCloseBtn.focus();
+      else aboutBtn.focus();
+    }
+    aboutBtn?.addEventListener('click', () => {
+      setInfoOpen(!infoPanel.classList.contains('is-open'));
+    });
+    infoCloseBtn?.addEventListener('click', () => setInfoOpen(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && infoPanel.classList.contains('is-open')) setInfoOpen(false);
+    });
+
+    renderFields();
+    renderPhrase();
+  })();
+</script>
+
+</body>
+</html>

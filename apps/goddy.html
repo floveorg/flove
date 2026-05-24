@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>✺ flove</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap">
+    <link rel="stylesheet" href="flove.css">
+    <style>
+        :root {
+            /* flove identity overrides — lavender God(dess) */
+            --app-accent:        #8b5cf6;
+            --app-accent-soft:   #ddd2ff;
+            --app-ink-on-accent: #1f0f4a;
+            --gothic-modern:     'Cinzel', Georgia, serif;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: #f8f9fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 56px 12px 32px;
+        }
+
+        /* fixed top bar override */
+        .flove-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+        /* asterism: pause when idle, run only on user interaction */
+        .flove-bar .flove-asterism { animation-play-state: paused; }
+        body:hover .flove-bar .flove-asterism,
+        body:active .flove-bar .flove-asterism,
+        body:focus-within .flove-bar .flove-asterism { animation-play-state: running; }
+
+        /* logo: 2× the bar's font-size, click reloads (anchor below) */
+        .flove-bar .flove-mark-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+        }
+        .flove-bar .flove-mark { font-size: 32px; }
+
+        .app {
+            max-width: 580px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* matrix — flat, no borders, no fills */
+        .matrix-section { margin: 8px 0 80px; }
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 130px repeat(3, 1fr);
+            padding: 6px;
+        }
+        /* row-header column gets its own taller height — keeps click on
+           data cells from visually crowding the vertical "Goddess/God/Us" labels */
+        .matrix-grid .row-header { min-height: 96px; }
+        /* data cells flush together — no gaps, no rounded corners between cells */
+        .matrix-grid .data-cell { margin: 0; border-radius: 0; }
+        .grid-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 12px 4px;
+            font-weight: 500;
+            min-height: 64px;
+            transition: all 0.15s;
+        }
+        .row-header {
+            font-family: var(--gothic-modern);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #4a385e;
+            font-size: 1rem;
+            justify-content: flex-start;
+            padding-left: 16px;
+            text-transform: uppercase;
+        }
+        .col-header {
+            font-family: var(--gothic-modern);
+            font-weight: 700;
+            color: #2d253b;
+            font-size: 1rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .data-cell {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            font-size: 1.5rem;
+            color: #2e1e42;
+            transition: background 0.25s ease;
+            min-height: 64px;
+        }
+        /* hidden state radios + cycling labels (4 clicks per cell, pure CSS) */
+        .cell-input { position: absolute; opacity: 0; pointer-events: none; inset: 0; width: 0; height: 0; }
+        .cell-cycle { position: absolute; inset: 0; cursor: pointer; display: none; }
+        .data-cell:has(.cell-input[data-lvl="0"]:checked) .cell-cycle[data-from="0"],
+        .data-cell:has(.cell-input[data-lvl="1"]:checked) .cell-cycle[data-from="1"],
+        .data-cell:has(.cell-input[data-lvl="2"]:checked) .cell-cycle[data-from="2"],
+        .data-cell:has(.cell-input[data-lvl="3"]:checked) .cell-cycle[data-from="3"] { display: block; }
+        /* tri-state gray fill: 33% · 66% · 100% (4th click resets) */
+        .data-cell:has(.cell-input[data-lvl="1"]:checked) { background: rgba(60, 60, 75, 0.33); }
+        .data-cell:has(.cell-input[data-lvl="2"]:checked) { background: rgba(60, 60, 75, 0.66); }
+        .data-cell:has(.cell-input[data-lvl="3"]:checked) { background: rgba(60, 60, 75, 1.00); color: #fff; }
+
+        @media (max-width: 420px) {
+            .matrix-grid { grid-template-columns: 70px repeat(3, 1fr); }
+            .row-header { padding-left: 10px; font-size: 0.9rem; }
+            .col-header { font-size: 0.9rem; }
+            .data-cell { min-height: 56px; font-size: 1.3rem; }
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 16px 0 20px;
+            align-items: flex-start;
+        }
+        .btn-with-subs {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
+            min-width: 0;
+            position: relative;
+        }
+        /* subitems-above: floats above the button without shifting it */
+        .subitems-above {
+            position: absolute;
+            left: 0; right: 0;
+            bottom: calc(100% + 4px);
+        }
+        .btn-with-subs .btn { width: 100%; }
+        .subitems {
+            display: flex;
+            gap: 2px;
+            justify-content: stretch;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: max-height 0.25s ease, opacity 0.18s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        .btn-with-subs.is-open .subitems {
+            max-height: 64px;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .subitem {
+            background: rgba(255,255,255,0.85);
+            border: 1px solid #e2d6f5;
+            color: #3a2c4e;
+            padding: 5px 1px;
+            border-radius: 0;
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0;
+            cursor: pointer;
+            flex: 1 1 0;
+            min-width: 0;
+            transition: all 0.15s;
+        }
+        .subitem:hover {
+            background: #fff;
+            border-color: #b59ed6;
+        }
+        /* publish radio behaviour: hide native input, style label */
+        .subitem-radio { position: absolute; opacity: 0; pointer-events: none; width:0; height:0; }
+        .subitem.is-radio { display: inline-flex; align-items: center; justify-content: center; }
+        .subitems:has(.subitem-radio[data-r="0"]:checked) .subitem.is-radio[data-r="0"],
+        .subitems:has(.subitem-radio[data-r="1"]:checked) .subitem.is-radio[data-r="1"],
+        .subitems:has(.subitem-radio[data-r="2"]:checked) .subitem.is-radio[data-r="2"] {
+            background: var(--app-accent);
+            border-color: var(--app-accent);
+            color: #fff;
+        }
+        .btn {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #d9c9f0;
+            padding: 9px 8px;
+            border-radius: 0;
+            font-family: var(--gothic-modern);
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #2d253b;
+            box-shadow: 0 4px 10px -6px rgba(0,0,0,0.08);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            backdrop-filter: blur(4px);
+            transition: all 0.15s;
+        }
+        .btn i { color: #7c6a9c; font-size: 0.8rem; }
+        .btn:hover {
+            background: #ffffff;
+            border-color: #b59ed6;
+            box-shadow: 0 8px 14px -8px rgba(102,70,140,0.18);
+        }
+        .btn-with-subs.is-open > .btn {
+            background: #ffffff;
+            border-color: #b59ed6;
+            box-shadow: 0 6px 12px -6px rgba(102,70,140,0.15);
+        }
+
+        /* Insights */
+        .insights-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0 10px;
+        }
+        .insight-btn {
+            background: #2d253b;
+            color: white;
+            padding: 14px 30px;
+            border-radius: 0;
+            font-size: 1.05rem;
+            font-weight: 500;
+            box-shadow: 0 18px 28px -12px #3d2c55;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: 0.2s;
+            border: 1px solid #5f4b78;
+        }
+        .insight-btn i { color: #d9c5ff; }
+        .insight-btn:hover { background: #3f314f; }
+
+        .hint-area {
+            margin-top: 18px;
+            text-align: center;
+            min-height: 48px;
+            font-size: 1rem;
+            color: #3a2c4e;
+            padding: 12px 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="flove-bar">
+  <a class="flove-home" href="index.html">←</a>
+  <a href="goddess.html" class="flove-mark-link" aria-label="reload" style="display:inline-flex; align-items:center;">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;"><defs><linearGradient id="g-goddess" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c133ff"/><stop offset="50%" stop-color="#6a3aff"/><stop offset="100%" stop-color="#ff8aae"/></linearGradient></defs><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M64 22 a30 30 0 1 0 0 56 a18 18 0 1 1 0 -56 z" fill="url(#g-goddess)" stroke="none"/><circle cx="32" cy="50" r="5" fill="url(#g-goddess)" stroke="none"/></g></svg>
+  </a>
+  <span class="flove-spacer"></span>
+</div>
+
+<div class="app">
+    <!-- Interactive Matrix -->
+    <div class="matrix-section">
+        <div class="matrix-grid" id="matrixGrid">
+            <div class="grid-cell"></div>
+            <div class="grid-cell col-header">Goddess</div>
+            <div class="grid-cell col-header">God</div>
+            <div class="grid-cell col-header">Us</div>
+
+            <div class="grid-cell row-header">Goddess</div>
+            <div class="grid-cell data-cell" data-row="goddess" data-col="goddess">
+                <input class="cell-input" type="radio" name="c00" id="c00-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c00" id="c00-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c00" id="c00-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c00" id="c00-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c00-1" data-from="0" aria-label="see"></label>
+                <label class="cell-cycle" for="c00-2" data-from="1" aria-label="see more"></label>
+                <label class="cell-cycle" for="c00-3" data-from="2" aria-label="see fully"></label>
+                <label class="cell-cycle" for="c00-0" data-from="3" aria-label="reset"></label>
+            </div>
+            <div class="grid-cell data-cell" data-row="goddess" data-col="god">
+                <input class="cell-input" type="radio" name="c01" id="c01-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c01" id="c01-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c01" id="c01-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c01" id="c01-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c01-1" data-from="0"></label>
+                <label class="cell-cycle" for="c01-2" data-from="1"></label>
+                <label class="cell-cycle" for="c01-3" data-from="2"></label>
+                <label class="cell-cycle" for="c01-0" data-from="3"></label>
+            </div>
+            <div class="grid-cell data-cell" data-row="goddess" data-col="us">
+                <input class="cell-input" type="radio" name="c02" id="c02-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c02" id="c02-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c02" id="c02-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c02" id="c02-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c02-1" data-from="0"></label>
+                <label class="cell-cycle" for="c02-2" data-from="1"></label>
+                <label class="cell-cycle" for="c02-3" data-from="2"></label>
+                <label class="cell-cycle" for="c02-0" data-from="3"></label>
+            </div>
+
+            <div class="grid-cell row-header">God</div>
+            <div class="grid-cell data-cell" data-row="god" data-col="goddess">
+                <input class="cell-input" type="radio" name="c10" id="c10-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c10" id="c10-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c10" id="c10-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c10" id="c10-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c10-1" data-from="0"></label>
+                <label class="cell-cycle" for="c10-2" data-from="1"></label>
+                <label class="cell-cycle" for="c10-3" data-from="2"></label>
+                <label class="cell-cycle" for="c10-0" data-from="3"></label>
+            </div>
+            <div class="grid-cell data-cell" data-row="god" data-col="god">
+                <input class="cell-input" type="radio" name="c11" id="c11-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c11" id="c11-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c11" id="c11-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c11" id="c11-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c11-1" data-from="0"></label>
+                <label class="cell-cycle" for="c11-2" data-from="1"></label>
+                <label class="cell-cycle" for="c11-3" data-from="2"></label>
+                <label class="cell-cycle" for="c11-0" data-from="3"></label>
+            </div>
+            <div class="grid-cell data-cell" data-row="god" data-col="us">
+                <input class="cell-input" type="radio" name="c12" id="c12-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c12" id="c12-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c12" id="c12-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c12" id="c12-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c12-1" data-from="0"></label>
+                <label class="cell-cycle" for="c12-2" data-from="1"></label>
+                <label class="cell-cycle" for="c12-3" data-from="2"></label>
+                <label class="cell-cycle" for="c12-0" data-from="3"></label>
+            </div>
+
+            <div class="grid-cell row-header">Us</div>
+            <div class="grid-cell data-cell" data-row="us" data-col="goddess">
+                <input class="cell-input" type="radio" name="c20" id="c20-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c20" id="c20-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c20" id="c20-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c20" id="c20-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c20-1" data-from="0"></label>
+                <label class="cell-cycle" for="c20-2" data-from="1"></label>
+                <label class="cell-cycle" for="c20-3" data-from="2"></label>
+                <label class="cell-cycle" for="c20-0" data-from="3"></label>
+            </div>
+            <div class="grid-cell data-cell" data-row="us" data-col="god">
+                <input class="cell-input" type="radio" name="c21" id="c21-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c21" id="c21-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c21" id="c21-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c21" id="c21-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c21-1" data-from="0"></label>
+                <label class="cell-cycle" for="c21-2" data-from="1"></label>
+                <label class="cell-cycle" for="c21-3" data-from="2"></label>
+                <label class="cell-cycle" for="c21-0" data-from="3"></label>
+            </div>
+            <div class="grid-cell data-cell" data-row="us" data-col="us">
+                <input class="cell-input" type="radio" name="c22" id="c22-0" data-lvl="0" checked aria-hidden="true">
+                <input class="cell-input" type="radio" name="c22" id="c22-1" data-lvl="1" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c22" id="c22-2" data-lvl="2" aria-hidden="true">
+                <input class="cell-input" type="radio" name="c22" id="c22-3" data-lvl="3" aria-hidden="true">
+                <label class="cell-cycle" for="c22-1" data-from="0"></label>
+                <label class="cell-cycle" for="c22-2" data-from="1"></label>
+                <label class="cell-cycle" for="c22-3" data-from="2"></label>
+                <label class="cell-cycle" for="c22-0" data-from="3"></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action buttons with reveal-subitems pattern -->
+    <div class="button-group">
+        <div class="btn-with-subs" id="saveWrap">
+            <button class="btn" id="saveBtn"><i class="fas fa-download"></i> Save</button>
+            <div class="subitems">
+                <button class="subitem" data-group="save" data-action="jpg">JPG</button>
+                <button class="subitem" data-group="save" data-action="html">HTML</button>
+                <button class="subitem" data-group="save" data-action="text">Text</button>
+                <button class="subitem" data-group="save" data-action="json">JSON</button>
+            </div>
+        </div>
+        <div class="btn-with-subs" id="shareWrap">
+            <button class="btn" id="shareBtn"><i class="fas fa-share-alt"></i> Share</button>
+            <div class="subitems">
+                <button class="subitem" data-group="share" data-action="whatsapp">WhatsApp</button>
+                <button class="subitem" data-group="share" data-action="telegram">Telegram</button>
+                <button class="subitem" data-group="share" data-action="mail">Mail</button>
+            </div>
+        </div>
+        <div class="btn-with-subs" id="publishWrap">
+            <div class="subitems subitems-above">
+                <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP0" data-r="0" data-platform="Mastodon" aria-hidden="true">
+                <label class="subitem is-radio" for="pubP0" data-r="0" data-group="publish">Mastodon</label>
+                <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP1" data-r="1" data-platform="Bluesky" aria-hidden="true">
+                <label class="subitem is-radio" for="pubP1" data-r="1" data-group="publish">Bluesky</label>
+                <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP2" data-r="2" data-platform="X" aria-hidden="true">
+                <label class="subitem is-radio" for="pubP2" data-r="2" data-group="publish">X</label>
+            </div>
+            <button class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i> Publish</button>
+            <div class="subitems subitems-below">
+                <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV0" data-r="0" data-visibility="Public" aria-hidden="true">
+                <label class="subitem is-radio" for="pubV0" data-r="0" data-group="publish">Public</label>
+                <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV1" data-r="1" data-visibility="Friends" aria-hidden="true">
+                <label class="subitem is-radio" for="pubV1" data-r="1" data-group="publish">Friends</label>
+                <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV2" data-r="2" data-visibility="Private" aria-hidden="true">
+                <label class="subitem is-radio" for="pubV2" data-r="2" data-group="publish">Private</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights + hint area -->
+    <div class="insights-wrapper">
+        <button class="insight-btn" id="insightsBtn"><i class="fas fa-brain"></i> Insights</button>
+    </div>
+    <div class="hint-area" id="hintMessage"></div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        const rows = ['goddess', 'god', 'us'];
+        const cols = ['goddess', 'god', 'us'];
+
+        const hintMessage = document.getElementById('hintMessage');
+        const saveBtn = document.getElementById('saveBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const publishBtn = document.getElementById('publishBtn');
+        const insightsBtn = document.getElementById('insightsBtn');
+        const wraps = {
+            save: document.getElementById('saveWrap'),
+            share: document.getElementById('shareWrap'),
+            publish: document.getElementById('publishWrap'),
+        };
+
+        function getKey(row, col) { return `${row}:${col}`; }
+        function radioName(key) {
+            const [r, c] = key.split(':');
+            return `c${rows.indexOf(r)}${cols.indexOf(c)}`;
+        }
+        function levelOf(key) {
+            const checked = document.querySelector(`input[name="${radioName(key)}"]:checked`);
+            return checked ? +checked.dataset.lvl : 0;
+        }
+        function levelMap() {
+            // Snapshot of all non-zero cells: Map<key, lvl>
+            const m = new Map();
+            for (const r of rows) for (const c of cols) {
+                const k = getKey(r, c);
+                const l = levelOf(k);
+                if (l > 0) m.set(k, l);
+            }
+            return m;
+        }
+
+        // Generate standalone matrix HTML (for save/share)
+        function generateMatrixHTML() {
+            const caps = s => s.charAt(0).toUpperCase() + s.slice(1);
+            const rowHeaders = rows.map(caps);
+            const colHeaders = cols.map(caps);
+            let html = `<div style="display:grid; grid-template-columns:90px repeat(3,1fr); padding:6px; font-family:system-ui, sans-serif;">`;
+            html += `<div style="padding:12px 4px;"></div>`;
+            colHeaders.forEach(h => html += `<div style="font-weight:600; text-align:center; padding:12px 4px;">${h}</div>`);
+
+            const fillFor = lvl => lvl === 1 ? 'rgba(60,60,75,0.33)' :
+                                    lvl === 2 ? 'rgba(60,60,75,0.66)' :
+                                    lvl === 3 ? 'rgba(60,60,75,1.00)' : 'transparent';
+            rows.forEach((r, idx) => {
+                html += `<div style="font-weight:550; padding-left:16px; display:flex; align-items:center;">${rowHeaders[idx]}</div>`;
+                cols.forEach(c => {
+                    const key = getKey(r, c);
+                    const lvl = levelOf(key);
+                    const color = lvl === 3 ? '#fff' : '#2e1e42';
+                    html += `<div style="padding:12px 4px; text-align:center; background:${fillFor(lvl)}; color:${color};"></div>`;
+                });
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // Full HTML document for download
+        function buildFullHTML() {
+            const matrixHtml = generateMatrixHTML();
+            return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>God(dess) Matrix</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></head>
+<body style="background:#f8f9fc; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:16px; font-family:system-ui;">
+<div style="max-width:500px; width:100%;">
+    ${matrixHtml}
+</div>
+</body></html>`;
+        }
+
+        // ── Subitems reveal pattern ─────────────────────────────────
+        function closeAllWraps(except) {
+            Object.values(wraps).forEach(w => { if (w !== except) w.classList.remove('is-open'); });
+        }
+        function toggleWrap(wrap) {
+            const wasOpen = wrap.classList.contains('is-open');
+            closeAllWraps();
+            if (!wasOpen) wrap.classList.add('is-open');
+        }
+        saveBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleWrap(wraps.save); });
+        shareBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleWrap(wraps.share); });
+        publishBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (wraps.publish.classList.contains('is-open')) {
+                const plat = document.querySelector('input[name="publishPlatform"]:checked');
+                const vis  = document.querySelector('input[name="publishVisibility"]:checked');
+                const platName = plat?.dataset.platform   || '—';
+                const visName  = vis?.dataset.visibility  || '—';
+                setHint(`<i class="fas fa-cloud-upload-alt"></i> Published · ${platName} · ${visName} (${levelMap().size} cells).`);
+                wraps.publish.classList.remove('is-open');
+            } else {
+                closeAllWraps();
+                wraps.publish.classList.add('is-open');
+            }
+        });
+        // clicks inside any open wrap shouldn't bubble to closeAllWraps
+        Object.values(wraps).forEach(w => w.addEventListener('click', e => e.stopPropagation()));
+        document.addEventListener('click', () => closeAllWraps());
+
+        // ── Subitem actions ─────────────────────────────────────────
+        function activeKeys() {
+            return Array.from(levelMap().keys());
+        }
+        function summaryText() {
+            const keys = activeKeys();
+            if (!keys.length) return 'no sees';
+            return keys.map(k => `${k.replace(':', '↔')}·${levelOf(k)}`).join(', ');
+        }
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
+        function setHint(html) { hintMessage.innerHTML = html; }
+
+        // Render the matrix to a JPG blob via canvas
+        function renderMatrixJPG(cb) {
+            const W = 600, H = 480;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#f8f9fc';
+            ctx.fillRect(0, 0, W, H);
+
+            const cellW = (W - 140) / 3;
+            const cellH = 100;
+            const startX = 140, startY = 110;
+
+            ctx.fillStyle = '#2d253b';
+            ctx.font = '700 24px Cinzel, Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('GOD(DESS) MATRIX', W/2, 40);
+            ctx.font = 'italic 13px system-ui';
+            ctx.fillStyle = '#8b8398';
+            ctx.fillText('who sees who', W/2, 64);
+
+            ctx.font = '600 16px system-ui';
+            ctx.fillStyle = '#2d253b';
+            cols.forEach((c, i) => {
+                ctx.fillText(c.charAt(0).toUpperCase()+c.slice(1), startX + cellW * (i + 0.5), startY - 14);
+            });
+
+            rows.forEach((r, ri) => {
+                ctx.textAlign = 'left';
+                ctx.font = '700 14px Cinzel, Georgia, serif';
+                ctx.fillStyle = '#4a385e';
+                ctx.fillText(r.toUpperCase(), 16, startY + cellH * (ri + 0.5) + 5);
+
+                cols.forEach((c, ci) => {
+                    const lvl = levelOf(getKey(r, c));
+                    const fill = lvl === 1 ? 'rgba(60,60,75,0.33)' :
+                                 lvl === 2 ? 'rgba(60,60,75,0.66)' :
+                                 lvl === 3 ? 'rgba(60,60,75,1.00)' : 'rgba(255,255,255,0.6)';
+                    const x = startX + cellW * ci, y = startY + cellH * ri;
+                    ctx.fillStyle = fill;
+                    ctx.fillRect(x, y, cellW, cellH);
+                    ctx.strokeStyle = 'rgba(60,60,75,0.12)';
+                    ctx.strokeRect(x, y, cellW, cellH);
+                });
+            });
+
+            canvas.toBlob(cb, 'image/jpeg', 0.92);
+        }
+
+        // Share intents — open the platform's web/app URL with prefilled text
+        function shareUrl(target) {
+            const txt = `God(dess) Matrix · ${summaryText()}`;
+            const enc = encodeURIComponent(txt);
+            const page = encodeURIComponent(location.href);
+            switch (target) {
+                case 'whatsapp': return `https://wa.me/?text=${enc}%20${page}`;
+                case 'telegram': return `https://t.me/share/url?url=${page}&text=${enc}`;
+                case 'mail':     return `mailto:?subject=${encodeURIComponent('God(dess) Matrix')}&body=${enc}%0A%0A${page}`;
+            }
+        }
+
+        const subActions = {
+            'save:html': () => {
+                downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'goddess_matrix.html');
+                setHint('<i class="fas fa-check-circle"></i> HTML file downloaded.');
+            },
+            'save:text': () => {
+                downloadBlob(new Blob([`God(dess) Matrix\n${summaryText()}\n`], {type:'text/plain'}), 'goddess_matrix.txt');
+                setHint('<i class="fas fa-check-circle"></i> Text file downloaded.');
+            },
+            'save:json': () => {
+                const data = Object.fromEntries(levelMap());
+                downloadBlob(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}), 'goddess_matrix.json');
+                setHint('<i class="fas fa-check-circle"></i> JSON file downloaded.');
+            },
+            'save:jpg': () => {
+                renderMatrixJPG(blob => {
+                    if (!blob) { setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; }
+                    downloadBlob(blob, 'goddess_matrix.jpg');
+                    setHint('<i class="fas fa-check-circle"></i> JPG file downloaded.');
+                });
+            },
+            'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
+            'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
+            'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },
+        };
+
+        document.querySelectorAll('.subitem').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const fn = subActions[`${btn.dataset.group}:${btn.dataset.action}`];
+                if (fn) fn();
+                if (btn.dataset.group !== 'publish') closeAllWraps();
+            });
+        });
+
+        // ── Insights: one-time onboarding hint, then tri-cycle ─────
+        let firstInsight = true;
+        let insightStep = 0;
+        function describeSymbolism(keys) {
+            if (!keys.length) return 'Empty mirror — nothing to interpret.';
+            const set = new Set(keys);
+            const out = [];
+            if (set.has('goddess:god') && set.has('god:goddess')) out.push('Mutual gaze.');
+            if (set.has('us:us'))           out.push('Self-awareness.');
+            if (set.has('goddess:goddess')) out.push('Goddess self-reflection.');
+            if (set.has('god:god'))         out.push('Divine introspection.');
+            if (set.has('us:goddess') && set.has('us:god')) out.push('We see both divines.');
+            return out.length ? out.join(' ') : 'Glimpse — no archetypal pattern yet.';
+        }
+        function showInsightHint() {
+            if (firstInsight) {
+                setHint('🪶 Click cells for who sees who');
+                firstInsight = false;
+                return;
+            }
+            const keys = activeKeys();
+            const count = keys.length;
+            const map = levelMap();
+            const totalIntensity = Array.from(map.values()).reduce((s, l) => s + l, 0);
+            let hint = '';
+            if (insightStep === 0) {
+                hint = count
+                    ? `🔢 ${count} connection${count!==1?'s':''} mapped · intensity ${totalIntensity}/${9*3}.`
+                    : '🔢 No cells active yet.';
+            } else if (insightStep === 1) {
+                hint = `📖 More in <a href="../docs/index.html#metaphysics" style="color:var(--app-accent); text-decoration:underline;">Docs · Metaphysics</a>`;
+            } else {
+                hint = `👁️ ${describeSymbolism(keys)}`;
+            }
+            setHint(hint);
+            insightStep = (insightStep + 1) % 3;
+        }
+        insightsBtn.addEventListener('click', (e) => { e.stopPropagation(); showInsightHint(); });
+    })();
+</script>
+
+</body>
+</html>

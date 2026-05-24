@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover">
+<title>✺ flove · Freed · Gifting Declaration</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../flove.css">
+<style>
+  :root{
+    --app-accent:        #10b981;
+    --app-accent-soft:   #d1fae5;
+    --app-ink-on-accent: #022c22;
+
+    --paper:       #f7fdfb;
+    --paper-warm:  #ecfdf5;
+    --ink:         #052e25;
+    --ink-soft:    #14503e;
+    --muted:       #6a8d83;
+    --line:        rgba(5,80,60,.08);
+    --line-strong: rgba(5,80,60,.16);
+    --gold:        #f59e0b;
+
+    --accent:      #10b981;
+    --accent-deep: #047857;
+    --accent-soft: #d1fae5;
+    --accent-glow: rgba(16,185,129,.22);
+
+    --radius-sm: 12px; --radius: 18px; --radius-lg: 24px; --radius-pill: 999px;
+    --shadow-xs: 0 1px 2px rgba(5,80,60,.05);
+    --shadow-sm: 0 4px 12px -4px rgba(5,80,60,.10);
+    --fast: .15s cubic-bezier(.2,.8,.2,1);
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-display: 'Fraunces', Georgia, serif;
+  }
+  *{ box-sizing:border-box }
+  body{
+    margin:0; font:15px/1.55 var(--font-ui); color:var(--ink);
+    background:
+      radial-gradient(900px 600px at 90% -10%, var(--accent-soft) 0%, transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, var(--paper-warm) 0%, transparent 55%),
+      var(--paper);
+    min-height:100vh; padding-bottom: 60px;
+  }
+
+  /* ===== TOPBAR ===== transparent, lets background show through */
+  .flove-bar{
+    position: sticky; top: 0; z-index: 50;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: none !important;
+  }
+  .flove-bar .flove-mark{ font-size:26px; color:var(--accent); filter:drop-shadow(0 0 6px var(--accent-glow)) }
+  .flove-bar .flove-mark-link{ display: inline-flex; align-items: center; text-decoration: none; color: inherit }
+  .flove-bar .flove-app-name{ font-family:var(--font-display); font-weight:600; color: var(--accent-deep) }
+
+  .flove-title-btn{
+    background: transparent; border: 0; padding: 4px 10px; margin: 0;
+    font: inherit; cursor: pointer; border-radius: 8px;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .flove-title-btn:hover{ background: var(--accent-soft); transform: translateY(-1px) }
+  .flove-title-btn[aria-expanded="true"]{ background: var(--accent-soft) }
+
+  /* "All" sections toggle — sits just left of the top-right menu */
+  .topbar-all{
+    margin-left: auto;
+    cursor: pointer; user-select: none;
+    padding: 5px 13px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    background: #fff; color: var(--ink-soft);
+    font: 700 .68rem/1 var(--font-ui); letter-spacing: .06em; text-transform: uppercase;
+    transition: all var(--fast);
+  }
+  .topbar-all:hover{ border-color: var(--accent); color: var(--accent-deep) }
+  body:has(#sec-all:checked) .topbar-all{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 6px 14px -4px var(--accent-glow);
+  }
+
+  /* top-right menu */
+  .top-menu{ position: relative; display: inline-block; margin-left: 10px }
+  .menu-btn{
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--accent-deep); font-size: 22px; line-height: 1;
+    padding: .15em .35em;
+    transition: transform .15s ease;
+  }
+  .menu-btn:hover{ transform: scale(1.06) }
+  .menu-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px }
+  .menu-list{
+    position: absolute; right: 0; top: calc(100% + 6px);
+    list-style: none; margin: 0; padding: 6px 0;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    min-width: 200px; z-index: 80;
+    box-shadow: 0 12px 30px -10px rgba(5,80,60,.25);
+  }
+  .menu-list[hidden]{ display: none }
+  .menu-list li{ margin: 0 }
+  .menu-list li a{
+    display: block; padding: .6em 1em; text-decoration: none; color: var(--ink);
+    font: 500 14px/1.2 var(--font-ui);
+  }
+  .menu-list li a:hover{ background: var(--accent-soft); color: var(--accent-deep) }
+
+  /* ===== INTRO SECTION (toggled by title click) ===== */
+  #introSection{
+    max-width: 900px;
+    margin: 6px auto 12px;
+    padding: 18px 22px;
+    background: rgba(16,185,129,.06);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    text-align: center;
+  }
+  #introSection[hidden]{ display: none }
+  #introSection .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 3px 12px;
+    background: var(--accent-soft); color: var(--accent-deep);
+    border-radius: var(--radius-pill);
+    font: 700 .7rem/1.4 var(--font-ui); letter-spacing:.08em; text-transform: uppercase;
+  }
+  #introSection h1{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    margin: 8px 0 4px; letter-spacing:-.01em;
+  }
+  #introSection p{ margin: 4px 0 0; color: var(--muted) }
+
+  .container{ max-width:1000px; margin:0 auto; padding: 16px 18px 0 }
+
+  .actions-bar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 18px; justify-content:flex-end }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 10px 16px; border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong); background: #fff; color: var(--ink);
+    font: 600 .85rem/1 var(--font-ui); cursor: pointer;
+    transition: all var(--fast); text-decoration:none; box-shadow: var(--shadow-xs);
+  }
+  .btn:hover{ border-color: var(--accent); color: var(--accent-deep); transform: translateY(-1px) }
+  .btn.primary{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 8px 18px -6px var(--accent-glow);
+  }
+  .btn.primary:hover{ color: #fff; filter: brightness(1.06) }
+  .btn.small{ padding: 8px 12px; font-size: .82rem }
+
+  .card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin: 0 0 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-title{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.05rem; margin: 0 0 14px;
+    color: var(--accent-deep);
+  }
+
+  fieldset{ border: 0; padding: 0; margin: 0 }
+  .grid{ display:grid; gap: 10px }
+  .cols-2{ grid-template-columns: repeat(2, minmax(0,1fr)) }
+  .cols-3{ grid-template-columns: repeat(3, minmax(0,1fr)) }
+  @media (max-width: 480px){ .cols-2, .cols-3{ grid-template-columns: 1fr } }
+
+  .pill{
+    position: relative;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--paper);
+    border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    cursor: pointer; font-weight: 500; font-size: .92rem;
+    transition: all var(--fast);
+  }
+  .pill:hover{ background:#fff; border-color: var(--accent); transform: translateY(-1px) }
+  .pill input{ position: absolute; opacity: 0; pointer-events: none }
+  .pill .tick{
+    width: 18px; height: 18px; flex-shrink: 0;
+    border: 2px solid var(--line-strong); border-radius: 4px;
+    background: #fff; display:grid; place-items:center;
+    transition: all var(--fast);
+  }
+  .pill.radio .tick{ border-radius: 50% }
+  .pill input:checked + .tick{
+    background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .pill input:checked + .tick::after{
+    content: "✓"; color: #fff; font: 700 11px/1 var(--font-ui);
+  }
+  .pill.radio input:checked + .tick::after{ content:""; width:7px; height:7px; background:#fff; border-radius:50% }
+  .pill:has(input:checked){
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+  .pill strong{ font-weight: 700 }
+  .pill .txt em{ font-style: italic; color: var(--ink-soft) }
+
+  textarea, input[type=text], input[type=datetime-local]{
+    width: 100%;
+    padding: 11px 13px;
+    background: var(--paper);
+    border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    font: 14px/1.45 var(--font-ui); color: inherit;
+    transition: all var(--fast);
+  }
+  textarea{ min-height: 78px; resize: vertical }
+  textarea:focus, input[type=text]:focus, input[type=datetime-local]:focus{
+    outline: none; border-color: var(--accent); background: #fff;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .sub-label{
+    display: block;
+    font: 700 11px/1.3 var(--font-ui); letter-spacing:.05em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 6px;
+  }
+
+  /* ===== Inline "I freed my [input]" ===== */
+  .inline-decl{
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .inline-decl .freed-text{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.25rem; color: var(--accent-deep);
+    white-space: nowrap;
+  }
+  .inline-decl input[type=text]{ flex: 1; min-width: 200px }
+
+  /* ===== Inline "Where" row with Map button ===== */
+  .where-row{
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .where-row .where-label{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.25rem; color: var(--accent-deep);
+    white-space: nowrap;
+  }
+  .where-row input[type=text]{ flex: 1; min-width: 150px }
+  .map-btn{
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 12px; border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong); background: #fff; color: var(--accent-deep);
+    font: 600 .82rem/1 var(--font-ui); cursor: pointer;
+    transition: all var(--fast); box-shadow: var(--shadow-xs);
+  }
+  .map-btn:hover{ border-color: var(--accent); transform: translateY(-1px); color: var(--accent) }
+  .map-btn i{ font-size: .9rem }
+
+  /* ===== Map dialog ===== */
+  .map-dialog{
+    border: 0; padding: 0;
+    width: min(680px, 92vw); height: min(560px, 86vh);
+    background: #fff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 50px -10px rgba(5,80,60,.4);
+    overflow: hidden;
+  }
+  .map-dialog::backdrop{ background: rgba(5,46,37,.5); backdrop-filter: blur(4px) }
+  .map-dialog .map-head{
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line-strong);
+    background: var(--paper);
+  }
+  .map-dialog .map-head h3{
+    margin: 0;
+    font: 600 1rem/1 var(--font-display); color: var(--accent-deep);
+    flex: 1;
+  }
+  .map-dialog .map-head .map-coords{
+    font: 500 .8rem/1 var(--font-ui); color: var(--muted);
+    background: #fff; padding: 6px 10px; border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+  }
+  .map-dialog .map-head .map-close{
+    background: transparent; border: 0; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 50%;
+    color: var(--ink-soft); font-size: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .map-dialog .map-head .map-close:hover{ background: var(--accent-soft); color: var(--accent-deep) }
+  .map-dialog #mapEl{ height: calc(100% - 110px); width: 100% }
+  .map-dialog .map-foot{
+    display: flex; gap: 8px; justify-content: flex-end;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line-strong);
+    background: var(--paper);
+  }
+
+  /* ===== Split layout: textarea left, stacked checks right ===== */
+  .split-layout{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .split-layout .left-pane textarea{
+    height: 100%; min-height: 100%;
+    resize: vertical;
+  }
+  .split-layout .right-pane{
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .split-layout .right-pane .pill{ width: 100% }
+  @media (max-width: 600px){
+    .split-layout{ grid-template-columns: 1fr }
+  }
+
+  /* ===== Curse section ===== */
+  /* curse pill looks neutral until ticked — only then the warning styling */
+  .curse-col .pill:has(input:checked){
+    background: linear-gradient(135deg, #fee2e2, #fef3c7);
+    border-color: #f97316;
+    color: #7c2d12;
+    animation: wob 1.2s ease-in-out infinite;
+  }
+  @keyframes wob{ 0%,100%{transform:rotate(-.5deg)} 50%{transform:rotate(.5deg)} }
+  .curse-col .pill:has(input:checked) .tick{ background: #f97316; border-color: #f97316 }
+
+  .curse-expand{
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height .3s ease, opacity .25s ease, margin .25s ease;
+    margin-top: 0;
+  }
+  .curse-col:has(#curse:checked) .curse-expand{
+    max-height: 560px; opacity: 1; margin-top: 10px;
+  }
+
+  /* Wish bottom row: textarea matches curse column height */
+  .wish-bottom .wish-saying{ display: flex }
+  .wish-bottom .wish-saying textarea{
+    width: 100%; height: 100%;
+    min-height: 78px; resize: vertical;
+  }
+  .wish-bottom .curse-col{ display: flex; flex-direction: column }
+  .curse-expand textarea{
+    background: #fff7ed;
+    border-color: #fbbf24;
+  }
+  .curse-link{
+    margin: 8px 0 0;
+    font-size: .88rem;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .curse-link a{ color: #b45309; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #b45309 }
+  .curse-link a:hover{ background: #fef3c7 }
+
+  /* ===== Summary ===== */
+  .summary{
+    background: linear-gradient(135deg, var(--paper-warm), #fff);
+    border: 2px dashed var(--accent);
+    padding: 20px;
+  }
+  .summary h3{
+    font-family: var(--font-display); font-weight: 600; font-size: 1.15rem;
+    margin: 0 0 10px;
+    color: var(--accent-deep);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pretty{
+    margin: 0; padding: 16px 18px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: 500 1.05rem/1.65 var(--font-display);
+    color: var(--ink);
+  }
+  .pretty .seg{ display:none }
+  .pretty .seg strong{
+    color: var(--accent-deep); font-weight: 700;
+    background: var(--accent-soft); padding: 1px 6px; border-radius: 6px;
+  }
+  .signature{
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  .signature label{ display:block; color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 600 }
+  .signature .line{
+    min-height: 2rem;
+    border-bottom: 1px dashed var(--accent);
+    outline: none; padding: 6px 2px;
+    font-family: var(--font-display); font-style: italic; font-size: 1.1rem;
+    color: var(--accent-deep);
+  }
+
+  /* :has() for sentence segments */
+  #decl:has(#thing-name:not(:placeholder-shown)) .s-thing,
+  #decl:has(#thing-desc:not(:placeholder-shown)) .s-desc,
+  #decl:has(#where:not(:placeholder-shown))      .s-where,
+  #decl:has(#no-rules:checked) .s-norules,
+  #decl:has(#no-law:checked)   .s-nolaw,
+  #decl:has(#how:not(:placeholder-shown))        .s-how,
+  #decl:has(#own-none:checked)        .s-own-none,
+  #decl:has(#own-noone:checked)       .s-own-noone,
+  #decl:has(#own-notme:checked)       .s-own-notme,
+  #decl:has(#own-ours:checked)        .s-own-ours,
+  #decl:has(#own-ours-strong:checked) .s-own-ours-strong,
+  #decl:has(#scope-world:checked)    .s-world,
+  #decl:has(#scope-universe:checked) .s-universe,
+  #decl:has(#scope-nature:checked)   .s-nature,
+  #decl:has(#scope-humanity:checked) .s-humanity,
+  #decl:has(#wish-past:checked)     .s-past,
+  #decl:has(#wish-concrete:checked) .s-concrete,
+  #decl:has(#wish-abstract:checked) .s-abstract,
+  #decl:has(#wish-eternity:checked) .s-eternity,
+  #decl:has(#saying:not(:placeholder-shown)) .s-saying,
+  #decl:has(#curse:checked) .s-curse,
+  #decl:has(#curse-detail:not(:placeholder-shown)) .s-curse-detail,
+  #decl:has(#time-span:valid) .s-span{ display:inline }
+  /* Tag selections in the declaration */
+  #decl:has(#tag-regular:checked)  .s-tag-regular,
+  #decl:has(#tag-abundant:checked) .s-tag-abundant,
+  #decl:has(#tag-new:checked)      .s-tag-new,
+  #decl:has(#tag-used:checked)     .s-tag-used,
+  #decl:has(#tag-vintage:checked)  .s-tag-vintage,
+  #decl:has(#tag-handmade:checked) .s-tag-handmade,
+  #decl:has(#tag-eco:checked)      .s-tag-eco,
+  #decl:has(#tag-rare:checked)     .s-tag-rare,
+  #decl:has(#tag-fragile:checked)  .s-tag-fragile,
+  #decl:has(#tag-heavy:checked)    .s-tag-heavy,
+  #decl:has(#tag-tiny:checked)     .s-tag-tiny,
+  #decl:has(#tag-local:checked)    .s-tag-local{ display:inline }
+  #decl:has(#tag-regular:checked, #tag-abundant:checked, #tag-new:checked,
+            #tag-used:checked, #tag-vintage:checked, #tag-handmade:checked,
+            #tag-eco:checked, #tag-rare:checked, #tag-fragile:checked,
+            #tag-heavy:checked, #tag-tiny:checked, #tag-local:checked) .s-tags{ display:inline }
+
+  .center{ display:flex; justify-content:center; margin-top: 18px }
+
+  /* ===== Hackboth-style action buttons in summary ===== */
+  .action-row{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 18px;
+    align-items: flex-start;
+  }
+  .btn-with-subs{
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 4px; min-width: 0; position: relative;
+  }
+  .btn-with-subs .btn{ width: 100% }
+  .subitems{
+    display: flex; gap: 4px; justify-content: stretch; overflow: hidden;
+    max-height: 0; opacity: 0; transform: translateY(-4px);
+    transition: max-height .25s ease, opacity .18s ease, transform .2s ease, margin .2s ease;
+    pointer-events: none;
+    margin: 0;
+  }
+  .btn-with-subs.is-open .subitems-above{ margin-bottom: 4px }
+  .btn-with-subs.is-open .subitems-below{ margin-top: 4px }
+  .btn-with-subs.is-open .subitems{
+    max-height: 80px; opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+  .subitem{
+    background: var(--paper);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    padding: 6px 4px;
+    border-radius: var(--radius-sm);
+    font: 700 .72rem/1 var(--font-ui);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    flex: 1 1 0;
+    min-width: 0;
+    transition: all .15s;
+  }
+  .subitem:hover{
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+  .subitem-radio{ position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0 }
+  .subitem.is-radio{ display: inline-flex; align-items: center; justify-content: center }
+  .subitems:has(.subitem-radio[data-r="0"]:checked) .subitem.is-radio[data-r="0"],
+  .subitems:has(.subitem-radio[data-r="1"]:checked) .subitem.is-radio[data-r="1"]{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-with-subs.is-open > .btn{
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+  /* Schedule datetime field: only when "Schedule" radio is checked */
+  .publish-when{
+    grid-column: 1 / -1;
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height .25s ease, opacity .2s ease, margin .2s ease;
+    margin-top: 0;
+  }
+  .action-row:has(#pubW1:checked) .publish-when{
+    max-height: 80px; opacity: 1; margin-top: 8px;
+  }
+  .publish-when input[type=datetime-local]{ background: #fff }
+
+  .toast{
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(12px);
+    background: var(--ink); color: #fff;
+    padding: 10px 18px; border-radius: var(--radius-pill);
+    font: 600 13px/1 var(--font-ui);
+    opacity: 0; pointer-events: none; transition: all .25s; z-index: 100;
+  }
+  .toast.is-visible{ opacity: 1; transform: translateX(-50%) translateY(0) }
+
+  /* ===== Field with mic + magic bots (lovely / joy / wisdom) ===== */
+  .ta-field{ position: relative; margin-bottom: 26px }
+  .ta-field textarea{ width: 100% }
+  .ta-field.ta-fill{ display: flex; flex-direction: column; height: 100% }
+  .ta-field.ta-fill textarea{ flex: 1 }
+  .ta-bottom-tools{
+    position: absolute; left: 50%; bottom: -16px;
+    transform: translateX(-50%);
+    display: inline-flex; gap: 6px; z-index: 3;
+  }
+  .ta-tool{
+    position: relative;
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #fff; border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    font: 1rem/1 var(--font-ui); cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .ta-tool:hover{
+    border-color: var(--accent); color: var(--accent-deep);
+    background: var(--accent-soft); transform: translateY(-1px);
+  }
+  .ta-tool.opt-magic{ color: var(--accent) }
+  .ta-tool.opt-magic.is-on,
+  .ta-tool.ta-mic.is-rec{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: transparent;
+  }
+  .ta-tool.ta-mic.is-rec{ animation: micPulse 1.2s infinite }
+  @keyframes micPulse{ 0%,100%{ box-shadow: 0 0 0 0 var(--accent-glow) } 50%{ box-shadow: 0 0 0 8px transparent } }
+  .ta-field:has(.opt-magic.is-on) textarea{
+    border-color: var(--accent);
+    background: linear-gradient(180deg, #fff, var(--accent-soft));
+  }
+  .bot-row{
+    align-items: center; gap: 4px;
+    padding-left: 6px; margin-left: 2px;
+    border-left: 1px dashed var(--line-strong);
+  }
+  /* Textarea tools: the bot-row keeps a fixed reserved slot, so the magic
+     button never shifts as the lovely/joy/wisdom bots expand or collapse. */
+  .ta-bottom-tools .bot-row{
+    display: inline-flex; width: 146px; visibility: hidden;
+  }
+  .ta-bottom-tools:has(.opt-magic.is-on) .bot-row{ visibility: visible }
+  /* Title-field tools — mic + magic inline beside the title; bots expand */
+  .title-tools{ display: inline-flex; align-items: center; gap: 6px }
+  .title-tools .bot-row{ display: none }
+  .title-tools:has(.opt-magic.is-on) .bot-row{ display: inline-flex }
+  .bot-pick{
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #fff; border: 1px solid var(--line-strong);
+    cursor: pointer; font-size: 1rem; line-height: 1; padding: 0;
+    display: inline-grid; place-items: center;
+    transition: all var(--fast);
+  }
+  .bot-pick:hover{ transform: translateY(-2px); border-color: var(--accent) }
+  .bot-pick.is-on{
+    background: var(--accent-soft); border-color: var(--accent);
+    transform: scale(1.06); box-shadow: 0 4px 10px -2px var(--accent-glow);
+  }
+  .bot-pick[data-bot="lovely"].is-on{ background: #fce7f3; border-color: #ec4899 }
+  .bot-pick[data-bot="joy"].is-on{    background: #fef3c7; border-color: #f59e0b }
+  .bot-pick[data-bot="wisdom"].is-on{ background: #fee2e2; border-color: #ef4444 }
+  .bot-pick.bot-close{ color: var(--muted); font-size: .85rem }
+  .bot-pick.bot-close:hover{ color: var(--accent-deep); background: var(--accent-soft) }
+
+  /* ===== Stretchy 2-col row (right cell matches left column height) ===== */
+  .row-2{
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    gap: 14px; align-items: stretch;
+  }
+  @media (max-width: 600px){ .row-2{ grid-template-columns: 1fr } }
+  /* Beware: keep the curse pill at its natural height beside the textarea */
+  .curse-col.row-2{ align-items: start }
+
+  /* ===== Toggle buttons grid — 3 + 2 + 2 (checkbox tick removed) ===== */
+  .btn-col{
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    gap: 8px; align-content: start;
+  }
+  .btn-col .pill{ width: 100% }
+  .btn-col .pill:nth-child(-n+3){ grid-column: span 2 }   /* row 1 → 3 */
+  .btn-col .pill:nth-child(n+4) { grid-column: span 3 }   /* rows 2-3 → 2 + 2 */
+  @media (max-width: 600px){
+    .btn-col{ grid-template-columns: 1fr }
+    .btn-col .pill{ grid-column: auto }
+  }
+
+  /* ===== Time-span dropdown ===== */
+  .span-row{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+  .span-row .where-label{
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.25rem; color: var(--accent-deep); white-space: nowrap;
+  }
+  .span-select{
+    flex: 1; min-width: 150px;
+    padding: 11px 13px;
+    background: var(--paper);
+    border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    font: 14px/1.45 var(--font-ui); color: inherit; cursor: pointer;
+    transition: all var(--fast);
+  }
+  .span-select:focus{
+    outline: none; border-color: var(--accent); background: #fff;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* ===== Section navigation (buttons row, shareful-style) ===== */
+  .secnav-radio{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
+  .section-buttons{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap:10px; margin: 0 0 18px;
+  }
+  .section-btn{
+    display:flex; flex-direction:column; align-items:center; gap:9px;
+    text-align:center; padding: 16px 10px;
+    background:#fff;
+    border:1px solid var(--line-strong); border-radius: var(--radius-lg);
+    cursor:pointer; user-select:none;
+    font: 700 .9rem/1.2 var(--font-ui); color: var(--ink);
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .section-btn:hover{
+    border-color: var(--accent); color: var(--accent-deep);
+    transform: translateY(-2px); box-shadow: var(--shadow-sm);
+  }
+  .section-btn .sb-icon{ width:28px; height:28px; color: var(--accent); transition: color var(--fast) }
+  .section-btn .sb-icon svg{ width:100%; height:100%; display:block }
+  #decl:has(#sec-1:checked)   .section-btn[data-sec="1"],
+  #decl:has(#sec-2:checked)   .section-btn[data-sec="2"],
+  #decl:has(#sec-3:checked)   .section-btn[data-sec="3"],
+  #decl:has(#sec-4:checked)   .section-btn[data-sec="4"]{
+    border-color: transparent; color:#fff;
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    box-shadow: 0 10px 22px -8px var(--accent-glow);
+  }
+  #decl:has(#sec-1:checked) .section-btn[data-sec="1"] .sb-icon,
+  #decl:has(#sec-2:checked) .section-btn[data-sec="2"] .sb-icon,
+  #decl:has(#sec-3:checked) .section-btn[data-sec="3"] .sb-icon,
+  #decl:has(#sec-4:checked) .section-btn[data-sec="4"] .sb-icon{ color:#fff }
+
+  /* only the active section's card is shown */
+  #decl > .card{ display:none }
+  #decl:has(#sec-1:checked) > .card[data-sec="1"],
+  #decl:has(#sec-2:checked) > .card[data-sec="2"],
+  #decl:has(#sec-3:checked) > .card[data-sec="3"],
+  #decl:has(#sec-4:checked) > .card[data-sec="4"],
+  #decl:has(#sec-all:checked) > .card{ display:block }
+
+  /* ===== Tag area below the title (3 tiers, nested + reveals) ===== */
+  .tag-toggle{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
+  .tag-area{ margin-top: 10px; display:flex; flex-direction:column; gap:8px }
+  .tag-row{ display:flex; flex-wrap:wrap; gap:6px; align-items:center }
+  .tag-btn{
+    display:inline-flex; align-items:center;
+    padding: 7px 13px;
+    background: var(--paper);
+    border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
+    cursor:pointer; font: 600 .82rem/1 var(--font-ui); color: var(--ink);
+    transition: all var(--fast);
+  }
+  .tag-btn:hover{ border-color: var(--accent); color: var(--accent-deep) }
+  .tag-btn input{ position:absolute; opacity:0; pointer-events:none; width:0; height:0 }
+  .tag-btn:has(:checked){
+    background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep);
+  }
+  /* one selected → dim the rest of that row */
+  .tag-row:has(:checked) .tag-btn:not(:has(:checked)){ opacity:.5 }
+  .tag-plus{
+    width: 30px; height: 30px; flex-shrink:0;
+    display:inline-grid; place-items:center;
+    background:#fff; border:1px solid var(--line-strong); border-radius:50%;
+    color: var(--ink-soft); font-size:1.05rem; line-height:1;
+    cursor:pointer; transition: all var(--fast);
+  }
+  .tag-plus:hover{ border-color: var(--accent); color: var(--accent-deep); background: var(--accent-soft) }
+  #decl:has(#tags-more2:checked) .tag-plus[for="tags-more2"]{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color:#fff; border-color:transparent; transform: rotate(45deg);
+  }
+  .tag-tier3{ display:none; flex-direction:column; gap:6px }
+  #decl:has(#tags-more2:checked) .tag-tier3{ display:flex }
+
+  /* ===== Invitation — collapsible panel at the foot of the form ===== */
+  /* hidden until the form has at least one selection / entry */
+  .invitation{ margin-top: 6px; display: none }
+  .invitation.inv-shown{ display: block }
+  .inv-toggle{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
+  .inv-btn{
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    width:100%; padding: 18px 22px;
+    border:1px solid var(--accent); border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--accent-soft), var(--accent) calc(var(--fill,0) * 62%));
+    color: var(--accent-deep); cursor:pointer; user-select:none;
+    font-family: var(--font-display); font-weight:600;
+    font-size: 1.35rem; letter-spacing:.06em; text-align:center;
+    box-shadow: var(--shadow-sm);
+    transition: background .35s ease, transform var(--fast);
+  }
+  .inv-btn:hover{ transform: translateY(-1px) }
+  .inv-btn .inv-caret{ font-size:.85rem; transition: transform var(--fast) }
+  .invitation:has(.inv-toggle:checked) .inv-btn .inv-caret{ transform: rotate(180deg) }
+  .inv-body{
+    overflow:hidden; max-height:0; opacity:0;
+    transition: max-height .4s ease, opacity .3s ease, margin .3s ease;
+  }
+  .invitation:has(.inv-toggle:checked) .inv-body{
+    max-height: 3000px; opacity:1; margin-top: 14px;
+  }
+
+  @media print{
+    .flove-bar, .actions-bar, .btn, .top-menu, .section-buttons{ display:none !important }
+    body{ background:#fff }
+    #decl > .card{ display:block !important }
+    .inv-body{ max-height:none !important; opacity:1 !important }
+    .card{ box-shadow:none; border:1px solid #ccc; page-break-inside: avoid }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important }
+  }
+</style>
+</head>
+<body>
+
+<div class="flove-bar">
+  <a class="flove-mark-link" href="freed.html" aria-label="Reload Freed">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.18em; overflow:visible;">
+      <defs>
+        <linearGradient id="g-freed" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#10b981"/>
+          <stop offset="60%" stop-color="#84cc16"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <g stroke="url(#g-freed)" stroke-width="6" stroke-linecap="round" fill="none">
+        <circle cx="50" cy="50" r="16"/>
+        <line x1="50" y1="8"  x2="50" y2="22"/>
+        <line x1="50" y1="78" x2="50" y2="92"/>
+        <line x1="8"  y1="50" x2="22" y2="50"/>
+        <line x1="78" y1="50" x2="92" y2="50"/>
+        <line x1="20" y1="20" x2="30" y2="30"/>
+        <line x1="70" y1="70" x2="80" y2="80"/>
+        <line x1="80" y1="20" x2="70" y2="30"/>
+        <line x1="30" y1="70" x2="20" y2="80"/>
+      </g>
+      <circle cx="50" cy="50" r="6" fill="url(#g-freed)"/>
+    </svg>
+  </a>
+  <button type="button" class="flove-app-name flove-title-btn" id="titleBtn" aria-expanded="false" aria-controls="introSection">Freed</button>
+  <label class="topbar-all" for="sec-all" title="Show all sections">All</label>
+  <div class="top-menu">
+    <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">☰</button>
+    <ul class="menu-list" id="menuList" hidden role="menu">
+      <li role="none"><a role="menuitem" href="#" data-act="reset"><i class="fas fa-rotate-left"></i> &nbsp;Reset declaration</a></li>
+      <li role="none"><a role="menuitem" href="#" data-act="about"><i class="fas fa-circle-info"></i> &nbsp;About Freed</a></li>
+      <li role="none"><a role="menuitem" href="../index.html"><span aria-hidden="true">✺</span> &nbsp;All flove apps</a></li>
+    </ul>
+  </div>
+</div>
+
+<section id="introSection" hidden aria-label="About Freed">
+  <span class="badge">FREED · gifting declaration</span>
+  <h1>For waiving property rights</h1>
+  <p>A playful, pure-CSS declaration that builds itself as you tick.</p>
+</section>
+
+<main class="container">
+
+
+  <form id="decl" autocomplete="off">
+
+    <input type="radio" name="secnav" id="sec-1"   class="secnav-radio">
+    <input type="radio" name="secnav" id="sec-2"   class="secnav-radio">
+    <input type="radio" name="secnav" id="sec-3"   class="secnav-radio">
+    <input type="radio" name="secnav" id="sec-4"   class="secnav-radio">
+    <input type="radio" name="secnav" id="sec-all" class="secnav-radio">
+
+    <div class="section-buttons">
+      <label class="section-btn" for="sec-1" data-sec="1">Thing<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21.5"/></svg></span></label>
+      <label class="section-btn" for="sec-2" data-sec="2">Farewell<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13V5a1 1 0 0 1 1-1h8l7 7-9 9z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span></label>
+      <label class="section-btn" for="sec-3" data-sec="3">Wishes<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.7 6.2.7-4.6 4.2 1.3 6.1L12 16.9 6.5 19.7l1.3-6.1L3.2 9.4l6.2-.7z"/></svg></span></label>
+      <label class="section-btn" for="sec-4" data-sec="4">Beware<span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 22 20H2z"/><path d="M12 10v4.5M12 17.2v.3"/></svg></span></label>
+    </div>
+
+    <section class="card" data-sec="1">
+      <div class="row-2">
+        <div class="sec1-left">
+          <div class="inline-decl">
+            <span class="freed-text">I freed my</span>
+            <input id="thing-name" type="text" placeholder="e.g., bicycle, photo album, old loom">
+            <div class="title-tools">
+              <button type="button" class="ta-tool ta-mic" data-mic-for="thing-name" title="Voice input" aria-label="Voice input"><i class="fas fa-microphone"></i></button>
+              <button type="button" class="ta-tool opt-magic" data-magic-for="thing-name" title="Magic" aria-label="Magic">✦</button>
+              <div class="bot-row" data-bots-for="thing-name">
+                <button type="button" class="bot-pick" data-bot="lovely" title="Lovely">😍</button>
+                <button type="button" class="bot-pick" data-bot="joy" title="Joy">😂</button>
+                <button type="button" class="bot-pick" data-bot="wisdom" title="Wisdom">🔥</button>
+                <button type="button" class="bot-pick bot-close" data-bot-close="thing-name" title="Close">✕</button>
+              </div>
+            </div>
+          </div>
+          <div class="tag-area">
+            <input type="checkbox" id="tags-more2" class="tag-toggle">
+            <div class="tag-row">
+              <label class="tag-btn"><input type="checkbox" id="tag-regular">regular</label>
+              <label class="tag-btn"><input type="checkbox" id="tag-abundant">abundant</label>
+              <label class="tag-plus" for="tags-more2" title="More tags">+</label>
+            </div>
+            <div class="tag-tier3">
+              <div class="tag-row">
+                <label class="tag-btn"><input type="checkbox" id="tag-new">new</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-used">used</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-vintage">vintage</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-handmade">handmade</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-eco">eco</label>
+              </div>
+              <div class="tag-row">
+                <label class="tag-btn"><input type="checkbox" id="tag-rare">rare</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-fragile">fragile</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-heavy">heavy</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-tiny">tiny</label>
+                <label class="tag-btn"><input type="checkbox" id="tag-local">local</label>
+              </div>
+            </div>
+          </div>
+          <div class="where-row" style="margin-top:10px">
+            <button type="button" class="map-btn" id="mapBtn" aria-label="Pick on map"><i class="fas fa-map-location-dot"></i> Map</button>
+            <input id="where" type="text" placeholder="Where">
+            <select id="time-span" class="span-select" required>
+              <option value="" selected>When</option>
+              <option>just now</option>
+              <option>this week</option>
+              <option>this month</option>
+              <option>this season</option>
+              <option>this year</option>
+              <option>long ago</option>
+              <option>timeless</option>
+            </select>
+          </div>
+        </div>
+        <div class="ta-field ta-fill">
+          <textarea id="thing-desc" placeholder="Description — tell us more about it…"></textarea>
+          <div class="ta-bottom-tools">
+            <button type="button" class="ta-tool opt-magic" data-magic-for="thing-desc" title="Magic" aria-label="Magic">✦</button>
+            <button type="button" class="ta-tool ta-mic" data-mic-for="thing-desc" title="Voice input" aria-label="Voice input"><i class="fas fa-microphone"></i></button>
+            <div class="bot-row" data-bots-for="thing-desc">
+              <button type="button" class="bot-pick" data-bot="lovely" title="Lovely">😍</button>
+              <button type="button" class="bot-pick" data-bot="joy" title="Joy">😂</button>
+              <button type="button" class="bot-pick" data-bot="wisdom" title="Wisdom">🔥</button>
+              <button type="button" class="bot-pick bot-close" data-bot-close="thing-desc" title="Close">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-sec="2">
+      <fieldset>
+        <div class="row-2">
+          <div class="btn-col">
+            <label class="pill"><input id="no-rules" type="checkbox"><span><em>No ruled</em></span></label>
+            <label class="pill"><input id="no-law"   type="checkbox"><span><em>Lawless</em></span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-none"><span><em>Has no ownership</em></span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-noone"><span><em>Owned by no one</em></span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-notme"><span>I'm no longer the owner</span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-ours"><span>It's common, <strong>it's Ours</strong></span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-ours-strong"><span>Globally owned, <strong>from everyone!</strong></span></label>
+          </div>
+          <div class="ta-field ta-fill">
+            <textarea id="how" placeholder="…or write your own status declaration"></textarea>
+            <div class="ta-bottom-tools">
+              <button type="button" class="ta-tool opt-magic" data-magic-for="how" title="Magic" aria-label="Magic">✦</button>
+              <button type="button" class="ta-tool ta-mic" data-mic-for="how" title="Voice input" aria-label="Voice input"><i class="fas fa-microphone"></i></button>
+              <div class="bot-row" data-bots-for="how">
+                <button type="button" class="bot-pick" data-bot="lovely" title="Lovely">😍</button>
+                <button type="button" class="bot-pick" data-bot="joy" title="Joy">😂</button>
+                <button type="button" class="bot-pick" data-bot="wisdom" title="Wisdom">🔥</button>
+                <button type="button" class="bot-pick bot-close" data-bot-close="how" title="Close">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="card" data-sec="3">
+      <h2 class="card-title">Best for the</h2>
+      <div class="row-2">
+        <div class="grid cols-2">
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <label class="pill"><input id="wish-past"     type="checkbox"><span>Past</span></label>
+            <label class="pill"><input id="wish-concrete" type="checkbox"><span>Present</span></label>
+            <label class="pill"><input id="wish-abstract" type="checkbox"><span>Future</span></label>
+            <label class="pill"><input id="wish-eternity" type="checkbox"><span>Eternity</span></label>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <label class="pill"><input id="scope-world"    type="checkbox"><span>World</span></label>
+            <label class="pill"><input id="scope-universe" type="checkbox"><span>Universe</span></label>
+            <label class="pill"><input id="scope-nature"   type="checkbox"><span>Nature</span></label>
+            <label class="pill"><input id="scope-humanity" type="checkbox"><span>Humanity</span></label>
+          </div>
+        </div>
+        <div class="ta-field ta-fill">
+          <textarea id="saying" placeholder="Write your Wishes freely here"></textarea>
+          <div class="ta-bottom-tools">
+            <button type="button" class="ta-tool opt-magic" data-magic-for="saying" title="Magic" aria-label="Magic">✦</button>
+            <button type="button" class="ta-tool ta-mic" data-mic-for="saying" title="Voice input" aria-label="Voice input"><i class="fas fa-microphone"></i></button>
+            <div class="bot-row" data-bots-for="saying">
+              <button type="button" class="bot-pick" data-bot="lovely" title="Lovely">😍</button>
+              <button type="button" class="bot-pick" data-bot="joy" title="Joy">😂</button>
+              <button type="button" class="bot-pick" data-bot="wisdom" title="Wisdom">🔥</button>
+              <button type="button" class="bot-pick bot-close" data-bot-close="saying" title="Close">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-sec="4">
+      <h2 class="card-title">Beware of</h2>
+      <div class="curse-col">
+        <label class="pill"><input id="curse" type="checkbox"><span class="tick"></span><span class="txt">I will <strong>curse</strong> potential deceivers 🪄</span></label>
+        <div class="curse-expand">
+          <div class="ta-field">
+            <textarea id="curse-detail" placeholder="Specify your potential cursing here"></textarea>
+            <div class="ta-bottom-tools">
+              <button type="button" class="ta-tool opt-magic" data-magic-for="curse-detail" title="Magic" aria-label="Magic">✦</button>
+              <button type="button" class="ta-tool ta-mic" data-mic-for="curse-detail" title="Voice input" aria-label="Voice input"><i class="fas fa-microphone"></i></button>
+              <div class="bot-row" data-bots-for="curse-detail">
+                <button type="button" class="bot-pick" data-bot="lovely" title="Lovely">😍</button>
+                <button type="button" class="bot-pick" data-bot="joy" title="Joy">😂</button>
+                <button type="button" class="bot-pick" data-bot="wisdom" title="Wisdom">🔥</button>
+                <button type="button" class="bot-pick bot-close" data-bot-close="curse-detail" title="Close">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="curse-link">Customize your Cursing further with <a href="../crumbly.html">Crumbly</a></p>
+      </div>
+    </section>
+
+    <section class="invitation" id="invitationBlock">
+      <input type="checkbox" id="inv-toggle" class="inv-toggle">
+      <button type="button" class="inv-btn" id="invBtn">
+        <span>✦ INVITATION</span>
+        <span class="inv-caret">▾</span>
+      </button>
+      <div class="inv-body">
+      <p class="pretty" id="sentence" aria-live="polite">
+        <strong>I freed</strong>
+        <span class="seg s-thing"> my <strong id="thing-out">—</strong></span><span class="seg s-desc"> — <em id="thing-desc-out"></em></span>.
+        <span class="seg s-where"> From <em id="where-out"></em>.</span>
+        <span class="seg s-span"> Freed <em id="span-out"></em>.</span>
+        <span class="seg s-tags"> It's</span><span class="seg s-tag-regular"> <strong>regular</strong></span><span class="seg s-tag-abundant"> <strong>abundant</strong></span><span class="seg s-tag-new"> <strong>new</strong></span><span class="seg s-tag-used"> <strong>used</strong></span><span class="seg s-tag-vintage"> <strong>vintage</strong></span><span class="seg s-tag-handmade"> <strong>handmade</strong></span><span class="seg s-tag-eco"> <strong>eco</strong></span><span class="seg s-tag-rare"> <strong>rare</strong></span><span class="seg s-tag-fragile"> <strong>fragile</strong></span><span class="seg s-tag-heavy"> <strong>heavy</strong></span><span class="seg s-tag-tiny"> <strong>tiny</strong></span><span class="seg s-tag-local"> <strong>local</strong></span><span class="seg s-tags">.</span>
+        <span class="seg s-norules"> It is <strong>no ruled</strong>.</span>
+        <span class="seg s-nolaw"> It is <strong>lawless</strong>.</span>
+        <span class="seg s-how"> <em id="how-out"></em>.</span>
+        <span class="seg s-own-none"> It <strong>has no ownership</strong>.</span>
+        <span class="seg s-own-noone"> It is <strong>owned by no one</strong>.</span>
+        <span class="seg s-own-notme"> I am <strong>no longer the owner</strong>.</span>
+        <span class="seg s-own-ours"> It is <strong>common — ours</strong>.</span>
+        <span class="seg s-own-ours-strong"> It is <strong>globally owned — from everyone!</strong></span>
+        I wish it to cause goodness in the
+        <span class="seg s-past"><strong>Past</strong></span>
+        <span class="seg s-concrete"><strong>Present</strong></span>
+        <span class="seg s-abstract"><strong>Future</strong></span>
+        <span class="seg s-eternity"><strong>Eternity</strong></span>
+        <span class="seg s-world"><strong>World</strong></span>
+        <span class="seg s-universe"><strong>Universe</strong></span>
+        <span class="seg s-nature"><strong>Nature</strong></span>
+        <span class="seg s-humanity"><strong>Humanity</strong></span><span class="seg s-saying"> — <em id="saying-out"></em></span>.
+        <span class="seg s-curse"> I will <strong>curse</strong> potential deceivers 🪄<span class="seg s-curse-detail"> — <em id="curse-detail-out"></em></span>.</span>
+      </p>
+
+      <div class="action-row">
+        <div class="btn-with-subs" id="saveWrap">
+          <button type="button" class="btn" id="saveBtn"><i class="fas fa-download"></i>&nbsp;Save</button>
+          <div class="subitems">
+            <button type="button" class="subitem" data-group="save" data-action="jpg">JPG</button>
+            <button type="button" class="subitem" data-group="save" data-action="html">HTML</button>
+            <button type="button" class="subitem" data-group="save" data-action="text">Text</button>
+            <button type="button" class="subitem" data-group="save" data-action="json">JSON</button>
+          </div>
+        </div>
+
+        <div class="btn-with-subs" id="publishWrap">
+          <div class="subitems subitems-above">
+            <input class="subitem-radio" type="radio" name="publishWhen" id="pubW0" data-r="0" data-when="now" aria-hidden="true">
+            <label class="subitem is-radio" for="pubW0" data-r="0" data-group="publish">Now</label>
+            <input class="subitem-radio" type="radio" name="publishWhen" id="pubW1" data-r="1" data-when="schedule" aria-hidden="true">
+            <label class="subitem is-radio" for="pubW1" data-r="1" data-group="publish">Schedule</label>
+          </div>
+          <button type="button" class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i>&nbsp;Publish</button>
+          <div class="subitems subitems-below">
+            <input class="subitem-radio" type="radio" name="publishTo" id="pubT0" data-r="0" data-to="person" aria-hidden="true">
+            <label class="subitem is-radio" for="pubT0" data-r="0" data-group="publish">Someone</label>
+            <input class="subitem-radio" type="radio" name="publishTo" id="pubT1" data-r="1" data-to="group" aria-hidden="true">
+            <label class="subitem is-radio" for="pubT1" data-r="1" data-group="publish">Group</label>
+          </div>
+        </div>
+
+        <button type="button" class="btn primary" id="doneBtn">DONE ✓</button>
+
+        <div class="publish-when">
+          <span class="sub-label">Publishing date &amp; time</span>
+          <input type="datetime-local" id="when">
+        </div>
+      </div>
+      </div>
+    </section>
+
+  </form>
+</main>
+
+<dialog class="map-dialog" id="mapDialog">
+  <div class="map-head">
+    <h3>Pick a location</h3>
+    <span class="map-coords" id="mapCoords">click on the map</span>
+    <button type="button" class="map-close" id="mapCloseBtn" aria-label="Close">✕</button>
+  </div>
+  <div id="mapEl"></div>
+  <div class="map-foot">
+    <button type="button" class="btn small" id="mapLocateBtn"><i class="fas fa-location-crosshairs"></i> My location</button>
+    <button type="button" class="btn small primary" id="mapUseBtn">Use this location</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+(function(){
+  "use strict";
+  const $  = (s,r=document) => r.querySelector(s);
+  const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+  const KEY = "flove:freed:v2";
+  let toastT;
+  const toast = m => { const el=$("#toast"); el.textContent=m; el.classList.add("is-visible"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("is-visible"),1700); };
+
+  // ── flove.wizard — local text-suggestion helper ──
+  //   inject(field, text) → appends a suggestion after the user's text,
+  //                         replacing any previous suggestion (no stacking).
+  //   clear(field)        → removes ONLY the suggestion, keeps user text.
+  const flove = (function(){
+    const seg  = new WeakMap();  // field → inserted run (separator included)
+    const fire = el => el.dispatchEvent(new Event("input", { bubbles: true }));
+    function strip(el){
+      const s = seg.get(el);
+      if (s == null) return;
+      const i = el.value.lastIndexOf(s);
+      if (i !== -1) el.value = el.value.slice(0, i) + el.value.slice(i + s.length);
+      seg.delete(el);
+    }
+    return {
+      bot: {
+        inject(el, text){
+          if (!el) return;
+          strip(el);
+          text = text || "";
+          const cur = el.value;
+          const sep = (cur && text) ? (el.tagName === "INPUT" ? " " : "\n\n") : "";
+          el.value = cur + sep + text;
+          seg.set(el, sep + text);
+          fire(el);
+        },
+        clear(el){
+          if (!el || !seg.has(el)) return;
+          strip(el);
+          fire(el);
+        }
+      }
+    };
+  })();
+
+  function mirror(){
+    $("#thing-out").textContent       = $("#thing-name").value.trim() || "—";
+    $("#thing-desc-out").textContent  = $("#thing-desc").value.trim();
+    $("#where-out").textContent       = $("#where").value.trim();
+    $("#how-out").textContent         = $("#how").value.trim();
+    $("#saying-out").textContent      = $("#saying").value.trim();
+    $("#span-out").textContent        = $("#time-span").value;
+    $("#curse-detail-out").textContent= $("#curse-detail").value.trim();
+  }
+  ["thing-name","thing-desc","where","how","saying","curse-detail"].forEach(id => {
+    const el = $("#"+id);
+    if (el) el.addEventListener("input", mirror);
+  });
+  $("#time-span")?.addEventListener("change", mirror);
+
+  function snapshot(){
+    const out = {};
+    $$("#decl input[type=checkbox], #decl input[type=radio]").forEach(el => { if (el.id) out[el.id] = el.checked; });
+    out.thing       = $("#thing-name").value;
+    out.thingDesc   = $("#thing-desc").value;
+    out.where       = $("#where").value;
+    out.how         = $("#how").value;
+    out.saying      = $("#saying").value;
+    out.timeSpan    = $("#time-span").value;
+    out.curseDetail = $("#curse-detail").value;
+    out.when        = $("#when").value;
+    return out;
+  }
+  function restore(){
+    let d; try{ d = JSON.parse(localStorage.getItem(KEY) || "null"); }catch(e){ return; }
+    if (!d) return;
+    Object.entries(d).forEach(([k,v]) => {
+      const el = document.getElementById(k);
+      if (el && (el.type === "checkbox" || el.type === "radio")) el.checked = !!v;
+    });
+    if (d.thing       != null) $("#thing-name").value   = d.thing;
+    if (d.thingDesc   != null) $("#thing-desc").value   = d.thingDesc;
+    if (d.where       != null) $("#where").value        = d.where;
+    if (d.how         != null) $("#how").value          = d.how;
+    if (d.saying      != null) $("#saying").value       = d.saying;
+    if (d.timeSpan    != null) $("#time-span").value    = d.timeSpan;
+    if (d.curseDetail != null) $("#curse-detail").value = d.curseDetail;
+    if (d.when)                $("#when").value         = d.when;
+  }
+  let saveT;
+  function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} }, 250); }
+  $("#decl").addEventListener("input", save);
+  $("#decl").addEventListener("change", save);
+
+  // Invitation panel — hidden until a selection/entry exists, and its
+  // button grows greener as more of the form is filled in.
+  const invBtn   = $("#invBtn");
+  const invBlock = $("#invitationBlock");
+  function updateInvFill(){
+    if (!invBtn) return;
+    let filled = 0;
+    ["thing-name","thing-desc","where","time-span","how","saying","curse-detail"]
+      .forEach(id => { const el = $("#"+id); if (el && el.value.trim()) filled++; });
+    $$('#decl input[type=checkbox], #decl input[type=radio]').forEach(el => {
+      if (el.classList.contains("secnav-radio") ||
+          el.classList.contains("tag-toggle")  ||
+          el.id === "inv-toggle") return;
+      if (el.checked) filled++;
+    });
+    invBtn.style.setProperty("--fill", Math.min(1, filled / 14).toFixed(3));
+    invBlock?.classList.toggle("inv-shown", filled > 0);
+  }
+  $("#decl").addEventListener("input", updateInvFill);
+  $("#decl").addEventListener("change", updateInvFill);
+
+  // Invitation title bar (button) — expand / collapse the panel
+  invBtn?.addEventListener("click", () => {
+    const t = $("#inv-toggle");
+    if (!t) return;
+    t.checked = !t.checked;
+    t.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  function fullText(){
+    return $("#sentence").textContent.replace(/\s+/g, " ").trim();
+  }
+
+  $("#doneBtn").addEventListener("click", () => {
+    toast("✓ Declared (demo)");
+  });
+
+  // ===== Hackboth-style Save / Publish in the Resume area =====
+  const saveWrap    = $("#saveWrap");
+  const publishWrap = $("#publishWrap");
+  const saveBtn     = $("#saveBtn");
+  const publishBtn  = $("#publishBtn");
+
+  function closeAllWraps(except){
+    [saveWrap, publishWrap].forEach(w => { if (w && w !== except) w.classList.remove("is-open"); });
+  }
+  function toggleWrap(wrap){
+    const wasOpen = wrap.classList.contains("is-open");
+    closeAllWraps();
+    if (!wasOpen) wrap.classList.add("is-open");
+  }
+
+  function buildHTMLDoc(){
+    const text = fullText();
+    const esc = s => s.replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+    return `<!doctype html><html><head><meta charset="utf-8"><title>Freed declaration</title>
+<style>body{background:#f7fdfb;color:#052e25;font-family:Georgia,serif;padding:32px;max-width:680px;margin:auto;line-height:1.6}
+h1{color:#047857;font-family:Georgia,serif;border-bottom:2px dashed #10b981;padding-bottom:8px}
+em{color:#14503e}</style></head>
+<body><h1>✦ Freed · Gifting Declaration</h1>
+<p>${esc(text)}</p></body></html>`;
+  }
+  function renderJPG(cb){
+    const W = 880, H = 560, P = 36;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    // background
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, "#ecfdf5"); grad.addColorStop(1, "#f7fdfb");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "#10b981"; ctx.lineWidth = 3;
+    ctx.setLineDash([8, 8]); ctx.strokeRect(P/2, P/2, W - P, H - P);
+    ctx.setLineDash([]);
+    // title
+    ctx.fillStyle = "#047857";
+    ctx.font = "700 28px Georgia, serif";
+    ctx.fillText("✦ Freed · Gifting Declaration", P, P + 24);
+    // body — wrap text
+    ctx.fillStyle = "#052e25";
+    ctx.font = "500 17px Georgia, serif";
+    const text = fullText();
+    const maxW = W - P*2;
+    const words = text.split(/\s+/);
+    let line = "", y = P + 70;
+    words.forEach(w => {
+      const test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width > maxW) {
+        ctx.fillText(line, P, y); line = w; y += 26;
+      } else { line = test; }
+    });
+    if (line) ctx.fillText(line, P, y);
+    // footer
+    ctx.fillStyle = "rgba(20,80,62,.5)";
+    ctx.font = "italic 13px Georgia, serif";
+    ctx.fillText("flove · freed", P, H - P);
+    canvas.toBlob(cb, "image/jpeg", 0.92);
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 80);
+  }
+
+  const saveActions = {
+    jpg:  () => renderJPG(b => { if(!b){ toast("JPG not supported"); return; } downloadBlob(b, "freed-declaration.jpg"); toast("JPG downloaded"); }),
+    html: () => { downloadBlob(new Blob([buildHTMLDoc()], { type: "text/html" }), "freed-declaration.html"); toast("HTML downloaded"); },
+    text: () => { downloadBlob(new Blob([fullText() + "\n"], { type: "text/plain" }), "freed-declaration.txt"); toast("Text downloaded"); },
+    json: () => {
+      const data = { ...snapshot(), declaration: fullText() };
+      downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), "freed-declaration.json");
+      toast("JSON downloaded");
+    },
+  };
+
+  saveBtn?.addEventListener("click", e => { e.stopPropagation(); toggleWrap(saveWrap); });
+  saveWrap?.querySelectorAll(".subitem[data-group='save']").forEach(b => {
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      const fn = saveActions[b.dataset.action];
+      if (fn) fn();
+      closeAllWraps();
+    });
+  });
+
+  publishBtn?.addEventListener("click", e => {
+    e.stopPropagation();
+    if (publishWrap.classList.contains("is-open")) {
+      const when = document.querySelector("input[name='publishWhen']:checked");
+      const to   = document.querySelector("input[name='publishTo']:checked");
+      const whenKey = when?.dataset.when || "now";
+      const toKey   = to?.dataset.to   || "person";
+      const toLabel = toKey === "group" ? "a group" : "someone";
+      if (whenKey === "schedule") {
+        const dt = $("#when").value;
+        if (!dt) { toast("Pick a date & time first."); $("#when").focus(); return; }
+        const human = new Date(dt).toLocaleString();
+        toast(`✓ Scheduled for ${human} · to ${toLabel}`);
+      } else {
+        toast(`✓ Published now · to ${toLabel}`);
+      }
+      publishWrap.classList.remove("is-open");
+    } else {
+      closeAllWraps();
+      publishWrap.classList.add("is-open");
+    }
+  });
+
+  // Keep clicks inside the action-row from closing the open wrap; outside clicks do close
+  $(".action-row")?.addEventListener("click", e => e.stopPropagation());
+  document.addEventListener("click", () => closeAllWraps());
+
+  // Title click → toggle intro section
+  const titleBtn = $("#titleBtn");
+  const introSection = $("#introSection");
+  titleBtn?.addEventListener("click", e => {
+    e.stopPropagation();
+    const hidden = introSection.hasAttribute("hidden");
+    if (hidden) {
+      introSection.removeAttribute("hidden");
+      titleBtn.setAttribute("aria-expanded", "true");
+    } else {
+      introSection.setAttribute("hidden", "");
+      titleBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  // Top-right menu
+  const menuBtn  = $("#menuBtn");
+  const menuList = $("#menuList");
+  function setMenu(open) {
+    if (open) { menuList.removeAttribute("hidden"); menuBtn.setAttribute("aria-expanded","true"); }
+    else      { menuList.setAttribute("hidden",""); menuBtn.setAttribute("aria-expanded","false"); }
+  }
+  menuBtn?.addEventListener("click", e => { e.stopPropagation(); setMenu(menuList.hasAttribute("hidden")); });
+  menuList?.addEventListener("click", e => e.stopPropagation());
+  document.addEventListener("click", () => setMenu(false));
+
+  menuList?.querySelectorAll("a[data-act]").forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      const act = a.dataset.act;
+      if (act === "reset") {
+        if (!confirm("Reset the declaration?")) { setMenu(false); return; }
+        try{ localStorage.removeItem(KEY); }catch(_){}
+        location.reload();
+      } else if (act === "about") {
+        introSection.removeAttribute("hidden");
+        titleBtn.setAttribute("aria-expanded","true");
+        introSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      setMenu(false);
+    });
+  });
+
+  // ===== Textarea bots: mic + magic with lovely / joy / wisdom =====
+  // Default suggestion seeded when ✦ Magic is toggled on.
+  const MAGIC_NOTES = {
+    "thing-name":   "treasured belonging",
+    "thing-desc":   "A thing once mine, now set free for whoever needs it.",
+    "how":          "It belongs to the commons now — free for all to use and care for.",
+    "saying":       "May it bring good wherever it travels.",
+    "curse-detail": "Let any who deceive feel the weight of their own choice.",
+  };
+  // Per-bot variants, swapped in by the lovely / joy / wisdom pickers.
+  const BOT_NOTES = {
+    lovely: {
+      "thing-name":   "beloved keepsake",
+      "thing-desc":   "Cared for with love, and freed so its warmth can reach another heart.",
+      "how":          "Held gently by everyone and no one — kept in common kindness.",
+      "saying":       "May every hand that meets it feel a little more loved.",
+      "curse-detail": "May deceivers simply feel, softly, the love they tried to betray.",
+    },
+    joy: {
+      "thing-name":   "favourite plaything",
+      "thing-desc":   "A happy little thing, set loose to spark smiles all around!",
+      "how":          "Free as a dance — grab it, enjoy it, pass it on!",
+      "saying":       "May it scatter joy like confetti wherever it goes!",
+      "curse-detail": "Let tricksters trip over their own giggles — joy always wins!",
+    },
+    wisdom: {
+      "thing-name":   "well-used tool",
+      "thing-desc":   "Released thoughtfully, so it keeps serving rather than sitting idle.",
+      "how":          "Owned by the commons — stewardship, not possession, guides its path.",
+      "saying":       "May it cause lasting goodness, weighed with care across time.",
+      "curse-detail": "May deceivers meet the clear mirror of their own intent.",
+    },
+  };
+
+  // Magic toggle — reveals the three bots and seeds a default suggestion
+  $$('.opt-magic').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key  = btn.dataset.magicFor;
+      const ta   = document.getElementById(key);
+      const wrap = btn.closest(".ta-bottom-tools, .title-tools");
+      const on   = btn.classList.toggle("is-on");
+      $$('.bot-pick', wrap).forEach(b => b.classList.remove("is-on"));
+      if (on) flove.wizard.inject(ta, MAGIC_NOTES[key] || "");
+      else    flove.wizard.clear(ta);
+    });
+  });
+
+  // Bot pickers — swap the suggested text, keep the user's own text intact
+  $$('.bot-pick[data-bot]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const bot   = btn.dataset.bot;
+      const row   = btn.closest(".bot-row");
+      const key   = row.dataset.botsFor;
+      const ta    = document.getElementById(key);
+      const wasOn = btn.classList.contains("is-on");
+      $$('.bot-pick', row).forEach(b => b.classList.remove("is-on"));
+      if (wasOn){
+        flove.wizard.inject(ta, MAGIC_NOTES[key] || "");      // back to default
+      } else {
+        btn.classList.add("is-on");
+        flove.wizard.inject(ta, (BOT_NOTES[bot] && BOT_NOTES[bot][key]) || MAGIC_NOTES[key] || "");
+      }
+    });
+  });
+
+  // Close (✕) — drop the suggestion and collapse the bot row
+  $$('.bot-pick.bot-close').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key   = btn.dataset.botClose;
+      const ta    = document.getElementById(key);
+      const row   = btn.closest(".bot-row");
+      flove.wizard.clear(ta);
+      $$('.bot-pick', row).forEach(b => b.classList.remove("is-on"));
+      const magic = row.closest(".ta-bottom-tools, .title-tools")?.querySelector(".opt-magic");
+      if (magic) magic.classList.remove("is-on");
+    });
+  });
+
+  // Per-textarea mic (Web Speech API) — appends the transcript to its field
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  $$('.ta-mic').forEach(btn => {
+    let rec = null;
+    btn.addEventListener("click", () => {
+      const ta = document.getElementById(btn.dataset.micFor);
+      if (!SR){ toast("Voice not supported"); ta?.focus(); return; }
+      if (rec){ rec.stop(); rec = null; btn.classList.remove("is-rec"); return; }
+      rec = new SR();
+      rec.lang = navigator.language || "en-US";
+      rec.interimResults = false;
+      btn.classList.add("is-rec");
+      rec.onresult = e => {
+        const txt = [...e.results].map(r => r[0].transcript).join(" ");
+        ta.value = (ta.value ? ta.value + " " : "") + txt;
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      rec.onend   = () => { btn.classList.remove("is-rec"); rec = null; };
+      rec.onerror = () => { btn.classList.remove("is-rec"); rec = null; };
+      rec.start();
+      toast("Listening…");
+    });
+  });
+
+  // Map dialog (Leaflet + OSM tiles, reverse-geocode via Nominatim)
+  const mapBtn       = $("#mapBtn");
+  const mapDialog    = $("#mapDialog");
+  const mapEl        = $("#mapEl");
+  const mapCoordsEl  = $("#mapCoords");
+  const mapCloseBtn  = $("#mapCloseBtn");
+  const mapLocateBtn = $("#mapLocateBtn");
+  const mapUseBtn    = $("#mapUseBtn");
+  let leafletMap = null;
+  let leafletMarker = null;
+  let selectedLatLng = null;
+  let lastPlaceName = "";
+
+  function fmtCoords(ll){ return `${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}`; }
+
+  async function reverseGeocode(lat, lng){
+    try{
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14`;
+      const r = await fetch(url, { headers: { "Accept": "application/json" } });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j.display_name || null;
+    }catch(_){ return null }
+  }
+
+  function setMarker(ll){
+    selectedLatLng = ll;
+    if (!leafletMarker){
+      leafletMarker = L.marker(ll, { draggable: true }).addTo(leafletMap);
+      leafletMarker.on("dragend", () => setMarker(leafletMarker.getLatLng()));
+    } else {
+      leafletMarker.setLatLng(ll);
+    }
+    mapCoordsEl.textContent = fmtCoords(ll);
+    reverseGeocode(ll.lat, ll.lng).then(name => {
+      if (name) {
+        lastPlaceName = name;
+        mapCoordsEl.textContent = `${fmtCoords(ll)} · ${name.split(",").slice(0,2).join(",")}`;
+      } else {
+        lastPlaceName = "";
+      }
+    });
+  }
+
+  function ensureMap(){
+    if (leafletMap) return;
+    leafletMap = L.map(mapEl).setView([40.4168, -3.7038], 4); // Madrid as default centre
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(leafletMap);
+    leafletMap.on("click", e => setMarker(e.latlng));
+  }
+
+  mapBtn?.addEventListener("click", () => {
+    if (typeof L === "undefined") { toast("Map library not loaded"); return; }
+    if (typeof mapDialog.showModal === "function") mapDialog.showModal();
+    else mapDialog.setAttribute("open", "");
+    // Defer so the dialog has its final size before Leaflet measures
+    setTimeout(() => { ensureMap(); leafletMap.invalidateSize(); }, 50);
+  });
+  mapCloseBtn?.addEventListener("click", () => mapDialog.close());
+  mapDialog?.addEventListener("click", e => {
+    const r = mapDialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+      mapDialog.close();
+    }
+  });
+  mapLocateBtn?.addEventListener("click", () => {
+    if (!navigator.geolocation) { toast("Geolocation not available"); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      leafletMap.setView(ll, 14);
+      setMarker(ll);
+    }, () => toast("Couldn't get location"), { enableHighAccuracy: true, timeout: 8000 });
+  });
+  mapUseBtn?.addEventListener("click", () => {
+    if (!selectedLatLng) { toast("Click on the map to pick a spot"); return; }
+    const coords = fmtCoords(selectedLatLng);
+    const where = $("#where");
+    where.value = lastPlaceName
+      ? `${lastPlaceName.split(",").slice(0,2).join(",").trim()} (${coords})`
+      : coords;
+    mirror(); save();
+    mapDialog.close();
+    toast("Location set");
+  });
+
+  // Each visit starts fresh — drop any previously saved snapshot so a
+  // reload always fully resets (no carried-over selections or stale state).
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  mirror();
+  updateInvFill();
+})();
+</script>
+</body>
+</html>

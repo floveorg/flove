@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#d32f2f">
+<meta name="color-scheme" content="light">
+<title>FlovyMini</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d32f2f' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-3A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3C/svg%3E">
+<style>
+@layer base, components, state;
+:root{
+  --accent-rgb: 211,47,47;
+  --accent: rgb(var(--accent-rgb));
+  --accent-deep: #9a0007;
+  --accent-glow: rgba(var(--accent-rgb),.35);
+  --ink: #212121;
+  --ink-soft: #5a5a5a;
+  --ink-mute: #8a8a8a;
+  --line: rgba(0,0,0,.10);
+  --line-strong: rgba(0,0,0,.18);
+  --fill-soft: rgba(var(--accent-rgb),.08);
+  --fill-mid: rgba(var(--accent-rgb),.14);
+  --panel-bg: rgba(255,255,255,.85);
+  --panel-border: rgba(var(--accent-rgb),.25);
+  --panel-shadow: 0 10px 28px rgba(0,0,0,.10);
+  --font-ui: system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-display: 'Georgia','Times New Roman',serif;
+  --radius: 14px;
+  --radius-pill: 999px;
+  --bounce: cubic-bezier(.2,.8,.2,1);
+  --fast: .15s var(--bounce);
+}
+
+*{ box-sizing: border-box; }
+html, body{ margin: 0; padding: 0; overflow-x: hidden; }
+body{
+  min-height: 100vh;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 18% 18%, var(--fill-soft), transparent 45%),
+    linear-gradient(180deg, #fafafa, #e9e9e9);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+  animation: page-in .5s var(--bounce);
+}
+@keyframes page-in{ from{ opacity: 0; transform: translateY(4px);} to{ opacity: 1; transform: none;} }
+
+label[for]{ cursor: pointer; user-select: none; }
+.ctl{ position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; }
+
+.topbar{
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(255,255,255,.82);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner{
+  position: relative;
+  max-width: 420px; margin: 0 auto;
+  display: flex; align-items: center; gap: .35rem;
+  padding: .6rem .9rem;
+}
+.magic-wrap{
+  display: flex; align-items: center; gap: .35rem;
+  margin-left: auto;
+}
+.topbar-toggle{
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  /* bare by default — no tinted background, no border; the ✨/× glyph
+     shows full-size and clear. Soft red only appears on activation. */
+  background: transparent;
+  color: var(--accent-deep);
+  font-size: 2.24rem; line-height: 1;
+  border: 0;
+  transition: background var(--fast), color var(--fast), transform var(--fast);
+}
+.topbar-toggle:hover, .topbar-toggle:focus-visible, .topbar-toggle:active{
+  background: rgba(var(--accent-rgb), .5); color: #fff;
+}
+.topbar-toggle--collapse{ display: none; }
+body:not(:has(#r-collapsed:checked)) .topbar-toggle--expand{ display: none; }
+body:not(:has(#r-collapsed:checked)) .topbar-toggle--collapse{ display: inline-flex; }
+/*
+  Right-edge alignment: the magic-wrap → menu-btn cluster floats to the right
+  edge. When the tier-badge is hidden, the magic-wrap takes the auto margin;
+  when the badge appears (#info:checked), the badge takes it so the whole
+  badge · magic · menu cluster stays together against the right edge.
+*/
+body:has(#info:checked) .magic-wrap{ margin-left: 0; }
+body:has(#info:checked) .tier-badge{ margin-left: auto; }
+
+/* ── tier pop — 5-level switcher, sits left of the ☰ menu. Clicking
+   the icon fans the five flovy tiers out toward its LEFT; while open
+   the ✨ ray cluster steps aside so the tiers have room. Pure CSS. ── */
+.tier-pop{
+  position: relative;
+  display: inline-flex; align-items: center;
+  flex-shrink: 0;
+}
+/* the magic-wrap is hidden while the pop is open — without #info it
+   held the right-edge auto margin, so hand it to the tier-pop. */
+body:has(#tier-pop-open:checked):not(:has(#info:checked)) .tier-pop{ margin-left: auto; }
+.tier-pop-btn{
+  position: relative; z-index: 2;
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.tier-pop-btn svg{ display: block; }
+.tier-pop-btn:hover, .tier-pop-btn:focus-visible{
+  border-color: var(--accent-deep); color: #fff; background: var(--accent);
+}
+body:has(#tier-pop-open:checked) .tier-pop-btn{
+  border-color: var(--accent-deep); color: #fff; background: var(--accent);
+}
+/* the five tiers fan out to the LEFT of the icon — anchored to its
+   left edge, hidden until #tier-pop-open is checked. */
+.tier-pop-rays{
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: .1rem;
+  margin: 0; padding: .3rem .45rem;
+  list-style: none;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  white-space: nowrap;
+  z-index: 20;
+}
+body:has(#tier-pop-open:checked) .tier-pop-rays{ display: flex; }
+.tier-pop-step{
+  display: flex; flex-direction: column; align-items: center;
+  gap: .2rem;
+  padding: .2rem .4rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--fast);
+}
+.tier-pop-step:hover{ background: var(--fill-soft); }
+.tier-pop-node{
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--line-strong);
+  transition: background var(--fast), border-color var(--fast), transform var(--fast), box-shadow var(--fast);
+}
+.tier-pop-step:hover .tier-pop-node{ border-color: var(--accent); }
+.tier-pop-label{
+  font: 600 .6rem/1 var(--font-ui);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.tier-pop-step:hover .tier-pop-label{ color: var(--accent-deep); }
+/* current tier — filled node (set statically; this file is the mini tier) */
+.tier-pop-step--current .tier-pop-node{
+  background: var(--accent); border-color: var(--accent-deep);
+  transform: scale(1.18); box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.tier-pop-step--current .tier-pop-label{ color: var(--accent-deep); font-weight: 700; }
+
+/* Complexity bar: widen gap + draw connecting lines between consecutive steps. */
+.tier-pop-rays{ gap: 1.1rem; }
+.tier-pop-step{ position: relative; z-index: 1; }
+.tier-pop-step:not(:last-child)::after{
+  content: ""; position: absolute;
+  top: 9px; left: 100%;
+  width: 1.1rem; height: 2px;
+  background: var(--line-strong);
+  z-index: 0;
+}
+/* Work-in-progress placeholders (advanced + super): dimmed at 40%. */
+.tier-pop-step--wip{ opacity: .4; pointer-events: none; cursor: default; }
+.tier-pop-step--wip.is-unlocked{
+  opacity: .85;
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 12px;
+  animation: tier-pop-step-aura 2.2s ease-in-out infinite;
+}
+.tier-pop-step--wip.is-unlocked:hover,
+.tier-pop-step--wip.is-unlocked:focus-visible{ opacity: 1; }
+.tier-pop-step--wip.is-unlocked .tier-pop-node{
+  background: var(--accent);
+  border-color: var(--accent-deep);
+}
+.tier-pop-step--wip.is-unlocked .tier-pop-label{
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+@keyframes tier-pop-step-aura{
+  0%, 100%{ box-shadow: 0 0 8px 2px rgba(var(--accent-rgb), .35); }
+  50%{ box-shadow: 0 0 14px 5px rgba(var(--accent-rgb), .55); }
+}
+/* while the tier pop is open, hide the ✨ ray cluster */
+body:has(#tier-pop-open:checked) .magic-wrap{ display: none; }
+
+/* ── compass — display-mode switcher (pure CSS, mini tier) ─────────
+   The 🧭 button opens a row of 4 mode icons; the chosen radio
+   (name="disp-mode") re-lays-out the personality rays and the bot
+   suggestion chips. none = natural layout (default, checked). ──────*/
+.compass-wrap{ position: relative; display: inline-flex; align-items: center; flex-shrink: 0; }
+.compass-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: transparent;
+  /* soft red by default — full intensity only on click */
+  color: rgba(var(--accent-rgb), .55);
+  cursor: pointer;
+  position: relative; z-index: 2;
+  transition: color var(--fast), background var(--fast), transform var(--fast);
+}
+.compass-btn svg{ display: block; transition: transform var(--fast); }
+.compass-btn:hover, .compass-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
+/* clicked/open — needle spins (giro) and the red goes full intensity */
+body:has(#compass-open:checked) .compass-btn{
+  color: #fff; background: var(--accent); border-radius: 50%;
+}
+/* needle spins to a "+" while the menu is open */
+body:has(#compass-open:checked) .compass-btn svg{ transform: rotate(45deg); }
+
+.mode-buttons{
+  position: absolute;
+  top: calc(100% + 18px); left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center; gap: .55rem;
+  /* bare row — no panel, no background, no border (like flovybasic) */
+  white-space: nowrap;
+  z-index: 12;
+}
+body:has(#compass-open:checked) .mode-buttons{ display: inline-flex; }
+.mode-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: transparent;
+  color: var(--ink-mute);
+  font-size: 1.25rem; line-height: 1;
+  cursor: pointer;
+  transition: color var(--fast), transform var(--fast);
+}
+.mode-btn svg{ display: block; width: 23px; height: 23px; }
+.mode-btn:hover, .mode-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
+body:has(#disp-none:checked)   .mode-btn[for="disp-none"],
+body:has(#disp-scope:checked)  .mode-btn[for="disp-scope"],
+body:has(#disp-cloud:checked)  .mode-btn[for="disp-cloud"],
+body:has(#disp-random:checked) .mode-btn[for="disp-random"]{
+  color: var(--accent); transform: scale(1.28);
+}
+
+/* ── the modes — every topbar element AND every card field responds,
+   each in its own sense: its own size, its own drift, its own jitter.
+   disp-none has no rule (natural layout). The compass itself is left
+   out of the motion so its sub-buttons stay clickable. ─────────────*/
+:is(.mark, .title-wrap, .tier-badge, .tier-pop, .menu-langs, .menu-btn,
+    .rays .ray, .wizard-title, .tagline, .entry-field, .entry-tools .wizard-cell){
+  transition: transform .5s var(--bounce), scale .5s var(--bounce);
+}
+
+/* — scope — graded sizes, each element to its own degree — */
+body:has(#disp-scope:checked) .mark        { scale: .88; }
+body:has(#disp-scope:checked) .title-wrap  { scale: 1.16; }
+body:has(#disp-scope:checked) .tier-badge  { scale: .94; }
+body:has(#disp-scope:checked) .tier-pop    { scale: 1.06; }
+body:has(#disp-scope:checked) .menu-langs  { scale: .9; }
+body:has(#disp-scope:checked) .menu-btn    { scale: 1.22; }
+body:has(#disp-scope:checked) .rays .labeler:nth-child(1){ scale: .78; }
+body:has(#disp-scope:checked) .rays .labeler:nth-child(2){ scale: 1; }
+body:has(#disp-scope:checked) .rays .labeler:nth-child(3){ scale: 1.26; }
+body:has(#disp-scope:checked) .wizard-title   { scale: 1.2; }
+body:has(#disp-scope:checked) .tagline     { scale: .9; }
+body:has(#disp-scope:checked) .entry-field { scale: 1.05; }
+body:has(#disp-scope:checked) .entry-tools .wizard-cell:nth-child(1){ scale: .8; }
+body:has(#disp-scope:checked) .entry-tools .wizard-cell:nth-child(2){ scale: 1.02; }
+body:has(#disp-scope:checked) .entry-tools .wizard-cell:nth-child(3){ scale: 1.24; }
+
+/* — cloud — everything drifts; each on its own clock — */
+body:has(#disp-cloud:checked) :is(.mark, .title-wrap, .tier-badge, .tier-pop, .menu-langs, .menu-btn, .rays .ray, .wizard-title, .tagline, .entry-field, .entry-tools .wizard-cell){
+  animation: compass-drift 6.5s ease-in-out infinite;
+}
+body:has(#disp-cloud:checked) .mark       { animation-delay: -0.4s; animation-duration: 6.1s; }
+body:has(#disp-cloud:checked) .title-wrap { animation-delay: -2.0s; animation-duration: 7.4s; }
+body:has(#disp-cloud:checked) .tier-pop   { animation-delay: -3.3s; animation-duration: 5.6s; }
+body:has(#disp-cloud:checked) .menu-langs { animation-delay: -1.2s; animation-duration: 6.8s; }
+body:has(#disp-cloud:checked) .menu-btn   { animation-delay: -4.1s; animation-duration: 7.0s; }
+body:has(#disp-cloud:checked) .wizard-title  { animation-delay: -0.9s; animation-duration: 8.0s; }
+body:has(#disp-cloud:checked) .tagline    { animation-delay: -2.7s; animation-duration: 6.3s; }
+body:has(#disp-cloud:checked) .entry-field{ animation-delay: -3.8s; animation-duration: 7.7s; }
+body:has(#disp-cloud:checked) .rays .labeler:nth-child(1){ animation-delay:  0s;   animation-duration: 6.4s; }
+body:has(#disp-cloud:checked) .rays .labeler:nth-child(2){ animation-delay: -2.2s; animation-duration: 7.3s; }
+body:has(#disp-cloud:checked) .rays .labeler:nth-child(3){ animation-delay: -4.1s; animation-duration: 5.7s; }
+body:has(#disp-cloud:checked) .entry-tools .wizard-cell:nth-child(1){ animation-delay: -1.5s; animation-duration: 6.6s; }
+body:has(#disp-cloud:checked) .entry-tools .wizard-cell:nth-child(2){ animation-delay: -3.0s; animation-duration: 7.1s; }
+body:has(#disp-cloud:checked) .entry-tools .wizard-cell:nth-child(3){ animation-delay: -4.6s; animation-duration: 5.9s; }
+@keyframes compass-drift{
+  0%, 100% { transform: translate(0, 0)       rotate(0deg); }
+  25%      { transform: translate(5px, -4px)  rotate(4deg); }
+  50%      { transform: translate(-4px, 3px)  rotate(-3deg); }
+  75%      { transform: translate(3px, 4px)   rotate(2deg); }
+}
+
+/* — random — everything jitters & scatters; each its own way — */
+body:has(#disp-random:checked) :is(.mark, .title-wrap, .tier-badge, .tier-pop, .menu-langs, .menu-btn, .rays .ray, .wizard-title, .tagline, .entry-field, .entry-tools .wizard-cell){
+  animation: compass-jitter 3.3s ease-in-out infinite;
+}
+/* random also re-orders the topbar row and the card's fields/buttons
+   (order works because .topbar-inner, .card and .entry-form are flex) */
+body:has(#disp-random:checked) .mark        { order: 5; scale: 1.2;  animation-delay: -0.4s; }
+body:has(#disp-random:checked) .title-wrap  { order: 1; scale: .82;  animation-delay: -1.7s; }
+body:has(#disp-random:checked) .compass-wrap{ order: 7; }
+body:has(#disp-random:checked) .tier-badge  { order: 3; }
+body:has(#disp-random:checked) .magic-wrap  { order: 0; }
+body:has(#disp-random:checked) .tier-pop    { order: 6; scale: 1.15; animation-delay: -2.5s; }
+body:has(#disp-random:checked) .menu-langs  { order: 2; scale: .9;   animation-delay: -0.9s; }
+body:has(#disp-random:checked) .menu-btn    { order: 4; scale: 1.28; animation-delay: -3.1s; }
+body:has(#disp-random:checked) .wizard-title   { order: 2; scale: 1.1;  animation-delay: -1.2s; }
+body:has(#disp-random:checked) .tagline     { order: 0; scale: .85;  animation-delay: -2.9s; }
+body:has(#disp-random:checked) .entry-form  { order: 1; }
+body:has(#disp-random:checked) .entry-field { order: 1; scale: 1.04; animation-delay: -3.7s; }
+body:has(#disp-random:checked) .bots-list-row{ order: 0; }
+body:has(#disp-random:checked) .rays .labeler:nth-child(1){ order: 2; scale: 1.22; animation-delay: -0.4s; }
+body:has(#disp-random:checked) .rays .labeler:nth-child(2){ order: 0; scale: .8;   animation-delay: -1.9s; }
+body:has(#disp-random:checked) .rays .labeler:nth-child(3){ order: 1; scale: 1.05; animation-delay: -1.1s; }
+body:has(#disp-random:checked) .entry-tools .wizard-cell:nth-child(1){ order: 2; scale: 1.18; animation-delay: -0.6s; }
+body:has(#disp-random:checked) .entry-tools .wizard-cell:nth-child(2){ order: 0; scale: .82; animation-delay: -2.1s; }
+body:has(#disp-random:checked) .entry-tools .wizard-cell:nth-child(3){ order: 1; scale: 1.06; animation-delay: -1.4s; }
+@keyframes compass-jitter{
+  0%, 100% { transform: translate(0, 0)        rotate(-6deg); }
+  25%      { transform: translate(-5px, 4px)   rotate(7deg); }
+  50%      { transform: translate(5px, -3px)   rotate(-5deg); }
+  75%      { transform: translate(-3px, -4px)  rotate(6deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  :is(.mark, .title-wrap, .tier-badge, .tier-pop, .menu-langs, .menu-btn,
+      .rays .ray, .wizard-title, .tagline, .entry-field, .entry-tools .wizard-cell){ transition: none; }
+  body:has(#disp-cloud:checked)  :is(.mark, .title-wrap, .tier-badge, .tier-pop, .menu-langs, .menu-btn, .rays .ray, .wizard-title, .tagline, .entry-field, .entry-tools .wizard-cell),
+  body:has(#disp-random:checked) :is(.mark, .title-wrap, .tier-badge, .tier-pop, .menu-langs, .menu-btn, .rays .ray, .wizard-title, .tagline, .entry-field, .entry-tools .wizard-cell){ animation: none; }
+}
+
+.title-mood{
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  letter-spacing: -.005em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.title-mood > span{ display: none; }
+body:has(#r-lovely:checked) .tm-lovely,
+body:has(#r-joy:checked)    .tm-joy,
+body:has(#r-wisdom:checked) .tm-wisdom{ display: inline; }
+.mark{
+  font-size: 1.7rem; color: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+  line-height: 1;
+}
+/*
+  Site logo swap per labeler: each personality has its own glyph.
+  Default ♡ is shown until a ray is selected.
+*/
+.mark .mk{ display: none; }
+.mark .mk-default{ display: inline; }
+body:has(#r-lovely:checked) .mark .mk-default,
+body:has(#r-joy:checked)    .mark .mk-default,
+body:has(#r-wisdom:checked) .mark .mk-default{ display: none; }
+body:has(#r-lovely:checked) .mark .mk-lovely{ display: inline; }
+body:has(#r-joy:checked)    .mark .mk-joy{ display: inline; }
+body:has(#r-wisdom:checked) .mark .mk-wisdom{ display: inline; }
+.title-wrap{ display: flex; align-items: baseline; gap: .5rem; min-width: 0; overflow: hidden; }
+.title{
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 1.25rem; letter-spacing: -.01em; line-height: 1;
+  background: linear-gradient(90deg, var(--accent), #ff8a65 60%, var(--accent));
+  background-clip: text; -webkit-background-clip: text;
+  color: transparent;
+  cursor: pointer;
+}
+.tier-badge{
+  display: none;
+  font: 600 .66rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  color: var(--accent-deep);
+  padding: .2rem .45rem;
+  background: var(--fill-soft);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  white-space: nowrap;
+  animation: badge-in .25s var(--bounce);
+}
+body:has(#info:checked) .tier-badge{ display: inline-block; }
+body:has(#info:checked) .mark{ color: var(--accent-deep); transform: scale(1.08); }
+@keyframes badge-in{ from{ opacity: 0; transform: translateX(-4px);} to{ opacity: 1; transform: none;} }
+.menu-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  font-size: 1.2rem; color: var(--ink);
+  transition: background var(--fast), transform var(--fast);
+}
+.menu-btn:hover, .menu-btn:focus-visible{ background: var(--fill-mid); }
+.menu-btn--close{ display: none; }
+body:has(#m:checked) .menu-btn--open{ display: none; }
+body:has(#m:checked) .menu-btn--close{ display: inline-flex; }
+
+.menu-overlay{
+  /* invisible catcher — collapses the menu on any outside click,
+     without dimming or altering the page background. */
+  position: fixed; inset: 0; z-index: 8;
+  background: transparent;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--fast);
+}
+body:has(#m:checked) .menu-overlay{ opacity: 1; pointer-events: auto; }
+
+/* ── language cluster — expands inline, to the LEFT of the 🌐 button.
+   Collapsed (max-width:0) until #m is checked; expanding it pushes the
+   other topbar icons leftward, just like the rays do. ──────────────── */
+.menu-langs{
+  display: flex; align-items: center; gap: .5rem;
+  flex-shrink: 0;
+  max-width: 0; overflow: hidden;
+  opacity: 0; pointer-events: none;
+  transition: max-width .3s var(--bounce), opacity .2s var(--bounce);
+}
+body:has(#m:checked) .menu-langs{
+  max-width: 200px; opacity: 1; pointer-events: auto;
+}
+/* the visible label is always the CURRENT language; it is a <label> for
+   the OTHER language radio, so clicking it switches. */
+.menu-lang{
+  display: none;
+  align-items: center;
+  font-size: 1.2rem; line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--fast);
+}
+.menu-lang:hover, .menu-lang:focus-visible{ transform: translateY(-1px); }
+body:has(#lang-en:checked) .menu-lang--en{ display: inline-flex; }
+body:has(#lang-es:checked) .menu-lang--es{ display: inline-flex; }
+.menu-lang-add{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 1.15rem; color: var(--accent);
+  cursor: pointer;
+  transition: color var(--fast), background var(--fast);
+}
+.menu-lang-add:hover, .menu-lang-add:focus-visible{
+  color: #fff; background: rgba(var(--accent-rgb), .5);
+}
+/* the menu's close button shows the CURRENT language acronym (EN / SPA)
+   in capitals instead of an ×. */
+.lang-acr{ display: none; font: 700 .82rem/1 var(--font-ui); letter-spacing: .03em; }
+body:has(#lang-en:checked) .lang-acr--en{ display: inline; }
+body:has(#lang-es:checked) .lang-acr--es{ display: inline; }
+/* The in-menu tier navigation bar was removed — tier switching now
+   lives in the compass-pop in the topbar, so its CSS is gone too. */
+
+main{
+  max-width: 420px; margin: 1rem auto 2rem;
+  padding: 0 .9rem;
+}
+.card{
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: none;
+  padding: 1.1rem 1rem 1.2rem;
+  /* flex column so the compass 'random' mode can re-order the fields */
+  display: flex; flex-direction: column;
+  animation: card-in .55s var(--bounce) both;
+}
+@keyframes card-in{ from{ opacity: 0; transform: translateY(8px);} to{ opacity: 1; transform: none;} }
+
+.wizard-title{
+  display: none;
+  margin: 0 0 .15rem;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 1.15rem; letter-spacing: -.005em;
+  color: var(--ink);
+  animation: title-in .35s var(--bounce);
+}
+@keyframes title-in{ from{ opacity: 0; transform: translateY(-3px);} to{ opacity: 1; transform: none;} }
+.bt-lovely, .bt-joy, .bt-wisdom{ display: none; }
+body:has(#r-lovely:checked) .wizard-title,
+body:has(#r-joy:checked)    .wizard-title,
+body:has(#r-wisdom:checked) .wizard-title{ display: block; }
+body:has(#r-lovely:checked) .bt-lovely{ display: inline; }
+body:has(#r-joy:checked)    .bt-joy{ display: inline; }
+body:has(#r-wisdom:checked) .bt-wisdom{ display: inline; }
+
+.tagline{
+  margin: 0 0 1rem;
+  font-size: .82rem; color: var(--ink-soft);
+  min-height: 1.1em;
+}
+
+.rays{
+  display: flex; justify-content: flex-start; gap: .3rem;
+  margin: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: max-width .35s var(--bounce), opacity .2s var(--bounce);
+}
+body:not(:has(#r-collapsed:checked)) .rays{
+  max-width: 140px;
+  opacity: 1;
+  pointer-events: auto;
+}
+.ray{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  font-size: 1rem; line-height: 1;
+  background: #fff; border: 1px solid var(--line);
+  transition: transform var(--fast), background var(--fast), border-color var(--fast), box-shadow var(--fast);
+}
+.labeler:hover{ background: var(--fill-soft); border-color: var(--accent); transform: translateY(-1px); }
+body:has(#r-lovely:checked) .ray[for="r-lovely"],
+body:has(#r-joy:checked)    .ray[for="r-joy"],
+body:has(#r-wisdom:checked) .ray[for="r-wisdom"]{
+  background: var(--accent); border-color: var(--accent-deep); color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+/* ray slogan swap */
+.slogan{ display: none; }
+body:has(#r-lovely:checked) .slogan-lovely,
+body:has(#r-joy:checked)    .slogan-joy,
+body:has(#r-wisdom:checked) .slogan-wisdom{ display: inline; }
+
+.entry-form{
+  display: flex; flex-direction: column; gap: .55rem;
+}
+.entry-field{
+  position: relative;
+  background: transparent;
+  border: 2px solid var(--line-strong);
+  border-radius: 12px;
+  padding: .8rem .9rem .6rem;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.entry-field:focus-within{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.entry-textarea{
+  display: block; width: 100%;
+  min-height: 5em;
+  margin: 0; padding: 0;
+  border: 0; resize: none;
+  font-family: inherit; font-size: 1.2rem; line-height: 1.4;
+  color: var(--ink); background: transparent;
+  position: relative; z-index: 1;
+}
+.entry-textarea:focus-visible{
+  outline: none;
+}
+.entry-textarea::placeholder{ color: var(--ink-mute); }
+
+.entry-tools{
+  display: flex; align-items: center; justify-content: flex-end; gap: .35rem;
+  margin-top: .35rem;
+}
+.bot{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 1rem; line-height: 1;
+  background: var(--fill-soft); border: 1px solid transparent;
+  transition: transform var(--fast), background var(--fast), border-color var(--fast);
+}
+.wizard:hover{ background: var(--fill-mid); border-color: var(--accent); }
+
+/*
+  Each bot is wrapped in a .wizard-cell containing 4 stacked labels.
+  Only one label is visible at a time; clicking it advances the
+  state machine of that bot (1 → 2 → 3 → 1).
+*/
+.wizard-cell{ display: inline-flex; }
+.wizard-cell > .bot{ display: none; }
+.wizard-cell > .wizard:first-child{ display: inline-flex; }
+
+/*
+  Step swap: the first label is hidden once any step is checked; the
+  step-N+1 label takes its place. Uses [id^="b-…-"] attribute prefix to
+  match all three steps of a given bot in a single rule.
+*/
+body:has([id^="b-lovely-"]:checked) .wizard-cell--lovely > .wizard:first-child,
+body:has([id^="b-joy-"]:checked)    .wizard-cell--joy    > .wizard:first-child,
+body:has([id^="b-wisdom-"]:checked) .wizard-cell--wisdom > .wizard:first-child{ display: none; }
+
+body:has(#b-lovely-1:checked) .wizard-cell--lovely > .wizard:nth-child(2),
+body:has(#b-lovely-2:checked) .wizard-cell--lovely > .wizard:nth-child(3),
+body:has(#b-lovely-3:checked) .wizard-cell--lovely > .wizard:nth-child(4),
+body:has(#b-joy-1:checked)    .wizard-cell--joy    > .wizard:nth-child(2),
+body:has(#b-joy-2:checked)    .wizard-cell--joy    > .wizard:nth-child(3),
+body:has(#b-joy-3:checked)    .wizard-cell--joy    > .wizard:nth-child(4),
+body:has(#b-wisdom-1:checked) .wizard-cell--wisdom > .wizard:nth-child(2),
+body:has(#b-wisdom-2:checked) .wizard-cell--wisdom > .wizard:nth-child(3),
+body:has(#b-wisdom-3:checked) .wizard-cell--wisdom > .wizard:nth-child(4){ display: inline-flex; }
+
+/* active highlight on the cell whose bot is at any step */
+body:has([id^="b-lovely-"]:checked) .wizard-cell--lovely > .bot,
+body:has([id^="b-joy-"]:checked)    .wizard-cell--joy    > .bot,
+body:has([id^="b-wisdom-"]:checked) .wizard-cell--wisdom > .bot{
+  background: var(--accent); border-color: var(--accent-deep);
+  transform: scale(1.15);
+  animation: pop .35s var(--bounce);
+}
+@keyframes pop{
+  0%{ transform: scale(1); }
+  50%{ transform: scale(1.25); }
+  100%{ transform: scale(1.15); }
+}
+
+/*
+  Bot suggestion — inline ghost text inside the entry field, overlaying the
+  empty textarea where the user would type. Once the user types anything
+  (:placeholder-shown stops matching) it is hidden so it never blocks input.
+*/
+.suggestion{
+  position: absolute;
+  top: .8rem; left: .9rem; right: .9rem;
+  margin: 0; padding: 0;
+  background: transparent; border: 0;
+  font-size: 1.2rem; line-height: 1.4;
+  color: var(--ink-mute);
+  font-style: italic;
+  pointer-events: none;
+  display: none;
+  z-index: 0;
+  animation: slide-in .3s var(--bounce);
+}
+@keyframes slide-in{ from{ opacity: 0; transform: translateY(-4px);} to{ opacity: 1; transform: none;} }
+.s-lovely-1, .s-lovely-2, .s-lovely-3,
+.s-joy-1, .s-joy-2, .s-joy-3,
+.s-wisdom-1, .s-wisdom-2, .s-wisdom-3{ display: none; }
+
+body:has([id^="b-"]:checked) .entry-field:has(.entry-textarea:placeholder-shown) .suggestion{ display: block; }
+
+body:has(#b-lovely-1:checked) .s-lovely-1,
+body:has(#b-lovely-2:checked) .s-lovely-2,
+body:has(#b-lovely-3:checked) .s-lovely-3,
+body:has(#b-joy-1:checked)    .s-joy-1,
+body:has(#b-joy-2:checked)    .s-joy-2,
+body:has(#b-joy-3:checked)    .s-joy-3,
+body:has(#b-wisdom-1:checked) .s-wisdom-1,
+body:has(#b-wisdom-2:checked) .s-wisdom-2,
+body:has(#b-wisdom-3:checked) .s-wisdom-3{ display: block; }
+
+/* Add button */
+.add-btn{
+  margin-left: auto;
+  display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+  padding: .55rem 1.1rem;
+  border: 0; border-radius: var(--radius-pill);
+  font: 600 .95rem var(--font-ui); color: #fff;
+  background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb),.35);
+  cursor: pointer;
+  transition: transform var(--fast), box-shadow var(--fast), filter var(--fast);
+}
+.add-btn:hover{ transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 8px 20px rgba(var(--accent-rgb),.45); }
+.add-btn:active{ transform: translateY(0) scale(.98); }
+
+.bots-list-row{
+  display: flex; align-items: center; gap: .35rem;
+}
+.bots-list-row--bots{
+  justify-content: flex-start;
+}
+.bots-list-trigger{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  /* bare by default — no tinted background, no border; the ✨/× glyph
+     shows full-size and clear. Soft red only appears on activation. */
+  background: transparent;
+  color: var(--accent-deep);
+  font-size: 2.24rem; font-weight: 600; line-height: 1;
+  border: 0;
+  transition: background var(--fast), color var(--fast), transform var(--fast);
+}
+.bots-list-trigger:hover,
+.bots-list-trigger:focus-visible,
+.bots-list-trigger:active{
+  background: rgba(var(--accent-rgb), .5); color: #fff;
+}
+/*
+  Two triggers per row: + (expand) and × (collapse).
+  Visibility is driven by the radio state of each list.
+  Collapsing returns the list to its default state (no selection).
+*/
+.bots-list-trigger--collapse{ display: none; }
+body:not(:has(#bs-collapsed:checked)) .bots-list-row--bots .bots-list-trigger--expand{ display: none; }
+body:not(:has(#bs-collapsed:checked)) .bots-list-row--bots .bots-list-trigger--collapse{ display: inline-flex; }
+
+.bots-list-row--bots .entry-tools{
+  margin: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-width .3s var(--bounce), opacity .2s var(--bounce);
+}
+body:not(:has(#bs-collapsed:checked)) .bots-list-row--bots .entry-tools{
+  max-width: 280px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* tighter on very small screens */
+@media (max-width: 380px){
+  .topbar-inner{ padding: .55rem .6rem; gap: .25rem; }
+  main{ padding: 0 .65rem; }
+  .card{ padding: .9rem .8rem 1rem; }
+  .ray{ width: 26px; height: 26px; font-size: .9rem; }
+  body:not(:has(#r-collapsed:checked)) .rays{ max-width: 100px; }
+  .topbar-toggle{ width: 32px; height: 32px; font-size: 1.96rem; }
+  .title{ font-size: 1.1rem; }
+  .title-mood{ font-size: .9rem; }
+  .mark{ font-size: 1.4rem; }
+}
+
+/*
+  i18n: every translatable text uses a <span class="l-en"></span><span class="l-es"></span>
+  pair. English shows by default; switching to #lang-es:checked swaps the visible one.
+  Default state hides .l-es so source order doesn't show both stacked.
+*/
+.l-es{ display: none; }
+body:has(#lang-es:checked) .l-en{ display: none; }
+body:has(#lang-es:checked) .l-es{ display: inline; }
+
+/* The in-menu language sublist was replaced by the inline .menu-langs
+   cluster in the topbar — its CSS lives in the topbar section above. */
+
+/*
+  Ghost placeholder — the textarea now uses a single-space placeholder so that
+  :placeholder-shown still fires; this overlay renders the *visible* placeholder
+  text in the chosen language. Hidden once the user types into the field.
+*/
+.ghost-placeholder{
+  position: absolute;
+  top: .8rem; left: .9rem;
+  pointer-events: none;
+  color: var(--ink-mute);
+  font-size: 1.2rem; line-height: 1.4;
+  display: none;
+}
+.entry-field:has(.entry-textarea:placeholder-shown) .ghost-placeholder{ display: block; }
+body:has([id^="b-"]:checked) .ghost-placeholder{ display: none; }
+
+/*
+  Add-new-language section. Rendered in-flow below the entry card — no modal.
+  Toggled by #addlang-open: the "Add new language…" menu item checks it; the
+  × in the section header un-checks it.
+*/
+.addlang-section{
+  display: none;
+  margin-top: 1.4rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 1.1rem 1rem 1.2rem;
+  animation: card-in .4s var(--bounce) both;
+}
+body:has(#addlang-open:checked) .addlang-section{ display: block; }
+.addlang-head{
+  display: flex; align-items: center; gap: .5rem;
+  margin: 0 0 .8rem;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 1.1rem; color: var(--ink);
+}
+.addlang-close{
+  margin-left: auto;
+  width: 28px; height: 28px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-soft);
+  transition: background var(--fast);
+}
+.addlang-close:hover{ background: var(--fill-soft); color: var(--accent-deep); }
+
+.cat-row{
+  display: flex; justify-content: center; gap: .35rem;
+  margin: 0 0 .8rem;
+  flex-wrap: wrap;
+}
+.cat-pill{
+  padding: .4rem .9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  font: 600 .8rem var(--font-ui);
+  color: var(--ink-soft); background: #fff;
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.cat-pill:hover{ background: var(--fill-soft); }
+body:has(#cat-all:checked)  .cat-pill[for="cat-all"],
+body:has(#cat-nav:checked)  .cat-pill[for="cat-nav"],
+body:has(#cat-rays:checked) .cat-pill[for="cat-rays"],
+body:has(#cat-bots:checked) .cat-pill[for="cat-bots"]{
+  background: var(--accent); color: #fff; border-color: var(--accent-deep);
+}
+
+/*
+  Section wrappers: each holds its own title + textarea. Hidden by default;
+  shown when its own radio is checked OR when "All" is checked.
+*/
+.cat-section{ display: none; margin-bottom: 1rem; }
+.cat-section:last-of-type{ margin-bottom: 0; }
+body:has(#cat-all:checked)  .cat-section,
+body:has(#cat-nav:checked)  .cat-section--nav,
+body:has(#cat-rays:checked) .cat-section--rays,
+body:has(#cat-bots:checked) .cat-section--bots{ display: block; }
+
+/*
+  "All" view: every section is shown on the one page, each separated from the
+  next by two blank text rows (≈ 2 × 1.3rem line-height).
+*/
+body:has(#cat-all:checked) .cat-section{ margin-bottom: 2.6rem; }
+body:has(#cat-all:checked) .cat-section:last-of-type{ margin-bottom: 0; }
+
+.cat-title{
+  margin: 0 0 .4rem;
+  font: 700 .82rem var(--font-ui);
+  color: var(--ink);
+  letter-spacing: -.005em;
+}
+
+.cat-strings{
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  padding: .7rem .8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  font: 400 .88rem/1.5 var(--font-ui);
+  color: var(--ink); background: #fff;
+  resize: vertical;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.cat-strings:focus-visible{
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.copy-hint{
+  margin: .7rem 0 0;
+  text-align: center;
+  font: 400 .8rem var(--font-ui);
+  color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- state controls -->
+<input type="checkbox" id="m"    class="ctl">
+<input type="checkbox" id="info" class="ctl">
+<input type="checkbox" id="tier-pop-open" class="ctl">
+<!-- compass-open toggles the mode row; name="disp-mode" re-lays-out
+     the personality rays + bot chips. disp-none = default. -->
+<input type="checkbox" id="compass-open" class="ctl">
+<input type="radio" name="disp-mode" id="disp-none"   class="ctl" checked>
+<input type="radio" name="disp-mode" id="disp-scope"  class="ctl">
+<input type="radio" name="disp-mode" id="disp-cloud"  class="ctl">
+<input type="radio" name="disp-mode" id="disp-random" class="ctl">
+
+
+<!--
+  ray switcher — 5 states:
+  · r-collapsed  → list hidden, no ray selected (default)
+  · r-none       → list visible, no ray selected
+  · r-lovely / r-joy / r-wisdom → list visible, that ray selected
+-->
+<input type="radio" name="labeler" id="r-collapsed" class="ctl" checked>
+<input type="radio" name="labeler" id="r-none"      class="ctl">
+<input type="radio" name="labeler" id="r-lovely"    class="ctl">
+<input type="radio" name="labeler" id="r-joy"       class="ctl">
+<input type="radio" name="labeler" id="r-wisdom"    class="ctl">
+
+<!--
+  bot suggestion — 11 states (3-click loop per bot):
+  · bs-collapsed → list hidden, no bot selected (default)
+  · bs-expanded  → list visible, no bot selected
+  · b-{bot}-{1|2|3} → list visible, that bot at that step
+  Clicking the same bot advances 1→2→3→1.
+-->
+<input type="radio" name="wizard" id="bs-collapsed" class="ctl" checked>
+<input type="radio" name="wizard" id="bs-expanded"  class="ctl">
+<input type="radio" name="wizard" id="b-lovely-1"   class="ctl">
+<input type="radio" name="wizard" id="b-lovely-2"   class="ctl">
+<input type="radio" name="wizard" id="b-lovely-3"   class="ctl">
+<input type="radio" name="wizard" id="b-joy-1"      class="ctl">
+<input type="radio" name="wizard" id="b-joy-2"      class="ctl">
+<input type="radio" name="wizard" id="b-joy-3"      class="ctl">
+<input type="radio" name="wizard" id="b-wisdom-1"   class="ctl">
+<input type="radio" name="wizard" id="b-wisdom-2"   class="ctl">
+<input type="radio" name="wizard" id="b-wisdom-3"   class="ctl">
+
+<!--
+  Language: en (default) | es. Switched from the inline .menu-langs cluster.
+  All visible UI strings come in <span class="l-en"></span><span class="l-es"></span> pairs.
+-->
+<input type="radio" name="lang" id="lang-en" class="ctl" checked>
+<input type="radio" name="lang" id="lang-es" class="ctl">
+
+<!--
+  Add-new-language form: toggled by #addlang-open. Inside, three category
+  buttons (Navigation / Rays / Bots) drive a read-only textarea that lists
+  the source strings of that section, one per row, in code order — for the
+  user to copy and translate via their AI assistant of choice.
+-->
+<input type="checkbox" id="addlang-open" class="ctl">
+<input type="radio" name="cat" id="cat-all"  class="ctl" checked>
+<input type="radio" name="cat" id="cat-nav"  class="ctl">
+<input type="radio" name="cat" id="cat-rays" class="ctl">
+<input type="radio" name="cat" id="cat-bots" class="ctl">
+
+<!-- topbar -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <label class="mark" for="info" title="Info" aria-label="Info" tabindex="0">
+      <span class="mk mk-default">♡</span>
+      <span class="mk mk-lovely">❤</span>
+      <span class="mk mk-joy">✿</span>
+      <span class="mk mk-wisdom">☽</span>
+    </label>
+    <div class="title-wrap">
+      <label class="title" for="info" title="Mini HTML&amp;CSS" tabindex="0">flovy</label>
+      <span class="title-mood" aria-hidden="true">
+        <span class="tm-lovely"><span class="l-en">· lovely</span><span class="l-es">· cariño</span></span>
+        <span class="tm-joy"><span class="l-en">· joy</span><span class="l-es">· alegría</span></span>
+        <span class="tm-wisdom"><span class="l-en">· wisdom</span><span class="l-es">· sabiduría</span></span>
+      </span>
+    </div>
+    <!-- Compass — display-mode switcher for the rays + bot chips. -->
+    <div class="compass-wrap">
+      <label class="compass-btn topbar-btn" for="compass-open" title="Display modes" aria-label="Display modes" tabindex="0">
+        <svg viewBox="0 0 24 24" width="31.74" height="31.74" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.9" fill="#fff"/>
+        </svg>
+      </label>
+      <div class="mode-buttons" role="group" aria-label="Display modes">
+        <label class="mode-btn" for="disp-none" title="Normal — natural layout" aria-label="Normal" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <circle cx="4" cy="6"  r="2.3"/><rect x="9" y="4.2"  width="13" height="3.6" rx="1.8"/>
+            <circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/>
+            <circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/>
+          </g></svg>
+        </label>
+        <label class="mode-btn" for="disp-scope" title="Scope — small to large" aria-label="Scope" tabindex="0">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="currentColor">
+            <rect x="2"  y="15" width="3" height="5"/>
+            <rect x="7"  y="12" width="3" height="8"/>
+            <rect x="12" y="8"  width="3" height="12"/>
+            <rect x="17" y="3"  width="3" height="17"/>
+          </g></svg>
+        </label>
+        <label class="mode-btn" for="disp-cloud" title="Cloud — drift &amp; sweep" aria-label="Cloud" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <circle cx="8.5" cy="13"   r="5.2"/>
+            <circle cx="15"  cy="10"   r="6.3"/>
+            <circle cx="18"  cy="14.5" r="4.6"/>
+            <rect x="6.5" y="13" width="12.5" height="6" rx="3"/>
+          </g></svg>
+        </label>
+        <label class="mode-btn" for="disp-random" title="Random — shuffle &amp; scatter" aria-label="Random" tabindex="0">🎲</label>
+      </div>
+    </div>
+    <span class="tier-badge" aria-hidden="true"><span class="l-en">Mini HTML&amp;CSS</span><span class="l-es">Mini HTML&amp;CSS</span></span>
+    <!-- magic icon + ray switcher — the toggle stays anchored against the menu
+         button; the rays expand to its left, so the × shows where ✨ was -->
+    <div class="magic-wrap">
+      <div class="rays" role="radiogroup" aria-label="Personality (ray)">
+        <label class="labeler" for="r-lovely" title="Lovely" aria-label="Lovely" tabindex="0">😍</label>
+        <label class="labeler" for="r-joy"    title="Joy"    aria-label="Joy"    tabindex="0">😂</label>
+        <label class="labeler" for="r-wisdom" title="Wisdom" aria-label="Wisdom" tabindex="0">🔥</label>
+      </div>
+      <label class="topbar-toggle topbar-toggle--expand"   for="r-none"      title="Show personalities" aria-label="Show personalities" tabindex="0">✨</label>
+      <label class="topbar-toggle topbar-toggle--collapse" for="r-collapsed" title="Hide personalities" aria-label="Hide personalities" tabindex="0">×</label>
+    </div>
+    <!-- Tier pop — icon left of the ☰ menu. Click it to fan the five
+         flovy tiers out leftward; while open the ✨ ray cluster hides. -->
+    <div class="tier-pop">
+      <ul class="tier-pop-rays" role="menu" aria-label="flovy tiers">
+        <li><a class="tier-pop-step tier-pop-step--current" href="flovymini.html" aria-current="page" title="Mini tier (current)"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="l-en">Mini</span><span class="l-es">Mini</span></span></a></li>
+        <li><a class="tier-pop-step" href="flovybasic.html" title="Basic tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="l-en">Basic</span><span class="l-es">Básico</span></span></a></li>
+        <li><a class="tier-pop-step" href="flovynormal.html" title="Normal tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="l-en">Normal</span><span class="l-es">Normal</span></span></a></li>
+        <li><a class="tier-pop-step tier-pop-step--wip" href="flovyadvanced.html" title="Advanced tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="l-en">Advanced</span><span class="l-es">Avanzado</span></span></a></li>
+        <li><a class="tier-pop-step tier-pop-step--wip" href="flovysuper.html" title="Super tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="l-en">Super</span><span class="l-es">Súper</span></span></a></li>
+      </ul>
+      <label class="tier-pop-btn topbar-btn" for="tier-pop-open" title="Tiers" aria-label="Show tier levels" tabindex="0">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="currentColor">
+          <rect x="2"    y="16" width="3.2" height="4"/>
+          <rect x="6.4"  y="13" width="3.2" height="7"/>
+          <rect x="10.8" y="10" width="3.2" height="10"/>
+          <rect x="15.2" y="7"  width="3.2" height="13"/>
+          <rect x="19.6" y="4"  width="3.2" height="16"/>
+        </g></svg>
+      </label>
+    </div>
+    <!-- Language cluster — expands inline to the LEFT of the 🌐 button
+         when #m is checked, pushing the other topbar icons leftward.
+         The visible label is the CURRENT language; clicking it switches. -->
+    <div class="menu-langs">
+      <label class="menu-lang menu-lang--en" for="lang-es" title="Switch to Spanish" aria-label="Switch to Spanish" tabindex="0">🇪🇸</label>
+      <label class="menu-lang menu-lang--es" for="lang-en" title="Switch to English" aria-label="Switch to English" tabindex="0">🇬🇧</label>
+      <label class="menu-lang-add" for="addlang-open" title="Add a language" aria-label="Add a language" tabindex="0">＋</label>
+    </div>
+    <label class="menu-btn topbar-btn menu-btn--open"  for="m" title="Menu" aria-label="Open menu" tabindex="0">🌐</label>
+    <label class="menu-btn topbar-btn menu-btn--close" for="m" title="Close" aria-label="Close menu" tabindex="0"><span class="lang-acr lang-acr--en">EN</span><span class="lang-acr lang-acr--es">SPA</span></label>
+  </div>
+</header>
+
+<label class="menu-overlay" for="m" aria-hidden="true"></label>
+
+<main>
+  <section class="card">
+    <h1 class="wizard-title">
+      <span class="bt-lovely"><span class="l-en">A careful word</span><span class="l-es">Una palabra cuidadosa</span></span>
+      <span class="bt-joy"><span class="l-en">A bright spark</span><span class="l-es">Una chispa brillante</span></span>
+      <span class="bt-wisdom"><span class="l-en">A quiet truth</span><span class="l-es">Una verdad tranquila</span></span>
+    </h1>
+    <p class="tagline">
+      <span class="slogan slogan-lovely"><span class="l-en">Held with care · take your time.</span><span class="l-es">Sostenido con cuidado · tómate tu tiempo.</span></span>
+      <span class="slogan slogan-joy"><span class="l-en">Bring snacks · let's have fun! 🎈</span><span class="l-es">Trae snacks · ¡vamos a divertirnos! 🎈</span></span>
+      <span class="slogan slogan-wisdom"><span class="l-en">Listen for what the room is saying.</span><span class="l-es">Escucha lo que dice la sala.</span></span>
+    </p>
+
+    <!--
+      Ray switcher (.rays) and its trigger (.topbar-toggle) both live in
+      the topbar now — the row expands rightwards from the ✨ position.
+    -->
+
+    <!--
+      CHANGE THE EMAIL ADDRESS HERE.
+      enctype="text/plain" makes the mail body contain «field-name=value».
+      Mobile and desktop browsers open the default mail app.
+    -->
+    <form class="entry-form" action="mailto:publish@flove.org"
+          method="post" enctype="text/plain">
+      <div class="entry-field">
+        <textarea class="entry-textarea"
+                  name="love"
+                  rows="3"
+                  maxlength="1000"
+                  placeholder=" "
+                  required></textarea>
+        <span class="ghost-placeholder" aria-hidden="true">
+          <span class="l-en">What's in your love</span>
+          <span class="l-es">¿Qué hay en tu amor?</span>
+        </span>
+
+        <!--
+          Bot suggestion — inline ghost text inside the field, overlaying the
+          empty textarea; hidden once the user starts typing.
+        -->
+        <output class="suggestion">
+          <span class="s-lovely-1"><span class="l-en">Dear reader, with care and respect, I share the following for your consideration.</span><span class="l-es">Estimado lector, con cuidado y respeto, comparto lo siguiente para tu consideración.</span></span>
+          <span class="s-lovely-2"><span class="l-en">If it helps, I'm here — softly, slowly, on your terms.</span><span class="l-es">Si ayuda, aquí estoy — con suavidad, despacio, a tu ritmo.</span></span>
+          <span class="s-lovely-3"><span class="l-en">Thank you for trusting me with this. Let's hold it gently.</span><span class="l-es">Gracias por confiarme esto. Sostengámoslo con delicadeza.</span></span>
+          <span class="s-joy-1"><span class="l-en">Hey! What if we do it together and have a blast? 🎈</span><span class="l-es">¡Eh! ¿Y si lo hacemos juntos y la pasamos genial? 🎈</span></span>
+          <span class="s-joy-2"><span class="l-en">Plot twist: we make it a game and laugh through it. 🎲</span><span class="l-es">Giro inesperado: lo convertimos en juego y nos reímos. 🎲</span></span>
+          <span class="s-joy-3"><span class="l-en">Snacks ready, music up — let's gooo! 🍿✨</span><span class="l-es">Snacks listos, música arriba — ¡vamos! 🍿✨</span></span>
+          <span class="s-wisdom-1"><span class="l-en">Where the air leans and the silence writes, there beats what has no name yet.</span><span class="l-es">Donde el aire se inclina y el silencio escribe, late lo que aún no tiene nombre.</span></span>
+          <span class="s-wisdom-2"><span class="l-en">The river does not argue with the stone; it learns the stone's shape.</span><span class="l-es">El río no discute con la piedra; aprende la forma de la piedra.</span></span>
+          <span class="s-wisdom-3"><span class="l-en">What we cannot say aloud, we can say slowly — and still be heard.</span><span class="l-es">Lo que no podemos decir en voz alta, podemos decirlo despacio — y seguir siendo escuchados.</span></span>
+        </output>
+      </div>
+
+      <!--
+        Bots row — each bot is a stack of 4 labels that cycles 1 → 2 → 3 → 1.
+        Sits below the field, sharing its row with the Add button: bots trigger
+        anchored left, entry-tools expands to its right, Add pushed to the right
+        edge. The selected bot's text shows as inline ghost text in the field.
+      -->
+      <div class="bots-list-row bots-list-row--bots">
+        <label class="bots-list-trigger bots-list-trigger--expand"   for="bs-expanded"  title="Show bots" aria-label="Show bots" tabindex="0">✨</label>
+        <label class="bots-list-trigger bots-list-trigger--collapse" for="bs-collapsed" title="Hide bots" aria-label="Hide bots" tabindex="0">×</label>
+        <div class="entry-tools" role="group" aria-label="Bot suggestions">
+            <span class="wizard-cell wizard-cell--lovely">
+              <label class="wizard" for="b-lovely-1" title="Lovely · step 1" aria-label="Lovely bot, next suggestion" tabindex="0">😍</label>
+              <label class="wizard" for="b-lovely-2" title="Lovely · step 2" aria-label="Lovely bot, next suggestion" tabindex="0">😍</label>
+              <label class="wizard" for="b-lovely-3" title="Lovely · step 3" aria-label="Lovely bot, next suggestion" tabindex="0">😍</label>
+              <label class="wizard" for="b-lovely-1" title="Lovely · loop"   aria-label="Lovely bot, loop back"       tabindex="0">😍</label>
+            </span>
+            <span class="wizard-cell wizard-cell--joy">
+              <label class="wizard" for="b-joy-1" title="Joy · step 1" aria-label="Joy bot, next suggestion" tabindex="0">😂</label>
+              <label class="wizard" for="b-joy-2" title="Joy · step 2" aria-label="Joy bot, next suggestion" tabindex="0">😂</label>
+              <label class="wizard" for="b-joy-3" title="Joy · step 3" aria-label="Joy bot, next suggestion" tabindex="0">😂</label>
+              <label class="wizard" for="b-joy-1" title="Joy · loop"   aria-label="Joy bot, loop back"       tabindex="0">😂</label>
+            </span>
+            <span class="wizard-cell wizard-cell--wisdom">
+              <label class="wizard" for="b-wisdom-1" title="Wisdom · step 1" aria-label="Wisdom bot, next suggestion" tabindex="0">🔥</label>
+              <label class="wizard" for="b-wisdom-2" title="Wisdom · step 2" aria-label="Wisdom bot, next suggestion" tabindex="0">🔥</label>
+              <label class="wizard" for="b-wisdom-3" title="Wisdom · step 3" aria-label="Wisdom bot, next suggestion" tabindex="0">🔥</label>
+              <label class="wizard" for="b-wisdom-1" title="Wisdom · loop"   aria-label="Wisdom bot, loop back"       tabindex="0">🔥</label>
+            </span>
+        </div>
+        <button class="add-btn" type="submit" title="Add and send by email">＋ <span class="l-en">Add</span><span class="l-es">Añadir</span></button>
+      </div>
+    </form>
+  </section>
+
+  <!--
+    Add-new-language section — in-flow, below the entry card (not a modal),
+    with no card background of its own. Toggled by #addlang-open. Four category
+    pills (All / Navigation / Rays / Bots) drive editable textareas listing
+    this app's source strings, one per row in code order. Each textarea opens
+    with an editable intro line — the user replaces "NewLanguageTitleHere" with
+    the target language, then copies the text and asks their AI to translate.
+    "All" shows every section on one page, separated by two blank rows each.
+  -->
+  <section class="addlang-section" role="region" aria-labelledby="addlang-head">
+    <div class="addlang-head" id="addlang-head">
+      <span class="l-en">Add a new language</span><span class="l-es">Añadir un nuevo idioma</span>
+      <label class="addlang-close" for="addlang-open" tabindex="0" aria-label="Close">×</label>
+    </div>
+
+    <div class="cat-row" role="radiogroup" aria-label="Section">
+      <label class="cat-pill" for="cat-all"  tabindex="0"><span class="l-en">All</span><span class="l-es">Todas</span></label>
+      <label class="cat-pill" for="cat-nav"  tabindex="0"><span class="l-en">Navigation</span><span class="l-es">Navegación</span></label>
+      <label class="cat-pill" for="cat-rays" tabindex="0"><span class="l-en">Rays</span><span class="l-es">Rayos</span></label>
+      <label class="cat-pill" for="cat-bots" tabindex="0"><span class="l-en">Bots</span><span class="l-es">Bots</span></label>
+    </div>
+
+    <div class="cat-section cat-section--nav">
+      <h3 class="cat-title"><span class="l-en">Strings for Navigation</span><span class="l-es">Cadenas para Navegación</span></h3>
+      <textarea class="cat-strings cat-strings--nav" aria-label="Navigation strings">Add these language strings for flovymini.html to be translated into NewLanguageTitleHere
+
+Mini HTML&amp;CSS
+Mini
+Basic
+Normal
+Advanced
+Super
+About
+Language
+English
+Español
+Add new language…
+Add
+Add a new language
+Add these language strings for flovymini.html to be translated into
+Navigation
+Rays
+Bots
+Copy this text and send it to your favourite assistant</textarea>
+    </div>
+
+    <div class="cat-section cat-section--rays">
+      <h3 class="cat-title"><span class="l-en">Strings for Rays</span><span class="l-es">Cadenas para Rayos</span></h3>
+      <textarea class="cat-strings cat-strings--rays" aria-label="Rays strings">Add these language strings for flovymini.html to be translated into NewLanguageTitleHere
+
+· lovely
+· joy
+· wisdom
+A careful word
+A bright spark
+A quiet truth
+Held with care · take your time.
+Bring snacks · let's have fun! 🎈
+Listen for what the room is saying.</textarea>
+    </div>
+
+    <div class="cat-section cat-section--bots">
+      <h3 class="cat-title"><span class="l-en">Strings for Bots</span><span class="l-es">Cadenas para Bots</span></h3>
+      <textarea class="cat-strings cat-strings--bots" aria-label="Bots strings">Add these language strings for flovymini.html to be translated into NewLanguageTitleHere
+
+What's in your love
+Dear reader, with care and respect, I share the following for your consideration.
+If it helps, I'm here — softly, slowly, on your terms.
+Thank you for trusting me with this. Let's hold it gently.
+Hey! What if we do it together and have a blast? 🎈
+Plot twist: we make it a game and laugh through it. 🎲
+Snacks ready, music up — let's gooo! 🍿✨
+Where the air leans and the silence writes, there beats what has no name yet.
+The river does not argue with the stone; it learns the stone's shape.
+What we cannot say aloud, we can say slowly — and still be heard.</textarea>
+    </div>
+
+    <p class="copy-hint">
+      <span class="l-en">Copy this text and send it to your favourite assistant</span>
+      <span class="l-es">Copia este texto y envíalo a tu asistente favorito</span>
+    </p>
+  </section>
+</main>
+
+</body>
+</html>

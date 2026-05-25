@@ -4988,34 +4988,50 @@ body:has(#insight-4:checked) .insight-step:nth-child(5){
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
 }
 
-/* Views popup — opens below, auto-closes when focus leaves the wrap
-   (any other label/button takes focus → :focus-within fails → popup hides). */
-.views-wrap{ position: relative; display: inline-flex; }
+/* Views row — opens INLINE below the Views button, expanding rightwards.
+   Checkboxes (not radios): multi-toggle to mark several views for batch
+   download. A transparent overlay closes the row when the user clicks
+   anywhere else on the page. */
+.views-wrap{ position: relative; display: inline-flex; flex-wrap: wrap; align-items: center; }
+.views-btn{ position: relative; z-index: 5; }
 .views-popup{
-  position: absolute; top: calc(100% + 8px); left: 0;
-  display: none; flex-direction: column;
-  min-width: 170px;
-  padding: .35rem;
-  background: rgba(255, 255, 255, .96);
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  box-shadow: 0 12px 28px var(--ink-12);
-  z-index: 5;
+  display: none;
+  flex-basis: 100%;
+  margin-top: 8px;
+  flex-direction: row; flex-wrap: wrap;
+  align-items: center; gap: .35rem;
+  position: relative; z-index: 5;
 }
-/* Views popup — toggled open by the #views-open checkbox; click Views
-   again to collapse it. The selected view radio is untouched. */
 body:has(#views-open:checked) .views-popup{ display: flex; }
-/* Views button keeps a slight background while the popup is open OR while
-   a chart view (Bars / Vertical) is selected. */
+/* Click-outside collapse: full-viewport invisible label targets the open
+   checkbox; clicking it unchecks views-open and the row hides. */
+.views-overlay{
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 4;
+  background: transparent;
+  cursor: default;
+}
+body:has(#views-open:checked) .views-overlay{ display: block; }
+
+/* Views button keeps a slight background while the row is open OR while
+   any chart view (Bars / Vertical) is marked. */
 body:has(#views-open:checked) .views-btn,
-body:has(#view-bars:checked, #view-vertical:checked) .views-btn{
+body:has(#view-bars:checked) .views-btn,
+body:has(#view-vertical:checked) .views-btn{
   background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
 }
 .views-popup .view-pick{ justify-content: flex-start; }
-/* Active view sub-button highlight (radios — only ever one at a time). */
+/* Marked-view highlight (checkboxes — several can be checked). */
 body:has(#view-plain:checked)    .view-pick[for="view-plain"],
 body:has(#view-bars:checked)     .view-pick[for="view-bars"],
 body:has(#view-vertical:checked) .view-pick[for="view-vertical"]{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
+/* Download button — pushed to the right; pure visual in flovybasic
+   (no JS). The labelled checkbox toggles a transient "marked" state. */
+.views-download-btn{ margin-left: .75rem; }
+body:has(#views-download:checked) .views-download-btn{
   background: var(--fill-pressed); color: #fff; border-color: var(--accent);
 }
 
@@ -5076,8 +5092,8 @@ body:has(#rt-5:checked){ --ft: 100%; }
 .cssax--l .cssbar-trk > i{ width: var(--fl); } .cssax--l .csscol-trk > i{ height: var(--fl); }
 .cssax--t .cssbar-trk > i{ width: var(--ft); } .cssax--t .csscol-trk > i{ height: var(--ft); }
 
-/* Copy lives in its own row, centered */
-.action-row--copy{ justify-content: center; }
+/* Copy lives in its own row, centered, with extra breathing room above. */
+.action-row--copy{ justify-content: center; margin-top: 8px; }
 .copy-btn{ margin: 0; }
 .copy-hint-panel{
   display: none;
@@ -5869,7 +5885,6 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 <input type="radio" name="disp-mode" id="disp-random" class="ctl">
 
 <input type="checkbox" id="opt-sound" class="ctl">
-<input type="checkbox" id="opt-vis"   class="ctl">
 <input type="checkbox" id="opt-lang"  class="ctl">
 <input type="checkbox" id="menu-design-open" class="ctl">
 <input type="checkbox" id="menu-nav-open" class="ctl">
@@ -5980,14 +5995,16 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 <input type="radio" name="pub-plat-set" id="pub-plat-set-0" class="ctl" checked>
 <input type="radio" name="pub-plat-set" id="pub-plat-set-1" class="ctl">
 <input type="radio" name="pub-plat-set" id="pub-plat-set-2" class="ctl">
-<!-- Views: one checkbox toggles the popup open/closed; the rest are RADIOS
-     in one group, so a view never stacks with another. Plain is the
-     default and the "no chart" state. flovybasic is pure-CSS, so only the
-     Bars and Vertical charts are available here (no JS for the radials). -->
+<!-- Views: one checkbox toggles the inline-row open/closed; the rest are
+     CHECKBOXES so multiple can be marked at once (for batch download).
+     Pure-CSS limitation: when multiple are checked, the rendered chart is
+     whichever appears latest in DOM order (Vertical wins over Bars).
+     The Download button is a stub in flovybasic — no JS. -->
 <input type="checkbox" id="views-open" class="ctl">
-<input type="radio" name="view" id="view-plain"    class="ctl" checked>
-<input type="radio" name="view" id="view-bars"     class="ctl">
-<input type="radio" name="view" id="view-vertical" class="ctl">
+<input type="checkbox" id="view-plain"    class="ctl" checked>
+<input type="checkbox" id="view-bars"     class="ctl">
+<input type="checkbox" id="view-vertical" class="ctl">
+<input type="checkbox" id="views-download" class="ctl">
 
 <!-- insight cycles through 5 states: 0 = empty (default), 1-4 = four insight texts -->
 <input type="radio" name="insight" id="insight-0" class="ctl" checked>
@@ -6319,17 +6336,6 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
         <li class="menu-divider" role="separator" aria-hidden="true"></li>
 
         <li><label for="intro-open" title="About" tabindex="0"><span class="mi">ⓘ</span><span class="t-en">About</span><span class="t-es">Acerca</span></label></li>
-        <li class="menu-switch menu-switch--mode">
-          <label class="menu-switch-label" for="opt-vis" tabindex="0">
-            <span class="menu-switch-icon mi">◉</span>
-            <span class="menu-switch-name"><span class="t-en">Mode</span><span class="t-es">Modo</span></span>
-            <span class="menu-switch-state">
-              <span class="menu-switch-left"><span class="t-en">Local</span><span class="t-es">Local</span></span>
-              <span class="menu-switch-track"><span class="menu-switch-thumb"></span></span>
-              <span class="menu-switch-right"><span class="t-en">Public</span><span class="t-es">Público</span></span>
-            </span>
-          </label>
-        </li>
         <li class="menu-switch menu-switch--split">
           <label class="menu-switch-name-link" for="step-5" tabindex="0" title="Go to the Sounds section" aria-label="Go to the Sounds section">
             <span class="menu-switch-icon mi">♪</span>
@@ -6968,10 +6974,12 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       <div class="action-row">
         <div class="views-wrap">
           <label class="btn ghost views-btn" for="views-open" aria-haspopup="true">👁 <span class="t-en">Views</span><span class="t-es">Vistas</span></label>
-          <div class="views-popup" role="menu" aria-label="Phrase view mode">
+          <label class="views-overlay" for="views-open" aria-hidden="true" tabindex="-1"></label>
+          <div class="views-popup" role="group" aria-label="Phrase view mode">
             <label class="btn ghost view-pick" for="view-plain"    aria-label="Plain — no chart">📃 Plain</label>
             <label class="btn ghost view-pick" for="view-bars"     aria-label="Bars view">▦ Bars</label>
             <label class="btn ghost view-pick" for="view-vertical" aria-label="Vertical view">│ Vertical</label>
+            <label class="btn ghost views-download-btn" for="views-download" title="Download marked views" aria-label="Download marked views">⬇ <span class="t-en">Download</span><span class="t-es">Descargar</span></label>
           </div>
         </div>
         <span class="insight-cycle">

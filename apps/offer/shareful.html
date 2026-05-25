@@ -8,8 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../flove.css">
-<link rel="stylesheet" href="../flovy.css">
-<script src="../flove.js" defer></script>
 <style>
   :root{
     --app-accent:        #8b5cf6;
@@ -24,8 +22,6 @@
     --line:        rgba(80,50,170,.08);
     --line-strong: rgba(80,50,170,.16);
 
-    /* RGB triplet so flovy.css can build rgba() shades from the same accent */
-    --accent-rgb:  139, 92, 246;
     --accent:      #8b5cf6;
     --accent-deep: #6d28d9;
     --accent-soft: #ede9fe;
@@ -533,7 +529,9 @@
   .tree-more-wrap{ display: flex; justify-content: center; margin-top: 12px; position: relative }
   .tree-more-wrap > input[type="checkbox"]{ position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px }
 
-  /* "+ Expand" plus button — reused by reasons clouds and tree-more toggle */
+  /* "+ Additional info" toggle below sections */
+  .extra-info-wrap{ display: flex; flex-direction: column; align-items: center; margin-top: 14px }
+  .extra-info-toggle{ position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px }
   .extra-plus{
     width: 36px; height: 36px;
     display: inline-flex; align-items: center; justify-content: center;
@@ -550,6 +548,39 @@
     border-style: solid; border-color: var(--accent);
     background: var(--accent-soft); color: var(--accent-deep);
     transform: translateY(-1px);
+  }
+  .extra-info-wrap:has(.extra-info-toggle:checked) .extra-plus{
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color: #fff; border-color: var(--accent-deep);
+    transform: rotate(45deg);
+  }
+  .extra-info{
+    display: none;
+    width: 100%; margin-top: 18px;
+    position: relative;
+  }
+  .extra-info-wrap:has(.extra-info-toggle:checked) .extra-info{ display: block }
+  .extra-info textarea{
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font: 14px/1.5 var(--font-ui); color: inherit;
+    resize: vertical;
+    min-height: 5em;
+    transition: all var(--fast);
+  }
+  .extra-info textarea:focus{
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .extra-info .ta-bottom-tools{
+    position: absolute;
+    left: 50%; bottom: -16px;
+    transform: translateX(-50%);
+    display: inline-flex; gap: 6px;
+    z-index: 3;
   }
 
   /* === Invitation — centered toggle button + collapsible card == */
@@ -1033,395 +1064,33 @@
 </head>
 <body>
 
-<!-- ============================================================
-     FLOVY CHROME STATE — hidden control inputs that drive the
-     topbar (compass / All / magic / tier-pop / menu / language /
-     sound) and the summary section (insight cycle / magic toggle /
-     copy hint / save·share·publish cycles / formats / platforms /
-     wizardry bots / views). Style hooks via :has() in flovy.css.
-     ============================================================ -->
-<!-- About panel (intro-section reveals when intro-open is checked) -->
-<input type="checkbox" id="intro-open" class="ctl">
+<input type="checkbox" id="info-toggle" class="info-toggle">
 
-<!-- Step radios — flovynormal uses a 7-state stepper. Shareful only
-     consumes step-0 (used by menu links to close the menu/return) but
-     the full group is here so flovy.css selectors don't reference a
-     missing id. -->
-<input type="radio" name="step" id="step-0" class="ctl" checked>
-<input type="radio" name="step" id="step-1" class="ctl">
-<input type="radio" name="step" id="step-2" class="ctl">
-<input type="radio" name="step" id="step-3" class="ctl">
-<input type="radio" name="step" id="step-4" class="ctl">
-<input type="radio" name="step" id="step-5" class="ctl">
+<div class="flove-bar">
+  <a class="flove-home" href="../index.html" aria-label="Back to flove launcher">←</a>
+  <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.18em; overflow:visible;">
+    <defs>
+      <linearGradient id="g-shareful" x1="78" y1="82" x2="48" y2="14" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#8b5cf6"/>
+        <stop offset="55%" stop-color="#a855f7"/>
+        <stop offset="100%" stop-color="#ec4899"/>
+      </linearGradient>
+    </defs>
+    <g stroke="url(#g-shareful)" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M78 80 C 74 52, 58 34, 50 18"/>
+      <path d="M37 31 L50 16 L63 31"/>
+    </g>
+  </svg>
+  <label class="flove-app-name app-name-toggle" for="info-toggle">Shareful</label>
+  <span class="flove-spacer"></span>
+  <label class="topbar-all" for="sec-all">All</label>
+</div>
 
-<!-- Compass display modes -->
-<input type="checkbox" id="compass-open" class="ctl">
-<input type="radio" name="disp" id="disp-none"   class="ctl" checked>
-<input type="radio" name="disp" id="disp-scope"  class="ctl">
-<input type="radio" name="disp" id="disp-cloud"  class="ctl">
-<input type="radio" name="disp" id="disp-random" class="ctl">
-
-<!-- Magic ✨ cluster + ray (labeler) picker -->
-<input type="checkbox" id="magic-open" class="ctl">
-<input type="checkbox" id="d-armmore" class="ctl">
-<input type="checkbox" id="d-none"    class="ctl" checked>
-<input type="radio" name="topbar-labeler" id="topbar-labeler-none" class="ctl" checked>
-<input type="radio" name="topbar-labeler" id="labeler-formal"   class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-informal" class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-hotter"   class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-dramatic" class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-nerdy"    class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-cheeky"   class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-whimsy"   class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-mythic"   class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-queer"    class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-magical"  class="ctl">
-<input type="radio" name="topbar-labeler" id="labeler-cool"     class="ctl">
-<input type="checkbox" id="new-labeler-modal" class="ctl">
-
-<!-- Tier pop -->
-<input type="checkbox" id="tier-pop-open" class="ctl">
-
-<!-- Menu ☰ -->
-<input type="radio" name="step" id="d-menu" class="ctl">
-<input type="checkbox" id="menu-plus-open"   class="ctl">
-<input type="checkbox" id="menu-design-open" class="ctl">
-
-<!-- Sound + Language switches -->
-<input type="checkbox" id="opt-sound" class="ctl">
-<input type="checkbox" id="opt-lang"  class="ctl">
-<input type="radio" name="ui-lang" id="ui-lang-en" class="ctl" checked>
-<input type="radio" name="ui-lang" id="ui-lang-es" class="ctl">
-<input type="checkbox" id="new-language-modal" class="ctl">
-<input type="checkbox" id="new-sound-modal"    class="ctl">
-<input type="checkbox" id="new-wizard-modal"   class="ctl">
-
-<!-- Related apps card -->
-<input type="checkbox" id="related-foryou" class="ctl">
-
-<!-- Summary state -->
-<input type="checkbox" id="magic-toggle" class="ctl">
-<input type="checkbox" id="copy-hint"    class="ctl">
-<input type="radio" name="cycle" id="cycle-none"  class="ctl" checked>
-<input type="radio" name="cycle" id="cycle-save"  class="ctl">
-<input type="radio" name="cycle" id="cycle-share" class="ctl">
-<input type="radio" name="cycle" id="cycle-pub"   class="ctl">
-
-<!-- Save formats -->
-<input type="checkbox" id="save-app"      class="ctl">
-<input type="checkbox" id="save-fmt-md"   class="ctl">
-<input type="checkbox" id="save-fmt-jpg"  class="ctl">
-<input type="checkbox" id="save-fmt-html" class="ctl">
-<input type="checkbox" id="save-fmt-csv"  class="ctl">
-<input type="checkbox" id="save-fmt-xml"  class="ctl">
-<input type="checkbox" id="save-fmt-json" class="ctl">
-
-<!-- Publish toggles + wizardry bots -->
-<input type="checkbox" id="pub-all"        class="ctl">
-<input type="checkbox" id="pub-cal-open"   class="ctl">
-<input type="checkbox" id="pub-plat-more"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-none"  class="ctl" checked>
-<input type="radio" name="wizardry-pick" id="wizardry-sage"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-spark" class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-echo"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-coral" class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-nova"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-lyra"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-mira"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-pico"  class="ctl">
-<input type="radio" name="wizardry-pick" id="wizardry-vega"  class="ctl">
-
-<!-- Publish platforms (Boty / Reddit / 0asis primary + extended) -->
-<input type="radio" name="pub-plat" id="pub-plat-none"     class="ctl" checked>
-<input type="radio" name="pub-plat" id="pub-plat-wizardry" class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-reddit"   class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-0asis"    class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-mastodon" class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-bsky"     class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-threads"  class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-x"        class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-tumblr"   class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-medium"   class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-substack" class="ctl">
-<input type="radio" name="pub-plat" id="pub-plat-ghost"    class="ctl">
-
-<!-- Publish platform set slider (0..2) -->
-<input type="radio" name="pub-plat-set" id="pub-plat-set-0" class="ctl" checked>
-<input type="radio" name="pub-plat-set" id="pub-plat-set-1" class="ctl">
-<input type="radio" name="pub-plat-set" id="pub-plat-set-2" class="ctl">
-
-<!-- Views + Insight cycle -->
-<input type="checkbox" id="views-open"     class="ctl">
-<input type="checkbox" id="view-bars"      class="ctl">
-<input type="checkbox" id="view-vertical"  class="ctl">
-<input type="checkbox" id="view-axial"     class="ctl">
-<input type="checkbox" id="view-spider"    class="ctl">
-<input type="radio" name="insight" id="insight-0" class="ctl" checked>
-<input type="radio" name="insight" id="insight-1" class="ctl">
-<input type="radio" name="insight" id="insight-2" class="ctl">
-<input type="radio" name="insight" id="insight-3" class="ctl">
-<input type="radio" name="insight" id="insight-4" class="ctl">
-
-<!-- Click-outside backdrops for armmore + menu -->
-<label for="d-none"   class="dropdown-overlay dropdown-overlay--armmore" aria-hidden="true"></label>
-<label for="step-0"   class="dropdown-overlay dropdown-overlay--menu"    aria-hidden="true"></label>
-
-<!-- ============================================================
-     TOPBAR — replicated from flovynormal:
-       mark ♡ + title + compass + slogans + All + magic ✨
-       + tier-pop + ☰ menu (search row + minrow + items +
-       Sound switch + Language switch + Design submenu +
-       Related apps card + Profile/Network/Help).
-     ============================================================ -->
-<header class="topbar">
-  <label for="compass-open" class="dropdown-overlay dropdown-overlay--compass" aria-hidden="true"></label>
-  <div class="topbar-inner">
-
-    <a class="mark-link" href="shareful.html" title="Reload" aria-label="Reload">
-      <span class="mark" aria-hidden="true">♡</span>
-    </a>
-
-    <h1 class="title-h1">
-      <label class="title-label" for="intro-open" title="About" tabindex="0">shareful</label>
-    </h1>
-
-    <!-- Compass — display-mode switcher -->
-    <div class="compass-wrap">
-      <label class="compass-btn topbar-btn" for="compass-open" title="Display modes" aria-label="Display modes" tabindex="0">
-        <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
-          <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
-          <circle cx="12" cy="12" r="1.9" fill="#fff"/>
-        </svg>
-      </label>
-      <div class="mode-buttons" role="group" aria-label="Display modes">
-        <label class="mode-btn" for="disp-none" title="List" aria-label="List" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="4" cy="6"  r="2.3"/><rect x="9" y="4.2"  width="13" height="3.6" rx="1.8"/>
-            <circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/>
-            <circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-scope" title="Scope — small to large" aria-label="Scope" tabindex="0">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="currentColor">
-            <rect x="2"  y="15" width="3" height="5"/>
-            <rect x="7"  y="12" width="3" height="8"/>
-            <rect x="12" y="8"  width="3" height="12"/>
-            <rect x="17" y="3"  width="3" height="17"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-cloud" title="Cloud — drift &amp; sweep" aria-label="Cloud" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="8.5" cy="13"   r="5.2"/>
-            <circle cx="15"  cy="10"   r="6.3"/>
-            <circle cx="18"  cy="14.5" r="4.6"/>
-            <rect x="6.5" y="13" width="12.5" height="6" rx="3"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-random" title="Random — shuffle &amp; scatter" aria-label="Random" tabindex="0">🎲</label>
-      </div>
-    </div>
-
-    <div class="labeler-slogan" aria-hidden="true"></div>
-
-    <span class="topbar-spacer"></span>
-
-    <div class="page-slogan" aria-hidden="true">Lend with intention</div>
-    <div class="page-slogan page-slogan--mid" aria-hidden="true">share what you steward</div>
-    <div class="page-slogan page-slogan--2" aria-hidden="true">a readable agreement</div>
-    <div class="page-slogan page-slogan--emoji" aria-hidden="true">Enjoy!</div>
-
-    <!-- All toggle — wired to shareful's section nav (sec-all) so
-         it flips all form sections visible at once. -->
-    <label class="app-toggle-btn topbar-btn" for="sec-all" title="All" tabindex="0"><span class="t-en">All</span><span class="t-es">Todo</span></label>
-
-    <div class="magic-wrap">
-      <div class="magic-rays">
-        <label class="labeler-reset" for="topbar-labeler-none" title="Default" aria-label="Reset to default labels" tabindex="0">↺</label>
-        <div class="labeler-cell">
-          <label class="labeler" for="labeler-formal"   title="Formal"   aria-label="Formal"   tabindex="0">🎩</label>
-          <label class="labeler-label" for="labeler-formal">formal</label>
-        </div>
-        <div class="labeler-cell">
-          <label class="labeler" for="labeler-informal" title="Informal" aria-label="Informal" tabindex="0">👋</label>
-          <label class="labeler-label" for="labeler-informal">informal</label>
-        </div>
-        <div class="labeler-cell">
-          <label class="labeler" for="labeler-hotter"   title="Hotter"   aria-label="Hotter"   tabindex="0">🔥</label>
-          <label class="labeler-label" for="labeler-hotter">hotter</label>
-        </div>
-        <div class="labeler-cell">
-          <label class="arm labeler-more labeler-more--open"  for="d-armmore" title="More"  aria-label="More bots"  tabindex="0">⋯</label>
-          <label class="arm labeler-more labeler-more--close" for="d-none"    title="Close" aria-label="Close more" tabindex="0">⋯</label>
-        </div>
-      </div>
-
-      <label class="magic-btn topbar-btn" for="magic-open" title="Magic" aria-label="Magic" tabindex="0">✨</label>
-
-      <ul class="labeler-list" role="menu" aria-label="More bots">
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-dramatic" title="Dramatic" aria-label="Dramatic">🎭</label>
-          <label class="labeler-sub-label" for="labeler-dramatic">dramatic</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-nerdy" title="Nerdy" aria-label="Nerdy">🤓</label>
-          <label class="labeler-sub-label" for="labeler-nerdy">nerdy</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-cheeky" title="Cheeky" aria-label="Cheeky">😈</label>
-          <label class="labeler-sub-label" for="labeler-cheeky">cheeky</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-whimsy" title="Whimsy" aria-label="Whimsy">🧚</label>
-          <label class="labeler-sub-label" for="labeler-whimsy">whimsy</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-mythic" title="Mythic" aria-label="Mythic">🐉</label>
-          <label class="labeler-sub-label" for="labeler-mythic">mythic</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-queer" title="Queer" aria-label="Queer">🌈</label>
-          <label class="labeler-sub-label" for="labeler-queer">queer</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-magical" title="Magical" aria-label="Magical">🦄</label>
-          <label class="labeler-sub-label" for="labeler-magical">magical</label>
-        </li>
-        <li class="labeler-sub-cell">
-          <label class="labeler-sub" for="labeler-cool" title="Cool" aria-label="Cool">🥶</label>
-          <label class="labeler-sub-label" for="labeler-cool">cool</label>
-        </li>
-        <li class="labeler-sub-cell is-more">
-          <label class="labeler-sub" for="new-labeler-modal" title="Add a new ray" aria-label="Add a new ray" tabindex="0">＋</label>
-        </li>
-        <li class="labeler-list-sep" role="separator" aria-hidden="true"></li>
-        <li class="labeler-wizardry-cell"><a class="labeler-wizardry" href="../flovy/wizardry.html" title="Boty">🤖 <strong>Boty</strong></a></li>
-      </ul>
-    </div>
-
-    <!-- Tier pop — flovy tier ladder, kept on shareful so the chrome
-         is fully consistent with flovynormal. -->
-    <div class="tier-pop">
-      <ul class="tier-pop-rays" role="menu" aria-label="flovy tiers">
-        <li><a class="tier-pop-step" href="../flovy/flovymini.html"   title="Mini tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="t-en">Mini</span><span class="t-es">Mini</span></span></a></li>
-        <li><a class="tier-pop-step" href="../flovy/flovybasic.html"  title="Basic tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="t-en">Basic</span><span class="t-es">Básico</span></span></a></li>
-        <li><a class="tier-pop-step" href="../flovy/flovynormal.html" title="Normal tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="t-en">Normal</span><span class="t-es">Normal</span></span></a></li>
-        <li><a class="tier-pop-step tier-pop-step--wip" href="../flovy/flovyadvanced.html" title="Advanced tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="t-en">Advanced</span><span class="t-es">Avanzado</span></span></a></li>
-        <li><a class="tier-pop-step tier-pop-step--wip" href="../flovy/flovysuper.html"    title="Super tier"><span class="tier-pop-node" aria-hidden="true"></span><span class="tier-pop-label"><span class="t-en">Super</span><span class="t-es">Súper</span></span></a></li>
-      </ul>
-      <label class="tier-pop-btn topbar-btn" for="tier-pop-open" title="Tiers" aria-label="Show tier levels" tabindex="0">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="currentColor">
-          <rect x="2"    y="16" width="3.2" height="4"/>
-          <rect x="6.4"  y="13" width="3.2" height="7"/>
-          <rect x="10.8" y="10" width="3.2" height="10"/>
-          <rect x="15.2" y="7"  width="3.2" height="13"/>
-          <rect x="19.6" y="4"  width="3.2" height="16"/>
-        </g></svg>
-      </label>
-    </div>
-
-    <div class="top-menu">
-      <label class="menu-btn topbar-btn menu-btn--open"  for="d-menu" title="Menu"  aria-label="Menu"       tabindex="0">☰</label>
-      <label class="menu-btn topbar-btn menu-btn--close" for="step-0" title="Close" aria-label="Close menu" tabindex="0">☰</label>
-
-      <ul class="menu-list" role="menu">
-        <li class="menu-search-row">
-          <div class="search-wrap">
-            <input type="text" class="search-input" placeholder="search" aria-label="Search">
-          </div>
-          <button type="button" class="search-go" title="Go" aria-label="Go" tabindex="0">Go</button>
-          <label class="menu-plus" for="menu-plus-open" title="More" aria-label="More" tabindex="0">＋</label>
-        </li>
-        <li class="menu-minrow" role="group" aria-label="Quick actions">
-          <button type="button" class="menu-minbtn" title="Action 1" aria-label="Action 1" tabindex="0">1</button>
-          <button type="button" class="menu-minbtn" title="Action 2" aria-label="Action 2" tabindex="0">2</button>
-          <button type="button" class="menu-minbtn" title="Action 3" aria-label="Action 3" tabindex="0">3</button>
-          <button type="button" class="menu-minbtn" title="Action 4" aria-label="Action 4" tabindex="0">4</button>
-        </li>
-
-        <li class="menu-divider" role="separator" aria-hidden="true"></li>
-
-        <li><label for="intro-open" title="About" tabindex="0"><span class="mi">ⓘ</span><span class="t-en">About</span><span class="t-es">Acerca</span></label></li>
-        <li class="menu-switch menu-switch--split">
-          <label class="menu-switch-name-link" for="step-0" tabindex="0" title="Sound" aria-label="Sound">
-            <span class="menu-switch-icon mi">♪</span>
-            <span class="menu-switch-name"><span class="t-en">Sound</span><span class="t-es">Sonido</span></span>
-          </label>
-          <label class="menu-switch-label menu-switch-label--track-only" for="opt-sound" tabindex="0" aria-label="Toggle sound on/off">
-            <span class="menu-switch-state">
-              <span class="menu-switch-left"><span class="t-en">Off</span><span class="t-es">Apagado</span></span>
-              <span class="menu-switch-track"><span class="menu-switch-thumb"></span></span>
-              <span class="menu-switch-right"><span class="t-en">On</span><span class="t-es">Encendido</span></span>
-            </span>
-          </label>
-        </li>
-        <li class="menu-switch menu-switch--lang">
-          <label class="menu-switch-label menu-switch-label--drop" for="opt-lang" tabindex="0" aria-label="Languages">
-            <span class="menu-switch-icon mi menu-switch-flag menu-switch-flag--en"><span class="t-en">🇬🇧</span><span class="t-es">🇪🇸</span></span>
-            <span class="menu-switch-name"><span class="t-en">English</span><span class="t-es">Español</span></span>
-            <span class="menu-switch-state">
-              <span class="menu-switch-caret" aria-hidden="true">▾</span>
-            </span>
-          </label>
-          <ul class="lang-others" role="menu" aria-label="Other languages">
-            <li><label for="ui-lang-en" tabindex="0"><span class="lang-flag">🇬🇧</span>English</label></li>
-            <li><label for="ui-lang-es" tabindex="0"><span class="lang-flag">🇪🇸</span>Español</label></li>
-            <li class="lang-others-more"><label for="new-language-modal" title="Add a language" aria-label="Add a language" tabindex="0"><span class="lang-flag">＋</span><span class="t-en">Add a language</span><span class="t-es">Añadir un idioma</span></label></li>
-          </ul>
-        </li>
-
-        <li class="menu-divider" role="separator" aria-hidden="true"></li>
-
-        <li class="menu-section-title menu-section-title--collapsible"><label for="menu-design-open" class="menu-section-toggle" tabindex="0"><span class="t-en">Design</span><span class="t-es">Diseño</span><span class="menu-section-plus" aria-hidden="true"><span class="plus-open">+</span><span class="plus-close">×</span></span></label></li>
-        <li class="menu-design-item"><label class="menu-design-link" for="step-0" tabindex="0"><span class="mi">⛰</span><span class="t-en">Background</span><span class="t-es">Fondo</span></label></li>
-        <li class="menu-design-item"><label class="menu-design-link" for="step-0" tabindex="0"><span class="mi">✦</span><span class="t-en">Animations</span><span class="t-es">Animaciones</span></label></li>
-        <li class="menu-design-item"><label class="menu-design-link" for="step-0" tabindex="0"><span class="mi">¶</span><span class="t-en">Text</span><span class="t-es">Texto</span></label></li>
-        <li class="menu-design-item"><label class="menu-design-link" for="step-0" tabindex="0"><span class="mi">☼</span><span class="t-en">Rays</span><span class="t-es">Rayos</span></label></li>
-        <li class="menu-design-item"><label class="menu-design-link" for="step-0" tabindex="0"><span class="mi">✺</span><span class="t-en">Bots</span><span class="t-es">Bots</span></label></li>
-
-        <li class="menu-divider" role="separator" aria-hidden="true"></li>
-
-        <li class="related-apps-card">
-          <div class="related-apps-head">
-            <span class="related-apps-title"><span class="t-en">Related apps</span><span class="t-es">Apps relacionadas</span></span>
-            <label class="related-apps-foryou" for="related-foryou" tabindex="0" title="For you">
-              <span class="related-foryou-open">★ <span class="t-en">For you</span><span class="t-es">Para ti</span></span>
-              <span class="related-foryou-close">× <span class="t-en">Close</span><span class="t-es">Cerrar</span></span>
-            </label>
-          </div>
-          <ul class="related-apps-grid" role="menu">
-            <li><a href="../daty.html" title="daty"><span class="related-app-logo">💞</span><span class="related-app-name">daty</span></a></li>
-            <li><a href="../lovy.html" title="lovy"><span class="related-app-logo">💗</span><span class="related-app-name">lovy</span></a></li>
-            <li><a href="wanty.html"   title="wanty"><span class="related-app-logo">✨</span><span class="related-app-name">wanty</span></a></li>
-          </ul>
-          <ul class="related-apps-more" role="menu">
-            <li><a href="../hoty.html"     title="hoty"><span class="related-app-logo">🔥</span><span class="related-app-name">hoty</span></a></li>
-            <li><a href="../maty.html"     title="maty"><span class="related-app-logo">🤝</span><span class="related-app-name">maty</span></a></li>
-            <li><a href="../parenty.html"  title="parenty"><span class="related-app-logo">👪</span><span class="related-app-name">parenty</span></a></li>
-            <li><a href="../realy.html"    title="realy"><span class="related-app-logo">◍</span><span class="related-app-name">realy</span></a></li>
-            <li><a href="../sensy.html"    title="sensy"><span class="related-app-logo">🫧</span><span class="related-app-name">sensy</span></a></li>
-          </ul>
-          <a class="related-apps-all" href="../index.html" title="All apps"><span class="t-en">All apps</span><span class="t-es">Todas</span></a>
-        </li>
-
-        <li class="menu-divider" role="separator" aria-hidden="true"></li>
-
-        <li class="menu-section-title">flove</li>
-        <li><a href="#" title="Profile"><span class="mi">◍</span><span class="t-en">Profile</span><span class="t-es">Perfil</span></a></li>
-        <li><a href="#" title="My Network"><span class="mi">⌬</span><span class="t-en">My Network</span><span class="t-es">Mi red</span></a></li>
-        <li><a href="#" title="Help"><span class="mi">?</span><span class="t-en">Help</span><span class="t-es">Ayuda</span></a></li>
-      </ul>
-    </div>
-
+<section class="app-info" id="app-info">
+  <div class="container">
+    <h1>SHAREFUL · <em>lending conditions</em></h1>
+    <p>Pick how, to whom, and under which preferences. A readable sentence builds itself.</p>
   </div>
-</header>
-
-<!-- About panel (revealed when title or About menu item is clicked) -->
-<section class="intro-section" aria-label="About shareful">
-  <label class="intro-close intro-close-tr" for="intro-open" aria-label="Close" tabindex="0">×</label>
-  <p class="intro-lead">
-    <strong>Shareful</strong> · lending conditions. Pick how, to whom, and under which preferences. A readable sentence builds itself. The chrome (topbar, menu, summary actions) is shared with <a href="../flovy/flovynormal.html">flovynormal</a>.
-  </p>
 </section>
 
 <main class="container">
@@ -1807,323 +1476,57 @@
       <input type="checkbox" id="invite-toggle" class="invite-toggle">
       <label class="invite-btn" for="invite-toggle" id="inviteBtn" data-progress="0">Invitation</label>
       <div class="invite-card">
-
-      <!-- ============================================================
-           SUMMARY PANEL — replicated from flovynormal:
-             ✦ Summary header + 4 insight panels (cycled by the Insight
-             button) + clause-default (the live phrase) + clause-magic
-             (alt rephrasing toggled by Magic ↔ Phrase) + action-grid
-             with Views / Insight / Magic / Copy / Save / Share /
-             Publish cycles + Download.
-           ============================================================ -->
-      <section class="step-panel is-summary">
-        <h2>✦ Summary</h2>
-
-        <!-- INSIGHT panels — one revealed per cycle state (1..4); 0 = none. -->
-        <section class="insight-panel insight-1-content" aria-label="Insight 1">
-          <strong>💡 Who</strong> — who will use this, and at what distance?
-          <p>Name the people behind your clause: who is invited (close · near · all), and what kind of trust the lending implies.</p>
-        </section>
-        <section class="insight-panel insight-2-content" aria-label="Insight 2">
-          <strong>💡 What</strong> — what are you lending and what use does it allow?
-          <p>Read the verb of your offer: lend, share, swap, hand-down. The framing tells the receiver how to relate to the thing.</p>
-        </section>
-        <section class="insight-panel insight-3-content" aria-label="Insight 3">
-          <strong>💡 Where</strong> — where does the thing live, and how does it come back?
-          <p>Spell out the place and the return path: where it is, after-use return, on-request return. Boundaries make sharing breathable.</p>
-        </section>
-        <section class="insight-panel insight-4-content" aria-label="Insight 4">
-          <strong>💡 Why</strong> — why this offering, in this form?
-          <p>Ask what kind of relation your lending invites — careful, generous, playful, conditional. The shape of the agreement is half of the answer.</p>
-        </section>
-
-        <!-- Default clause: the live phrase that shareful builds. -->
-        <output class="clause clause-default sentence" data-flove-phrase aria-live="polite" id="sentence">
-          I agree to lend <strong class="thing-title-slot">this item</strong><!--
-          --><span class="thing-slot thing-sector-slot"></span><!--
-          --><span class="thing-slot thing-desc-slot"></span><!--
-          --><span class="thing-slot thing-tags-slot"></span><!--
-          --><span class="thing-slot thing-zone-slot"></span><!--
-          --><span class="thing-slot thing-coords-slot"></span>
-          <span class="seg for-close"> for <strong>close</strong> people</span>
-          <span class="seg for-near"> for <strong>near</strong> people</span>
-          <span class="seg for-all"> for <strong>all</strong> people</span>
-          <span class="people-slot"></span>
-          <span class="purposes-slot"></span>.
-          I want you to use it
-          <span class="seg ts-where"><strong>where it is</strong></span>
-          <span class="seg ts-backafter">and <strong>bring it back after use</strong></span>
-          <span class="seg ts-onrequest">and <strong>bring it back on request</strong></span>.
-          <span class="thing-slot thing-details-slot"></span>
-          <span class="thing-slot thing-worth-slot"></span>
-          <span class="sentence-gap" aria-hidden="true"></span>
-          Preferences of use will be resolved for the
-          <span class="seg t-more"><strong>more</strong></span>
-          <span class="seg t-less"><strong>less</strong></span>
-          <span class="seg t-past"><strong>past</strong></span>
-          <span class="seg t-current"><strong>current</strong></span>
-          <span class="seg t-future"><strong>future</strong></span>
-          <span class="seg t-experience"><strong>experience</strong></span>
-          <span class="seg t-use"><strong>use</strong></span>
-          <span class="seg t-offering"><strong>offering</strong></span>
-          of
-          <span class="seg t-similar"><strong>similar</strong></span>
-          <span class="seg t-different"><strong>different</strong></span>
-          <span class="seg t-offers"><strong>offers</strong></span>
-          <span class="seg t-things"><strong>things</strong></span>
-          <span class="seg t-relations"><strong>relations</strong></span>.
-        </output>
-
-        <!-- Magic variant: a warmer re-telling of the same offer. flove.js
-             (when present) rewrites this; otherwise it shows a placeholder. -->
-        <output class="clause clause-magic" spellcheck="false" aria-label="Magic phrase">
-          ✨ A warmer re-telling of your lending offer — looser, alive. Click <em>Phrase</em> to return to the plain wording.
-        </output>
-
-        <div class="action-grid">
-
-          <div class="action-row">
-            <label class="btn ghost views-btn" for="views-open" aria-haspopup="true" aria-label="Views"><span class="t-en">Views</span><span class="t-es">Vistas</span></label>
-            <span class="insight-cycle">
-              <label class="btn ghost insight-step" for="insight-1" aria-label="Show insight 1"><span class="t-en">Insight</span><span class="t-es">Insight</span></label>
-              <label class="btn ghost insight-step" for="insight-2" aria-label="Show insight 2"><span class="t-en">Insight · 1/4</span><span class="t-es">Insight · 1/4</span></label>
-              <label class="btn ghost insight-step" for="insight-3" aria-label="Show insight 3"><span class="t-en">Insight · 2/4</span><span class="t-es">Insight · 2/4</span></label>
-              <label class="btn ghost insight-step" for="insight-4" aria-label="Show insight 4"><span class="t-en">Insight · 3/4</span><span class="t-es">Insight · 3/4</span></label>
-              <label class="btn ghost insight-step" for="insight-0" aria-label="Close insights"><span class="t-en">Insight · 4/4</span><span class="t-es">Insight · 4/4</span></label>
-            </span>
-            <label class="btn ghost magic-btn-summary" for="magic-toggle">
-              <span class="label-off"><span class="t-en">Magic</span><span class="t-es">Magia</span></span>
-              <span class="label-on"><span class="t-en">Phrase</span><span class="t-es">Frase</span></span>
-            </label>
-            <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase" data-flove-copy="phrase"><span class="t-en">Copy</span><span class="t-es">Copiar</span></label>
+      <p class="sentence" aria-live="polite" id="sentence">
+        I agree to lend <strong class="thing-title-slot">this item</strong><!--
+        --><span class="thing-slot thing-sector-slot"></span><!--
+        --><span class="thing-slot thing-desc-slot"></span><!--
+        --><span class="thing-slot thing-tags-slot"></span><!--
+        --><span class="thing-slot thing-zone-slot"></span><!--
+        --><span class="thing-slot thing-coords-slot"></span>
+        <span class="seg for-close"> for <strong>close</strong> people</span>
+        <span class="seg for-near"> for <strong>near</strong> people</span>
+        <span class="seg for-all"> for <strong>all</strong> people</span>
+        <span class="people-slot"></span>
+        <span class="purposes-slot"></span>.
+        I want you to use it
+        <span class="seg ts-where"><strong>where it is</strong></span>
+        <span class="seg ts-backafter">and <strong>bring it back after use</strong></span>
+        <span class="seg ts-onrequest">and <strong>bring it back on request</strong></span>.
+        <span class="thing-slot thing-details-slot"></span>
+        <span class="thing-slot thing-worth-slot"></span>
+        <span class="thing-slot thing-media-slot"></span>
+        <span class="sentence-gap" aria-hidden="true"></span>
+        Preferences of use will be resolved for the
+        <span class="seg t-more"><strong>more</strong></span>
+        <span class="seg t-less"><strong>less</strong></span>
+        <span class="seg t-past"><strong>past</strong></span>
+        <span class="seg t-current"><strong>current</strong></span>
+        <span class="seg t-future"><strong>future</strong></span>
+        <span class="seg t-experience"><strong>experience</strong></span>
+        <span class="seg t-use"><strong>use</strong></span>
+        <span class="seg t-offering"><strong>offering</strong></span>
+        of
+        <span class="seg t-similar"><strong>similar</strong></span>
+        <span class="seg t-different"><strong>different</strong></span>
+        <span class="seg t-offers"><strong>offers</strong></span>
+        <span class="seg t-things"><strong>things</strong></span>
+        <span class="seg t-relations"><strong>relations</strong></span>.
+      </p>
+      <div class="extra-info-wrap">
+        <input type="checkbox" class="extra-info-toggle" id="extra-invite-toggle">
+        <label class="extra-plus" for="extra-invite-toggle" aria-label="Add additional information" title="Additional information">＋</label>
+        <div class="extra-info">
+          <textarea id="extra-invite" rows="3" placeholder="Additional information…"></textarea>
+          <div class="ta-bottom-tools">
+            <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="extra-invite-mic"></label>
+            <label class="ta-tool" aria-label="Upload file" title="File">📎<input type="file" id="extra-invite-file"></label>
           </div>
-
-          <!-- View picker subtab — reserves layout space (visibility:hidden) -->
-          <div class="action-row action-row--views" role="group" aria-label="Phrase view mode" data-active-view="plain">
-            <label class="btn ghost view-pick" for="view-bars"     data-view="bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
-            <label class="btn ghost view-pick" for="view-vertical" data-view="vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
-            <label class="btn ghost view-pick" for="view-axial"    data-view="axial"    aria-label="Axial view"><span class="t-en">Axial</span><span class="t-es">Axial</span></label>
-            <label class="btn ghost view-pick" for="view-spider"   data-view="spider"   aria-label="Spider view"><span class="t-en">Spider</span><span class="t-es">Araña</span></label>
-          </div>
-
-          <!-- Chart slot for the chosen view: pure-CSS bars / vertical +
-               JS-painted SVG for axial / spider. -->
-          <div class="cssviz-out" aria-hidden="true">
-            <div class="cssviz cssviz--bars">
-              <div class="cssbar cssax--h"><span class="cssbar-emo">😊</span><span class="cssbar-trk"><i></i></span></div>
-              <div class="cssbar cssax--f"><span class="cssbar-emo">😆</span><span class="cssbar-trk"><i></i></span></div>
-              <div class="cssbar cssax--l"><span class="cssbar-emo">😘</span><span class="cssbar-trk"><i></i></span></div>
-              <div class="cssbar cssax--t"><span class="cssbar-emo">😈</span><span class="cssbar-trk"><i></i></span></div>
-            </div>
-            <div class="cssviz cssviz--vertical">
-              <div class="csscol cssax--h"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😊</span></div>
-              <div class="csscol cssax--f"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😆</span></div>
-              <div class="csscol cssax--l"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😘</span></div>
-              <div class="csscol cssax--t"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😈</span></div>
-            </div>
-            <div class="cssviz cssviz--svg" aria-hidden="true"></div>
-          </div>
-
-          <div class="copy-hint-panel" role="status">
-            <span class="t-en">Select the phrase above (triple-click selects the whole paragraph), then press <kbd>Ctrl</kbd>+<kbd>C</kbd> on Windows/Linux or <kbd>⌘</kbd>+<kbd>C</kbd> on Mac to copy it.</span><span class="t-es">Selecciona la frase de arriba (con triple clic seleccionas el párrafo entero) y pulsa <kbd>Ctrl</kbd>+<kbd>C</kbd> en Windows/Linux o <kbd>⌘</kbd>+<kbd>C</kbd> en Mac para copiarla.</span>
-          </div>
-
-          <!-- Save · Share · Publish — three exclusive cycles. Opening any
-               collapses the others (shared radio name="cycle"). -->
-          <div class="action-row right">
-
-            <span class="cycle-wrap save-wrap">
-              <span class="cycle-trigger">
-                <label class="btn ghost save-btn cycle-step cycle-step--open"  for="cycle-save" title="Save">💾 <span class="t-en">Save</span><span class="t-es">Guardar</span></label>
-                <label class="btn ghost save-btn cycle-step cycle-step--close" for="cycle-none" title="Close">💾 <span class="t-en">Save</span><span class="t-es">Guardar</span></label>
-                <span class="cycle-row below">
-                  <label class="btn ghost" for="save-fmt-md"   title="Md"   data-fmt="md">MD</label>
-                  <label class="btn ghost" for="save-fmt-jpg"  title="Jpg"  data-fmt="jpg">JPG</label>
-                  <label class="btn ghost" for="save-fmt-html" title="Html" data-fmt="html">HTML</label>
-                  <label class="btn ghost" for="save-fmt-csv"  title="Csv"  data-fmt="csv">CSV</label>
-                  <label class="btn ghost" for="save-fmt-xml"  title="Xml"  data-fmt="xml">XML</label>
-                  <label class="btn ghost" for="save-fmt-json" title="Json" data-fmt="json">JSON</label>
-                </span>
-                <span class="cycle-row app-row">
-                  <label class="btn ghost" for="save-app" title="App"><span class="t-en">App</span><span class="t-es">App</span></label>
-                </span>
-              </span>
-            </span>
-
-            <span class="cycle-wrap share-wrap">
-              <span class="cycle-trigger">
-                <label class="btn ghost share-btn cycle-step cycle-step--open"  for="cycle-share" title="Share" data-flove-share>📤 <span class="t-en">Share</span><span class="t-es">Compartir</span></label>
-                <label class="btn ghost share-btn cycle-step cycle-step--close" for="cycle-none"  title="Close">📤 <span class="t-en">Share</span><span class="t-es">Compartir</span></label>
-                <span class="cycle-row below">
-                  <button type="button" class="btn ghost share-sub" data-flove-print title="Print (display only)">🖨 <span class="t-en">Print</span><span class="t-es">Imprimir</span></button>
-                  <button type="button" class="btn ghost share-sub" data-flove-share-menu="mobile" title="Share with a mobile app">📱 <span class="t-en">Mobile</span><span class="t-es">Móvil</span></button>
-                  <button type="button" class="btn ghost share-sub" data-flove-share-menu title="Share menu (all apps)">🌐 <span class="t-en">Apps</span><span class="t-es">Apps</span></button>
-                  <a class="btn ghost share-sub" href="mailto:?subject=Sharing%20a%20shareful%20clause&body=%5BYour%20clause%5D%0A%0A%E2%80%94%20flove" title="Send by email">📧 <span class="t-en">Email</span><span class="t-es">Correo</span></a>
-                </span>
-              </span>
-            </span>
-
-            <div class="cycle-wrap pub-wrap">
-              <span class="cycle-trigger">
-                <!-- Schedule row — only visible when the 0asis platform is picked. -->
-                <span class="cycle-row above pub-row--schedule" role="group" aria-label="0asis publish schedule">
-                  <span class="pub-cal-wrap">
-                    <label class="pub-cal" for="pub-cal-open" aria-label="Pick a date" title="Pick a date" tabindex="0">
-                      <span class="pub-cal-icon" aria-hidden="true">📅</span>
-                    </label>
-                    <div class="pub-cal-panel" role="group" aria-label="Pick day, month and year">
-                      <label class="pub-cal-close" for="pub-cal-open" title="Close" aria-label="Close calendar" tabindex="0">×</label>
-                      <select class="pub-cal-sel pub-cal-d" aria-label="Day">
-                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
-                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
-                        <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15" selected>15</option>
-                        <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
-                        <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
-                        <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
-                        <option value="31">31</option>
-                      </select>
-                      <select class="pub-cal-sel pub-cal-m" aria-label="Month">
-                        <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
-                        <option value="5" selected>May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
-                        <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
-                      </select>
-                      <select class="pub-cal-sel pub-cal-y" aria-label="Year">
-                        <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option>
-                        <option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
-                      </select>
-                    </div>
-                  </span>
-                  <select class="pub-hh" aria-label="Hour">
-                    <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option>
-                    <option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option>
-                    <option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option>
-                    <option value="12" selected>12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
-                    <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option>
-                    <option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
-                  </select>
-                  <span class="pub-colon" aria-hidden="true">:</span>
-                  <select class="pub-mm" aria-label="Minute">
-                    <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option>
-                    <option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option>
-                    <option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
-                  </select>
-                  <select class="pub-target" aria-label="Audience">
-                    <option value="groups" selected data-en="Groups" data-es="Grupos">Groups</option>
-                    <option value="friends" data-en="Friends" data-es="Amigos">Friends</option>
-                    <option value="followers" data-en="Followers" data-es="Seguidores">Followers</option>
-                    <option value="lists" data-en="Lists" data-es="Listas">Lists</option>
-                    <option value="links" data-en="Links" data-es="Enlaces">Links</option>
-                  </select>
-                  <label class="btn ghost pub-all-btn" for="pub-all" title="All"><span class="t-en">All</span><span class="t-es">Todo</span></label>
-                </span>
-
-                <label class="btn ghost publish-btn cycle-step cycle-step--open"  for="cycle-pub"  title="Publish">📨 <span class="t-en">Publish</span><span class="t-es">Publicar</span></label>
-                <label class="btn ghost publish-btn cycle-step cycle-step--close" for="cycle-none" title="Close">📨 <span class="t-en">Publish</span><span class="t-es">Publicar</span></label>
-                <a class="btn solid go-btn" href="#" data-flove-publish="go" data-go-publish title="Go">✈ <span class="t-en">Go</span><span class="t-es">Ir</span></a>
-
-                <!-- 3-pane platform slider -->
-                <span class="cycle-row below plat-row">
-                  <span class="plat-viewport">
-                    <span class="plat-track">
-                      <span class="plat-set">
-                        <label class="btn ghost" for="pub-plat-wizardry" title="Boty">Boty</label>
-                        <label class="btn ghost" for="pub-plat-reddit"   title="Reddit">Reddit</label>
-                        <label class="btn ghost" for="pub-plat-0asis"    title="0asis">0asis</label>
-                      </span>
-                      <span class="plat-set">
-                        <label class="btn ghost" for="pub-plat-mastodon" title="Mastodon">Mastodon</label>
-                        <label class="btn ghost" for="pub-plat-bsky"     title="Bluesky">Bluesky</label>
-                        <label class="btn ghost" for="pub-plat-threads"  title="Threads">Threads</label>
-                      </span>
-                      <span class="plat-set">
-                        <label class="btn ghost" for="pub-plat-x"        title="X">X</label>
-                        <label class="btn ghost" for="pub-plat-tumblr"   title="Tumblr">Tumblr</label>
-                        <label class="btn ghost" for="pub-plat-medium"   title="Medium">Medium</label>
-                      </span>
-                    </span>
-                  </span>
-                  <label class="plat-nav" for="pub-plat-set-1" data-when-set="0" title="More platforms" aria-label="More platforms">＋</label>
-                  <label class="plat-nav" for="pub-plat-set-2" data-when-set="1" title="More platforms" aria-label="More platforms">＋</label>
-                  <label class="plat-nav" for="pub-plat-set-0" data-when-set="2" title="More platforms" aria-label="More platforms">＋</label>
-                </span>
-              </span>
-
-              <!-- Per-platform intros -->
-              <div class="plat-intro plat-intro--wizardry">
-                <p class="plat-intro-lead"><span class="t-en">Boty publishes to a chosen bot.</span><span class="t-es">Boty publica al bot elegido.</span></p>
-                <div class="wizardry-grid">
-                  <label class="wizardry-cell" for="wizardry-sage"  title="Sage"  data-wizardry="sage">
-                    <span class="wizardry-cell-icon">🦉</span>
-                    <span class="wizardry-cell-name">Sage</span>
-                    <span class="wizardry-cell-info">Wise and contemplative.<br>Reflects, summarises and adds depth.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-spark" title="Spark" data-wizardry="spark">
-                    <span class="wizardry-cell-icon">⚡</span>
-                    <span class="wizardry-cell-name">Spark</span>
-                    <span class="wizardry-cell-info">Quick-witted and energetic.<br>Punchy ideas, fast turns of phrase.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-echo"  title="Echo"  data-wizardry="echo">
-                    <span class="wizardry-cell-icon">🐦</span>
-                    <span class="wizardry-cell-name">Echo</span>
-                    <span class="wizardry-cell-info">Mirrors what you say.<br>Helps you hear your voice back.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-coral" title="Coral" data-wizardry="coral">
-                    <span class="wizardry-cell-icon">🪸</span>
-                    <span class="wizardry-cell-name">Coral</span>
-                    <span class="wizardry-cell-info">Warm and supportive.<br>Gentle correction and care.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-nova"  title="Nova"  data-wizardry="nova">
-                    <span class="wizardry-cell-icon">🌟</span>
-                    <span class="wizardry-cell-name">Nova</span>
-                    <span class="wizardry-cell-info">Bright and visionary.<br>Big-picture, hopeful clarity.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-lyra"  title="Lyra"  data-wizardry="lyra">
-                    <span class="wizardry-cell-icon">🎵</span>
-                    <span class="wizardry-cell-name">Lyra</span>
-                    <span class="wizardry-cell-info">Lyrical and rhythmic.<br>Turns prose nearly musical.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-mira"  title="Mira"  data-wizardry="mira">
-                    <span class="wizardry-cell-icon">🔮</span>
-                    <span class="wizardry-cell-name">Mira</span>
-                    <span class="wizardry-cell-info">Intuitive and visionary.<br>Spots the patterns others miss.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-pico"  title="Pico"  data-wizardry="pico">
-                    <span class="wizardry-cell-icon">🐝</span>
-                    <span class="wizardry-cell-name">Pico</span>
-                    <span class="wizardry-cell-info">Tiny, precise, busy.<br>Polishes the details with care.</span>
-                  </label>
-                  <label class="wizardry-cell" for="wizardry-vega"  title="Vega"  data-wizardry="vega">
-                    <span class="wizardry-cell-icon">🦊</span>
-                    <span class="wizardry-cell-name">Vega</span>
-                    <span class="wizardry-cell-info">Cool and confident.<br>Cuts through noise with poise.</span>
-                  </label>
-                </div>
-              </div>
-              <div class="plat-intro plat-intro--reddit">
-                <p><span class="t-en">Reddit is a social platform of communities and discussions.</span><span class="t-es">Reddit es una plataforma social de comunidades y debates.</span> <a class="modal-link" href="https://reddit.com/" target="_blank" rel="noopener">reddit.com</a></p>
-              </div>
-              <div class="plat-intro plat-intro--0asis">
-                <p><span class="t-en">0asis is a Friend2Friend Groupware.</span><span class="t-es">0asis es un Groupware Amigo-a-Amigo.</span> <a class="modal-link" href="https://0asis.org/" target="_blank" rel="noopener">0asis.org</a></p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Download — bundles whatever formats + views are marked. -->
-          <div class="download-row">
-            <a class="btn ghost dl-btn" href="#" download="Shareful" title="Download" data-flove-save="bundle"><span class="t-en">Download</span><span class="t-es">Descargar</span></a>
-          </div>
-
         </div>
-      </section>
-
-      <!-- Legacy quick actions kept alongside the action-grid so the
-           existing shareful Reset/Copy wiring (resetBtn2 / copyBtn2) keeps
-           working. -->
+      </div>
       <div class="submit">
         <button class="btn ghost" type="button" id="resetBtn2">Reset</button>
         <button class="btn primary" type="button" id="copyBtn2">Copy phrase</button>
       </div>
-
       </div>
     </div>
 
@@ -2162,7 +1565,7 @@
     ["for","ts","t1","t2","t3","t4","t5","reason"].forEach(n => {
       count += $$(`input[name="${n}"]:checked`).length;
     });
-    ["#people","#purposes","#additional","#pref-note"].forEach(s => {
+    ["#people","#purposes","#additional","#pref-note","#extra-invite"].forEach(s => {
       const el = $(s);
       if (el && el.value.trim()) count++;
     });
@@ -2741,6 +2144,20 @@
         });
         worthSlot.innerHTML = parts.length
           ? " Its worth: <strong>" + parts.join(", ") + "</strong>."
+          : "";
+      }
+      // Media uploads — "Includes title audio, description audio, description file."
+      const mediaSlot = slot("thing-media-slot");
+      if (mediaSlot){
+        const bits = [];
+        const titleAudio = $("#offerTitle-mic");
+        const descAudio  = $("#offerName-mic");
+        const descFile   = $("#offerName-file");
+        if (titleAudio && titleAudio.files && titleAudio.files.length) bits.push("title audio");
+        if (descAudio  && descAudio.files  && descAudio.files.length)  bits.push("description audio");
+        if (descFile   && descFile.files   && descFile.files.length)   bits.push("description file");
+        mediaSlot.innerHTML = bits.length
+          ? " Includes <strong>" + bits.join(", ") + "</strong>."
           : "";
       }
     }

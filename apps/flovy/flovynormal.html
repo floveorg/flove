@@ -5210,42 +5210,24 @@ body:has(#insight-4:checked) .insight-step:nth-child(5){
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
 }
 
-/* Views panel — IN-FLOW row that appears right below the action-row
-   when the user clicks Views. Insight + Magic stay in their original
-   spots; rows below (Copy, Save/Share/Publish) push down to make room.
-   The single Download button lives in the save-wrap below — its
-   visibility is extended so it also appears whenever a chart view is
-   marked (see "save-wrap > download-bar" visibility rules). */
-.views-wrap{ position: relative; display: inline-flex; align-items: center; }
-.views-panel{
-  display: none;
-  margin-top: 8px;
+/* Subtab row — always visible, sits right below Insight/Magic. View
+   pickers group on the left; Copy is pinned to the right via
+   margin-left:auto. The chart for the marked view renders below in
+   .flove-viz-out (flove.js, when its viz module lands). */
+.action-row--views{
+  justify-content: flex-start;
+  gap: .25rem;
+  margin-top: 4px;
 }
-body:has(#views-open:checked) .views-panel{ display: block; }
-.views-row{
-  display: flex; flex-direction: row; flex-wrap: wrap;
-  align-items: center; gap: .25rem;
-  padding: .25rem 0;
-}
-
-/* Views button keeps a slight background while the panel is open OR
-   while any chart view is marked. */
-body:has(#views-open:checked) .views-btn,
-body:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked) .views-btn{
-  background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
-}
-/* Compact view pickers: kill vertical padding (≈5px less per side),
-   tight font. */
-.views-row .view-pick{
+.action-row--views .copy-btn{ margin-left: auto; }
+/* Compact view pickers + marked-view highlight. */
+.action-row--views .view-pick{
   height: 22px;
   padding: 0 .5rem;
   font-size: .75rem;
   line-height: 1;
   border-radius: 6px;
-  justify-content: flex-start;
 }
-/* Marked-view highlight (checkboxes — multiple can be checked at once). */
-body:has(#view-plain:checked)    .view-pick[for="view-plain"],
 body:has(#view-bars:checked)     .view-pick[for="view-bars"],
 body:has(#view-vertical:checked) .view-pick[for="view-vertical"],
 body:has(#view-axial:checked)    .view-pick[for="view-axial"],
@@ -5255,8 +5237,6 @@ body:has(#view-spider:checked)   .view-pick[for="view-spider"]{
 /* The Views buttons never restyle the resume text — they only drive the
    data chart that flove.js renders into .flove-viz-out below the phrase. */
 
-/* Copy lives in its own row, centered, with extra breathing room above. */
-.action-row--copy{ justify-content: center; margin-top: 8px; }
 .copy-btn{ margin: 0; }
 .copy-hint-panel{
   display: none;
@@ -5345,12 +5325,14 @@ body:has(#copy-hint:checked) .copy-btn{
   font-size: .7rem;
   white-space: nowrap;
 }
-/* Each sub-button is also kept small so the absolute sub-rows don't
-   overflow past their parent's pill. */
+/* Save / Share / Publish sub-buttons match the .view-pick row exactly
+   so the formats row and the views row read as one family. */
 .cycle-row .btn{
   height: 22px;
-  padding: 0 .4rem;
-  font-size: .68rem;
+  padding: 0 .5rem;
+  font-size: .75rem;
+  line-height: 1;
+  border-radius: 6px;
 }
 body:not(:has(#cycle-save:checked))  .save-wrap  .cycle-step--open,
 body:not(:has(#cycle-pub:checked))   .pub-wrap   .cycle-step--open,
@@ -5466,13 +5448,13 @@ body:has(#cycle-pub:checked) .pub-wrap .go-btn{
    subs — it spans the full publish wrap width. */
 .pub-wrap   .cycle-row.pub-go-row{ left: 0; right: 0; }
 
-/* ── Fixed-size Download button — single pill, opacity reflects how many
-   formats (and whether App) the user has armed. Each format += 10 opacity-pt,
-   App += 50 opacity-pt, on top of a 10pt base. Pure CSS additive math via
-   per-toggle custom properties summed in calc(). ── */
+/* ── Download button — single full-row pill, +5px taller than the cycle
+   sub-buttons. Opacity reflects how many formats (and whether App) the
+   user has armed. Pure CSS additive math via per-toggle custom
+   properties summed in calc(). ── */
 .download-bar{
   display: flex !important;
-  width: calc(3 * 70px + 2 * .25rem);  /* roughly three buttons wide */
+  width: 100%;
   gap: .25rem;
 }
 .dl-btn{
@@ -5481,7 +5463,8 @@ body:has(#cycle-pub:checked) .pub-wrap .go-btn{
   --dl-app: 0;
   flex: 1 1 0;
   min-width: 0;
-  height: 25px;
+  width: 100%;
+  height: 30px;
   padding: 0 .6rem;
   border-radius: 4px;
   font-weight: 700;
@@ -7090,21 +7073,14 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     </output>
 
     <div class="action-grid">
-      <!-- Views: one checkbox (#views-open) toggles the in-flow .views-panel
-           below. The view checkboxes (#view-*) are multi-toggle; the small
-           inline tracker at the bottom of <body> records the last clicked
-           one so JS can mirror that as the "active" chart. -->
-      <input type="checkbox" id="views-open" class="ctl">
-      <input type="checkbox" id="view-plain"    class="ctl" checked>
+      <!-- Chart-view checkboxes — always-visible subtab row right below
+           Insight/Magic. Plain removed (no view marked = no chart). -->
       <input type="checkbox" id="view-bars"     class="ctl">
       <input type="checkbox" id="view-vertical" class="ctl">
       <input type="checkbox" id="view-axial"    class="ctl">
       <input type="checkbox" id="view-spider"   class="ctl">
 
       <div class="action-row">
-        <div class="views-wrap">
-          <label class="btn ghost views-btn" for="views-open" aria-haspopup="true">👁 <span class="t-en">Views</span><span class="t-es">Vistas</span></label>
-        </div>
         <span class="insight-cycle">
           <label class="btn ghost insight-step" for="insight-1" aria-label="Show insight 1">💡 Insight</label>
           <label class="btn ghost insight-step" for="insight-2" aria-label="Show insight 2">💡 Insight · 1/4</label>
@@ -7118,17 +7094,14 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
         </label>
       </div>
 
-      <div class="views-panel" role="group" aria-label="Phrase view mode" data-active-view="plain">
-        <div class="views-row">
-          <label class="btn ghost view-pick" for="view-plain"    data-view="plain"    aria-label="Plain — no chart"><span class="t-en">Plain</span><span class="t-es">Plano</span></label>
-          <label class="btn ghost view-pick" for="view-bars"     data-view="bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
-          <label class="btn ghost view-pick" for="view-vertical" data-view="vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
-          <label class="btn ghost view-pick" for="view-axial"    data-view="axial"    aria-label="Axial view"><span class="t-en">Axial</span><span class="t-es">Axial</span></label>
-          <label class="btn ghost view-pick" for="view-spider"   data-view="spider"   aria-label="Spider view"><span class="t-en">Spider</span><span class="t-es">Araña</span></label>
-        </div>
-      </div>
-
-      <div class="action-row action-row--copy">
+      <!-- Subtab row — always visible; view pickers on the left, Copy
+           pinned to the right. Marked views render the chart below
+           (flove.js, when its viz module lands). -->
+      <div class="action-row action-row--views" role="group" aria-label="Phrase view mode" data-active-view="plain">
+        <label class="btn ghost view-pick" for="view-bars"     data-view="bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
+        <label class="btn ghost view-pick" for="view-vertical" data-view="vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
+        <label class="btn ghost view-pick" for="view-axial"    data-view="axial"    aria-label="Axial view"><span class="t-en">Axial</span><span class="t-es">Axial</span></label>
+        <label class="btn ghost view-pick" for="view-spider"   data-view="spider"   aria-label="Spider view"><span class="t-en">Spider</span><span class="t-es">Araña</span></label>
         <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase" data-flove-copy="phrase">📋 <span class="t-en">Copy</span><span class="t-es">Copiar</span></label>
       </div>
 
@@ -7142,13 +7115,16 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
             <label class="btn ghost save-btn cycle-step cycle-step--open"  for="cycle-save" title="Save">💾 <span class="t-en">Save</span><span class="t-es">Guardar</span></label>
             <label class="btn ghost save-btn cycle-step cycle-step--close" for="cycle-none" title="Close">💾 <span class="t-en">Save</span><span class="t-es">Guardar</span></label>
             <span class="cycle-row below">
-              <label class="btn ghost" for="save-fmt-txt"  title="Txt"  data-flove-save="txt">TXT</label>
-              <label class="btn ghost" for="save-fmt-md"   title="Md"   data-flove-save="md">MD</label>
-              <label class="btn ghost" for="save-fmt-jpg"  title="Jpg"  data-flove-save="jpg">JPG</label>
-              <label class="btn ghost" for="save-fmt-html" title="Html" data-flove-save="html">HTML</label>
-              <label class="btn ghost" for="save-fmt-csv"  title="Csv"  data-flove-save="csv">CSV</label>
-              <label class="btn ghost" for="save-fmt-xml"  title="Xml"  data-flove-save="xml">XML</label>
-              <label class="btn ghost" for="save-fmt-json" title="Json" data-flove-save="json">JSON</label>
+              <!-- Format labels only TOGGLE their checkbox; they no longer
+                   trigger an immediate save. The single Download button
+                   below bundles whatever is marked (formats + views). -->
+              <label class="btn ghost" for="save-fmt-txt"  title="Txt"  data-fmt="txt">TXT</label>
+              <label class="btn ghost" for="save-fmt-md"   title="Md"   data-fmt="md">MD</label>
+              <label class="btn ghost" for="save-fmt-jpg"  title="Jpg"  data-fmt="jpg">JPG</label>
+              <label class="btn ghost" for="save-fmt-html" title="Html" data-fmt="html">HTML</label>
+              <label class="btn ghost" for="save-fmt-csv"  title="Csv"  data-fmt="csv">CSV</label>
+              <label class="btn ghost" for="save-fmt-xml"  title="Xml"  data-fmt="xml">XML</label>
+              <label class="btn ghost" for="save-fmt-json" title="Json" data-fmt="json">JSON</label>
             </span>
             <!-- Fixed-size download button. Opacity scales with selections:
                  base 10%, +10% per format, +50% when App is on. flove.js will
@@ -7943,18 +7919,14 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 (function(){
   const VIEWS = ['bars', 'vertical', 'axial', 'spider'];
   const mirror = () => {
-    document.querySelectorAll('.views-panel[data-active-view]').forEach(p => {
+    document.querySelectorAll('[data-active-view]').forEach(p => {
       p.dataset.activeView = document.body.dataset.lastView || 'plain';
     });
   };
   mirror();
   document.addEventListener('change', (ev) => {
     const t = ev.target;
-    if (!t || !t.id) return;
-    if (t.id === 'view-plain' && t.checked){
-      delete document.body.dataset.lastView; mirror(); return;
-    }
-    if (!t.id.startsWith('view-') || t.type !== 'checkbox') return;
+    if (!t || !t.id || !t.id.startsWith('view-') || t.type !== 'checkbox') return;
     const slug = t.id.slice(5);
     if (VIEWS.indexOf(slug) === -1) return;
     if (t.checked) document.body.dataset.lastView = slug;

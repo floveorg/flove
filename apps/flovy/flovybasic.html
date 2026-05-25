@@ -4988,57 +4988,39 @@ body:has(#insight-4:checked) .insight-step:nth-child(5){
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
 }
 
-/* Views panel — IN-FLOW row that appears right below the action-row
-   when the user clicks Views. Insight + Magic stay in their original
-   spots (the panel is its own row, never inside the action-row); rows
-   below (Copy, Save/Share/Publish) push down to make room. The panel
-   hosts a single row of view checkboxes; the chart (.cssviz-out) grows
-   below once any chart view is marked. The single Download button lives
-   in the save-wrap below — flovybasic stays 0 JS, so "last clicked =
-   active" is approximated via CSS source-order priority. */
-.views-wrap{ position: relative; display: inline-flex; align-items: center; }
-.views-panel{
-  display: none;
-  margin-top: 8px;
+/* Subtab row · always visible, hosts the view pickers + Copy. Copy
+   sticks to the right via margin-left:auto so view-picks group on the
+   left. Pure-CSS only — flovybasic = 0 JS — so "last selected" with
+   multiple checked is approximated via CSS source-order priority
+   (later checkbox wins). */
+.action-row--views{
+  justify-content: flex-start;
+  gap: .25rem;
+  margin-top: 4px;
 }
-body:has(#views-open:checked) .views-panel{ display: block; }
-.views-row{
-  display: flex; flex-direction: row; flex-wrap: wrap;
-  align-items: center; gap: .25rem;
-  padding: .25rem 0;
-}
-/* Views button keeps a slight background while the panel is open OR
-   while any chart view (Bars / Vertical) is marked. */
-body:has(#views-open:checked) .views-btn,
-body:has(#view-bars:checked) .views-btn,
-body:has(#view-vertical:checked) .views-btn{
-  background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
-}
-/* Compact view pickers: kill vertical padding (≈5px less per side) and
-   tighten font so the row stays light. Same treatment applies to any
-   future sub-button cluster that risks the same overflow. */
-.views-row .view-pick{
+.action-row--views .copy-btn{ margin-left: auto; }
+/* Compact view pickers: same height/padding/font as the .cycle-row
+   sub-buttons below so the two rows feel like one family. */
+.action-row--views .view-pick{
   height: 22px;
   padding: 0 .5rem;
   font-size: .75rem;
   line-height: 1;
   border-radius: 6px;
-  justify-content: flex-start;
 }
-/* Marked-view highlight (checkboxes — several can be checked). */
-body:has(#view-plain:checked)    .view-pick[for="view-plain"],
+/* Marked-view highlight. */
 body:has(#view-bars:checked)     .view-pick[for="view-bars"],
 body:has(#view-vertical:checked) .view-pick[for="view-vertical"]{
   background: var(--fill-pressed); color: #fff; border-color: var(--accent);
 }
 
 /* ── Pure-CSS data visualization · Bars / Vertical ──────────────────────
-   The Views buttons never restyle the resume text — they only reveal the
-   chart below it. Every fill is driven by :has() on a rater radio, so the
-   whole chart updates with no JavaScript. Plain hides the chart. */
+   The Views checkboxes never restyle the resume text — they only reveal
+   the chart below the subtab row. Every fill is driven by :has() on a
+   rater radio, so the whole chart updates with no JavaScript. */
 .cssviz-out{
   display: none;
-  margin-top: .85rem; padding-top: .7rem;
+  margin-top: 4px; padding-top: .7rem;
   border-top: 1px dashed rgba(0, 0, 0, .1);
 }
 body:has(#view-bars:checked) .cssviz-out,
@@ -5096,7 +5078,6 @@ body:has(#rt-5:checked){ --ft: 100%; }
 .cssax--t .cssbar-trk > i{ width: var(--ft); } .cssax--t .csscol-trk > i{ height: var(--ft); }
 
 /* Copy lives in its own row, centered, with extra breathing room above. */
-.action-row--copy{ justify-content: center; margin-top: 8px; }
 .copy-btn{ margin: 0; }
 .copy-hint-panel{
   display: none;
@@ -5185,12 +5166,15 @@ body:has(#copy-hint:checked) .copy-btn{
   font-size: .7rem;
   white-space: nowrap;
 }
-/* Each sub-button is also kept small so the absolute sub-rows don't
-   overflow past their parent's pill. */
+/* Save / Share / Publish sub-buttons match the view-pick row exactly —
+   same height, padding, font — so the formats row and the views row
+   read as one family. */
 .cycle-row .btn{
   height: 22px;
-  padding: 0 .4rem;
-  font-size: .68rem;
+  padding: 0 .5rem;
+  font-size: .75rem;
+  line-height: 1;
+  border-radius: 6px;
 }
 body:not(:has(#cycle-save:checked))  .save-wrap  .cycle-step--open,
 body:not(:has(#cycle-pub:checked))   .pub-wrap   .cycle-step--open,
@@ -5306,13 +5290,15 @@ body:has(#cycle-pub:checked) .pub-wrap .go-btn{
    subs — it spans the full publish wrap width. */
 .pub-wrap   .cycle-row.pub-go-row{ left: 0; right: 0; }
 
-/* ── Fixed-size Download button — single pill, opacity reflects how many
-   formats (and whether App) the user has armed. Each format += 10 opacity-pt,
-   App += 50 opacity-pt, on top of a 10pt base. Pure CSS additive math via
-   per-toggle custom properties summed in calc(). ── */
+/* ── Download button — single full-row pill. Opacity reflects how many
+   formats (and whether App) the user has armed. Each format += 5
+   opacity-pt, App += 25 opacity-pt, on top of a 60pt base. Pure CSS
+   additive math via per-toggle custom properties summed in calc().
+   Height is +5px over the cycle sub-buttons (30px vs 22px) and the
+   width fills the row. ── */
 .download-bar{
   display: flex !important;
-  width: calc(3 * 70px + 2 * .25rem);  /* roughly three buttons wide */
+  width: 100%;
   gap: .25rem;
 }
 .dl-btn{
@@ -5321,7 +5307,8 @@ body:has(#cycle-pub:checked) .pub-wrap .go-btn{
   --dl-app: 0;
   flex: 1 1 0;
   min-width: 0;
-  height: 25px;
+  width: 100%;
+  height: 30px;
   padding: 0 .6rem;
   border-radius: 4px;
   font-weight: 700;
@@ -6004,13 +5991,12 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 <input type="radio" name="pub-plat-set" id="pub-plat-set-0" class="ctl" checked>
 <input type="radio" name="pub-plat-set" id="pub-plat-set-1" class="ctl">
 <input type="radio" name="pub-plat-set" id="pub-plat-set-2" class="ctl">
-<!-- Views: one checkbox toggles the in-flow panel open/closed; the rest
-     are CHECKBOXES so multiple can be marked at once. Pure-CSS limit:
-     when multiple chart views are checked, the rendered chart is the
-     one latest in DOM order (Vertical beats Bars). The single Download
-     button lives in the save-wrap below. -->
-<input type="checkbox" id="views-open" class="ctl">
-<input type="checkbox" id="view-plain"    class="ctl" checked>
+<!-- Views: chart-view CHECKBOXES sit always-visible on the row right
+     below Insight/Magic. Plain is gone — no view marked is the no-chart
+     fallback. Multiple can be marked at once; the single Download
+     button in save-wrap bundles them. Pure-CSS limit: when several
+     chart views are marked, the rendered chart is the one latest in
+     DOM order (Vertical beats Bars). -->
 <input type="checkbox" id="view-bars"     class="ctl">
 <input type="checkbox" id="view-vertical" class="ctl">
 
@@ -6962,9 +6948,6 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 
     <div class="action-grid">
       <div class="action-row">
-        <div class="views-wrap">
-          <label class="btn ghost views-btn" for="views-open" aria-haspopup="true">👁 <span class="t-en">Views</span><span class="t-es">Vistas</span></label>
-        </div>
         <span class="insight-cycle">
           <label class="btn ghost insight-step" for="insight-1" aria-label="Show insight 1">💡 Insight</label>
           <label class="btn ghost insight-step" for="insight-2" aria-label="Show insight 2">💡 Insight · 1/4</label>
@@ -6978,30 +6961,29 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
         </label>
       </div>
 
-      <div class="views-panel" role="group" aria-label="Phrase view mode">
-        <div class="views-row">
-          <label class="btn ghost view-pick" for="view-plain"    aria-label="Plain — no chart"><span class="t-en">Plain</span><span class="t-es">Plano</span></label>
-          <label class="btn ghost view-pick" for="view-bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
-          <label class="btn ghost view-pick" for="view-vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
-        </div>
-        <div class="cssviz-out" aria-hidden="true">
-          <div class="cssviz cssviz--bars">
-            <div class="cssbar cssax--h"><span class="cssbar-emo">😊</span><span class="cssbar-trk"><i></i></span></div>
-            <div class="cssbar cssax--f"><span class="cssbar-emo">😆</span><span class="cssbar-trk"><i></i></span></div>
-            <div class="cssbar cssax--l"><span class="cssbar-emo">👏</span><span class="cssbar-trk"><i></i></span></div>
-            <div class="cssbar cssax--t"><span class="cssbar-emo">🤔</span><span class="cssbar-trk"><i></i></span></div>
-          </div>
-          <div class="cssviz cssviz--vertical">
-            <div class="csscol cssax--h"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😊</span></div>
-            <div class="csscol cssax--f"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😆</span></div>
-            <div class="csscol cssax--l"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">👏</span></div>
-            <div class="csscol cssax--t"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">🤔</span></div>
-          </div>
-        </div>
+      <!-- Subtab row · always visible, sits right below Insight/Magic.
+           View pickers on the left, Copy pinned to the right. -->
+      <div class="action-row action-row--views" role="group" aria-label="Phrase view mode">
+        <label class="btn ghost view-pick" for="view-bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
+        <label class="btn ghost view-pick" for="view-vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
+        <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase">📋 <span class="t-en">Copy</span><span class="t-es">Copiar</span></label>
       </div>
 
-      <div class="action-row action-row--copy">
-        <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase">📋 <span class="t-en">Copy</span><span class="t-es">Copiar</span></label>
+      <!-- Chart for the marked view — sits below the subtab row.
+           Shows when any chart-view checkbox is on (regardless of order). -->
+      <div class="cssviz-out" aria-hidden="true">
+        <div class="cssviz cssviz--bars">
+          <div class="cssbar cssax--h"><span class="cssbar-emo">😊</span><span class="cssbar-trk"><i></i></span></div>
+          <div class="cssbar cssax--f"><span class="cssbar-emo">😆</span><span class="cssbar-trk"><i></i></span></div>
+          <div class="cssbar cssax--l"><span class="cssbar-emo">👏</span><span class="cssbar-trk"><i></i></span></div>
+          <div class="cssbar cssax--t"><span class="cssbar-emo">🤔</span><span class="cssbar-trk"><i></i></span></div>
+        </div>
+        <div class="cssviz cssviz--vertical">
+          <div class="csscol cssax--h"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😊</span></div>
+          <div class="csscol cssax--f"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😆</span></div>
+          <div class="csscol cssax--l"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">👏</span></div>
+          <div class="csscol cssax--t"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">🤔</span></div>
+        </div>
       </div>
 
       <div class="copy-hint-panel" role="status">

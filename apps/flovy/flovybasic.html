@@ -4988,77 +4988,47 @@ body:has(#insight-4:checked) .insight-step:nth-child(5){
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
 }
 
-/* Views panel — opens as an ABSOLUTE panel below the Views button.
-   Position:absolute keeps it out of flow so neighbouring buttons
-   (Insight, Magic) don't get pushed when Views toggles open. The panel
-   is a flex column: a single row of view checkboxes + Download on top,
-   and the chart (.cssviz-out) appearing right below once any chart view
-   is marked. Multi-toggle: each view is a checkbox; the Download button
-   is a stub here (flovybasic = pure HTML/CSS, no JS to bundle). */
+/* Views panel — IN-FLOW row that appears right below the action-row
+   when the user clicks Views. Insight + Magic stay in their original
+   spots (the panel is its own row, never inside the action-row); rows
+   below (Copy, Save/Share/Publish) push down to make room. The panel
+   hosts a single row of view checkboxes; the chart (.cssviz-out) grows
+   below once any chart view is marked. The single Download button lives
+   in the save-wrap below — flovybasic stays 0 JS, so "last clicked =
+   active" is approximated via CSS source-order priority. */
 .views-wrap{ position: relative; display: inline-flex; align-items: center; }
-.views-btn{ position: relative; z-index: 5; }
-.views-popup{
-  position: absolute;
-  top: calc(100% + 3px); left: 0;
+.views-panel{
   display: none;
-  flex-direction: column;
-  align-items: stretch;
-  gap: .35rem;
-  padding: .35rem;
-  background: rgba(255, 255, 255, .96);
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  box-shadow: 0 8px 20px var(--ink-12);
-  max-width: calc(100vw - 2rem);
-  z-index: 5;
+  margin-top: 8px;
 }
+body:has(#views-open:checked) .views-panel{ display: block; }
 .views-row{
-  display: flex; flex-direction: row; flex-wrap: nowrap;
+  display: flex; flex-direction: row; flex-wrap: wrap;
   align-items: center; gap: .25rem;
-  white-space: nowrap;
+  padding: .25rem 0;
 }
-body:has(#views-open:checked) .views-popup{ display: flex; }
-/* Click-outside collapse: full-viewport invisible label targets the open
-   checkbox; clicking it unchecks views-open and the row hides. */
-.views-overlay{
-  display: none;
-  position: fixed; inset: 0;
-  z-index: 4;
-  background: transparent;
-  cursor: default;
-}
-body:has(#views-open:checked) .views-overlay{ display: block; }
-
-/* Views button keeps a slight background while the row is open OR while
-   any chart view (Bars / Vertical) is marked. */
+/* Views button keeps a slight background while the panel is open OR
+   while any chart view (Bars / Vertical) is marked. */
 body:has(#views-open:checked) .views-btn,
 body:has(#view-bars:checked) .views-btn,
 body:has(#view-vertical:checked) .views-btn{
   background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
 }
-/* Compact sub-buttons: kill vertical padding (≈5px less per side) and
-   tighten font so the whole row fits beside the Views button without
-   overflowing. Same treatment applies to any future sub-button cluster
-   that risks the same overflow. */
-.views-popup .view-pick,
-.views-popup .views-download-btn{
+/* Compact view pickers: kill vertical padding (≈5px less per side) and
+   tighten font so the row stays light. Same treatment applies to any
+   future sub-button cluster that risks the same overflow. */
+.views-row .view-pick{
   height: 22px;
   padding: 0 .5rem;
   font-size: .75rem;
   line-height: 1;
   border-radius: 6px;
+  justify-content: flex-start;
 }
-.views-popup .view-pick{ justify-content: flex-start; }
 /* Marked-view highlight (checkboxes — several can be checked). */
 body:has(#view-plain:checked)    .view-pick[for="view-plain"],
 body:has(#view-bars:checked)     .view-pick[for="view-bars"],
 body:has(#view-vertical:checked) .view-pick[for="view-vertical"]{
-  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
-}
-/* Download button — pushed to the right; pure visual in flovybasic
-   (no JS). The labelled checkbox toggles a transient "marked" state. */
-.views-download-btn{ margin-left: .35rem; }
-body:has(#views-download:checked) .views-download-btn{
   background: var(--fill-pressed); color: #fff; border-color: var(--accent);
 }
 
@@ -5078,6 +5048,12 @@ body:has(#view-bars:checked) .cssviz--bars{ display: block; }
 body:has(#view-vertical:checked) .cssviz--vertical{
   display: flex; align-items: flex-end; justify-content: space-around; gap: .7rem;
 }
+/* "Show only the last selected viz" — pure-CSS approximation: when more
+   than one chart-view checkbox is on, the later one in DOM order wins.
+   Vertical sits after Bars in the source, so Vertical hides Bars when
+   both are marked. (Real "last-clicked" tracking would need JS, which
+   flovybasic does not have.) */
+body:has(#view-vertical:checked) .cssviz--bars{ display: none; }
 /* bars — horizontal */
 .cssbar{ display: flex; align-items: center; gap: .55rem; margin: .34rem 0; }
 .cssbar-emo{ width: 1.5em; text-align: center; font-size: 1.1rem; }
@@ -5385,6 +5361,12 @@ body:has(#save-app:checked) .dl-btn .dl-app{ display: inline; }
 body:has(#cycle-save:checked)  .save-wrap  .cycle-row,
 body:has(#cycle-pub:checked)   .pub-wrap   .cycle-row,
 body:has(#cycle-share:checked) .share-wrap .cycle-row{ visibility: visible; }
+/* The single Download button (save-wrap > .cycle-row.download-bar) also
+   surfaces whenever a chart view is marked — same affordance for both
+   formats and views. */
+body:has(#view-bars:checked, #view-vertical:checked) .save-wrap .cycle-row.download-bar{
+  visibility: visible;
+}
 
 /* Schedule row is the exception: opening Publish alone shouldn't reveal
    it. It only appears when Publish is open AND 0asis is the picked
@@ -6022,16 +6004,15 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 <input type="radio" name="pub-plat-set" id="pub-plat-set-0" class="ctl" checked>
 <input type="radio" name="pub-plat-set" id="pub-plat-set-1" class="ctl">
 <input type="radio" name="pub-plat-set" id="pub-plat-set-2" class="ctl">
-<!-- Views: one checkbox toggles the inline-row open/closed; the rest are
-     CHECKBOXES so multiple can be marked at once (for batch download).
-     Pure-CSS limitation: when multiple are checked, the rendered chart is
-     whichever appears latest in DOM order (Vertical wins over Bars).
-     The Download button is a stub in flovybasic — no JS. -->
+<!-- Views: one checkbox toggles the in-flow panel open/closed; the rest
+     are CHECKBOXES so multiple can be marked at once. Pure-CSS limit:
+     when multiple chart views are checked, the rendered chart is the
+     one latest in DOM order (Vertical beats Bars). The single Download
+     button lives in the save-wrap below. -->
 <input type="checkbox" id="views-open" class="ctl">
 <input type="checkbox" id="view-plain"    class="ctl" checked>
 <input type="checkbox" id="view-bars"     class="ctl">
 <input type="checkbox" id="view-vertical" class="ctl">
-<input type="checkbox" id="views-download" class="ctl">
 
 <!-- insight cycles through 5 states: 0 = empty (default), 1-4 = four insight texts -->
 <input type="radio" name="insight" id="insight-0" class="ctl" checked>
@@ -6983,29 +6964,6 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       <div class="action-row">
         <div class="views-wrap">
           <label class="btn ghost views-btn" for="views-open" aria-haspopup="true">👁 <span class="t-en">Views</span><span class="t-es">Vistas</span></label>
-          <label class="views-overlay" for="views-open" aria-hidden="true" tabindex="-1"></label>
-          <div class="views-popup" role="group" aria-label="Phrase view mode">
-            <div class="views-row">
-              <label class="btn ghost view-pick" for="view-plain"    aria-label="Plain — no chart"><span class="t-en">Plain</span><span class="t-es">Plano</span></label>
-              <label class="btn ghost view-pick" for="view-bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
-              <label class="btn ghost view-pick" for="view-vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
-              <a class="btn ghost views-download-btn dl-btn" href="#" download="flovybasic" title="Download marked views" aria-label="Download marked views"><span class="t-en">Download</span><span class="t-es">Descargar</span></a>
-            </div>
-            <div class="cssviz-out" aria-hidden="true">
-              <div class="cssviz cssviz--bars">
-                <div class="cssbar cssax--h"><span class="cssbar-emo">😊</span><span class="cssbar-trk"><i></i></span></div>
-                <div class="cssbar cssax--f"><span class="cssbar-emo">😆</span><span class="cssbar-trk"><i></i></span></div>
-                <div class="cssbar cssax--l"><span class="cssbar-emo">👏</span><span class="cssbar-trk"><i></i></span></div>
-                <div class="cssbar cssax--t"><span class="cssbar-emo">🤔</span><span class="cssbar-trk"><i></i></span></div>
-              </div>
-              <div class="cssviz cssviz--vertical">
-                <div class="csscol cssax--h"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😊</span></div>
-                <div class="csscol cssax--f"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😆</span></div>
-                <div class="csscol cssax--l"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">👏</span></div>
-                <div class="csscol cssax--t"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">🤔</span></div>
-              </div>
-            </div>
-          </div>
         </div>
         <span class="insight-cycle">
           <label class="btn ghost insight-step" for="insight-1" aria-label="Show insight 1">💡 Insight</label>
@@ -7018,6 +6976,28 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
           <span class="label-off">✨ Magic</span>
           <span class="label-on">Phrase</span>
         </label>
+      </div>
+
+      <div class="views-panel" role="group" aria-label="Phrase view mode">
+        <div class="views-row">
+          <label class="btn ghost view-pick" for="view-plain"    aria-label="Plain — no chart"><span class="t-en">Plain</span><span class="t-es">Plano</span></label>
+          <label class="btn ghost view-pick" for="view-bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
+          <label class="btn ghost view-pick" for="view-vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
+        </div>
+        <div class="cssviz-out" aria-hidden="true">
+          <div class="cssviz cssviz--bars">
+            <div class="cssbar cssax--h"><span class="cssbar-emo">😊</span><span class="cssbar-trk"><i></i></span></div>
+            <div class="cssbar cssax--f"><span class="cssbar-emo">😆</span><span class="cssbar-trk"><i></i></span></div>
+            <div class="cssbar cssax--l"><span class="cssbar-emo">👏</span><span class="cssbar-trk"><i></i></span></div>
+            <div class="cssbar cssax--t"><span class="cssbar-emo">🤔</span><span class="cssbar-trk"><i></i></span></div>
+          </div>
+          <div class="cssviz cssviz--vertical">
+            <div class="csscol cssax--h"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😊</span></div>
+            <div class="csscol cssax--f"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">😆</span></div>
+            <div class="csscol cssax--l"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">👏</span></div>
+            <div class="csscol cssax--t"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">🤔</span></div>
+          </div>
+        </div>
       </div>
 
       <div class="action-row action-row--copy">
@@ -7046,7 +7026,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
                  base 10%, +10% per format, +50% when App is on. flove.js will
                  assemble the bundle once we wire it. -->
             <span class="cycle-row download-bar">
-              <a class="btn ghost dl-btn" href="#" download="my-results" title="Download my results" data-flove-save="bundle">⬇ <span class="t-en">Download</span><span class="t-es">Descargar</span><span class="dl-results"><span class="t-en"> results</span><span class="t-es"> resultados</span></span><span class="dl-app"> App</span></a>
+              <a class="btn ghost dl-btn" href="#" download="flovybasic" title="Download my results" data-flove-save="bundle"><span class="t-en">Download</span><span class="t-es">Descargar</span><span class="dl-results"><span class="t-en"> results</span><span class="t-es"> resultados</span></span><span class="dl-app"> App</span></a>
             </span>
             <!-- App destination — now positioned ABOVE the Save button and
                  permanently visible, so the destination can be picked

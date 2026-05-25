@@ -7196,19 +7196,18 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     </section>
 
     <!-- two clause variants: default + magic — magic checkbox swaps which is shown -->
-    <output class="clause clause-default" data-flove-phrase contenteditable="true" spellcheck="false" aria-label="Editable summary phrase">
+    <!-- Clauses no longer contenteditable: flove.js sin módulo render
+         para flovynormal, así que la frase es texto fijo. Sin
+         contenteditable el browser no normaliza ni hace strip de los
+         spans hijos que el JS inyecta (incluido .flove-phrase-picked,
+         que el script al final del body crea/actualiza). -->
+    <output class="clause clause-default" data-flove-phrase spellcheck="false" aria-label="Summary phrase">
       <span class="t-en">A summary of what you added will show up here. Add <code class="clause-code">&lt;script src="flove.js"&gt;&lt;/script&gt;</code> to your page to unlock all the options below.</span><span class="t-es">Un resumen de lo que has añadido aparecerá aquí. Añade <code class="clause-code">&lt;script src="flove.js"&gt;&lt;/script&gt;</code> a tu página para activar todas las opciones de abajo.</span>
       <br><br>
       <span class="t-en">Try it here in the menu by switching the navigation bar to Normal.</span><span class="t-es">Pruébalo aquí en el menú cambiando la barra de navegación a Normal.</span>
-      <!-- Picker emojis (JS-populated) — sit INSIDE the phrase area,
-           next to the closing text. contenteditable=false keeps the
-           user from typing through them and keeps the browser from
-           normalising their content. -->
-      <span class="flove-phrase-picked" contenteditable="false" aria-live="polite"></span>
     </output>
-    <output class="clause clause-magic" contenteditable="true" spellcheck="false" aria-label="Editable magic phrase">
+    <output class="clause clause-magic" spellcheck="false" aria-label="Magic phrase">
       ✨ A magicked re-telling of the same details you added — warmer, looser, alive. Click <em>Phrase</em> to return to the original wording.
-      <span class="flove-phrase-picked" contenteditable="false" aria-live="polite"></span>
     </output>
 
     <div class="action-grid">
@@ -8496,8 +8495,18 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       .map(c => c.textContent.trim())
       .filter(Boolean);
     const text = picked.length ? '  ' + picked.join(' ') : '';
-    document.querySelectorAll('.flove-phrase-picked').forEach(el => {
-      if (el.textContent !== text) el.textContent = text;
+    /* Inject (or create on first run) a .flove-phrase-picked span at
+       the end of every .clause output. Robust against any browser /
+       script that might strip the span — we just re-add it. */
+    document.querySelectorAll('.clause').forEach(clause => {
+      let span = clause.querySelector(':scope > .flove-phrase-picked');
+      if (!span){
+        span = document.createElement('span');
+        span.className = 'flove-phrase-picked';
+        span.setAttribute('aria-live', 'polite');
+        clause.appendChild(span);
+      }
+      if (span.textContent !== text) span.textContent = text;
     });
   }
   function refresh(){

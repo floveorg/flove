@@ -8429,14 +8429,22 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   function $$(sel){ return Array.from(document.querySelectorAll(sel)); }
   let clicks = 0;
   function visibleTextWritten(t){ return t.offsetParent !== null && t.value && t.value.trim(); }
+  /* countSelections — count every "selection" the user has actively
+     armed, regardless of which UI panel is currently visible:
+       · subemojis from the ⋯-more picker (each pkr-* :checked = 1)
+       · non-zero rater radios (😊😆👏🤔 levels)
+       · hearts (open the rater column)
+       · labelers, wizard choices
+     Each pkr-* counts INDEPENDENTLY of the heart state — toggling a
+     heart off doesn't unmark anything, so the count for pkr-* stays
+     the same and Marc's "8 subemojis = 8" rule holds. */
   function countSelections(){
     let n = 0;
-    n += $$('input[id^="rater-show-"]:checked').length;
-    n += $$('input[name^="rate-"]:checked:not([id$="-0"])').length;
     n += $$('input[id^="pkr-"]:checked').length;
+    n += $$('input[name^="rate-"]:checked:not([id$="-0"])').length;
+    n += $$('input[id^="rater-show-"]:checked').length;
     n += $$('input[name="topbar-labeler"]:checked:not(#topbar-labeler-none)').length;
     n += $$('input[name^="wizard-choice-"]:checked:not([id*="-none"])').length;
-    n += $$('textarea').filter(visibleTextWritten).length;
     return n;
   }
   function countStars(){ return $$('textarea').filter(visibleTextWritten).length; }
@@ -8498,6 +8506,10 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   document.querySelectorAll('input[id^="pkr-"]').forEach(input => {
     input.addEventListener('change', refresh);
   });
+  /* Safety net: re-run refresh every 400ms regardless of events. Cheap
+     (queries are fast) and guarantees the counter never drifts out of
+     sync if any event listener gets swallowed by another script. */
+  setInterval(refresh, 400);
   refresh();
   window.flove = Object.assign(window.flove || {}, {
     counters: {

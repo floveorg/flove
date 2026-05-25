@@ -5216,19 +5216,19 @@ body:has(#insight-4:checked) .insight-step:nth-child(5){
   font-size: .7rem;
 }
 
-/* Subtab row — revealed when Views is toggled on; sits IMMEDIATELY below
-   the action-row (margin-top: 0 so the row reads as a continuation of
-   Views). The chart renders below it in .cssviz-out (pure-CSS bars +
-   vertical, ported from flovybasic). Axial + spider require SVG/JS and
-   aren't rendered here yet — they still mark and bundle as .svg via
-   the unified Download handler at the bottom of body. */
+/* Subtab row — sits ONE ROW ABOVE the action-row. Always present in
+   layout (height + width reserved) so clicking Views never reflows the
+   page; only visibility flips. View pickers + active-view tracker
+   carry over from before. */
 .action-row--views{
-  display: none;
+  display: flex;
+  visibility: hidden;
   justify-content: flex-start;
   gap: .25rem;
-  margin-top: 0;
+  margin: 0 0 .25rem 0;
+  min-height: 22px;
 }
-body:has(#views-open:checked) .action-row--views{ display: flex; }
+body:has(#views-open:checked) .action-row--views{ visibility: visible; }
 .action-row--views .view-pick{
   height: 22px !important;
   padding: 0 .5rem !important;
@@ -5247,24 +5247,73 @@ body:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-
   background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
 }
 
-/* ── Pure-CSS chart (bars + vertical) ported from flovybasic ──────────
-   The 4 main rater radios (rh/rf/rl/rt) feed CSS custom properties on
-   <body>; bars and vertical read those to fill. Axial + spider need SVG
-   and render via the unified Download handler only (no live preview
-   here yet — TODO). */
+/* ── Chart slot ──────────────────────────────────────────────────────
+   Bars + Vertical: pure-CSS, fed by rater :has() rules. Axial +
+   Spider: painted by JS into .cssviz--svg below.
+   The container itself reserves a fixed minimum height so clicking
+   any view never makes the page jump. */
 .cssviz-out{
-  display: none;
+  min-height: 180px;
   margin-top: .85rem; padding-top: .7rem;
-  border-top: 1px dashed rgba(0, 0, 0, .1);
+  border-top: 1px dashed rgba(0, 0, 0, .08);
 }
-body:has(#view-bars:checked) .cssviz-out,
-body:has(#view-vertical:checked) .cssviz-out{ display: block; }
 .cssviz{ display: none; }
 body:has(#view-bars:checked) .cssviz--bars{ display: block; }
 body:has(#view-vertical:checked) .cssviz--vertical{
   display: flex; align-items: flex-end; justify-content: space-around; gap: .7rem;
 }
 body:has(#view-vertical:checked) .cssviz--bars{ display: none; }
+.cssviz--svg{
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* Picker emojis row inside the resume — pure-CSS conditional display.
+   Each ⋯-more cell's checkbox toggles its matching span, no JS needed.
+   The container sits at the END of the clause; contenteditable=false on
+   the wrapper keeps it out of the user's typing flow. */
+.flove-phrase-picked{
+  display: block;
+  margin-top: .55em;
+  padding-top: .4em;
+  border-top: 1px dashed rgba(0, 0, 0, .08);
+  letter-spacing: .15em;
+  font-size: 1.05em;
+  text-align: center;
+  min-height: 1.2em;
+}
+.flove-phrase-picked > span{ display: none; margin: 0 .1em; }
+body:has(#pkr-1:checked)  .flove-phrase-picked > [data-pkr="1"],
+body:has(#pkr-2:checked)  .flove-phrase-picked > [data-pkr="2"],
+body:has(#pkr-3:checked)  .flove-phrase-picked > [data-pkr="3"],
+body:has(#pkr-4:checked)  .flove-phrase-picked > [data-pkr="4"],
+body:has(#pkr-5:checked)  .flove-phrase-picked > [data-pkr="5"],
+body:has(#pkr-8:checked)  .flove-phrase-picked > [data-pkr="8"],
+body:has(#pkr-9:checked)  .flove-phrase-picked > [data-pkr="9"],
+body:has(#pkr-10:checked) .flove-phrase-picked > [data-pkr="10"],
+body:has(#pkr-12:checked) .flove-phrase-picked > [data-pkr="12"],
+body:has(#pkr-13:checked) .flove-phrase-picked > [data-pkr="13"],
+body:has(#pkr-14:checked) .flove-phrase-picked > [data-pkr="14"],
+body:has(#pkr-15:checked) .flove-phrase-picked > [data-pkr="15"],
+body:has(#pkr-16:checked) .flove-phrase-picked > [data-pkr="16"],
+body:has(#pkr-17:checked) .flove-phrase-picked > [data-pkr="17"],
+body:has(#pkr-18:checked) .flove-phrase-picked > [data-pkr="18"],
+body:has(#pkr-19:checked) .flove-phrase-picked > [data-pkr="19"],
+body:has(#pkr-20:checked) .flove-phrase-picked > [data-pkr="20"],
+body:has(#pkr-22:checked) .flove-phrase-picked > [data-pkr="22"],
+body:has(#pkr-23:checked) .flove-phrase-picked > [data-pkr="23"],
+body:has(#pkr-24:checked) .flove-phrase-picked > [data-pkr="24"],
+body:has(#pkr-25:checked) .flove-phrase-picked > [data-pkr="25"]{ display: inline; }
+body:has(#view-axial:checked) .cssviz--svg,
+body:has(#view-spider:checked) .cssviz--svg{ display: block; }
+/* When axial/spider is active and bars/vertical aren't, hide those too
+   to avoid double-rendering. */
+body:has(#view-axial:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--bars,
+body:has(#view-axial:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--vertical,
+body:has(#view-spider:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--bars,
+body:has(#view-spider:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--vertical{
+  display: none;
+}
 .cssbar{ display: flex; align-items: center; gap: .55rem; margin: .34rem 0; }
 .cssbar-emo{ width: 1.5em; text-align: center; font-size: 1.1rem; }
 .cssbar-trk{
@@ -7133,6 +7182,12 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       <span class="t-en">A summary of what you added will show up here. Add <code class="clause-code">&lt;script src="flove.js"&gt;&lt;/script&gt;</code> to your page to unlock all the options below.</span><span class="t-es">Un resumen de lo que has añadido aparecerá aquí. Añade <code class="clause-code">&lt;script src="flove.js"&gt;&lt;/script&gt;</code> a tu página para activar todas las opciones de abajo.</span>
       <br><br>
       <span class="t-en">Try it here in the menu by switching the navigation bar to Normal.</span><span class="t-es">Pruébalo aquí en el menú cambiando la barra de navegación a Normal.</span>
+      <!-- Picker emojis row: pure-CSS conditional display. Each ⋯-more
+           cell's checkbox toggles its matching span; contenteditable=
+           "false" prevents the user from typing into the row. -->
+      <span class="flove-phrase-picked" contenteditable="false" aria-hidden="true">
+        <span data-pkr="1">❤</span><span data-pkr="2">⭐</span><span data-pkr="3">🔥</span><span data-pkr="4">✨</span><span data-pkr="5">😢</span><span data-pkr="8">😉</span><span data-pkr="9">😎</span><span data-pkr="10">😍</span><span data-pkr="12">🙏</span><span data-pkr="13">🎵</span><span data-pkr="14">☕</span><span data-pkr="15">💡</span><span data-pkr="16">🚀</span><span data-pkr="17">🌍</span><span data-pkr="18">🌙</span><span data-pkr="19">☀</span><span data-pkr="20">🌈</span><span data-pkr="22">👁</span><span data-pkr="23">👂</span><span data-pkr="24">🍵</span><span data-pkr="25">🌟</span>
+      </span>
     </output>
     <output class="clause clause-magic" contenteditable="true" spellcheck="false" aria-label="Editable magic phrase">
       ✨ A magicked re-telling of the same details you added — warmer, looser, alive. Click <em>Phrase</em> to return to the original wording.
@@ -7146,6 +7201,16 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       <input type="checkbox" id="view-vertical" class="ctl">
       <input type="checkbox" id="view-axial"    class="ctl">
       <input type="checkbox" id="view-spider"   class="ctl">
+
+      <!-- Subtab row — sits ONE ROW ABOVE the action-row. Reserved
+           layout space (always present, just visibility:hidden when
+           Views is off) so clicking Views never reflows the page. -->
+      <div class="action-row action-row--views" role="group" aria-label="Phrase view mode" data-active-view="plain">
+        <label class="btn ghost view-pick" for="view-bars"     data-view="bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
+        <label class="btn ghost view-pick" for="view-vertical" data-view="vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
+        <label class="btn ghost view-pick" for="view-axial"    data-view="axial"    aria-label="Axial view"><span class="t-en">Axial</span><span class="t-es">Axial</span></label>
+        <label class="btn ghost view-pick" for="view-spider"   data-view="spider"   aria-label="Spider view"><span class="t-en">Spider</span><span class="t-es">Araña</span></label>
+      </div>
 
       <div class="action-row">
         <label class="btn ghost views-btn" for="views-open" aria-haspopup="true" aria-label="Views"><span class="t-en">Views</span><span class="t-es">Vistas</span></label>
@@ -7163,19 +7228,9 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
         <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase" data-flove-copy="phrase"><span class="t-en">Copy</span><span class="t-es">Copiar</span></label>
       </div>
 
-      <!-- Subtab row — revealed when Views is on; sits flush against the
-           action-row above. The chart renders right below in
-           .cssviz-out (pure CSS, bars + vertical for now). -->
-      <div class="action-row action-row--views" role="group" aria-label="Phrase view mode" data-active-view="plain">
-        <label class="btn ghost view-pick" for="view-bars"     data-view="bars"     aria-label="Bars view"><span class="t-en">Bars</span><span class="t-es">Barras</span></label>
-        <label class="btn ghost view-pick" for="view-vertical" data-view="vertical" aria-label="Vertical view"><span class="t-en">Vertical</span><span class="t-es">Vertical</span></label>
-        <label class="btn ghost view-pick" for="view-axial"    data-view="axial"    aria-label="Axial view"><span class="t-en">Axial</span><span class="t-es">Axial</span></label>
-        <label class="btn ghost view-pick" for="view-spider"   data-view="spider"   aria-label="Spider view"><span class="t-en">Spider</span><span class="t-es">Araña</span></label>
-      </div>
-
-      <!-- Pure-CSS chart for the marked view (bars + vertical). Axial +
-           spider have no live preview here — they generate as .svg in
-           the Download bundle (see inline script at end of body). -->
+      <!-- Chart for the marked view: pure-CSS bars / vertical AND a
+           JS-painted SVG slot for axial / spider. Reserved height so
+           toggling views never reflows the page. -->
       <div class="cssviz-out" aria-hidden="true">
         <div class="cssviz cssviz--bars">
           <div class="cssbar cssax--h"><span class="cssbar-emo">😊</span><span class="cssbar-trk"><i></i></span></div>
@@ -7189,6 +7244,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
           <div class="csscol cssax--l"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">👏</span></div>
           <div class="csscol cssax--t"><span class="csscol-trk"><i></i></span><span class="cssbar-emo">🤔</span></div>
         </div>
+        <div class="cssviz cssviz--svg" aria-hidden="true"></div>
       </div>
 
       <div class="copy-hint-panel" role="status">
@@ -8329,6 +8385,119 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     }
     triggerDownload(`${PAGE}.zip`, makeZip(files));
   }, true);
+
+  /* Live axial/spider render — paints svgFor(view) into the .cssviz--svg
+     slot whenever a radial view is checked or a rater changes. Bars +
+     Vertical are pure-CSS above and don't need this. */
+  function paintSvgSlot(){
+    const slot = document.querySelector('.cssviz--svg');
+    if (!slot) return;
+    const axial  = document.getElementById('view-axial')?.checked;
+    const spider = document.getElementById('view-spider')?.checked;
+    if (!axial && !spider){ slot.innerHTML = ''; return; }
+    /* Spider wins over axial (later in DOM order, same priority rule
+       as Vertical-over-Bars). */
+    slot.innerHTML = spider ? svgFor('spider') : svgFor('axial');
+  }
+  document.addEventListener('change', paintSvgSlot);
+  paintSvgSlot();
+
+  /* Expose svg generators so the future flove.js viz module can call
+     them. Same key shape used by flovynormal-one. */
+  window.flove = Object.assign(window.flove || {}, {
+    viz: Object.assign((window.flove && window.flove.viz) || {}, {
+      render: svgFor,
+      views: VIEW_LIST.slice(),
+    }),
+  });
+})();
+</script>
+
+<script>
+/* ── Floating counters (flovynormal) ──────────────────────────────────
+   flove.js doesn't ship a counter module yet, so this inline copy keeps
+   the chips alive in flovynormal. Counts:
+     · clicks    — any click anywhere on the page
+     · selections — rate-* radios (non-zero) + ⋯-more picker (pkr-*) +
+                    topbar-labeler + wizard choices + filled textareas
+     · stars     — filled textareas only
+   Toggling a pkr-* checkbox now updates #Selections AND the resume
+   picker row (pure-CSS, see .flove-phrase-picked rules in <style>). */
+(function(){
+  if (window._floveNormalCountersBound) return;
+  window._floveNormalCountersBound = true;
+
+  function $$(sel){ return Array.from(document.querySelectorAll(sel)); }
+  let clicks = 0;
+  function visibleTextWritten(t){ return t.offsetParent !== null && t.value && t.value.trim(); }
+  function countSelections(){
+    let n = 0;
+    n += $$('input[id^="rater-show-"]:checked').length;
+    n += $$('input[name^="rate-"]:checked:not([id$="-0"])').length;
+    n += $$('input[id^="pkr-"]:checked').length;
+    n += $$('input[name="topbar-labeler"]:checked:not(#topbar-labeler-none)').length;
+    n += $$('input[name^="wizard-choice-"]:checked:not([id*="-none"])').length;
+    n += $$('textarea').filter(visibleTextWritten).length;
+    return n;
+  }
+  function countStars(){ return $$('textarea').filter(visibleTextWritten).length; }
+  function paint(chipId, numId, pts, growthMax){
+    const chip = document.getElementById(chipId);
+    const num  = document.getElementById(numId);
+    if (!chip || !num) return;
+    num.textContent = pts;
+    chip.classList.toggle('is-empty', pts === 0);
+    chip.style.setProperty('--col', Math.min(pts / growthMax, 1).toFixed(3));
+  }
+  function pulse(chipId){
+    const chip = document.getElementById(chipId);
+    if (!chip) return;
+    chip.classList.remove('pulse');
+    void chip.offsetWidth;
+    chip.classList.add('pulse');
+  }
+  const UNLOCK = {
+    advanced: { href: 'flovyadvanced.html', clicks: 20, selections: 10, stars: 2 },
+  };
+  const unlocked = {};
+  function checkUnlocks(){
+    Object.keys(UNLOCK).forEach(tier => {
+      if (unlocked[tier]) return;
+      const t = UNLOCK[tier];
+      if (clicks >= t.clicks && countSelections() >= t.selections && countStars() >= t.stars){
+        unlocked[tier] = true;
+        const step = document.querySelector('.tier-pop-step[href$="' + t.href + '"]');
+        if (step){
+          step.classList.add('is-unlocked');
+          step.classList.add('just-unlocked');
+          setTimeout(() => step.classList.remove('just-unlocked'), 900);
+        }
+        if (tier === 'advanced'){
+          const txt = document.getElementById('advanceText');
+          if (txt) txt.hidden = false;
+        }
+      }
+    });
+  }
+  function refresh(){
+    paint('chipClicks',     'pointsClicks',     clicks,            100);
+    paint('chipSelections', 'pointsSelections', countSelections(), 100);
+    paint('chipStars',      'pointsStars',      countStars(),      5);
+    checkUnlocks();
+  }
+  document.addEventListener('click',  () => { clicks++; pulse('chipClicks'); refresh(); });
+  document.addEventListener('change', refresh);
+  document.addEventListener('input',  ev => { if (ev.target && ev.target.tagName === 'TEXTAREA') refresh(); });
+  refresh();
+  window.flove = Object.assign(window.flove || {}, {
+    counters: {
+      refresh,
+      get clicks()     { return clicks; },
+      get selections() { return countSelections(); },
+      get stars()      { return countStars(); },
+      addClick(){ clicks++; pulse('chipClicks'); refresh(); },
+    },
+  });
 })();
 </script>
 

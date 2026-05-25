@@ -705,7 +705,6 @@
   .inv-body .action-row.right{
     justify-content: space-between;
     align-items: flex-start;
-    padding: calc(25px + .35rem) 0;
     flex-wrap: nowrap;
     gap: .35rem;
   }
@@ -906,27 +905,35 @@
     background: var(--fill-pressed); color:#fff; border-color: var(--accent);
   }
 
-  /* Sub-rows — absolutely positioned so opening them never pushes the
-     parent trigger out of place. */
+  /* Sub-rows — in-flow inside the cycle-trigger (which is column flex),
+     ordered above / below the parent trigger with flex `order`. Hidden
+     by default, revealed when the matching cycle radio is checked. The
+     parent .save-wrap / .share-wrap / .pub-wrap is itself column flex,
+     so opening a cycle expands it downward without disturbing siblings
+     in the action-row (still right-aligned because each wrap is its own
+     column). Using display none/flex (not position:absolute) so the
+     row can't be clipped by .inv-body { overflow:hidden }. */
+  .inv-body .cycle-trigger{ flex-direction: column; align-items: inherit; gap: .35rem; }
   .inv-body .cycle-row{
-    position:absolute;
-    display:inline-flex; flex-wrap:nowrap; gap:.25rem;
+    display:none;
+    flex-wrap:nowrap; gap:.25rem;
     white-space:nowrap;
-    visibility:hidden;
   }
-  .inv-body .cycle-row.above{ bottom: calc(100% + .35rem); }
-  .inv-body .cycle-row.below{ top:    calc(100% + .35rem); }
-  .inv-body .cycle-row.app-row{ bottom: calc(100% + .35rem); top: auto; }
-  .inv-body .save-wrap  .cycle-row{ left: 0; justify-content:flex-start; }
-  .inv-body .pub-wrap   .cycle-row{ right: 0; justify-content:flex-end; }
-  .inv-body .share-wrap .cycle-row{ left: 50%; transform: translateX(-50%); justify-content:center; }
+  .inv-body .cycle-row.above{ order: -1; }     /* render above the trigger */
+  .inv-body .cycle-row.below{ order:  1; }     /* render below the trigger */
+  .inv-body .cycle-row.app-row{ order: -2; }   /* render above the schedule row */
+  .inv-body .save-btn, .inv-body .share-btn, .inv-body .publish-btn{ order: 0; }
+  .inv-body .pub-wrap .go-btn{ order: 0; }
+  .inv-body .save-wrap  .cycle-row{ justify-content:flex-start; }
+  .inv-body .pub-wrap   .cycle-row{ justify-content:flex-end; }
+  .inv-body .share-wrap .cycle-row{ justify-content:center; }
   body:has(#cycle-save:checked)  .inv-body .save-wrap  .cycle-row,
   body:has(#cycle-pub:checked)   .inv-body .pub-wrap   .cycle-row,
-  body:has(#cycle-share:checked) .inv-body .share-wrap .cycle-row{ visibility:visible; }
+  body:has(#cycle-share:checked) .inv-body .share-wrap .cycle-row{ display:inline-flex; }
   /* Schedule row is the exception — it only appears when Publish is open
      AND 0asis is the picked platform. */
-  body:has(#cycle-pub:checked) .inv-body .pub-wrap .cycle-row.pub-row--schedule{ visibility:hidden; }
-  body:has(#cycle-pub:checked):has(#pub-plat-0asis:checked) .inv-body .pub-wrap .cycle-row.pub-row--schedule{ visibility:visible; }
+  body:has(#cycle-pub:checked) .inv-body .pub-wrap .cycle-row.pub-row--schedule{ display:none; }
+  body:has(#cycle-pub:checked):has(#pub-plat-0asis:checked) .inv-body .pub-wrap .cycle-row.pub-row--schedule{ display:inline-flex; }
 
   /* Sub-row buttons — smaller, squared */
   .inv-body .cycle-row .btn{

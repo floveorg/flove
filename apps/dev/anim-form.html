@@ -1,0 +1,4443 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>anim form · flove</title>
+<style>
+:root{
+  --accent-rgb: 211, 47, 47;
+  --accent:     rgb(var(--accent-rgb));
+  --accent-deep:#9a0007;
+  --accent-glow:rgba(var(--accent-rgb), .35);
+  --ink:        #212121;
+  --ink-soft:   #5a5a5a;
+  --ink-mute:   #8a8a8a;
+  --line:       rgba(0, 0, 0, .10);
+  --line-strong:rgba(0, 0, 0, .18);
+  --fill-soft:  rgba(var(--accent-rgb), .08);
+  --grad-active:linear-gradient(150deg, var(--accent), var(--accent-deep));
+  --font-ui:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display:'Georgia', 'Times New Roman', serif;
+  --font-mono:  ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius:     14px;
+  --bounce:     cubic-bezier(.2, .8, .2, 1);
+  --fast:       .15s var(--bounce);
+}
+*{ box-sizing: border-box; }
+html, body{ margin: 0; padding: 0; }
+body{
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 20%, var(--fill-soft), transparent 45%),
+    linear-gradient(180deg, #fafafa, #ececec);
+  background-attachment: fixed;
+  min-height: 100vh;
+  padding: 2rem 1.25rem 4rem;
+}
+.wrap{ max-width: 1000px; margin: 0 auto; }
+h1{
+  font: 700 1.6rem/1 var(--font-display);
+  color: var(--accent-deep);
+  margin: 0 0 .35rem;
+}
+.lede{ color: var(--ink-soft); font-size: .95rem; margin: 0 0 1.4rem; }
+.lede code{
+  font: 500 .82rem/1 var(--font-mono);
+  padding: 2px 6px;
+  background: rgba(0,0,0,.05);
+  border-radius: 6px;
+}
+
+.card{
+  position: relative;
+  background: rgba(255,255,255,.7);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.1rem 1rem;
+  margin: 1rem 0 1rem;
+}
+.card-title{
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0 0 .6rem;
+}
+
+/* Wrapper: preview (col 1) + form area (cols 2-4), matching anim section's 4 equal cols */
+.form-wrap{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .8rem;
+  align-items: stretch;
+}
+.form-wrap > .preview-area{ grid-column: 1; }
+.form-wrap > .form-rightside{
+  grid-column: 2 / 5;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+
+form.row{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .8rem;
+  row-gap: .45rem;
+  align-items: end;
+}
+/* Row 1 — main inputs */
+.field--element { grid-column: 1; grid-row: 1; }
+.field--effect  { grid-column: 2; grid-row: 1; }
+.field--modifier{ grid-column: 3; grid-row: 1; }
+/* Row 2 — reference dropdowns */
+.field--topic   { grid-column: 1; grid-row: 2; }
+.field--pattern { grid-column: 2; grid-row: 2; }
+.field--touch   { grid-column: 3; grid-row: 2; }
+.field--topic select,
+.field--pattern select,
+.field--touch select{
+  padding: .585rem .715rem;
+  font-size: 1.17rem;
+  line-height: 1.4;
+}
+.field--topic > span,
+.field--pattern > span,
+.field--touch > span{
+  color: var(--accent-deep);
+}
+/* Row 3 — flat "most-asked words" dropdown */
+.field--frequent{
+  grid-column: 1 / 4;
+  grid-row: 3;
+}
+.field--frequent select{
+  padding: .585rem .715rem;
+  font-size: 1.17rem;
+  line-height: 1.4;
+}
+.field--frequent > span{
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+/* Rows 4–5 — practical touch refinements */
+.field--light    { grid-column: 1; grid-row: 4; }
+.field--hue      { grid-column: 2; grid-row: 4; }
+.field--edge     { grid-column: 3; grid-row: 4; }
+.field--size     { grid-column: 1; grid-row: 5; }
+.field--position { grid-column: 2; grid-row: 5; }
+.field--motion   { grid-column: 3; grid-row: 5; }
+/* Row 6 — three timers */
+.field--time     { grid-column: 1; grid-row: 6; }
+.field--duration { grid-column: 2; grid-row: 6; }
+.field--disappear{ grid-column: 3; grid-row: 6; }
+form.row label.field--time,
+form.row label.field--duration,
+form.row label.field--disappear{
+  align-items: center;
+  text-align: center;
+  margin-top: .3rem;
+}
+form.row label.field--time > span,
+form.row label.field--duration > span,
+form.row label.field--disappear > span{
+  color: var(--accent-deep);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: .72rem;
+}
+.field--light > span,
+.field--hue > span,
+.field--edge > span,
+.field--size > span,
+.field--position > span,
+.field--motion > span{
+  color: var(--ink-soft);
+  font-size: .7rem;
+}
+form.row label{
+  display: flex; flex-direction: column;
+  font: 600 .72rem/1.2 var(--font-ui);
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  gap: .25rem;
+}
+form.row input,
+form.row select{
+  width: 100%;
+  padding: .45rem .55rem;
+  font: 400 .9rem/1.3 var(--font-ui);
+  color: var(--ink);
+  background: rgba(255,255,255,.85);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+form.row input:focus,
+form.row select:focus{
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .15);
+}
+.btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .35rem;
+  padding: .55rem .95rem;
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .04em; text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  transition: background var(--fast), border-color var(--fast), color var(--fast), box-shadow var(--fast);
+}
+.btn:hover{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+  box-shadow: 0 6px 14px var(--accent-glow);
+}
+.btn--primary{
+  background: var(--grad-active);
+  color: #fff;
+  border-color: var(--accent-deep);
+}
+.btn--primary:hover{ filter: brightness(1.06); color: #fff; }
+
+.actions{
+  display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .8rem;
+}
+
+table.rows{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+table.rows th, table.rows td{
+  padding: .45rem .55rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+table.rows th{
+  font: 700 .72rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
+  background: rgba(0,0,0,.02);
+}
+table.rows tr:hover td{ background: rgba(var(--accent-rgb), .04); }
+table.rows td.num{ font-variant-numeric: tabular-nums; color: var(--accent-deep); font-weight: 600; }
+table.rows .del-btn{
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: .85rem; line-height: 1;
+  transition: var(--fast);
+}
+table.rows .del-btn:hover{ border-color: var(--accent); color: var(--accent-deep); background: var(--fill-soft); }
+.rows-empty{ color: var(--ink-mute); font-style: italic; padding: .8rem 0; text-align: center; }
+
+textarea.output{
+  width: 100%; min-height: 140px;
+  padding: .8rem 1rem;
+  font: 400 .9rem/1.45 var(--font-mono);
+  color: var(--ink);
+  background: rgba(0,0,0,.04);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  resize: vertical;
+}
+textarea.output:focus{ outline: none; border-color: var(--accent); }
+
+.foot-link{
+  font-size: .82rem; color: var(--ink-mute);
+  margin-top: 1.4rem; text-align: center;
+}
+.foot-link a{ color: var(--accent-deep); }
+
+/* ======= Animation gallery ======= */
+.anim-layout{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .8rem;
+  align-items: stretch;
+}
+.anim-tabs{
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: .8rem;
+  align-self: start;
+}
+.anim-tab{
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: .55rem .85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: var(--fast);
+}
+.anim-tab:hover{ border-color: var(--accent); color: var(--accent-deep); background: var(--fill-soft) }
+.anim-tab.active{
+  background: var(--grad-active);
+  color: #fff;
+  border-color: var(--accent-deep);
+  box-shadow: 0 6px 14px var(--accent-glow);
+}
+.anim-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .8rem;
+  grid-column: 2 / 5;
+}
+.anim-slot{
+  display: flex; flex-direction: column;
+  gap: .4rem;
+  padding: .55rem;
+  background: rgba(255,255,255,.65);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.anim-pick{
+  width: 100%;
+  padding: .35rem .5rem;
+  font: 600 .78rem/1.2 var(--font-ui);
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.anim-preview{
+  width: 100%;
+  height: 96px;
+  background: rgba(0,0,0,.04);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+}
+.anim-preview::before{
+  content: '';
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border-radius: 8px;
+  display: block;
+  position: relative;
+}
+.anim-preview.text::before{
+  content: 'flove';
+  width: auto; height: auto;
+  background: transparent;
+  color: var(--accent-deep);
+  font: 700 1rem/1 var(--font-display);
+  letter-spacing: .04em;
+}
+.anim-preview.with-icon::before{
+  content: var(--anim-icon, "●");
+  width: auto; height: auto;
+  background: transparent;
+  color: var(--accent-deep);
+  font: 700 3.5rem/1 var(--font-display);
+}
+
+/* ===== Popular ===== */
+.anim-fade-in::before{ animation: pop-fade 2.4s ease-in-out infinite }
+@keyframes pop-fade{ 0%,10%{opacity:0} 50%{opacity:1} 90%,100%{opacity:0} }
+
+.anim-slide-up::before{ animation: pop-slide-up 2.4s ease-in-out infinite }
+@keyframes pop-slide-up{
+  0%,10%{ transform: translateY(28px); opacity:0 }
+  50%,80%{ transform: translateY(0); opacity:1 }
+  100%{ transform: translateY(-28px); opacity:0 }
+}
+
+.anim-zoom-in::before{ animation: pop-zoom 2.4s ease-in-out infinite }
+@keyframes pop-zoom{
+  0%,10%{ transform: scale(.2); opacity:0 }
+  50%,80%{ transform: scale(1); opacity:1 }
+  100%{ transform: scale(1.6); opacity:0 }
+}
+
+.anim-pulse::before{ animation: pop-pulse 1.6s ease-in-out infinite }
+@keyframes pop-pulse{ 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.18) } }
+
+.anim-bounce::before{ animation: pop-bounce 1.5s cubic-bezier(.28,.84,.42,1) infinite }
+@keyframes pop-bounce{
+  0%,100%{ transform: translateY(0) }
+  40%{ transform: translateY(-22px) }
+  60%{ transform: translateY(-12px) }
+  80%{ transform: translateY(-4px) }
+}
+
+.anim-shake::before{ animation: pop-shake 1s ease-in-out infinite }
+@keyframes pop-shake{
+  0%,100%{ transform: translateX(0) }
+  20%{ transform: translateX(-8px) }
+  40%{ transform: translateX(8px) }
+  60%{ transform: translateX(-4px) }
+  80%{ transform: translateX(4px) }
+}
+
+.anim-spin::before{ animation: pop-spin 2s linear infinite }
+@keyframes pop-spin{ to{ transform: rotate(360deg) } }
+
+.anim-flip::before{ animation: pop-flip 2.4s ease-in-out infinite }
+@keyframes pop-flip{
+  0%,15%{ transform: perspective(200px) rotateY(0) }
+  50%{ transform: perspective(200px) rotateY(180deg) }
+  85%,100%{ transform: perspective(200px) rotateY(360deg) }
+}
+
+.anim-wobble::before{ animation: pop-wobble 2s ease-in-out infinite }
+@keyframes pop-wobble{
+  0%,100%{ transform: rotate(0deg) }
+  15%{ transform: rotate(-14deg) translateX(-4px) }
+  30%{ transform: rotate(12deg) translateX(4px) }
+  45%{ transform: rotate(-8deg) translateX(-2px) }
+  60%{ transform: rotate(5deg) translateX(2px) }
+}
+
+/* ===== Advanced ===== */
+.anim-typewriter.text::before{
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--accent-deep);
+  animation: adv-type 3.2s steps(11) infinite, adv-blink .7s step-end infinite;
+  max-width: 7em;
+}
+@keyframes adv-type{ 0%{max-width:0} 60%,100%{max-width:7em} }
+@keyframes adv-blink{ 50%{ border-color: transparent } }
+
+.anim-gradient-shift::before{
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep), #ffb74d, var(--accent));
+  background-size: 250% 100%;
+  animation: adv-grad 3.5s ease-in-out infinite;
+}
+@keyframes adv-grad{ 0%,100%{ background-position: 0% 0 } 50%{ background-position: 100% 0 } }
+
+.anim-glitch.text::before{ animation: adv-glitch 1.4s steps(8) infinite }
+@keyframes adv-glitch{
+  0%,100%{ transform: translate(0,0); text-shadow: 0 0 0 transparent }
+  20%{ transform: translate(-2px,1px); text-shadow: -2px 0 var(--accent), 2px 0 cyan }
+  40%{ transform: translate(2px,-1px); text-shadow: 1px 0 magenta, -1px 0 var(--accent-deep) }
+  60%{ transform: translate(-1px,2px); text-shadow: 0 -1px var(--accent) }
+  80%{ transform: translate(1px,1px); text-shadow: -1px 0 cyan }
+}
+
+.anim-blob-morph::before{ animation: adv-blob 4s ease-in-out infinite }
+@keyframes adv-blob{
+  0%,100%{ border-radius: 38% 62% 56% 44% / 47% 39% 61% 53% }
+  33%{ border-radius: 62% 38% 45% 55% / 30% 60% 40% 70% }
+  66%{ border-radius: 50% 50% 70% 30% / 60% 30% 70% 40% }
+}
+
+.anim-tilt-3d::before{ animation: adv-tilt 3s ease-in-out infinite }
+@keyframes adv-tilt{
+  0%,100%{ transform: perspective(240px) rotateX(0) rotateY(0) }
+  33%{ transform: perspective(240px) rotateX(20deg) rotateY(-25deg) }
+  66%{ transform: perspective(240px) rotateX(-15deg) rotateY(25deg) }
+}
+
+.anim-marquee.text::before{
+  white-space: nowrap;
+  animation: adv-marquee 3s linear infinite;
+}
+@keyframes adv-marquee{
+  0%{ transform: translateX(60px) } 100%{ transform: translateX(-60px) }
+}
+
+.anim-mask-reveal::before{
+  clip-path: inset(0 100% 0 0);
+  animation: adv-mask 3s ease-in-out infinite;
+}
+@keyframes adv-mask{
+  0%{ clip-path: inset(0 100% 0 0) }
+  50%{ clip-path: inset(0 0 0 0) }
+  100%{ clip-path: inset(0 0 0 100%) }
+}
+
+.anim-ripple::before{
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: adv-ripple 1.8s ease-out infinite;
+}
+@keyframes adv-ripple{
+  0%{ box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.45) }
+  100%{ box-shadow: 0 0 0 36px rgba(var(--accent-rgb),0) }
+}
+
+.anim-shine-sweep::before{
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 40%, #fff 50%, var(--accent-deep) 60%, var(--accent) 100%);
+  background-size: 300% 100%;
+  animation: adv-shine 2.2s linear infinite;
+}
+@keyframes adv-shine{ 0%{ background-position: -100% 0 } 100%{ background-position: 200% 0 } }
+
+/* ===== Flove ===== */
+.anim-logo-bloom::before{
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8dc 0%, #f7d24a 55%, #ff9648 100%);
+  box-shadow: 0 0 20px rgba(247,210,74,.6);
+  animation: flo-bloom 5s linear infinite, flo-breathe 3s ease-in-out infinite;
+}
+@keyframes flo-bloom{ to{ transform: rotate(360deg) } }
+@keyframes flo-breathe{ 0%,100%{ filter: brightness(1) } 50%{ filter: brightness(1.25) } }
+
+.anim-hue-flow.text::before{
+  background: linear-gradient(90deg,#a78429,#946a23,#608033,#a18549,#a78429);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: flo-hue 4s ease-in-out infinite alternate;
+}
+@keyframes flo-hue{ 0%{ background-position: 0% 50% } 100%{ background-position: 100% 50% } }
+
+.anim-aura-breathe::before{
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(170,210,160,.6), rgba(130,190,150,.2) 60%, transparent 90%);
+  filter: blur(6px);
+  animation: flo-aura 4s ease-in-out infinite;
+  width: 60px; height: 60px;
+}
+@keyframes flo-aura{
+  0%,100%{ transform: scale(.9); filter: blur(6px) brightness(.95) }
+  50%{ transform: scale(1.25); filter: blur(4px) brightness(1.1) }
+}
+
+.anim-fireflies::before{
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff4b4 0%, #ffe896 35%, transparent 70%);
+  box-shadow:
+    20px -12px 0 -2px #fff4b4,
+    -22px 8px 0 -3px #ffe896,
+    14px 18px 0 -2px #fff4b4,
+    -16px -16px 0 -3px #ffe896,
+    0 22px 0 -3px #fff4b4;
+  animation: flo-firefly 2.4s ease-in-out infinite;
+}
+@keyframes flo-firefly{ 0%,100%{ opacity:.35 } 50%{ opacity: 1 } }
+
+.anim-pollen-drift::before{
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,220,180,.6), transparent 70%);
+  filter: blur(3px);
+  animation: flo-pollen 5s ease-in-out infinite alternate;
+}
+@keyframes flo-pollen{
+  0%{ transform: translate(-14px,8px) }
+  100%{ transform: translate(14px,-8px) }
+}
+
+.anim-drop-in::before{ animation: flo-drop 2.4s cubic-bezier(.34,1.56,.64,1) infinite }
+@keyframes flo-drop{
+  0%,10%{ transform: translateY(-30px); opacity: 0 }
+  50%,80%{ transform: translateY(0); opacity: 1 }
+  100%{ transform: translateY(0); opacity: 1 }
+}
+
+.anim-bump::before{ animation: flo-bump 1.6s cubic-bezier(.2,.85,.25,1.4) infinite }
+@keyframes flo-bump{
+  0%,30%,100%{ transform: scale(1) translateY(0) }
+  40%{ transform: scale(1.12) translateY(-3px) }
+}
+
+.anim-bubble-splash::before{
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--accent) 35%, transparent 70%);
+  box-shadow: 0 0 20px var(--accent-glow);
+  animation: flo-splash 1.8s cubic-bezier(.2,.8,.2,1) infinite;
+}
+@keyframes flo-splash{
+  0%{ transform: scale(.4); opacity: .2 }
+  40%{ transform: scale(1); opacity: 1 }
+  80%{ transform: scale(1.8); opacity: 0 }
+  100%{ transform: scale(.4); opacity: 0 }
+}
+
+.anim-canopy-glow{ background: radial-gradient(circle, rgba(150,200,150,.18), transparent 70%); }
+.anim-canopy-glow::before{
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(190,215,180,.7), rgba(120,190,140,.2) 60%, transparent 100%);
+  filter: blur(8px);
+  width: 60px; height: 60px;
+  animation: flo-canopy 6s ease-in-out infinite alternate;
+}
+@keyframes flo-canopy{
+  0%{ transform: scale(.85); opacity: .55 }
+  100%{ transform: scale(1.2); opacity: 1 }
+}
+
+/* ===== Added effects — Popular ===== */
+.anim-fade-out::before{ animation: pop-fade-out 2.4s ease-in-out infinite }
+@keyframes pop-fade-out{ 0%,20%{opacity:1} 80%,100%{opacity:0} }
+
+.anim-grow::before{ animation: pop-grow 2s ease-in-out infinite alternate }
+@keyframes pop-grow{ 0%{transform:scale(.7)} 100%{transform:scale(1.3)} }
+
+.anim-shrink::before{ animation: pop-shrink 2s ease-in-out infinite alternate }
+@keyframes pop-shrink{ 0%{transform:scale(1.3)} 100%{transform:scale(.6)} }
+
+.anim-slide-down::before{ animation: pop-slide-down 2.4s ease-in-out infinite }
+@keyframes pop-slide-down{
+  0%,10%{ transform: translateY(-28px); opacity: 0 }
+  50%,80%{ transform: translateY(0); opacity: 1 }
+  100%{ transform: translateY(28px); opacity: 0 }
+}
+
+.anim-slide-left::before{ animation: pop-slide-left 2.4s ease-in-out infinite }
+@keyframes pop-slide-left{
+  0%,10%{ transform: translateX(28px); opacity: 0 }
+  50%,80%{ transform: translateX(0); opacity: 1 }
+  100%{ transform: translateX(-28px); opacity: 0 }
+}
+
+.anim-slide-right::before{ animation: pop-slide-right 2.4s ease-in-out infinite }
+@keyframes pop-slide-right{
+  0%,10%{ transform: translateX(-28px); opacity: 0 }
+  50%,80%{ transform: translateX(0); opacity: 1 }
+  100%{ transform: translateX(28px); opacity: 0 }
+}
+
+.anim-swing::before{ animation: pop-swing 1.6s ease-in-out infinite alternate }
+@keyframes pop-swing{ 0%{ transform: rotate(-15deg) } 100%{ transform: rotate(15deg) } }
+
+.anim-vibrate::before{ animation: pop-vibrate .25s linear infinite }
+@keyframes pop-vibrate{
+  0%,100%{ transform: translateX(0) }
+  25%{ transform: translateX(-2px) }
+  75%{ transform: translateX(2px) }
+}
+
+.anim-jiggle::before{ animation: pop-jiggle .55s ease-in-out infinite }
+@keyframes pop-jiggle{
+  0%,100%{ transform: rotate(0) }
+  25%{ transform: rotate(-9deg) }
+  75%{ transform: rotate(9deg) }
+}
+
+.anim-heartbeat::before{ animation: pop-heartbeat 1.1s ease-in-out infinite }
+@keyframes pop-heartbeat{
+  0%,40%,100%{ transform: scale(1) }
+  20%{ transform: scale(1.15) }
+  30%{ transform: scale(.95) }
+}
+
+/* ===== Added effects — Advanced ===== */
+.anim-blink::before{ animation: adv-blink2 1.4s steps(2) infinite }
+@keyframes adv-blink2{ 0%,49%{opacity:1} 50%,100%{opacity:0} }
+
+.anim-neon-flicker::before{
+  filter: drop-shadow(0 0 6px var(--accent));
+  animation: adv-neon 2.4s linear infinite;
+}
+@keyframes adv-neon{
+  0%,40%,42%,44%,46%,100%{ opacity:1 }
+  41%,43%,45%{ opacity:.35 }
+}
+
+.anim-hue-rotate::before{ animation: adv-hue 3.2s linear infinite }
+@keyframes adv-hue{
+  0%{ filter: hue-rotate(0deg) }
+  100%{ filter: hue-rotate(360deg) }
+}
+
+.anim-depth-shift::before{ animation: adv-depth 3s ease-in-out infinite alternate }
+@keyframes adv-depth{
+  0%{ transform: scale(.85) perspective(120px) translateZ(0) }
+  100%{ transform: scale(1.15) perspective(120px) translateZ(20px) }
+}
+
+.anim-wipe-reveal::before{
+  clip-path: inset(0 0 100% 0);
+  animation: adv-wipe 3s ease-in-out infinite;
+}
+@keyframes adv-wipe{
+  0%{ clip-path: inset(0 0 100% 0) }
+  50%{ clip-path: inset(0 0 0 0) }
+  100%{ clip-path: inset(100% 0 0 0) }
+}
+
+.anim-shutter::before{ animation: adv-shutter 2.4s ease-in-out infinite }
+@keyframes adv-shutter{
+  0%,100%{ clip-path: polygon(0 0,100% 0,100% 0,0 0) }
+  50%{ clip-path: polygon(0 0,100% 0,100% 100%,0 100%) }
+}
+
+.anim-spotlight::before{
+  animation: adv-spotlight 2.6s ease-in-out infinite;
+}
+@keyframes adv-spotlight{
+  0%,100%{ filter: brightness(.6) }
+  50%{ filter: brightness(1.6) }
+}
+
+/* ===== Added effects — Flove ===== */
+.anim-leaf-fall::before{
+  background: linear-gradient(135deg, #c8d97a 0%, #6e9a3b 100%);
+  border-radius: 50% 0 50% 50%;
+  animation: flo-leaf 4s ease-in-out infinite;
+}
+@keyframes flo-leaf{
+  0%{ transform: translateY(-30px) rotate(0); opacity: 0 }
+  20%,80%{ opacity: 1 }
+  100%{ transform: translateY(30px) rotate(360deg); opacity: 0 }
+}
+
+.anim-dew-drop::before{
+  background: radial-gradient(circle at 30% 30%, #fff 5%, #a0e6f5 50%, #4a90a4 100%);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  animation: flo-dew 2.6s ease-in-out infinite;
+}
+@keyframes flo-dew{
+  0%{ transform: scale(.6); opacity: .6 }
+  50%{ transform: scale(1); opacity: 1 }
+  100%{ transform: scale(1.2); opacity: 0 }
+}
+
+.anim-petal-drift::before{
+  background: radial-gradient(ellipse, #ffc1d0, #d97a8e);
+  border-radius: 50% 0 50% 50%;
+  animation: flo-petal 5s ease-in-out infinite alternate;
+}
+@keyframes flo-petal{
+  0%{ transform: translate(-12px, -8px) rotate(0) }
+  100%{ transform: translate(12px, 8px) rotate(180deg) }
+}
+
+.anim-leaf-rustle::before{ animation: flo-rustle .7s ease-in-out infinite }
+@keyframes flo-rustle{
+  0%,100%{ transform: rotate(0) }
+  25%{ transform: rotate(-7deg) translateX(-1px) }
+  75%{ transform: rotate(7deg) translateX(1px) }
+}
+
+.anim-pulse-glow::before{
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: flo-pulse-glow 2s ease-out infinite;
+}
+@keyframes flo-pulse-glow{
+  0%{ box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.55); transform: scale(1) }
+  100%{ box-shadow: 0 0 0 20px rgba(var(--accent-rgb),0); transform: scale(1.05) }
+}
+
+.anim-bloom-burst::before{
+  background: radial-gradient(circle, #ffe566 0%, #ff8b66 70%, transparent 100%);
+  border-radius: 50%;
+  animation: flo-bloom-burst 2s ease-out infinite;
+}
+@keyframes flo-bloom-burst{
+  0%{ transform: scale(.3); opacity: .9 }
+  60%{ transform: scale(1.2); opacity: 1 }
+  100%{ transform: scale(1.8); opacity: 0 }
+}
+
+/* ============================================================
+   POPULAR Row 2 — Pops & Drops
+   ============================================================ */
+.anim-pop-in::before{ animation: rev-pop 1.8s cubic-bezier(.34,2,.5,1) infinite }
+@keyframes rev-pop{
+  0%,15%{ transform: scale(0); opacity: 0 }
+  35%{ transform: scale(1.25); opacity: 1 }
+  55%,85%{ transform: scale(1); opacity: 1 }
+  100%{ transform: scale(.85); opacity: 0 }
+}
+
+.anim-blur-in::before{ animation: rev-blur 2.2s ease-in-out infinite }
+@keyframes rev-blur{
+  0%,12%{ filter: blur(18px); opacity: 0 }
+  50%,82%{ filter: blur(0); opacity: 1 }
+  100%{ filter: blur(18px); opacity: 0 }
+}
+
+.anim-scale-in::before{ animation: rev-scale-in 2.2s ease-out infinite }
+@keyframes rev-scale-in{
+  0%,10%{ transform: scale(0); opacity: 0 }
+  50%,80%{ transform: scale(1); opacity: 1 }
+  100%{ transform: scale(1.4); opacity: 0 }
+}
+
+.anim-scale-out::before{ animation: rev-scale-out 2s ease-in infinite }
+@keyframes rev-scale-out{
+  0%,15%{ transform: scale(1.4); opacity: 0 }
+  50%,80%{ transform: scale(1); opacity: 1 }
+  100%{ transform: scale(0); opacity: 0 }
+}
+
+.anim-mega-pop::before{ animation: rev-mega 2.4s cubic-bezier(.34,2,.4,1) infinite }
+@keyframes rev-mega{
+  0%,12%{ transform: scale(0) rotate(-20deg); opacity: 0 }
+  32%{ transform: scale(1.35) rotate(8deg); opacity: 1 }
+  55%,82%{ transform: scale(1) rotate(0); opacity: 1 }
+  100%{ transform: scale(.8) rotate(20deg); opacity: 0 }
+}
+
+.anim-slide-tl::before{ animation: pos-tl 2.4s ease-out infinite }
+@keyframes pos-tl{
+  0%,10%{ transform: translate(-30px,-30px); opacity: 0 }
+  50%,80%{ transform: translate(0,0); opacity: 1 }
+  100%{ transform: translate(30px,30px); opacity: 0 }
+}
+
+.anim-slide-tr::before{ animation: pos-tr 2.4s ease-out infinite }
+@keyframes pos-tr{
+  0%,10%{ transform: translate(30px,-30px); opacity: 0 }
+  50%,80%{ transform: translate(0,0); opacity: 1 }
+  100%{ transform: translate(-30px,30px); opacity: 0 }
+}
+
+.anim-slide-bl::before{ animation: pos-bl 2.4s ease-out infinite }
+@keyframes pos-bl{
+  0%,10%{ transform: translate(-30px,30px); opacity: 0 }
+  50%,80%{ transform: translate(0,0); opacity: 1 }
+  100%{ transform: translate(30px,-30px); opacity: 0 }
+}
+
+.anim-slide-br::before{ animation: pos-br 2.4s ease-out infinite }
+@keyframes pos-br{
+  0%,10%{ transform: translate(30px,30px); opacity: 0 }
+  50%,80%{ transform: translate(0,0); opacity: 1 }
+  100%{ transform: translate(-30px,-30px); opacity: 0 }
+}
+
+.anim-spiral-in::before{ animation: pos-spiral 2.8s ease-out infinite }
+@keyframes pos-spiral{
+  0%,10%{ transform: scale(0) rotate(-360deg); opacity: 0 }
+  50%,82%{ transform: scale(1) rotate(0); opacity: 1 }
+  100%{ transform: scale(0) rotate(360deg); opacity: 0 }
+}
+
+.anim-snap-in::before{ animation: motn-snap 1.6s cubic-bezier(.7,-.4,.3,1.6) infinite }
+@keyframes motn-snap{
+  0%,28%{ transform: translateY(-34px); opacity: 0 }
+  40%,82%{ transform: translateY(0); opacity: 1 }
+  90%,100%{ transform: translateY(0); opacity: 0 }
+}
+
+.anim-ping::before{ animation: motn-ping 1.6s ease-out infinite }
+@keyframes motn-ping{
+  0%{ transform: scale(1); opacity: 1 }
+  50%{ transform: scale(1.6); opacity: .55 }
+  100%{ transform: scale(2.2); opacity: 0 }
+}
+
+.anim-punch::before{ animation: motn-punch 1.6s cubic-bezier(.5,-.2,.3,1.8) infinite }
+@keyframes motn-punch{
+  0%,75%,100%{ transform: scale(1) }
+  38%{ transform: scale(1.35) translateY(-4px) }
+  56%{ transform: scale(.92) translateY(2px) }
+}
+
+.anim-spring::before{ animation: motn-spring 2.2s cubic-bezier(.5,1.7,.5,1) infinite }
+@keyframes motn-spring{
+  0%,12%{ transform: scale(.55) translateY(-30px); opacity: 0 }
+  38%{ transform: scale(1.15) translateY(0); opacity: 1 }
+  50%{ transform: scale(.92) translateY(3px) }
+  60%,82%{ transform: scale(1) translateY(0) }
+  100%{ transform: scale(.55) translateY(30px); opacity: 0 }
+}
+
+.anim-elastic-pop::before{ animation: motn-elastic 2.2s cubic-bezier(.34,2.4,.5,.8) infinite }
+@keyframes motn-elastic{
+  0%,8%{ transform: scaleX(.2) scaleY(.2); opacity: 0 }
+  28%{ transform: scaleX(1.5) scaleY(.6) }
+  42%{ transform: scaleX(.7) scaleY(1.4) }
+  56%{ transform: scaleX(1.12) scaleY(.92) }
+  70%,85%{ transform: scaleX(1) scaleY(1); opacity: 1 }
+  100%{ transform: scaleX(.2) scaleY(.2); opacity: 0 }
+}
+
+/* ============================================================
+   POPULAR Row 3 — Continuous Rhythms
+   ============================================================ */
+.anim-breathe-soft::before{ animation: rhy-breathe-soft 4s ease-in-out infinite }
+@keyframes rhy-breathe-soft{
+  0%,100%{ transform: scale(1); opacity: .82 }
+  50%{ transform: scale(1.08); opacity: 1 }
+}
+
+.anim-breathe-deep::before{ animation: rhy-breathe-deep 5s ease-in-out infinite }
+@keyframes rhy-breathe-deep{
+  0%,100%{ transform: scale(.88); opacity: .68 }
+  50%{ transform: scale(1.2); opacity: 1 }
+}
+
+.anim-thump::before{ animation: rhy-thump 1s cubic-bezier(.5,.05,.2,1) infinite }
+@keyframes rhy-thump{
+  0%,32%,100%{ transform: scale(1) }
+  14%{ transform: scale(1.16) }
+  46%{ transform: scale(1.06) }
+}
+
+.anim-throb::before{ animation: rhy-throb 1.8s ease-in-out infinite }
+@keyframes rhy-throb{
+  0%,100%{ transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.55) }
+  50%{ transform: scale(1.08); box-shadow: 0 0 0 18px rgba(var(--accent-rgb),0) }
+}
+
+.anim-hover::before{ animation: flt-hover 3s ease-in-out infinite }
+@keyframes flt-hover{
+  0%,100%{ transform: translateY(0) }
+  50%{ transform: translateY(-9px) }
+}
+
+.anim-bob::before{ animation: flt-bob 1.8s ease-in-out infinite }
+@keyframes flt-bob{
+  0%,100%{ transform: translateY(0) rotate(0) }
+  50%{ transform: translateY(-7px) rotate(2deg) }
+}
+
+.anim-sway::before{ animation: flt-sway 4s ease-in-out infinite }
+@keyframes flt-sway{
+  0%,100%{ transform: translateX(-7px) rotate(-3deg) }
+  50%{ transform: translateX(7px) rotate(3deg) }
+}
+
+.anim-drift::before{ animation: flt-drift 6s ease-in-out infinite alternate }
+@keyframes flt-drift{
+  0%{ transform: translate(-12px,6px) }
+  100%{ transform: translate(12px,-6px) }
+}
+
+.anim-levitate::before{
+  animation: flt-levitate 3.4s ease-in-out infinite;
+}
+@keyframes flt-levitate{
+  0%,100%{ transform: translateY(0); filter: drop-shadow(0 6px 6px rgba(0,0,0,.18)) }
+  50%{ transform: translateY(-14px); filter: drop-shadow(0 16px 10px rgba(0,0,0,.12)) }
+}
+
+.anim-tremor::before{ animation: rest-tremor .14s linear infinite }
+@keyframes rest-tremor{
+  0%,100%{ transform: translate(0,0) }
+  25%{ transform: translate(-1px,1px) }
+  50%{ transform: translate(1px,-1px) }
+  75%{ transform: translate(-1px,-1px) }
+}
+
+.anim-shudder::before{ animation: rest-shudder .42s ease-in-out infinite }
+@keyframes rest-shudder{
+  0%,100%{ transform: translate(0,0) rotate(0) }
+  25%{ transform: translate(-2px,1px) rotate(-2deg) }
+  75%{ transform: translate(2px,-1px) rotate(2deg) }
+}
+
+.anim-twitch::before{ animation: rest-twitch .8s steps(4) infinite }
+@keyframes rest-twitch{
+  0%,78%,100%{ transform: translate(0,0) rotate(0) }
+  85%{ transform: translate(2px,-1px) rotate(5deg) }
+  92%{ transform: translate(-1px,1px) rotate(-3deg) }
+}
+
+.anim-oscillate::before{ animation: rest-oscillate 1.5s ease-in-out infinite alternate }
+@keyframes rest-oscillate{
+  0%{ transform: rotate(-12deg) }
+  100%{ transform: rotate(12deg) }
+}
+
+.anim-wave-motion::before{
+  animation: rest-wave 2.4s ease-in-out infinite;
+  border-radius: 30% 70% 50% 50% / 50% 50% 60% 40%;
+}
+@keyframes rest-wave{
+  0%,100%{ transform: skewX(0); border-radius: 30% 70% 50% 50% / 50% 50% 60% 40% }
+  50%{ transform: skewX(15deg); border-radius: 70% 30% 50% 50% / 60% 40% 50% 50% }
+}
+
+/* ============================================================
+   ADVANCED Row 2 — Letters · Color · Particles
+   ============================================================ */
+.anim-letter-cascade.text::before{ animation: adv-cascade 2.6s ease-in-out infinite }
+@keyframes adv-cascade{
+  0%,12%{ letter-spacing: 32px; opacity: 0 }
+  50%,80%{ letter-spacing: .04em; opacity: 1 }
+  100%{ letter-spacing: 32px; opacity: 0 }
+}
+
+.anim-letter-wave.text::before{ animation: adv-letter-wave 1.6s ease-in-out infinite }
+@keyframes adv-letter-wave{
+  0%,100%{ transform: translateY(0) skewX(0) }
+  25%{ transform: translateY(-4px) skewX(-3deg) }
+  75%{ transform: translateY(4px) skewX(3deg) }
+}
+
+.anim-sparkle::before{
+  background: radial-gradient(circle, #fff8dc 0%, #ffd54f 35%, transparent 70%);
+  box-shadow:
+    20px -12px 0 -3px #fff8dc,
+    -20px 8px 0 -3px #ffe082,
+    14px 18px 0 -3px #fff8dc,
+    -16px -16px 0 -4px #ffe082;
+  animation: adv-sparkle 1.6s ease-in-out infinite;
+}
+@keyframes adv-sparkle{
+  0%,100%{ opacity: .35; transform: rotate(0) }
+  50%{ opacity: 1; transform: rotate(180deg) }
+}
+
+.anim-ember-burst::before{
+  background: radial-gradient(circle, #ffb74d 0%, #e64a19 60%, transparent 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(230,74,25,.7);
+  animation: adv-ember-burst 1.9s ease-out infinite;
+}
+@keyframes adv-ember-burst{
+  0%{ transform: scale(.4) translateY(8px); opacity: 1 }
+  100%{ transform: scale(1.7) translateY(-14px); opacity: 0 }
+}
+
+.anim-color-wash::before{
+  background: linear-gradient(90deg,#f06292,#ffd54f,#4fc3f7,#81c784,#f06292);
+  background-size: 400% 100%;
+  animation: adv-color-wash 4s linear infinite;
+}
+@keyframes adv-color-wash{
+  0%{ background-position: 0 0 }
+  100%{ background-position: -400% 0 }
+}
+
+.anim-saturate-pulse::before{ animation: adv-sat-pulse 2.4s ease-in-out infinite }
+@keyframes adv-sat-pulse{
+  0%,100%{ filter: saturate(.4) }
+  50%{ filter: saturate(2.2) }
+}
+
+.anim-sepia-shift::before{ animation: adv-sepia 3.2s ease-in-out infinite alternate }
+@keyframes adv-sepia{
+  0%{ filter: sepia(0) }
+  100%{ filter: sepia(1) }
+}
+
+.anim-invert-flash::before{ animation: adv-invert 1.6s steps(2) infinite }
+@keyframes adv-invert{
+  0%,49%{ filter: invert(0) }
+  50%,100%{ filter: invert(1) }
+}
+
+.anim-emanate::before{
+  animation: adv-emanate 2s ease-out infinite;
+}
+@keyframes adv-emanate{
+  0%{ box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.6),
+                  0 0 0 0 rgba(var(--accent-rgb),.4) }
+  100%{ box-shadow: 0 0 0 18px rgba(var(--accent-rgb),0),
+                    0 0 0 36px rgba(var(--accent-rgb),0) }
+}
+
+.anim-dust-cloud::before{
+  background: radial-gradient(ellipse, rgba(200,180,160,.7), rgba(160,140,120,.3) 60%, transparent 90%);
+  filter: blur(4px);
+  animation: adv-dust 3s ease-in-out infinite;
+}
+@keyframes adv-dust{
+  0%{ transform: scale(.6) translateX(-14px); opacity: .3 }
+  50%{ transform: scale(1.2) translateX(0); opacity: .9 }
+  100%{ transform: scale(.6) translateX(14px); opacity: .3 }
+}
+
+.anim-letter-flip.text::before{ animation: adv-letter-flip 2s ease-in-out infinite }
+@keyframes adv-letter-flip{
+  0%,15%{ transform: rotateX(-90deg); opacity: 0 }
+  50%,80%{ transform: rotateX(0); opacity: 1 }
+  100%{ transform: rotateX(90deg); opacity: 0 }
+}
+
+.anim-letter-drop.text::before{ animation: adv-letter-drop 2.2s cubic-bezier(.5,1.6,.5,1) infinite }
+@keyframes adv-letter-drop{
+  0%,12%{ transform: translateY(-44px); opacity: 0 }
+  50%,80%{ transform: translateY(0); opacity: 1 }
+  100%{ transform: translateY(44px); opacity: 0 }
+}
+
+/* ============================================================
+   ADVANCED Row 3 — Cinematic · 3D · Morph
+   ============================================================ */
+.anim-iris-open::before{ animation: cin-iris-open 2.6s ease-out infinite }
+@keyframes cin-iris-open{
+  0%,12%{ clip-path: circle(0% at center) }
+  50%,82%{ clip-path: circle(70% at center) }
+  100%{ clip-path: circle(0% at center) }
+}
+
+.anim-iris-close::before{ animation: cin-iris-close 2.6s ease-in infinite }
+@keyframes cin-iris-close{
+  0%,12%{ clip-path: circle(70% at center) }
+  50%,82%{ clip-path: circle(20% at center) }
+  100%{ clip-path: circle(0% at center) }
+}
+
+.anim-vignette-pulse::before{ animation: cin-vignette 3s ease-in-out infinite }
+@keyframes cin-vignette{
+  0%,100%{ box-shadow: inset 0 0 44px 18px rgba(0,0,0,.6) }
+  50%{ box-shadow: inset 0 0 14px 4px rgba(0,0,0,.18) }
+}
+
+.anim-ken-burns::before{ animation: cin-ken-burns 6s ease-in-out infinite alternate }
+@keyframes cin-ken-burns{
+  0%{ transform: scale(1) translate(0,0) }
+  100%{ transform: scale(1.28) translate(-7px,-5px) }
+}
+
+.anim-cube-rotate::before{ animation: depth-cube 3.6s linear infinite }
+@keyframes depth-cube{
+  0%{ transform: perspective(220px) rotateY(0) rotateX(0) }
+  33%{ transform: perspective(220px) rotateY(120deg) rotateX(30deg) }
+  66%{ transform: perspective(220px) rotateY(240deg) rotateX(-30deg) }
+  100%{ transform: perspective(220px) rotateY(360deg) rotateX(0) }
+}
+
+.anim-card-flip-3d::before{ animation: depth-card 2.4s ease-in-out infinite }
+@keyframes depth-card{
+  0%,100%{ transform: perspective(220px) rotateY(0) }
+  50%{ transform: perspective(220px) rotateY(180deg) }
+}
+
+.anim-isometric-shift::before{ animation: depth-iso 4s ease-in-out infinite alternate }
+@keyframes depth-iso{
+  0%{ transform: rotateX(0) rotateZ(0) }
+  100%{ transform: rotateX(28deg) rotateZ(40deg) }
+}
+
+.anim-parallax::before{ animation: depth-parallax 4s ease-in-out infinite }
+@keyframes depth-parallax{
+  0%,100%{ transform: translateX(-22px) scale(.82); filter: blur(2px); opacity: .7 }
+  50%{ transform: translateX(22px) scale(1.18); filter: blur(0); opacity: 1 }
+}
+
+.anim-liquefy::before{
+  animation: morph-liquefy 4s ease-in-out infinite;
+  border-radius: 38% 62% 56% 44% / 47% 39% 61% 53%;
+}
+@keyframes morph-liquefy{
+  0%,100%{ border-radius: 38% 62% 56% 44% / 47% 39% 61% 53% }
+  25%{ border-radius: 62% 38% 45% 55% / 30% 60% 40% 70% }
+  50%{ border-radius: 50% 50% 70% 30% / 60% 30% 70% 40% }
+  75%{ border-radius: 70% 30% 40% 60% / 40% 70% 30% 60% }
+}
+
+.anim-waveform::before{
+  animation: morph-wave 2.6s ease-in-out infinite;
+  border-radius: 40% 60% 60% 40% / 50% 50% 50% 50%;
+}
+@keyframes morph-wave{
+  0%,100%{ transform: skewX(0); border-radius: 40% 60% 60% 40% / 50% 50% 50% 50% }
+  50%{ transform: skewX(22deg); border-radius: 60% 40% 40% 60% / 30% 70% 70% 30% }
+}
+
+.anim-splash-morph::before{
+  background: radial-gradient(circle, var(--accent), var(--accent-deep) 50%, transparent 100%);
+  border-radius: 50%;
+  animation: morph-splash 2.8s ease-out infinite;
+}
+@keyframes morph-splash{
+  0%{ transform: scale(0); opacity: 1 }
+  60%{ transform: scale(1); opacity: 1; border-radius: 50% }
+  100%{ transform: scale(1.5); opacity: 0; border-radius: 30% 70% 60% 40% / 50% 50% 60% 40% }
+}
+
+.anim-blob-flow::before{
+  background: linear-gradient(135deg, var(--accent), #ff8a65, var(--accent-deep));
+  animation: morph-blob-flow 5s ease-in-out infinite;
+}
+@keyframes morph-blob-flow{
+  0%{ border-radius: 30% 70% 50% 50% / 60% 40% 60% 40%; transform: rotate(0) }
+  33%{ border-radius: 60% 40% 30% 70% / 40% 60% 40% 60%; transform: rotate(120deg) }
+  66%{ border-radius: 50% 50% 70% 30% / 70% 30% 60% 40%; transform: rotate(240deg) }
+  100%{ border-radius: 30% 70% 50% 50% / 60% 40% 60% 40%; transform: rotate(360deg) }
+}
+
+/* ===== Slider widget ===== */
+.anim-slider{
+  display: flex; flex-direction: column;
+  gap: .45rem;
+  padding: .55rem;
+  background: rgba(255,255,255,.65);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.anim-slider .slider-title{
+  font: 700 .65rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.anim-slider .slider-stage{
+  display: flex; align-items: center; gap: .35rem;
+}
+.anim-slider .slider-arrow{
+  width: 26px; height: 58px;
+  flex-shrink: 0;
+  background: var(--fill-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--accent-deep);
+  font: 700 1.15rem/1 var(--font-ui);
+  cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--fast);
+}
+.anim-slider .slider-arrow:hover{
+  background: var(--accent); color: #fff; border-color: var(--accent-deep);
+}
+.anim-slider .slider-arrow:active{ transform: scale(.94); }
+.anim-slider .anim-preview{
+  flex: 1; height: 70px; min-height: 70px;
+  cursor: pointer;
+}
+.anim-slider .slider-label{
+  font: 600 .8rem/1.2 var(--font-ui);
+  color: var(--ink);
+  text-align: center;
+}
+.anim-slider .slider-dots{
+  display: flex; gap: 4px; justify-content: center;
+  margin-top: .1rem;
+}
+.anim-slider .dot{
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  cursor: pointer;
+  transition: var(--fast);
+}
+.anim-slider .dot.active{
+  background: var(--accent);
+  transform: scale(1.3);
+}
+
+@media (max-width: 720px){
+  .anim-layout{ grid-template-columns: 1fr; }
+  .anim-tabs{ display: flex; flex-direction: row; flex-wrap: wrap; gap: .5rem; }
+  .anim-tabs .anim-tab{ flex: 1 1 auto; }
+  .anim-grid{ grid-template-columns: 1fr; grid-column: auto; }
+}
+@media (max-width: 720px){
+  .form-wrap{
+    grid-template-columns: 1fr;
+  }
+  .form-wrap > form.row{ grid-column: 1; grid-row: auto; }
+  .form-wrap > .preview-area{ grid-column: 1; grid-row: auto; min-height: 140px; }
+  .form-wrap > .form-rightside{ grid-column: 1; }
+  .apply-layout{ grid-template-columns: 1fr; }
+  .apply-left{ grid-column: 1; }
+  .apply-sections{ grid-column: 1; grid-template-columns: 1fr; }
+  .section-items{ grid-template-columns: repeat(3, 1fr); }
+  .apply-row{ grid-template-columns: 1fr 1fr !important; }
+  .active-fields{ grid-template-columns: 1fr; }
+  .chips-3cols{ grid-column: 1; grid-template-columns: 1fr; }
+  form.row{
+    grid-template-columns: 1fr 1fr;
+  }
+  form.row .field--time{ grid-column: 1 / 2; grid-row: auto; }
+  form.row .field--duration{ grid-column: 2 / 3; grid-row: auto; }
+  form.row .field--disappear{ grid-column: 1 / -1; grid-row: auto; }
+  form.row .field--element{ grid-column: 1 / -1; }
+  form.row .field--effect{ grid-column: 1 / -1; }
+  form.row .field--modifier{ grid-column: 1 / -1; }
+  form.row .field--add{ grid-column: 1 / -1; }
+  form.row .field--topic,
+  form.row .field--pattern,
+  form.row .field--touch,
+  form.row .field--frequent,
+  form.row .field--light,
+  form.row .field--hue,
+  form.row .field--edge,
+  form.row .field--size,
+  form.row .field--position,
+  form.row .field--motion{ grid-column: 1 / -1; grid-row: auto }
+}
+
+/* ===== Apply-to: Text / Control / Decor at top of section ===== */
+.apply-row{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .7rem;
+  margin: 0 0 .8rem;
+}
+
+.apply-slot-col{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .25rem;
+}
+.apply-title{
+  font: 700 .68rem/1 var(--font-ui);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Main / My items — pill buttons like Add but white default */
+.btn--pick{
+  background: #fff;
+  color: var(--accent-deep);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font: 700 .95rem/1 var(--font-ui);
+  letter-spacing: .02em;
+  text-transform: none;
+  padding: .8rem 1.5rem;
+  cursor: pointer;
+  transition: var(--fast);
+}
+.btn--pick:hover{
+  background: var(--fill-soft);
+  border-color: var(--accent);
+}
+.btn--pick.empty{
+  color: var(--accent-deep);
+  font-weight: 800;
+}
+.btn--pick:not(.empty){
+  background: var(--fill-soft);
+  color: var(--accent-deep);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.btn--pick.open{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-deep);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+/* Add button above the demo (outside the form), centered across the full row */
+.add-above-demo{
+  display: flex;
+  justify-content: center;
+  margin: 0 0 .55rem;
+}
+.add-above-demo .btn--primary{
+  padding: .8rem 1.6rem;
+  font-size: .95rem;
+}
+
+/* ===== Apply collapse: floating +/× button at top-RIGHT border of the card ===== */
+.apply-collapse-bar{
+  position: absolute;
+  top: -16px;
+  right: 18px;
+  z-index: 5;
+}
+.apply-collapse-toggle{
+  width: 34px; height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  color: var(--accent-deep);
+  font: 700 1.3rem/1 var(--font-ui);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--fast);
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+.apply-collapse-toggle:hover{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+  transform: scale(1.08);
+}
+
+/* ===== Apply layout: matches form-wrap (col 1 = left widgets, cols 2-4 = sections) ===== */
+.apply-layout{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .8rem;
+  margin: 0 0 1rem;
+  align-items: start;
+}
+.apply-layout.collapsed{ display: none; }
+.apply-left{
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.apply-sections{
+  grid-column: 2 / 5;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+}
+.apply-section{
+  background: rgba(255,255,255,.65);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.section-title{
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  border: none;
+  padding: .55rem .6rem;
+  font: 700 .78rem/1 var(--font-ui);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  cursor: pointer;
+  transition: var(--fast);
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+.section-title::after{
+  content: '▾';
+  position: absolute;
+  right: .8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .8rem;
+  transition: transform var(--fast);
+}
+.section-title.collapsed::after{ transform: translateY(-50%) rotate(-90deg); }
+.section-title:hover{ background: var(--fill-soft); }
+.section-title.collapsed{ border-bottom-color: transparent; }
+.section-items{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .3rem;
+  padding: .4rem;
+  max-height: 540px;
+  overflow-y: auto;
+  transition: max-height .25s ease, padding .2s ease;
+}
+.section-items.collapsed{
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+.section-items .opt-item{
+  display: flex; flex-direction: column;
+  align-items: center;
+  gap: .15rem;
+  padding: .35rem .25rem;
+  background: rgba(255,255,255,.55);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer; user-select: none;
+  transition: var(--fast);
+}
+.section-items .opt-item:hover{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+}
+.section-items .opt-item.selected{
+  border-color: var(--accent-deep);
+  background: var(--fill-soft);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.section-items .opt-icon{
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--accent-deep);
+}
+.section-items .opt-name{
+  font: 600 .56rem/1.1 var(--font-ui);
+  color: var(--ink);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+/* Left column buttons: full-width pills */
+.btn--full{
+  width: 100%;
+  display: block;
+  text-align: center;
+  padding: .8rem 1rem;
+  font-size: .95rem;
+}
+.apply-left .btn--pick.mode-active{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-deep);
+  box-shadow: 0 4px 10px var(--accent-glow);
+}
+
+/* Save button floating at top-CENTER border of the card */
+.save-bar{
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+.save-top-btn{
+  padding: .55rem 1.1rem;
+  border-radius: 999px;
+  background: var(--grad-active);
+  border: 1px solid var(--accent-deep);
+  color: #fff;
+  font: 800 .85rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: var(--fast);
+  box-shadow: 0 4px 12px var(--accent-glow);
+  white-space: nowrap;
+}
+.save-top-btn:hover{
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 6px 16px var(--accent-glow);
+}
+
+/* Anim section collapse: +/× button at top border of the anim-merge area */
+.anim-merge{ position: relative; }
+.anim-collapse-bar{
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+.anim-collapse-toggle{
+  width: 34px; height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  color: var(--accent-deep);
+  font: 700 1.3rem/1 var(--font-ui);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--fast);
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+.anim-collapse-toggle:hover{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+  transform: scale(1.08);
+}
+.anim-merge.collapsed > .anim-controls,
+.anim-merge.collapsed > .anim-layout{
+  display: none;
+}
+.apply-slot{
+  display: flex; flex-direction: column;
+  gap: .35rem;
+  position: relative;
+}
+.slot-label{
+  font: 600 .85rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  color: var(--ink);
+  text-align: center;
+}
+.slot-label.slot-big{
+  font-weight: 900;
+  font-size: 1.7rem;
+  color: var(--accent-deep);
+  letter-spacing: .02em;
+}
+.slot-image{
+  width: 100%;
+  min-height: 90px;
+  background: rgba(255,255,255,.65);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--fast);
+  position: relative;
+  overflow: hidden;
+  padding: .45rem;
+}
+.slot-image:hover{
+  border-color: var(--accent);
+  box-shadow: 0 4px 10px var(--accent-glow);
+}
+.slot-image.open{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+}
+.slot-image .slot-current{
+  font: 700 1rem/1.2 var(--font-ui);
+  color: var(--accent-deep);
+  text-align: center;
+  word-break: break-word;
+}
+.slot-image.empty .slot-current{
+  font: 900 1.7rem/1.05 var(--font-ui);
+  color: var(--accent-deep);
+  letter-spacing: .02em;
+  font-style: normal;
+  text-transform: none;
+}
+
+.apply-expand{
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .4rem;
+  margin: 0 0 .9rem;
+  padding: .55rem;
+  background: rgba(255,255,255,.7);
+  border-radius: 10px;
+}
+.apply-expand[hidden]{ display: none; }
+.apply-expand .opt-item{
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  border-radius: 6px;
+  transition: var(--fast);
+}
+.apply-expand .opt-item:hover .opt-image{
+  background: var(--fill-soft);
+  transform: scale(1.06);
+}
+.apply-expand .opt-item.selected .opt-image{
+  background: var(--accent);
+  color: #fff;
+}
+.apply-expand .opt-image{
+  width: 100%;
+  aspect-ratio: 1;
+  background: rgba(255,255,255,.55);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 .48rem/1.05 var(--font-ui);
+  color: var(--accent-deep);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  padding: 3px;
+  word-break: break-word;
+  hyphens: auto;
+  transition: var(--fast);
+}
+.apply-expand .opt-label{ display: none; }
+
+/* Dense mode for Main / My items lists — items ~30% of normal size */
+.apply-expand.dense{
+  grid-template-columns: repeat(10, 1fr);
+  gap: .18rem;
+  padding: .4rem;
+}
+.apply-expand.dense .opt-image{
+  font-size: .34rem;
+  letter-spacing: 0;
+  padding: 2px;
+  line-height: 1.02;
+  border-radius: 4px;
+}
+
+/* ===== Add button placement (original, row 8 below timers) ===== */
+.field--add{
+  grid-column: 1 / 4;
+  grid-row: 8;
+  justify-self: center;
+  margin-top: .6rem;
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+}
+.field--add .btn--primary{
+  padding: .8rem 1.6rem;
+  font-size: .95rem;
+}
+.btn--preview{
+  background: linear-gradient(150deg, #2e7d32, #1b5e20);
+  color: #fff;
+  border-color: #1b5e20;
+  padding: .8rem 1.3rem;
+  font-size: .95rem;
+}
+.btn--preview:hover{ filter: brightness(1.12); color: #fff; }
+
+/* Live preview area — col 1, stretches to match the right column's height */
+.preview-area{
+  align-self: stretch;
+  background: rgba(255,255,255,.7);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 0;
+}
+.preview-area .anim-preview{
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 8px;
+}
+.preview-area .anim-preview::before{ width: 56px; height: 56px; }
+.preview-area .preview-label{
+  font: 600 .9rem/1 var(--font-ui);
+  color: var(--accent-deep);
+  letter-spacing: .02em;
+}
+.preview-area .preview-target{
+  font: 700 .66rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.preview-close{
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: .9rem; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: var(--fast);
+}
+.preview-close:hover{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+
+/* ===== Comfortable [- input +] spinner ===== */
+.num-spinner{
+  display: inline-flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: 220px;
+  height: 2.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  transition: var(--fast);
+}
+.num-spinner:focus-within{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .15);
+}
+.num-spinner .num-step{
+  width: 2.8rem;
+  flex-shrink: 0;
+  background: var(--fill-soft);
+  border: none;
+  color: var(--accent-deep);
+  font: 700 1.4rem/1 var(--font-ui);
+  cursor: pointer;
+  user-select: none;
+  transition: var(--fast);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.num-spinner .num-step:hover{ background: var(--accent); color: #fff; }
+.num-spinner .num-step:active{ background: var(--accent-deep); transform: scale(.96); }
+.num-spinner input[type=number]{
+  flex: 1; width: 100%; min-width: 0;
+  border: none; outline: none;
+  text-align: center;
+  font: 600 1.05rem/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  color: var(--ink);
+  -moz-appearance: textfield;
+  padding: 0 .3rem;
+}
+.num-spinner input[type=number]::-webkit-inner-spin-button,
+.num-spinner input[type=number]::-webkit-outer-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ===== Collapse toggle: floating + button at top-LEFT border of the card ===== */
+.collapse-bar{
+  position: absolute;
+  top: -16px;
+  left: 18px;
+  transform: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  z-index: 5;
+  cursor: pointer;
+}
+.collapse-bar:hover{ background: transparent; }
+.collapse-bar > span{ display: none; }
+.collapse-toggle{
+  width: 34px; height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  color: var(--accent-deep);
+  font: 700 1.3rem/1 var(--font-ui);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--fast);
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  pointer-events: none;
+}
+.collapse-bar:hover .collapse-toggle{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+  transform: scale(1.08);
+}
+form.row.collapsed .field--element,
+form.row.collapsed .field--effect,
+form.row.collapsed .field--modifier,
+form.row.collapsed .field--topic,
+form.row.collapsed .field--pattern,
+form.row.collapsed .field--touch,
+form.row.collapsed .field--frequent,
+form.row.collapsed .field--light,
+form.row.collapsed .field--hue,
+form.row.collapsed .field--edge,
+form.row.collapsed .field--size,
+form.row.collapsed .field--position,
+form.row.collapsed .field--motion{
+  display: none;
+}
+
+/* ===== Active selections — chips area at top, structured ===== */
+.active-fields{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .55rem;
+  margin: 0 0 .8rem;
+  min-height: 0;
+}
+.active-fields:empty{ display: none; }
+.chips-on-item{
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  justify-content: center;
+}
+.chips-3cols{
+  grid-column: 2 / 5;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+}
+.chip-col{
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  align-items: stretch;
+  min-height: 0;
+}
+.chip-col .active-field{
+  width: 100%;
+  justify-content: space-between;
+}
+.chip-col .active-field .chip-value{
+  flex: 1 1 auto;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip-col:empty{ display: none; }
+.chips-misc{
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  justify-content: center;
+}
+.chips-misc:empty{ display: none; }
+.active-field{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  background: var(--fill-soft);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: .25rem .35rem .25rem .7rem;
+  font: 600 .85rem/1 var(--font-ui);
+  color: var(--accent-deep);
+}
+.active-field .chip-label{
+  font: 700 .62rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
+  padding-right: .35rem;
+  border-right: 1px solid rgba(0,0,0,.08);
+}
+.active-field .chip-value{ font-weight: 600; }
+.active-field .chip-btn{
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: rgba(255,255,255,.85);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 600 .75rem/1 var(--font-ui);
+  color: var(--accent-deep);
+  padding: 0;
+  transition: var(--fast);
+}
+.active-field .chip-btn:hover{ background: var(--accent); color: #fff; }
+.active-field .chip-remove{ border-color: rgba(0,0,0,.12); font-size: .9rem; }
+.active-field .active-menu{
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.14);
+  padding: .25rem;
+  min-width: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.active-field .active-menu[hidden]{ display: none; }
+.active-field .menu-item{
+  padding: .35rem .55rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font: 500 .82rem/1.2 var(--font-ui);
+  color: var(--ink);
+}
+.active-field .menu-item:hover{ background: var(--fill-soft); color: var(--accent-deep); }
+.active-field .menu-item.current{
+  background: var(--fill-soft);
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+.active-field .menu-group{
+  font: 700 .65rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: .35rem .55rem .15rem;
+}
+
+/* ===== Output card actions ===== */
+.output-actions{
+  display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .7rem;
+}
+.btn--send{
+  background: linear-gradient(150deg, #6a4cff, #4527a0);
+  color: #fff;
+  border-color: #4527a0;
+}
+.btn--send:hover{ filter: brightness(1.08); color: #fff; }
+
+textarea.output:not([readonly]){
+  background: rgba(255,255,255,.85);
+}
+
+/* ===== Anim gallery merged into form card ===== */
+.anim-merge{
+  margin-top: 1rem;
+  padding-top: .9rem;
+  border-top: 1px dashed var(--line-strong);
+}
+.anim-controls{
+  display: flex; justify-content: flex-end;
+  margin-bottom: .55rem;
+}
+.anim-toggle-bar{
+  display: flex; align-items: center; gap: .55rem;
+  padding: .4rem .55rem;
+  border-radius: 10px;
+  cursor: pointer; user-select: none;
+  transition: var(--fast);
+  margin-bottom: .8rem;
+}
+.anim-toggle-bar:hover{ background: var(--fill-soft); }
+.anim-toggle-bar strong{
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.anim-toggle-bar .chev{
+  display: inline-block;
+  font: 700 .9rem/1 var(--font-ui);
+  color: var(--accent-deep);
+  transition: transform var(--fast);
+}
+.anim-merge.collapsed .anim-toggle-bar{ margin-bottom: 0 }
+.anim-merge.collapsed .anim-toggle-bar .chev{ transform: rotate(-90deg) }
+.anim-merge.collapsed .anim-layout{ display: none }
+
+/* Anim slot: drop-up — preview on top, dropdown below */
+.anim-slot{ flex-direction: column-reverse; cursor: pointer; }
+.anim-slot .anim-pick{ cursor: pointer; }
+.anim-slot .anim-preview{ cursor: pointer; }
+.anim-slot:hover{ border-color: var(--accent); box-shadow: 0 4px 10px var(--accent-glow); }
+
+/* View toggle (grid <-> table) in anim toggle bar */
+.view-toggle{
+  margin-left: auto;
+  border: 1px solid var(--line-strong);
+  background: rgba(255,255,255,.7);
+  color: var(--ink-soft);
+  font: 600 .74rem/1 var(--font-ui);
+  padding: .4rem .7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: var(--fast);
+  user-select: none;
+}
+.view-toggle:hover{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+
+/* Table view of the gallery — 3 columns matching the grid layout */
+.anim-merge[data-view="table"] .anim-grid{
+  display: block;
+}
+.anim-table-cols{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .7rem;
+}
+.anim-table-col{
+  display: flex; flex-direction: column;
+  gap: .35rem;
+}
+.anim-col-title{
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: rgba(255,255,255,.7);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .55rem .6rem;
+  font: 700 .78rem/1 var(--font-ui);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  cursor: pointer;
+  transition: var(--fast);
+  position: relative;
+}
+.anim-col-title:hover{
+  background: var(--fill-soft);
+  border-color: var(--accent);
+}
+.anim-col-title::after{
+  content: '▾';
+  position: absolute;
+  right: .8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .8rem;
+  transition: transform var(--fast);
+}
+.anim-col-title.collapsed::after{ transform: translateY(-50%) rotate(-90deg); }
+.anim-col-body{
+  display: flex; flex-direction: column;
+  gap: .35rem;
+  max-height: 9999px;
+  overflow: hidden;
+  transition: max-height .25s ease;
+}
+.anim-col-body.collapsed{
+  max-height: 0;
+}
+.anim-row{
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: .55rem;
+  padding: .4rem .55rem;
+  background: rgba(255,255,255,.7);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--fast);
+}
+.anim-row:hover{
+  border-color: var(--accent);
+  box-shadow: 0 4px 10px var(--accent-glow);
+}
+.anim-row .anim-preview{
+  width: 44px; height: 30px;
+  border-radius: 5px;
+  min-height: 0;
+  height: 30px;
+}
+.anim-row .anim-preview::before{ width: 18px; height: 18px; }
+.anim-row .anim-name{
+  font: 600 .82rem/1.2 var(--font-ui);
+  color: var(--ink);
+}
+.anim-row .target-tag{
+  display: inline-block;
+  font: 700 .62rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: .2rem .42rem;
+  border-radius: 999px;
+  background: var(--fill-soft);
+  color: var(--accent-deep);
+}
+
+/* Resume table view — one cue per row, editable */
+.resume-header{
+  display: flex; align-items: center; gap: .8rem;
+  margin: 0 0 .7rem;
+}
+.resume-header h2{ flex: 1 }
+.resume-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+.resume-table th, .resume-table td{
+  padding: .35rem .45rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.resume-table th{
+  font: 700 .7rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
+  text-align: left;
+}
+.resume-table td.num{
+  width: 30px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+.resume-table input.line-edit{
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: .3rem .4rem;
+  font: 400 .9rem/1.35 var(--font-mono);
+  color: var(--ink);
+  border-radius: 6px;
+  transition: var(--fast);
+}
+.resume-table input.line-edit:focus{
+  border-color: var(--accent);
+  background: rgba(255,255,255,.9);
+  outline: none;
+}
+.resume-table .del-line{
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .9rem; line-height: 1;
+  transition: var(--fast);
+}
+.resume-table .del-line:hover{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+.resume-empty{
+  color: var(--ink-mute); font-style: italic;
+  padding: .8rem 0; text-align: center;
+}
+.resume-table-cols td,
+.resume-table-cols th{
+  font-size: .78rem;
+  padding: .35rem .4rem;
+  white-space: nowrap;
+}
+.resume-table-cols .col-element{ color: var(--accent-deep); font-weight: 600 }
+.resume-table-cols .col-effect{ font-weight: 500 }
+.resume-table-cols .col-touches{
+  font-size: .72rem;
+  color: var(--ink-soft);
+  white-space: normal;
+  max-width: 260px;
+}
+.resume-table-cols .col-time,
+.resume-table-cols .col-duration,
+.resume-table-cols .col-disappear{
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.resume-table-cols .col-apply{
+  font-size: .72rem;
+  color: var(--accent-deep);
+  font-weight: 600;
+  white-space: normal;
+  max-width: 220px;
+}
+
+/* Flash feedback when a field gets populated from gallery */
+@keyframes flash-fill{
+  0%   { box-shadow: 0 0 0 4px var(--accent-glow); background: rgba(var(--accent-rgb), .14); }
+  100% { box-shadow: 0 0 0 0 transparent;        background: transparent; }
+}
+form.row label.flash{
+  animation: flash-fill 1s ease-out;
+  border-radius: 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <section class="card">
+    <div class="collapse-bar">
+      <button type="button" class="collapse-toggle" id="moreBtn" aria-expanded="false" aria-label="Expand options">+</button>
+    </div>
+
+    <div class="apply-collapse-bar">
+      <button type="button" class="apply-collapse-toggle" id="showAllBtn" aria-label="Hide sections">×</button>
+    </div>
+
+    <div class="save-bar">
+      <button type="submit" form="cueForm" class="save-top-btn" aria-label="Add to list">＋ ADD to List</button>
+    </div>
+
+    <div class="apply-layout">
+      <div class="apply-left">
+        <button type="button" class="btn btn--pick btn--full empty" data-name="applyMain" data-title="Main">Main</button>
+        <button type="button" class="btn btn--pick btn--full empty" data-name="applyItems" data-title="My items">My items</button>
+      </div>
+      <div class="apply-sections">
+        <div class="apply-section" data-cat="text">
+          <button type="button" class="section-title" data-cat="text">Text</button>
+          <div class="section-items" data-cat="text"></div>
+        </div>
+        <div class="apply-section" data-cat="control">
+          <button type="button" class="section-title" data-cat="control">Control</button>
+          <div class="section-items" data-cat="control"></div>
+        </div>
+        <div class="apply-section" data-cat="decor">
+          <button type="button" class="section-title" data-cat="decor">Decor</button>
+          <div class="section-items" data-cat="decor"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-wrap">
+      <div class="preview-area" id="previewArea">
+        <div class="anim-preview" id="previewBox"></div>
+      </div>
+      <div class="form-rightside">
+        <div class="active-fields" id="activeFields"></div>
+        <form class="row collapsed" id="cueForm" autocomplete="off">
+      <label class="field--time">
+        <span>Time (s)</span>
+        <div class="num-spinner">
+          <button type="button" class="num-step" data-dir="down" aria-label="Decrease">−</button>
+          <input type="number" min="0" step="0.5" name="time" value="1">
+          <button type="button" class="num-step" data-dir="up" aria-label="Increase">+</button>
+        </div>
+      </label>
+      <label class="field--element">
+        <span>Element</span>
+        <select name="element">
+          <option value="">— pick one —</option>
+          <optgroup label="Layout / structure">
+            <option>page background</option>
+            <option>body</option>
+            <option>container</option>
+            <option>header</option>
+            <option>footer</option>
+            <option>navbar</option>
+            <option>main content</option>
+            <option>sidebar</option>
+            <option>section</option>
+            <option>hero</option>
+            <option>overlay</option>
+            <option>modal</option>
+          </optgroup>
+          <optgroup label="Brand / mark">
+            <option>logo</option>
+            <option>title</option>
+            <option>brand mark</option>
+            <option>tagline</option>
+            <option>seal</option>
+          </optgroup>
+          <optgroup label="Text">
+            <option>heading</option>
+            <option>subheading</option>
+            <option>paragraph</option>
+            <option>quote</option>
+            <option>caption</option>
+            <option>label</option>
+            <option>link</option>
+          </optgroup>
+          <optgroup label="Visuals">
+            <option>icon</option>
+            <option>image</option>
+            <option>illustration</option>
+            <option>divider</option>
+            <option>frame</option>
+            <option>border</option>
+          </optgroup>
+          <optgroup label="Interactive">
+            <option>button</option>
+            <option>nav link</option>
+            <option>menu item</option>
+            <option>dropdown</option>
+            <option>input</option>
+            <option>card</option>
+            <option>tile</option>
+            <option>tab</option>
+          </optgroup>
+          <optgroup label="Decorative / atmosphere">
+            <option>particles</option>
+            <option>fireflies</option>
+            <option>pollen</option>
+            <option>aura</option>
+            <option>glow</option>
+            <option>halo</option>
+            <option>shadow</option>
+            <option>gradient</option>
+            <option>haze</option>
+          </optgroup>
+          <optgroup label="Shapes">
+            <option>square</option>
+            <option>circle</option>
+            <option>ring</option>
+            <option>dot</option>
+            <option>triangle</option>
+            <option>star</option>
+            <option>blob</option>
+          </optgroup>
+        </select>
+      </label>
+      <label class="field--effect">
+        <span>Effect</span>
+        <select name="effect">
+          <option value="">— pick one —</option>
+          <optgroup label="Fade">
+            <option>fade in</option>
+            <option>fade out</option>
+            <option>fade in up</option>
+            <option>fade in down</option>
+            <option>fade in left</option>
+            <option>fade in right</option>
+            <option>cross-fade</option>
+          </optgroup>
+          <optgroup label="Slide">
+            <option>slide in left</option>
+            <option>slide in right</option>
+            <option>slide in up</option>
+            <option>slide in down</option>
+            <option>slide reveal</option>
+          </optgroup>
+          <optgroup label="Scale">
+            <option>zoom in</option>
+            <option>zoom out</option>
+            <option>pop</option>
+            <option>shrink</option>
+            <option>grow</option>
+          </optgroup>
+          <optgroup label="Rotate / flip">
+            <option>spin</option>
+            <option>rotate</option>
+            <option>flip horizontal</option>
+            <option>flip vertical</option>
+            <option>tilt</option>
+          </optgroup>
+          <optgroup label="Bounce / pulse">
+            <option>bounce</option>
+            <option>pulse</option>
+            <option>heartbeat</option>
+            <option>breathe</option>
+            <option>jelly</option>
+          </optgroup>
+          <optgroup label="Motion">
+            <option>shake</option>
+            <option>swing</option>
+            <option>wobble</option>
+            <option>oscillate</option>
+            <option>float</option>
+            <option>drift</option>
+            <option>orbit</option>
+          </optgroup>
+          <optgroup label="Text effects">
+            <option>typed in</option>
+            <option>typed out</option>
+            <option>scramble</option>
+            <option>glitch</option>
+            <option>decode</option>
+            <option>letter cascade</option>
+            <option>wave letters</option>
+          </optgroup>
+          <optgroup label="Colour / filter">
+            <option>wavy colours</option>
+            <option>hue shift</option>
+            <option>gradient flow</option>
+            <option>colour wash</option>
+            <option>glow on</option>
+            <option>blur in</option>
+            <option>sharpen</option>
+            <option>desaturate</option>
+            <option>saturate</option>
+          </optgroup>
+          <optgroup label="Reveal / mask">
+            <option>mask reveal</option>
+            <option>wipe reveal</option>
+            <option>blinds</option>
+            <option>shutter</option>
+            <option>clip reveal</option>
+            <option>draw line</option>
+          </optgroup>
+          <optgroup label="Particle / decorative">
+            <option>sparkle</option>
+            <option>emanate</option>
+            <option>ember burst</option>
+            <option>dust</option>
+            <option>ripple</option>
+          </optgroup>
+          <optgroup label="Morph">
+            <option>blob morph</option>
+            <option>shape shift</option>
+            <option>liquefy</option>
+          </optgroup>
+        </select>
+      </label>
+      <label class="field--duration">
+        <span>Duration (s)</span>
+        <div class="num-spinner">
+          <button type="button" class="num-step" data-dir="down" aria-label="Decrease">−</button>
+          <input type="number" min="0" step="0.5" name="duration" value="1">
+          <button type="button" class="num-step" data-dir="up" aria-label="Increase">+</button>
+        </div>
+      </label>
+      <label class="field--disappear">
+        <span>Disappear (s)</span>
+        <div class="num-spinner">
+          <button type="button" class="num-step" data-dir="down" aria-label="Decrease">−</button>
+          <input type="number" min="0" step="0.5" name="disappear" value="1">
+          <button type="button" class="num-step" data-dir="up" aria-label="Increase">+</button>
+        </div>
+      </label>
+      <label class="field--modifier">
+        <span>Modifier</span>
+        <select name="modifier">
+          <option value="">— none —</option>
+          <optgroup label="Timing">
+            <option>once</option>
+            <option>infinite</option>
+            <option>alternate</option>
+            <option>reverse</option>
+            <option>ping-pong</option>
+            <option>loop</option>
+            <option>delayed</option>
+            <option>staggered</option>
+          </optgroup>
+          <optgroup label="Easing">
+            <option>linear</option>
+            <option>ease</option>
+            <option>ease-in</option>
+            <option>ease-out</option>
+            <option>ease-in-out</option>
+            <option>elastic</option>
+            <option>spring</option>
+            <option>anticipate</option>
+          </optgroup>
+          <optgroup label="Trigger">
+            <option>onclick</option>
+            <option>onhover</option>
+            <option>onfocus</option>
+            <option>on scroll</option>
+            <option>on viewport</option>
+          </optgroup>
+          <optgroup label="Direction / anchor">
+            <option>from above</option>
+            <option>from below</option>
+            <option>from left</option>
+            <option>from right</option>
+            <option>from center</option>
+            <option>fixed</option>
+            <option>sticky</option>
+            <option>freeze at end</option>
+            <option>hold last frame</option>
+          </optgroup>
+          <optgroup label="Mood">
+            <option>wavy</option>
+            <option>smooth</option>
+            <option>snappy</option>
+            <option>slow</option>
+            <option>fast</option>
+            <option>gentle</option>
+            <option>jittery</option>
+            <option>dreamy</option>
+          </optgroup>
+        </select>
+      </label>
+      <input type="hidden" name="applyMain">
+      <input type="hidden" name="applyItems">
+      <input type="hidden" name="applyText">
+      <input type="hidden" name="applyInteractive">
+      <input type="hidden" name="applyDecorative">
+
+      <!-- ===== Parallel reference dropdowns — things you usually ask me about ===== -->
+      <label class="field--topic">
+        <span>Common topic</span>
+        <select name="topic">
+          <option value="">— browse —</option>
+          <optgroup label="Layout / spacing">
+            <option>margin / padding</option>
+            <option>grid columns</option>
+            <option>flex row / column</option>
+            <option>gap between rows</option>
+            <option>3 rows of space</option>
+            <option>centered / inline</option>
+            <option>cardinal vertices</option>
+          </optgroup>
+          <optgroup label="Colour / palette">
+            <option>--gold / --amber / --honey</option>
+            <option>--ember / --leaf / --mint</option>
+            <option>title gradient (hue-flow)</option>
+            <option>more yellow / orange</option>
+            <option>less tonality</option>
+            <option>fuzzier borders</option>
+          </optgroup>
+          <optgroup label="Background / atmosphere">
+            <option>radial gradient</option>
+            <option>linear gradient</option>
+            <option>haze layer</option>
+            <option>square aura</option>
+            <option>canopy intensity</option>
+            <option>fireflies / pollen</option>
+          </optgroup>
+          <optgroup label="Buttons">
+            <option>round icon button</option>
+            <option>pill / primary</option>
+            <option>ghost / outline</option>
+            <option>delete cross (×)</option>
+            <option>save / copy / share</option>
+            <option>+ add button</option>
+          </optgroup>
+          <optgroup label="Dropdowns / inputs">
+            <option>single select</option>
+            <option>datalist combobox</option>
+            <option>optgroup categories</option>
+            <option>inline note input</option>
+            <option>centered text input</option>
+            <option>placeholder text</option>
+          </optgroup>
+          <optgroup label="Cards / chips">
+            <option>sub-card</option>
+            <option>recap-row</option>
+            <option>chip / tag</option>
+            <option>category corner</option>
+          </optgroup>
+          <optgroup label="Rating / scoring">
+            <option>10-pt rater bar</option>
+            <option>fill sweep</option>
+            <option>bubble + splash</option>
+            <option>mini-bar</option>
+          </optgroup>
+          <optgroup label="Views / charts">
+            <option>Bars view</option>
+            <option>Vertical bars</option>
+            <option>Axial chart</option>
+            <option>Spider / radar</option>
+            <option>center label</option>
+          </optgroup>
+          <optgroup label="Brand / mark">
+            <option>logo (petals + core)</option>
+            <option>title (hue-flow)</option>
+            <option>seal / tagline</option>
+          </optgroup>
+          <optgroup label="Filters / effects">
+            <option>blur</option>
+            <option>saturate / desaturate</option>
+            <option>brightness</option>
+            <option>backdrop-filter</option>
+          </optgroup>
+          <optgroup label="Forms / output">
+            <option>submit / validation</option>
+            <option>resume / output</option>
+            <option>toast / notification</option>
+            <option>modal / popup</option>
+            <option>onboarding step</option>
+          </optgroup>
+          <optgroup label="Common atoms (mine)">
+            <option>button</option>
+            <option>dropdown</option>
+            <option>category</option>
+            <option>rater</option>
+            <option>note</option>
+            <option>section</option>
+            <option>set</option>
+            <option>view</option>
+            <option>menu</option>
+            <option>tab</option>
+            <option>row / column</option>
+            <option>items / list</option>
+            <option>label / name / title</option>
+            <option>axis / vertex</option>
+            <option>placeholder</option>
+            <option>form / field</option>
+            <option>cross (×) / delete</option>
+            <option>favorite set</option>
+          </optgroup>
+          <optgroup label="From the assistant">
+            <option>component</option>
+            <option>module</option>
+            <option>element node</option>
+            <option>selector</option>
+            <option>handler</option>
+            <option>state class</option>
+            <option>keyframe</option>
+            <option>variant</option>
+            <option>fallback</option>
+            <option>helper fn</option>
+            <option>data attr</option>
+            <option>event delegate</option>
+            <option>CSS variable</option>
+            <option>optgroup</option>
+          </optgroup>
+        </select>
+      </label>
+
+      <label class="field--pattern">
+        <span>Common pattern</span>
+        <select name="pattern">
+          <option value="">— browse —</option>
+          <optgroup label="Brand / mark">
+            <option>Hue flow (title gradient)</option>
+            <option>Logo bloom (petals + core breathe)</option>
+            <option>Petal spin</option>
+            <option>Mark hover lift</option>
+          </optgroup>
+          <optgroup label="Atmosphere / canopy">
+            <option>Aura breathe</option>
+            <option>Canopy glow</option>
+            <option>Fireflies emanate</option>
+            <option>Pollen drift</option>
+            <option>Background mix</option>
+            <option>Haze shift</option>
+          </optgroup>
+          <optgroup label="Open / drop / rise">
+            <option>Drop in (cubic-bezier)</option>
+            <option>Tray drop (top corners)</option>
+            <option>Tray rise (bottom corners)</option>
+            <option>Modal drop</option>
+            <option>Toast rise</option>
+            <option>Note slide-in</option>
+          </optgroup>
+          <optgroup label="Rating / response">
+            <option>Fill sweep</option>
+            <option>Bubble + splash</option>
+            <option>Mini-bar grow</option>
+            <option>Bump (scale tap)</option>
+          </optgroup>
+          <optgroup label="Interaction feedback">
+            <option>Mic pulse</option>
+            <option>Delete cross rotate</option>
+            <option>Tab fade-swap</option>
+            <option>Chip drop-in</option>
+            <option>Ripple splash</option>
+          </optgroup>
+          <optgroup label="Text">
+            <option>Typed in / typed out</option>
+            <option>Letter cascade</option>
+            <option>Glitch</option>
+            <option>Wavy colours</option>
+          </optgroup>
+          <optgroup label="Update / repair (mine)">
+            <option>show / hide</option>
+            <option>reveal</option>
+            <option>swap</option>
+            <option>toggle</option>
+            <option>move</option>
+            <option>place at</option>
+            <option>reorder</option>
+            <option>cardinal placement</option>
+            <option>between sections</option>
+            <option>live update</option>
+            <option>repair / fix</option>
+            <option>step by step</option>
+            <option>add another</option>
+            <option>rename per</option>
+            <option>cap at N</option>
+          </optgroup>
+          <optgroup label="From the assistant">
+            <option>rebuild from scratch</option>
+            <option>refactor</option>
+            <option>wire up</option>
+            <option>regenerate SVG</option>
+            <option>delegate event</option>
+            <option>append child</option>
+            <option>recompute angles</option>
+            <option>preserve order</option>
+            <option>swap classes</option>
+            <option>fade-swap</option>
+            <option>chip drop-in</option>
+            <option>toggle state class</option>
+            <option>belt-and-suspenders</option>
+            <option>defensive guard</option>
+          </optgroup>
+        </select>
+      </label>
+
+      <label class="field--touch">
+        <span>Common touch</span>
+        <select name="touch">
+          <option value="">— browse —</option>
+          <optgroup label="Darker / brighter">
+            <option>10% darker</option>
+            <option>20% darker</option>
+            <option>30% darker</option>
+            <option>50% darker</option>
+            <option>80% darker / 80% black</option>
+            <option>20% brighter</option>
+            <option>30% brighter</option>
+          </optgroup>
+          <optgroup label="Size / scale">
+            <option>30% bigger</option>
+            <option>50% bigger</option>
+            <option>30% smaller</option>
+            <option>wider / narrower</option>
+            <option>tighter / looser</option>
+          </optgroup>
+          <optgroup label="Hue push">
+            <option>more yellow</option>
+            <option>more orange</option>
+            <option>more green</option>
+            <option>more gold</option>
+            <option>less tonality</option>
+            <option>less saturation</option>
+          </optgroup>
+          <optgroup label="Edges / transitions">
+            <option>fuzzier borders</option>
+            <option>sharper edges</option>
+            <option>softer transitions</option>
+            <option>smoother flow</option>
+            <option>snappier</option>
+          </optgroup>
+          <optgroup label="Speed / rhythm">
+            <option>slower</option>
+            <option>faster</option>
+            <option>more breath</option>
+            <option>more impulse</option>
+            <option>subtle / strong / dramatic</option>
+          </optgroup>
+          <optgroup label="Position / placement">
+            <option>top up / push up</option>
+            <option>centered</option>
+            <option>inline</option>
+            <option>3 rows of space</option>
+            <option>below total</option>
+            <option>at cardinal vertex</option>
+          </optgroup>
+          <optgroup label="Constraints / vibe">
+            <option>cap at N</option>
+            <option>without quotes</option>
+            <option>per X (rename)</option>
+            <option>"ke fluya"</option>
+            <option>CSS over JS</option>
+            <option>step by step</option>
+          </optgroup>
+          <optgroup label="Bare modifiers (mine)">
+            <option>darker</option>
+            <option>brighter</option>
+            <option>bigger</option>
+            <option>smaller</option>
+            <option>wider / narrower</option>
+            <option>fuzzier</option>
+            <option>softer</option>
+            <option>sharper</option>
+            <option>yellow</option>
+            <option>orange</option>
+            <option>gold</option>
+            <option>green</option>
+            <option>centered</option>
+            <option>inline</option>
+            <option>parallel</option>
+            <option>between</option>
+            <option>below</option>
+            <option>above</option>
+            <option>more / less</option>
+            <option>another</option>
+            <option>different</option>
+            <option>appropriate</option>
+            <option>instead of</option>
+            <option>only / just</option>
+            <option>normally / regularly</option>
+            <option>in the center</option>
+            <option>20% / 30% / 50% / 80%</option>
+          </optgroup>
+          <optgroup label="From the assistant">
+            <option>minimal</option>
+            <option>consistent</option>
+            <option>straightforward</option>
+            <option>incremental</option>
+            <option>idiomatic</option>
+            <option>robust</option>
+            <option>ergonomic</option>
+            <option>accessible</option>
+            <option>semantic</option>
+            <option>declarative</option>
+            <option>defensive</option>
+            <option>in place</option>
+            <option>preserve</option>
+            <option>trade-off</option>
+            <option>approach</option>
+            <option>baseline</option>
+            <option>option A / B</option>
+            <option>clean (no churn)</option>
+            <option>recommend</option>
+          </optgroup>
+        </select>
+      </label>
+
+      <!-- Row 3 — flat list of the words you reach for most -->
+      <label class="field--frequent">
+        <span>Most-asked words</span>
+        <select name="frequent">
+          <option value="">— browse —</option>
+          <option>add</option>
+          <option>move</option>
+          <option>show</option>
+          <option>rename per</option>
+          <option>more</option>
+          <option>less</option>
+          <option>bigger</option>
+          <option>smaller</option>
+          <option>darker</option>
+          <option>brighter</option>
+          <option>fuzzier</option>
+          <option>softer</option>
+          <option>sharper</option>
+          <option>yellow</option>
+          <option>orange</option>
+          <option>gold</option>
+          <option>green</option>
+          <option>centered</option>
+          <option>inline</option>
+          <option>parallel</option>
+          <option>between</option>
+          <option>below</option>
+          <option>above</option>
+          <option>20%</option>
+          <option>30%</option>
+          <option>50%</option>
+          <option>80%</option>
+          <option>button</option>
+          <option>dropdown</option>
+          <option>category</option>
+          <option>rater</option>
+          <option>note</option>
+          <option>delete</option>
+          <option>view</option>
+          <option>set</option>
+          <option>section</option>
+          <option>items</option>
+        </select>
+      </label>
+
+      <!-- ===== Rows 4–5 — practical touch refinements ===== -->
+      <label class="field--light">
+        <span>Light / contrast</span>
+        <input list="list-light" name="light" placeholder="— pick or type —">
+        <datalist id="list-light">
+          <option>10% darker</option>
+          <option>20% darker</option>
+          <option>30% darker</option>
+          <option>50% darker</option>
+          <option>80% darker / 80% black</option>
+          <option>pitch black</option>
+          <option>10% brighter</option>
+          <option>20% brighter</option>
+          <option>30% brighter</option>
+          <option>50% brighter</option>
+          <option>glowing bright</option>
+          <option>pure white</option>
+          <option>more contrast</option>
+          <option>less contrast</option>
+          <option>muted</option>
+          <option>vivid</option>
+          <option>dim</option>
+          <option>50% transparent</option>
+        </datalist>
+      </label>
+
+      <label class="field--hue">
+        <span>Hue / tone</span>
+        <input list="list-hue" name="hue" placeholder="— pick or type —">
+        <datalist id="list-hue">
+          <option>more yellow</option>
+          <option>more orange</option>
+          <option>more gold</option>
+          <option>more amber</option>
+          <option>more honey</option>
+          <option>more ember / red</option>
+          <option>more green</option>
+          <option>more leaf / mint</option>
+          <option>more teal</option>
+          <option>less tonality</option>
+          <option>less saturation</option>
+          <option>more saturation</option>
+          <option>warmer</option>
+          <option>cooler</option>
+          <option>richer</option>
+          <option>paler</option>
+          <option>desaturated</option>
+          <option>monochrome</option>
+          <option>gradient flow</option>
+        </datalist>
+      </label>
+
+      <label class="field--edge">
+        <span>Edge / finish</span>
+        <input list="list-edge" name="edge" placeholder="— pick or type —">
+        <datalist id="list-edge">
+          <option>fuzzier borders</option>
+          <option>sharper edges</option>
+          <option>softer transitions</option>
+          <option>smoother flow</option>
+          <option>blurrier</option>
+          <option>clearer</option>
+          <option>snappier</option>
+          <option>crisp outline</option>
+          <option>glow edge</option>
+          <option>soft corners</option>
+          <option>sharp corners</option>
+          <option>rounded</option>
+          <option>pill-shaped</option>
+          <option>frosted glass</option>
+          <option>glassy</option>
+          <option>noisy</option>
+          <option>clean</option>
+          <option>pixel-perfect</option>
+        </datalist>
+      </label>
+
+      <label class="field--size">
+        <span>Size / spread</span>
+        <input list="list-size" name="size" placeholder="— pick or type —">
+        <datalist id="list-size">
+          <option>10% bigger</option>
+          <option>20% bigger</option>
+          <option>30% bigger</option>
+          <option>50% bigger</option>
+          <option>100% bigger / double</option>
+          <option>10% smaller</option>
+          <option>20% smaller</option>
+          <option>30% smaller</option>
+          <option>50% smaller</option>
+          <option>wider</option>
+          <option>narrower</option>
+          <option>taller</option>
+          <option>shorter</option>
+          <option>tighter</option>
+          <option>looser / more breathing room</option>
+          <option>1 row of space</option>
+          <option>3 rows of space</option>
+          <option>5 rows of space</option>
+          <option>compact</option>
+          <option>airy</option>
+          <option>wrap</option>
+        </datalist>
+      </label>
+
+      <label class="field--position">
+        <span>Position / flow</span>
+        <input list="list-position" name="position" placeholder="— pick or type —">
+        <datalist id="list-position">
+          <option>centered</option>
+          <option>left-aligned</option>
+          <option>right-aligned</option>
+          <option>inline</option>
+          <option>between sections</option>
+          <option>below</option>
+          <option>above</option>
+          <option>next to</option>
+          <option>parallel to</option>
+          <option>under</option>
+          <option>over</option>
+          <option>at top</option>
+          <option>at bottom</option>
+          <option>top up</option>
+          <option>pushed down</option>
+          <option>at cardinal vertex</option>
+          <option>in the center</option>
+          <option>floating</option>
+          <option>sticky</option>
+          <option>fixed</option>
+          <option>absolute</option>
+          <option>relative</option>
+        </datalist>
+      </label>
+
+      <label class="field--motion">
+        <span>Motion / rhythm</span>
+        <input list="list-motion" name="motion" placeholder="— pick or type —">
+        <datalist id="list-motion">
+          <option>slower</option>
+          <option>faster</option>
+          <option>much slower</option>
+          <option>much faster</option>
+          <option>more breath</option>
+          <option>more impulse</option>
+          <option>snappier</option>
+          <option>looser</option>
+          <option>subtle</option>
+          <option>strong</option>
+          <option>dramatic</option>
+          <option>gentle</option>
+          <option>jittery</option>
+          <option>dreamy</option>
+          <option>bouncy</option>
+          <option>floaty</option>
+          <option>elastic</option>
+          <option>spring</option>
+          <option>ease-in-out</option>
+          <option>linear</option>
+          <option>once</option>
+          <option>infinite</option>
+          <option>alternate</option>
+        </datalist>
+      </label>
+        </form>
+      </div>
+    </div>
+
+    <div class="anim-merge" id="animMerge" data-view="table">
+      <div class="anim-collapse-bar">
+        <button type="button" class="anim-collapse-toggle" id="animCollapseBtn" aria-label="Hide animations">×</button>
+      </div>
+      <div class="anim-controls">
+        <button type="button" class="view-toggle" id="viewToggle">▦ Grid view</button>
+      </div>
+      <div class="anim-layout">
+        <div class="anim-tabs" role="tablist" aria-label="Animation set">
+          <button type="button" class="anim-tab active" data-set="popular"  role="tab">Popular</button>
+          <button type="button" class="anim-tab"        data-set="advanced" role="tab">Advanced</button>
+          <button type="button" class="anim-tab"        data-set="flove"    role="tab">Flove</button>
+        </div>
+        <div class="anim-grid" id="animGrid" role="tabpanel"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="resumeSection">
+    <div class="resume-header">
+      <button type="button" class="view-toggle" id="resumeViewToggle">📝 Text view</button>
+    </div>
+    <textarea class="output" id="output" spellcheck="false" placeholder="Add a cue above to see the text appear here... (editable)" hidden></textarea>
+    <div class="resume-table-wrap" id="resumeTableWrap"></div>
+    <div class="output-actions">
+      <button type="button" class="btn btn--send" id="sendBtn">↗ Send to Claude</button>
+      <button type="button" class="btn" id="copyBtn">📋 Copy text</button>
+      <button type="button" class="btn" id="clearBtn">🗑 Clear</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const form     = document.getElementById('cueForm');
+  const output   = document.getElementById('output');
+  const copyBtn  = document.getElementById('copyBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const sendBtn  = document.getElementById('sendBtn');
+  const moreBtn  = document.getElementById('moreBtn');
+
+  const TOUCH_FIELDS = ['topic','pattern','touch','frequent','light','hue','edge','size','position','motion'];
+
+  function formatCue(c){
+    const head = [];
+    if(c.time !== '' && c.time !== undefined && c.time !== null) head.push(c.time + 's');
+    if(c.element) head.push(c.element);
+    let s = head.join(' ');
+    if(c.effect){ s += (s ? ', ' : '') + c.effect; }
+    if(c.duration !== '' && c.duration !== undefined && c.duration !== null){
+      s += (s ? ', ' : '') + 'for ' + c.duration + 's';
+    }
+    if(c.disappear !== '' && c.disappear !== undefined && c.disappear !== null){
+      s += (s ? ', ' : '') + 'disappear at ' + c.disappear + 's';
+    }
+    if(c.modifier){ s += (s ? ', ' : '') + c.modifier; }
+    const touches = TOUCH_FIELDS.map(k => c[k]).filter(Boolean);
+    if(touches.length){ s += (s ? ' — ' : '') + touches.join(', '); }
+    const applies = ['applyMain','applyItems','applyText','applyInteractive','applyDecorative']
+      .map(k => c[k]).filter(Boolean);
+    if(applies.length){ s += (s ? ' › ' : '') + 'on ' + applies.join(' / '); }
+    return s;
+  }
+
+  const TIMER_FIELDS = new Set(['time','duration','disappear']);
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = {};
+    fd.forEach((v, k) => { data[k] = String(v || '').trim(); });
+    const line = formatCue(data);
+    if(!line.trim()) return;
+    output.value = output.value ? output.value + '\n' + line : line;
+    // clear inputs ready for next entry — timers reset to "1" (default)
+    Array.from(form.elements).forEach(el => {
+      if(el.tagName === 'BUTTON' || el.type === 'submit') return;
+      if(TIMER_FIELDS.has(el.name)) el.value = '1';
+      else el.value = '';
+    });
+    output.scrollTop = output.scrollHeight;
+    if(typeof resumeView !== 'undefined' && resumeView === 'table'){
+      renderResumeTable();
+    }
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    if(!output.value){ return; }
+    try{
+      await navigator.clipboard.writeText(output.value);
+      copyBtn.textContent = '✓ Copied';
+      setTimeout(() => copyBtn.textContent = '📋 Copy text', 1400);
+    }catch(err){
+      output.select();
+      document.execCommand('copy');
+      copyBtn.textContent = '✓ Copied';
+      setTimeout(() => copyBtn.textContent = '📋 Copy text', 1400);
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if(output.value && !confirm('Clear all text?')) return;
+    output.value = '';
+    if(typeof resumeView !== 'undefined' && resumeView === 'table'){
+      renderResumeTable();
+    }
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const text = output.value.trim();
+    if(!text) return;
+    try{ await navigator.clipboard.writeText(text); }catch(_){}
+    const url = 'https://claude.ai/new?q=' + encodeURIComponent(text);
+    window.open(url, '_blank', 'noopener');
+    sendBtn.textContent = '✓ Sent';
+    setTimeout(() => sendBtn.textContent = '↗ Send to Claude', 1400);
+  });
+
+  function toggleForm(){
+    const collapsed = form.classList.toggle('collapsed');
+    moreBtn.textContent = collapsed ? '+' : '×';
+    moreBtn.setAttribute('aria-expanded', String(!collapsed));
+    moreBtn.setAttribute('aria-label', collapsed ? 'Expand options' : 'Collapse options');
+  }
+  moreBtn.addEventListener('click', toggleForm);
+  // Whole collapse-bar row is clickable
+  document.querySelector('.collapse-bar').addEventListener('click', e => {
+    if (e.target.closest('.collapse-toggle')) return; // already handled
+    toggleForm();
+  });
+
+  // Custom +/- spinners (big arrows, normal numbers)
+  document.querySelectorAll('.num-step').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const input = btn.closest('.num-spinner').querySelector('input[type=number]');
+      if(!input) return;
+      if(input.value === '' || input.value === null){ input.value = '0'; }
+      if(btn.dataset.dir === 'up') input.stepUp(); else input.stepDown();
+      input.dispatchEvent(new Event('input', {bubbles: true}));
+    });
+  });
+
+  // Click anywhere on a label (the whole field) to open its picker
+  document.querySelectorAll('form.row label').forEach(label => {
+    label.addEventListener('click', e => {
+      // Let direct clicks on inputs/buttons behave normally
+      if(e.target.closest('input, select, button, .num-spinner')) return;
+      const ctrl = label.querySelector('select, input[list]');
+      if(!ctrl) return;
+      if(typeof ctrl.showPicker === 'function'){
+        try{ ctrl.showPicker(); }catch(_){}
+      } else {
+        ctrl.focus();
+      }
+    });
+  });
+
+  // Animation gallery — view toggle only (no collapse)
+  const animMerge  = document.getElementById('animMerge');
+  const viewToggle = document.getElementById('viewToggle');
+  viewToggle.addEventListener('click', () => {
+    const isTable = animMerge.dataset.view === 'table';
+    animMerge.dataset.view = isTable ? 'grid' : 'table';
+    viewToggle.textContent = isTable ? '📋 Table view' : '▦ Grid view';
+    const activeTab = document.querySelector('.anim-tab.active');
+    renderAnimGrid(activeTab ? activeTab.dataset.set : 'popular');
+  });
+
+  // Anim section collapse toggle
+  const animCollapseBtn = document.getElementById('animCollapseBtn');
+  if(animCollapseBtn){
+    animCollapseBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      animMerge.classList.toggle('collapsed');
+      const collapsed = animMerge.classList.contains('collapsed');
+      animCollapseBtn.textContent = collapsed ? '+' : '×';
+      animCollapseBtn.setAttribute('aria-label', collapsed ? 'Show animations' : 'Hide animations');
+    });
+  }
+
+  // Resume view toggle (textarea ↔ table)
+  const resumeViewToggle = document.getElementById('resumeViewToggle');
+  const resumeTableWrap  = document.getElementById('resumeTableWrap');
+  let resumeView = 'table';
+  function parseCueLine(line){
+    // Parse "<time>s <element>, <effect>, for <duration>s, disappear at <disappear>s, <modifier> — <touches> › on <applyOn>"
+    const result = { raw: line, time:'', element:'', effect:'', duration:'', disappear:'', modifier:'', touches:'', applyOn:'' };
+    let work = line;
+    const arrowIdx = work.indexOf(' › on ');
+    if(arrowIdx >= 0){
+      result.applyOn = work.slice(arrowIdx + 6).trim();
+      work = work.slice(0, arrowIdx);
+    }
+    const dashIdx = work.indexOf(' — ');
+    let head = work, touches = '';
+    if(dashIdx >= 0){
+      head = work.slice(0, dashIdx);
+      touches = work.slice(dashIdx + 3);
+    }
+    result.touches = touches;
+    const parts = head.split(',').map(s => s.trim());
+    if(parts[0]){
+      const m = parts[0].match(/^(\d+(?:\.\d+)?)s\s*(.*)$/);
+      if(m){
+        result.time = m[1] + 's';
+        result.element = m[2].trim();
+      } else {
+        result.element = parts[0];
+      }
+    }
+    for(let i = 1; i < parts.length; i++){
+      const p = parts[i];
+      let m;
+      if((m = p.match(/^for\s+(\d+(?:\.\d+)?s)$/))){
+        result.duration = m[1];
+      } else if((m = p.match(/^disappear at\s+(\d+(?:\.\d+)?s)$/))){
+        result.disappear = m[1];
+      } else if(!result.effect){
+        result.effect = p;
+      } else {
+        result.modifier = result.modifier ? result.modifier + ', ' + p : p;
+      }
+    }
+    return result;
+  }
+
+  function renderResumeTable(){
+    const lines = output.value.split('\n').filter(l => l.length);
+    resumeTableWrap.innerHTML = '';
+    if(!lines.length){
+      const empty = document.createElement('div');
+      empty.className = 'resume-empty';
+      empty.textContent = 'No cues yet — add one above.';
+      resumeTableWrap.appendChild(empty);
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'resume-table resume-table-cols';
+    table.innerHTML =
+      '<thead><tr>' +
+      '<th>#</th>' +
+      '<th>Time</th>' +
+      '<th>Element</th>' +
+      '<th>Effect</th>' +
+      '<th>Duration</th>' +
+      '<th>Disappear</th>' +
+      '<th>Modifier</th>' +
+      '<th>Touches</th>' +
+      '<th>Apply to</th>' +
+      '<th></th>' +
+      '</tr></thead>';
+    const tbody = document.createElement('tbody');
+    lines.forEach((line, i) => {
+      const c = parseCueLine(line);
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="num">' + (i + 1) + '</td>' +
+        '<td class="col-time">' + escapeHtml(c.time) + '</td>' +
+        '<td class="col-element">' + escapeHtml(c.element) + '</td>' +
+        '<td class="col-effect">' + escapeHtml(c.effect) + '</td>' +
+        '<td class="col-duration">' + escapeHtml(c.duration) + '</td>' +
+        '<td class="col-disappear">' + escapeHtml(c.disappear) + '</td>' +
+        '<td class="col-modifier">' + escapeHtml(c.modifier) + '</td>' +
+        '<td class="col-touches">' + escapeHtml(c.touches) + '</td>' +
+        '<td class="col-apply">' + escapeHtml(c.applyOn) + '</td>' +
+        '<td></td>';
+      const tdDel = tr.lastElementChild;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'del-line';
+      del.textContent = '×';
+      del.title = 'Remove this cue';
+      del.addEventListener('click', () => {
+        const lines2 = output.value.split('\n');
+        lines2.splice(i, 1);
+        output.value = lines2.join('\n');
+        renderResumeTable();
+      });
+      tdDel.appendChild(del);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    resumeTableWrap.appendChild(table);
+  }
+  function escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[ch]));
+  }
+  resumeViewToggle.addEventListener('click', () => {
+    if(resumeView === 'text'){
+      resumeView = 'table';
+      renderResumeTable();
+      output.hidden = true;
+      resumeTableWrap.hidden = false;
+      resumeViewToggle.textContent = '📝 Text view';
+    } else {
+      resumeView = 'text';
+      output.hidden = false;
+      resumeTableWrap.hidden = true;
+      resumeViewToggle.textContent = '📋 Table view';
+    }
+  });
+
+  /* ============== Animation gallery ============== */
+  // Map each animation key → expanded form field
+  //   Col 1 (Light / Size)   Col 2 (Hue / Position)   Col 3 (Edge / Motion)
+  const ANIM_TARGET = {
+    // Popular — light/size
+    'fade-in':       'light',
+    'fade-out':      'light',
+    'zoom-in':       'size',
+    'pulse':         'size',
+    'heartbeat':     'size',
+    'grow':          'size',
+    'shrink':        'size',
+    // Popular — hue/position
+    'slide-up':      'position',
+    'slide-down':    'position',
+    'slide-left':    'position',
+    'slide-right':   'position',
+    'flip':          'position',
+    'wobble':        'position',
+    'swing':         'position',
+    // Popular — edge/motion
+    'bounce':        'motion',
+    'shake':         'motion',
+    'spin':          'motion',
+    'vibrate':       'motion',
+    'jiggle':        'motion',
+    // Advanced — light/size
+    'typewriter':    'light',
+    'shine-sweep':   'light',
+    'blink':         'light',
+    'neon-flicker':  'light',
+    'spotlight':     'light',
+    'glitch':        'size',
+    // Advanced — hue/position
+    'gradient-shift':'hue',
+    'hue-rotate':    'hue',
+    'tilt-3d':       'position',
+    'marquee':       'position',
+    'depth-shift':   'position',
+    // Advanced — edge/motion
+    'blob-morph':    'edge',
+    'mask-reveal':   'edge',
+    'ripple':        'edge',
+    'wipe-reveal':   'edge',
+    'shutter':       'edge',
+    // Flove — light/size
+    'fireflies':     'light',
+    'canopy-glow':   'light',
+    'dew-drop':      'light',
+    'bubble-splash': 'size',
+    'leaf-fall':     'size',
+    // Flove — hue/position
+    'hue-flow':      'hue',
+    'pollen-drift':  'position',
+    'drop-in':       'position',
+    'petal-drift':   'position',
+    // Flove — edge/motion
+    'logo-bloom':    'motion',
+    'aura-breathe':  'motion',
+    'bump':          'motion',
+    'leaf-rustle':   'motion',
+    'pulse-glow':    'motion',
+    'bloom-burst':   'motion',
+    // Popular Row 2 — Pops & Drops
+    'pop-in':        'size',
+    'blur-in':       'light',
+    'scale-in':      'size',
+    'scale-out':     'size',
+    'mega-pop':      'size',
+    'slide-tl':      'position',
+    'slide-tr':      'position',
+    'slide-bl':      'position',
+    'slide-br':      'position',
+    'spiral-in':     'position',
+    'snap-in':       'motion',
+    'ping':          'motion',
+    'punch':         'motion',
+    'spring':        'motion',
+    'elastic-pop':   'motion',
+    // Popular Row 3 — Continuous
+    'breathe-soft':  'size',
+    'breathe-deep':  'size',
+    'thump':         'size',
+    'throb':         'light',
+    'hover':         'position',
+    'bob':           'position',
+    'sway':          'position',
+    'drift':         'position',
+    'levitate':      'position',
+    'tremor':        'motion',
+    'shudder':       'motion',
+    'twitch':        'motion',
+    'oscillate':     'motion',
+    'wave-motion':   'motion',
+    // Advanced Row 2 — Letters · Color · Particles
+    'letter-cascade':'light',
+    'letter-wave':   'light',
+    'sparkle':       'light',
+    'ember-burst':   'light',
+    'color-wash':    'hue',
+    'saturate-pulse':'hue',
+    'sepia-shift':   'hue',
+    'invert-flash':  'hue',
+    'emanate':       'motion',
+    'dust-cloud':    'motion',
+    'letter-flip':   'motion',
+    'letter-drop':   'motion',
+    // Advanced Row 3 — Cinematic · 3D · Morph
+    'iris-open':     'light',
+    'iris-close':    'light',
+    'vignette-pulse':'light',
+    'ken-burns':     'size',
+    'cube-rotate':   'position',
+    'card-flip-3d':  'position',
+    'isometric-shift':'position',
+    'parallax':      'position',
+    'liquefy':       'edge',
+    'waveform':      'edge',
+    'splash-morph':  'edge',
+    'blob-flow':     'edge',
+  };
+
+  // Map each gallery animation → the keyframe name(s) defined in CSS above
+  const ANIM_KEYFRAMES = {
+    // popular
+    'fade-in':        'pop-fade',
+    'fade-out':       'pop-fade-out',
+    'slide-up':       'pop-slide-up',
+    'slide-down':     'pop-slide-down',
+    'slide-left':     'pop-slide-left',
+    'slide-right':    'pop-slide-right',
+    'zoom-in':        'pop-zoom',
+    'pulse':          'pop-pulse',
+    'heartbeat':      'pop-heartbeat',
+    'grow':           'pop-grow',
+    'shrink':         'pop-shrink',
+    'bounce':         'pop-bounce',
+    'shake':          'pop-shake',
+    'spin':           'pop-spin',
+    'flip':           'pop-flip',
+    'wobble':         'pop-wobble',
+    'swing':          'pop-swing',
+    'vibrate':        'pop-vibrate',
+    'jiggle':         'pop-jiggle',
+    // advanced
+    'typewriter':     'adv-type',
+    'gradient-shift': 'adv-grad',
+    'glitch':         'adv-glitch',
+    'blob-morph':     'adv-blob',
+    'tilt-3d':        'adv-tilt',
+    'marquee':        'adv-marquee',
+    'mask-reveal':    'adv-mask',
+    'ripple':         'adv-ripple',
+    'shine-sweep':    'adv-shine',
+    'blink':          'adv-blink2',
+    'neon-flicker':   'adv-neon',
+    'hue-rotate':     'adv-hue',
+    'depth-shift':    'adv-depth',
+    'wipe-reveal':    'adv-wipe',
+    'shutter':        'adv-shutter',
+    'spotlight':      'adv-spotlight',
+    // flove
+    'logo-bloom':     'flo-bloom',
+    'hue-flow':       'flo-hue',
+    'aura-breathe':   'flo-aura',
+    'fireflies':      'flo-firefly',
+    'pollen-drift':   'flo-pollen',
+    'drop-in':        'flo-drop',
+    'bump':           'flo-bump',
+    'bubble-splash':  'flo-splash',
+    'canopy-glow':    'flo-canopy',
+    'leaf-fall':      'flo-leaf',
+    'dew-drop':       'flo-dew',
+    'petal-drift':    'flo-petal',
+    'leaf-rustle':    'flo-rustle',
+    'pulse-glow':     'flo-pulse-glow',
+    'bloom-burst':    'flo-bloom-burst',
+    // Popular Row 2 — Pops & Drops
+    'pop-in':         'rev-pop',
+    'blur-in':        'rev-blur',
+    'scale-in':       'rev-scale-in',
+    'scale-out':      'rev-scale-out',
+    'mega-pop':       'rev-mega',
+    'slide-tl':       'pos-tl',
+    'slide-tr':       'pos-tr',
+    'slide-bl':       'pos-bl',
+    'slide-br':       'pos-br',
+    'spiral-in':      'pos-spiral',
+    'snap-in':        'motn-snap',
+    'ping':           'motn-ping',
+    'punch':          'motn-punch',
+    'spring':         'motn-spring',
+    'elastic-pop':    'motn-elastic',
+    // Popular Row 3 — Continuous
+    'breathe-soft':   'rhy-breathe-soft',
+    'breathe-deep':   'rhy-breathe-deep',
+    'thump':          'rhy-thump',
+    'throb':          'rhy-throb',
+    'hover':          'flt-hover',
+    'bob':            'flt-bob',
+    'sway':           'flt-sway',
+    'drift':          'flt-drift',
+    'levitate':       'flt-levitate',
+    'tremor':         'rest-tremor',
+    'shudder':        'rest-shudder',
+    'twitch':         'rest-twitch',
+    'oscillate':      'rest-oscillate',
+    'wave-motion':    'rest-wave',
+    // Advanced Row 2 — Letters · Color · Particles
+    'letter-cascade': 'adv-cascade',
+    'letter-wave':    'adv-letter-wave',
+    'sparkle':        'adv-sparkle',
+    'ember-burst':    'adv-ember-burst',
+    'color-wash':     'adv-color-wash',
+    'saturate-pulse': 'adv-sat-pulse',
+    'sepia-shift':    'adv-sepia',
+    'invert-flash':   'adv-invert',
+    'emanate':        'adv-emanate',
+    'dust-cloud':     'adv-dust',
+    'letter-flip':    'adv-letter-flip',
+    'letter-drop':    'adv-letter-drop',
+    // Advanced Row 3 — Cinematic · 3D · Morph
+    'iris-open':      'cin-iris-open',
+    'iris-close':     'cin-iris-close',
+    'vignette-pulse': 'cin-vignette',
+    'ken-burns':      'cin-ken-burns',
+    'cube-rotate':    'depth-cube',
+    'card-flip-3d':   'depth-card',
+    'isometric-shift':'depth-iso',
+    'parallax':       'depth-parallax',
+    'liquefy':        'morph-liquefy',
+    'waveform':       'morph-wave',
+    'splash-morph':   'morph-splash',
+    'blob-flow':      'morph-blob-flow',
+  };
+
+  function eachAnimItem(callback){
+    for(const setKey in ANIM_SETS){
+      const rows = ANIM_SETS[setKey];
+      for(let r = 0; r < rows.length; r++){
+        const row = rows[r];
+        for(const colKey of ['light-size','hue-position','edge-motion']){
+          const items = row[colKey] || [];
+          for(const item of items){
+            if(callback(item, setKey, colKey, r) === false) return;
+          }
+        }
+      }
+    }
+  }
+
+  function findAnimByLabel(label){
+    if(!label) return null;
+    const norm = String(label).toLowerCase().trim();
+    let found = null;
+    eachAnimItem(item => {
+      if(item.label.toLowerCase() === norm){ found = item; return false; }
+    });
+    return found;
+  }
+
+  let lastSelectedAnim = null;
+  function pushAnimToField(animKey, animLabel, animItem){
+    const targetName = ANIM_TARGET[animKey] || 'motion';
+    const field = form.elements[targetName];
+    if(!field) return;
+    field.value = animLabel;
+    field.dispatchEvent(new Event('input', {bubbles: true}));
+    if(animItem){ lastSelectedAnim = animItem; }
+  }
+
+  /* ===== Active selections (chips with mini-dropdowns) ===== */
+  const activeFieldsEl = document.getElementById('activeFields');
+  const TRACKED_FIELDS = ['element','effect','modifier','topic','pattern','touch','frequent','light','hue','edge','size','position','motion','applyMain','applyItems','applyText','applyInteractive','applyDecorative'];
+  const FIELD_LABELS = {
+    element:'element', effect:'effect', modifier:'modifier',
+    topic:'topic', pattern:'pattern', touch:'touch', frequent:'word',
+    light:'light', hue:'hue', edge:'edge',
+    size:'size', position:'position', motion:'motion',
+    applyMain:'on', applyItems:'item', applyText:'text', applyInteractive:'control', applyDecorative:'decor',
+  };
+  const APPLY_FIELDS = ['applyMain','applyItems','applyText','applyInteractive','applyDecorative'];
+
+  // Returns [{group, values:[...]}] preserving optgroups (or single group if datalist)
+  function getFieldOptions(fieldName){
+    const ctrl = form.elements[fieldName];
+    if(!ctrl) return [];
+    if(ctrl.tagName === 'SELECT'){
+      const groups = [];
+      let current = { group: '', values: [] };
+      Array.from(ctrl.children).forEach(child => {
+        if(child.tagName === 'OPTGROUP'){
+          if(current.values.length) groups.push(current);
+          current = { group: child.label || '', values: [] };
+          Array.from(child.children).forEach(o => { if(o.value) current.values.push(o.value); });
+        } else if(child.tagName === 'OPTION'){
+          if(child.value) current.values.push(child.value);
+        }
+      });
+      if(current.values.length) groups.push(current);
+      return groups;
+    }
+    const listId = ctrl.getAttribute('list');
+    if(listId){
+      const dl = document.getElementById(listId);
+      if(dl){
+        return [{ group: '', values: Array.from(dl.options).map(o => o.value).filter(v => v) }];
+      }
+    }
+    return [];
+  }
+
+  let menuOpenFor = null;
+  // Map each tracked field to a chip "bucket": on-item row, 3-cols (col index 1/2/3), or misc
+  const CHIP_BUCKET = {
+    applyMain:        { bucket: 'on-item' },
+    applyItems:       { bucket: 'on-item' },
+    light:            { bucket: 'col', col: 0 },
+    size:             { bucket: 'col', col: 0 },
+    applyText:        { bucket: 'col', col: 0 },
+    hue:              { bucket: 'col', col: 1 },
+    position:         { bucket: 'col', col: 1 },
+    applyInteractive: { bucket: 'col', col: 1 },
+    edge:             { bucket: 'col', col: 2 },
+    motion:           { bucket: 'col', col: 2 },
+    applyDecorative:  { bucket: 'col', col: 2 },
+    element:          { bucket: 'misc' },
+    effect:           { bucket: 'misc' },
+    modifier:         { bucket: 'misc' },
+    topic:            { bucket: 'misc' },
+    pattern:          { bucket: 'misc' },
+    touch:            { bucket: 'misc' },
+    frequent:         { bucket: 'misc' },
+  };
+
+  function renderActiveFields(){
+    activeFieldsEl.innerHTML = '';
+    // Build sub-containers
+    const onItem = document.createElement('div');
+    onItem.className = 'chips-on-item';
+    const cols = document.createElement('div');
+    cols.className = 'chips-3cols';
+    const colEls = [0,1,2].map(() => {
+      const c = document.createElement('div');
+      c.className = 'chip-col';
+      cols.appendChild(c);
+      return c;
+    });
+    const misc = document.createElement('div');
+    misc.className = 'chips-misc';
+
+    TRACKED_FIELDS.forEach(name => {
+      const ctrl = form.elements[name];
+      if(!ctrl) return;
+      const val = (ctrl.value || '').trim();
+      if(!val) return;
+      const chip = document.createElement('div');
+      chip.className = 'active-field';
+      chip.dataset.field = name;
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'chip-label';
+      labelEl.textContent = FIELD_LABELS[name] || name;
+
+      const valueEl = document.createElement('span');
+      valueEl.className = 'chip-value';
+      valueEl.textContent = val;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip-btn';
+      btn.textContent = '▾';
+      btn.title = 'Pick related items';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'chip-btn chip-remove';
+      removeBtn.textContent = '×';
+      removeBtn.title = 'Remove';
+
+      const menu = document.createElement('div');
+      menu.className = 'active-menu';
+      menu.hidden = menuOpenFor !== name;
+      const groups = getFieldOptions(name);
+      groups.forEach(g => {
+        if(g.group){
+          const gh = document.createElement('div');
+          gh.className = 'menu-group';
+          gh.textContent = g.group;
+          menu.appendChild(gh);
+        }
+        g.values.forEach(v => {
+          const it = document.createElement('div');
+          it.className = 'menu-item' + (v === val ? ' current' : '');
+          it.textContent = v;
+          it.addEventListener('click', e => {
+            e.stopPropagation();
+            ctrl.value = v;
+            ctrl.dispatchEvent(new Event('input', {bubbles:true}));
+            menuOpenFor = null;
+          });
+          menu.appendChild(it);
+        });
+      });
+
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        menuOpenFor = menuOpenFor === name ? null : name;
+        renderActiveFields();
+      });
+      removeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        ctrl.value = '';
+        if(menuOpenFor === name) menuOpenFor = null;
+        ctrl.dispatchEvent(new Event('input', {bubbles:true}));
+      });
+
+      chip.appendChild(labelEl);
+      chip.appendChild(valueEl);
+      chip.appendChild(btn);
+      chip.appendChild(removeBtn);
+      chip.appendChild(menu);
+      const bucket = CHIP_BUCKET[name] || { bucket: 'misc' };
+      if(bucket.bucket === 'on-item') onItem.appendChild(chip);
+      else if(bucket.bucket === 'col') colEls[bucket.col].appendChild(chip);
+      else misc.appendChild(chip);
+    });
+
+    if(onItem.children.length) activeFieldsEl.appendChild(onItem);
+    if(colEls.some(c => c.children.length)) activeFieldsEl.appendChild(cols);
+    if(misc.children.length) activeFieldsEl.appendChild(misc);
+  }
+
+  // Close open menu on outside click
+  document.addEventListener('click', e => {
+    if(!e.target.closest('.active-field') && menuOpenFor){
+      menuOpenFor = null;
+      renderActiveFields();
+    }
+  });
+
+  /* ===== Apply-to slot widgets ===== */
+  const APPLY_OPTIONS = {
+    applyMain: ['intro','hero','topbar','navbar','header','section','sidebar','footer','main content','container','body','page background','modal','overlay','drawer','popup','landing','splash'],
+    applyItems: ['logo','check','background','button','rater','dropdown','category','note','view','set','menu','tab','axis','vertex','frame','badge','chip','card','tile','divider','border','seal'],
+    applyText: ['heading','subheading','title','paragraph','quote','caption','label','link','tagline','slogan','code','list item','placeholder text','error text','helper text'],
+    applyInteractive: ['button','icon button','input','select','checkbox','radio','slider','toggle','link','tab','accordion','menu item','form','field','search','combobox'],
+    applyDecorative: ['particles','fireflies','pollen','aura','glow','halo','shadow','gradient','haze','blob','sparkle','dust','ember','ripple','canopy','petal','leaf','droplet'],
+  };
+  // applyExtra / applyExtraToggle removed — replaced by .apply-sections + #showAllBtn
+
+  // Quick-recognize icon per item — applied to the live preview when an apply value is set
+  const ITEM_ICON = {
+    // Main
+    'intro':'🚪','hero':'⌂','topbar':'▬','navbar':'☰','header':'⊺','section':'▢',
+    'sidebar':'▌','footer':'▬','main content':'▩','container':'▢','body':'□',
+    'page background':'▥','modal':'◫','overlay':'▦','drawer':'▒','popup':'▢',
+    'landing':'▼','splash':'✷',
+    // My items
+    'logo':'✿','check':'☑','background':'▦','button':'▭','rater':'★','dropdown':'▼',
+    'category':'⊞','note':'📝','view':'👁','set':'▤','menu':'☰','tab':'▢','axis':'⫻',
+    'vertex':'◆','frame':'▢','badge':'⬢','chip':'⬣','card':'▥','tile':'◼',
+    'divider':'─','border':'▢','seal':'⭕',
+    // Text
+    'heading':'H₁','subheading':'H₂','title':'⊤','paragraph':'¶','quote':'❝',
+    'caption':'ℵ','label':'⌖','link':'🔗','tagline':'✦','slogan':'✧','code':'⌘',
+    'list item':'▪','placeholder text':'_','error text':'⚠','helper text':'ℹ',
+    // Control
+    'icon button':'⊕','input':'▭','select':'▼','checkbox':'☑','radio':'◉',
+    'slider':'━●','toggle':'⬬','accordion':'▤','form':'📋','field':'▭',
+    'search':'🔍','combobox':'▼','menu item':'⋮',
+    // Decor
+    'particles':'✦','fireflies':'⚹','pollen':'⁘','aura':'◯','glow':'☀',
+    'halo':'◌','shadow':'◗','gradient':'▦','haze':'▒','blob':'⬭','sparkle':'✧',
+    'dust':'⋯','ember':'🔥','ripple':'◌','canopy':'⊕','petal':'❀','leaf':'🍃',
+    'droplet':'💧',
+  };
+
+  // Sub-categorization of Main and My items into text / control / decor visual columns
+  const MAIN_CAT = {
+    text:    ['intro','hero','header','footer','main content'],
+    control: ['topbar','navbar','sidebar','modal','overlay','drawer','popup'],
+    decor:   ['section','container','body','page background','landing','splash'],
+  };
+  const ITEMS_CAT = {
+    text:    ['note','category','view','set','frame'],
+    control: ['button','rater','dropdown','check','menu','tab','chip'],
+    decor:   ['logo','background','badge','card','tile','divider','border','seal','axis','vertex'],
+  };
+
+  // Current mode for the 3 sections: 'mixed' (text/control/decor) | 'applyMain' | 'applyItems'
+  let sectionsMode = 'mixed';
+
+  // Map: when mode = applyMain or applyItems, all sections set that single field;
+  //      when mode = mixed, each section sets its own field.
+  function fieldForSection(catKey){
+    if(sectionsMode === 'applyMain') return 'applyMain';
+    if(sectionsMode === 'applyItems') return 'applyItems';
+    return ({ text:'applyText', control:'applyInteractive', decor:'applyDecorative' })[catKey];
+  }
+
+  function itemsForSection(catKey){
+    if(sectionsMode === 'applyMain') return MAIN_CAT[catKey] || [];
+    if(sectionsMode === 'applyItems') return ITEMS_CAT[catKey] || [];
+    return ({
+      text:    APPLY_OPTIONS.applyText,
+      control: APPLY_OPTIONS.applyInteractive,
+      decor:   APPLY_OPTIONS.applyDecorative,
+    })[catKey] || [];
+  }
+
+  function buildOptItem(name, opt){
+    const item = document.createElement('div');
+    item.className = 'opt-item';
+    const icon = document.createElement('div');
+    icon.className = 'opt-icon';
+    icon.textContent = ITEM_ICON[opt] || '·';
+    const lbl = document.createElement('div');
+    lbl.className = 'opt-name';
+    lbl.textContent = opt;
+    item.appendChild(icon);
+    item.appendChild(lbl);
+    if((form.elements[name] && form.elements[name].value) === opt) item.classList.add('selected');
+    item.addEventListener('click', e => {
+      e.stopPropagation();
+      setApplyValue(name, opt);
+      // After selecting, collapse the section that owns this item
+      const sec = item.closest('.apply-section');
+      if(sec) closeSection(sec);
+    });
+    return item;
+  }
+
+  function renderSectionItems(){
+    document.querySelectorAll('.section-items').forEach(grid => {
+      const catKey = grid.dataset.cat;
+      grid.innerHTML = '';
+      const target = fieldForSection(catKey);
+      itemsForSection(catKey).forEach(opt => grid.appendChild(buildOptItem(target, opt)));
+    });
+  }
+
+  function isSectionOpen(sec){
+    const items = sec.querySelector('.section-items');
+    return items && !items.classList.contains('collapsed');
+  }
+  function openSection(sec){
+    sec.querySelector('.section-items').classList.remove('collapsed');
+    sec.querySelector('.section-title').classList.remove('collapsed');
+    syncShowAllToggle();
+  }
+  function closeSection(sec){
+    sec.querySelector('.section-items').classList.add('collapsed');
+    sec.querySelector('.section-title').classList.add('collapsed');
+    syncShowAllToggle();
+  }
+  function toggleSection(sec){
+    if(isSectionOpen(sec)) closeSection(sec); else openSection(sec);
+  }
+
+  function allSections(){ return Array.from(document.querySelectorAll('.apply-section')); }
+
+  function syncShowAllToggle(){
+    const btn = document.getElementById('showAllBtn');
+    const layout = document.querySelector('.apply-layout');
+    if(!btn || !layout) return;
+    const isCollapsed = layout.classList.contains('collapsed');
+    btn.textContent = isCollapsed ? '+' : '×';
+    btn.setAttribute('aria-label', isCollapsed ? 'Show sections' : 'Hide sections');
+  }
+
+  function setSectionsMode(mode){
+    sectionsMode = mode;
+    renderSectionItems();
+    // Highlight active Main / My items button
+    document.querySelectorAll('.apply-left .btn--pick').forEach(b => {
+      b.classList.toggle('mode-active', b.dataset.name === mode);
+    });
+    // Expand all when switching to main / items so user sees its options
+    if(mode === 'applyMain' || mode === 'applyItems'){
+      allSections().forEach(openSection);
+    }
+  }
+
+  // Wire section-title clicks
+  document.querySelectorAll('.section-title').forEach(t => {
+    t.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleSection(t.closest('.apply-section'));
+    });
+  });
+
+  // Wire show-all toggle (hides/shows the whole apply-layout above the demo)
+  const showAllBtn = document.getElementById('showAllBtn');
+  if(showAllBtn){
+    showAllBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const layout = document.querySelector('.apply-layout');
+      if(!layout) return;
+      layout.classList.toggle('collapsed');
+      syncShowAllToggle();
+    });
+  }
+
+  // Wire Main / My items right-side buttons → switch sections mode
+  document.querySelectorAll('.apply-left .btn--pick').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      const name = b.dataset.name;
+      if(!name) return;
+      if(sectionsMode === name){
+        // Toggle back to mixed mode
+        setSectionsMode('mixed');
+      } else {
+        setSectionsMode(name);
+      }
+    });
+  });
+
+  function setApplyValue(name, value){
+    document.querySelectorAll('[data-name="' + name + '"]').forEach(el => {
+      const titleText = el.dataset.title || '— pick —';
+      const target = el.querySelector('.slot-current') || el;
+      target.textContent = value || titleText;
+      el.classList.toggle('empty', !value);
+    });
+    const input = form.elements[name];
+    if(input){
+      input.value = value || '';
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+  }
+
+  // Initial render
+  renderSectionItems();
+  syncShowAllToggle();
+
+  // If user picks a value via the chip menu, keep all slot copies in sync
+  function syncSlotsFromForm(){
+    Object.keys(APPLY_OPTIONS).forEach(name => {
+      const input = form.elements[name];
+      if(!input) return;
+      const val = input.value || '';
+      document.querySelectorAll('[data-name="' + name + '"]').forEach(el => {
+        const titleText = el.dataset.title || '— pick —';
+        const target = el.querySelector('.slot-current') || el;
+        target.textContent = val || titleText;
+        el.classList.toggle('empty', !val);
+      });
+    });
+  }
+  form.addEventListener('input', syncSlotsFromForm);
+
+  // Live preview — fixed in column 1 of the gallery, auto-updates on form change
+  const previewArea = document.getElementById('previewArea');
+  const previewBox  = document.getElementById('previewBox');
+  const EASE_MAP = {
+    'linear':'linear', 'ease':'ease', 'ease-in':'ease-in', 'ease-out':'ease-out',
+    'ease-in-out':'ease-in-out',
+    'elastic':'cubic-bezier(.5,1.6,.5,1)',
+    'spring':'cubic-bezier(.34,1.56,.64,1)',
+    'anticipate':'cubic-bezier(.6,-.2,.2,1)',
+    'smooth':'ease-in-out', 'snappy':'cubic-bezier(.2,.85,.25,1.4)',
+    'gentle':'ease-in-out', 'jittery':'steps(8)',
+    'dreamy':'ease-in-out', 'fast':'ease-out', 'slow':'ease-in-out',
+  };
+
+  function buildFinalPreview(){
+    const data = new FormData(form);
+    // Fields that might carry a recognizable gallery-anim label
+    const animFields = ['effect','light','hue','edge','size','position','motion','frequent','touch','topic','pattern','modifier'];
+    const animItems = [];
+    animFields.forEach(name => {
+      const val = (data.get(name) || '').toString().trim();
+      if(!val) return;
+      const found = findAnimByLabel(val);
+      if(found && !animItems.find(a => a.key === found.key)) animItems.push(found);
+    });
+    if(!animItems.length && lastSelectedAnim){
+      animItems.push(lastSelectedAnim);
+    }
+
+    // Icon helper — most specific apply value drives the ::before content
+    //   priority: Decor → Control → Text → My items → Main
+    const applyOrder = ['applyDecorative','applyInteractive','applyText','applyItems','applyMain'];
+    let pickedItem = null;
+    for(const f of applyOrder){
+      const v = (data.get(f) || '').toString().trim();
+      if(v){ pickedItem = v; break; }
+    }
+    const icon = pickedItem && ITEM_ICON[pickedItem];
+
+    if(!animItems.length){
+      previewBox.style.cssText = '';
+      const styleEl0 = document.getElementById('preview-anim-override');
+      if(styleEl0) styleEl0.textContent = '';
+      if(icon){
+        previewBox.className = 'anim-preview with-icon';
+        previewBox.style.setProperty('--anim-icon', `"${icon}"`);
+      } else {
+        previewBox.className = 'anim-preview';
+        previewBox.style.removeProperty('--anim-icon');
+      }
+      return;
+    }
+
+    const time      = parseFloat(data.get('time'))      || 0;
+    const duration  = parseFloat(data.get('duration'))  || 1.5;
+    const disappear = parseFloat(data.get('disappear'));
+    const modifier  = (data.get('modifier') || '').toString().toLowerCase().trim();
+
+    // Preview loops continuously unless the user explicitly chose "once"
+    const isOnce = modifier === 'once';
+    const iterCount  = isOnce ? '1' : 'infinite';
+    const direction  = (modifier === 'alternate' || modifier === 'ping-pong') ? 'alternate'
+                     : (modifier === 'reverse') ? 'reverse' : 'normal';
+    const easing     = EASE_MAP[modifier] || 'ease-in-out';
+
+    // Build composite "animation" CSS for ::before — includes fill-mode "both"
+    // (shorthand order: name duration easing delay iter direction fill-mode)
+    const animStrings = animItems.map(item => {
+      const kf = ANIM_KEYFRAMES[item.key];
+      if(!kf) return null;
+      return kf + ' ' + duration + 's ' + easing + ' ' + time + 's ' + iterCount + ' ' + direction + ' both';
+    }).filter(Boolean);
+
+    // The first anim drives base visuals (shape/text/color) of the preview pseudo-element
+    const primary = animItems[0];
+    previewBox.className = 'anim-preview anim-' + primary.key + (primary.kind === 'text' ? ' text' : '');
+
+    // If user picked an "apply to" item, swap the ::before content for that item's icon
+    if(icon){
+      previewBox.classList.add('with-icon');
+      previewBox.style.setProperty('--anim-icon', `"${icon}"`);
+    } else {
+      previewBox.classList.remove('with-icon');
+      previewBox.style.removeProperty('--anim-icon');
+    }
+
+    // Inject/override stylesheet rule so we can stack multiple animations on ::before
+    let styleEl = document.getElementById('preview-anim-override');
+    if(!styleEl){
+      styleEl = document.createElement('style');
+      styleEl.id = 'preview-anim-override';
+      document.head.appendChild(styleEl);
+    }
+    // Force restart: clear then reapply, with a reflow in between
+    previewBox.style.opacity = '';
+    previewBox.style.transition = '';
+    styleEl.textContent = '';
+    void previewBox.offsetWidth;
+    styleEl.textContent =
+      '#previewBox::before { animation: ' + animStrings.join(', ') + ' !important; }';
+
+    // (Disappear is honored in the textual cue output, not in the live preview —
+    //  the preview shows the animation looping so you can actually see it.)
+  }
+
+  // Auto-rebuild preview + active chips whenever the form changes
+  function onFormChange(){
+    buildFinalPreview();
+    renderActiveFields();
+  }
+  form.addEventListener('input',  onFormChange);
+  form.addEventListener('change', onFormChange);
+  // Initial render happens at the bottom (after ANIM_SETS is defined)
+
+  // Each set is an array of rows. Each row has 3 column-groups (one per form-field column).
+  // Each column-group is a slider — scroll through with ← / →.
+  const ANIM_SETS = {
+    popular: [
+      { // Row 1 — Basics
+        title: 'Basics',
+        'light-size': [
+          { key:'fade-in',   label:'Fade in',   kind:'shape' },
+          { key:'fade-out',  label:'Fade out',  kind:'shape' },
+          { key:'zoom-in',   label:'Zoom in',   kind:'shape' },
+          { key:'pulse',     label:'Pulse',     kind:'shape' },
+          { key:'heartbeat', label:'Heartbeat', kind:'shape' },
+          { key:'grow',      label:'Grow',      kind:'shape' },
+          { key:'shrink',    label:'Shrink',    kind:'shape' },
+        ],
+        'hue-position': [
+          { key:'slide-up',    label:'Slide up',    kind:'shape' },
+          { key:'slide-down',  label:'Slide down',  kind:'shape' },
+          { key:'slide-left',  label:'Slide left',  kind:'shape' },
+          { key:'slide-right', label:'Slide right', kind:'shape' },
+          { key:'flip',        label:'Flip',        kind:'shape' },
+          { key:'wobble',      label:'Wobble',      kind:'shape' },
+          { key:'swing',       label:'Swing',       kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'bounce',  label:'Bounce',  kind:'shape' },
+          { key:'shake',   label:'Shake',   kind:'shape' },
+          { key:'spin',    label:'Spin',    kind:'shape' },
+          { key:'vibrate', label:'Vibrate', kind:'shape' },
+          { key:'jiggle',  label:'Jiggle',  kind:'shape' },
+        ],
+      },
+      { // Row 2 — Pops & Drops
+        title: 'Pops & Drops',
+        'light-size': [
+          { key:'pop-in',    label:'Pop in',    kind:'shape' },
+          { key:'blur-in',   label:'Blur in',   kind:'shape' },
+          { key:'scale-in',  label:'Scale in',  kind:'shape' },
+          { key:'scale-out', label:'Scale out', kind:'shape' },
+          { key:'mega-pop',  label:'Mega pop',  kind:'shape' },
+        ],
+        'hue-position': [
+          { key:'slide-tl',  label:'Slide ↖',   kind:'shape' },
+          { key:'slide-tr',  label:'Slide ↗',   kind:'shape' },
+          { key:'slide-bl',  label:'Slide ↙',   kind:'shape' },
+          { key:'slide-br',  label:'Slide ↘',   kind:'shape' },
+          { key:'spiral-in', label:'Spiral in', kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'snap-in',     label:'Snap in',     kind:'shape' },
+          { key:'ping',        label:'Ping',        kind:'shape' },
+          { key:'punch',       label:'Punch',       kind:'shape' },
+          { key:'spring',      label:'Spring',      kind:'shape' },
+          { key:'elastic-pop', label:'Elastic pop', kind:'shape' },
+        ],
+      },
+      { // Row 3 — Continuous Rhythms
+        title: 'Continuous',
+        'light-size': [
+          { key:'breathe-soft', label:'Breathe soft', kind:'shape' },
+          { key:'breathe-deep', label:'Breathe deep', kind:'shape' },
+          { key:'thump',        label:'Thump',        kind:'shape' },
+          { key:'throb',        label:'Throb',        kind:'shape' },
+        ],
+        'hue-position': [
+          { key:'hover',    label:'Hover',    kind:'shape' },
+          { key:'bob',      label:'Bob',      kind:'shape' },
+          { key:'sway',     label:'Sway',     kind:'shape' },
+          { key:'drift',    label:'Drift',    kind:'shape' },
+          { key:'levitate', label:'Levitate', kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'tremor',      label:'Tremor',      kind:'shape' },
+          { key:'shudder',     label:'Shudder',     kind:'shape' },
+          { key:'twitch',      label:'Twitch',      kind:'shape' },
+          { key:'oscillate',   label:'Oscillate',   kind:'shape' },
+          { key:'wave-motion', label:'Wave motion', kind:'shape' },
+        ],
+      },
+    ],
+    advanced: [
+      { // Row 1 — Basics
+        title: 'Basics',
+        'light-size': [
+          { key:'typewriter',   label:'Typewriter',    kind:'text'  },
+          { key:'shine-sweep',  label:'Shine sweep',   kind:'shape' },
+          { key:'blink',        label:'Blink',         kind:'shape' },
+          { key:'neon-flicker', label:'Neon flicker',  kind:'shape' },
+          { key:'spotlight',    label:'Spotlight',     kind:'shape' },
+          { key:'glitch',       label:'Glitch text',   kind:'text'  },
+        ],
+        'hue-position': [
+          { key:'gradient-shift', label:'Gradient shift', kind:'shape' },
+          { key:'hue-rotate',     label:'Hue rotate',     kind:'shape' },
+          { key:'tilt-3d',        label:'3D tilt',        kind:'shape' },
+          { key:'marquee',        label:'Marquee',        kind:'text'  },
+          { key:'depth-shift',    label:'Depth shift',    kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'blob-morph',  label:'Blob morph',  kind:'shape' },
+          { key:'mask-reveal', label:'Mask reveal', kind:'shape' },
+          { key:'ripple',      label:'Ripple',      kind:'shape' },
+          { key:'wipe-reveal', label:'Wipe reveal', kind:'shape' },
+          { key:'shutter',     label:'Shutter',     kind:'shape' },
+        ],
+      },
+      { // Row 2 — Letters · Color · Particles
+        title: 'Letters · Color · Particles',
+        'light-size': [
+          { key:'letter-cascade', label:'Letter cascade', kind:'text'  },
+          { key:'letter-wave',    label:'Letter wave',    kind:'text'  },
+          { key:'sparkle',        label:'Sparkle',        kind:'shape' },
+          { key:'ember-burst',    label:'Ember burst',    kind:'shape' },
+        ],
+        'hue-position': [
+          { key:'color-wash',     label:'Color wash',     kind:'shape' },
+          { key:'saturate-pulse', label:'Saturate pulse', kind:'shape' },
+          { key:'sepia-shift',    label:'Sepia shift',    kind:'shape' },
+          { key:'invert-flash',   label:'Invert flash',   kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'emanate',     label:'Emanate',     kind:'shape' },
+          { key:'dust-cloud',  label:'Dust cloud',  kind:'shape' },
+          { key:'letter-flip', label:'Letter flip', kind:'text'  },
+          { key:'letter-drop', label:'Letter drop', kind:'text'  },
+        ],
+      },
+      { // Row 3 — Cinematic · 3D · Morph
+        title: 'Cinematic · 3D · Morph',
+        'light-size': [
+          { key:'iris-open',      label:'Iris open',      kind:'shape' },
+          { key:'iris-close',     label:'Iris close',     kind:'shape' },
+          { key:'vignette-pulse', label:'Vignette pulse', kind:'shape' },
+          { key:'ken-burns',      label:'Ken Burns',      kind:'shape' },
+        ],
+        'hue-position': [
+          { key:'cube-rotate',     label:'Cube rotate',     kind:'shape' },
+          { key:'card-flip-3d',    label:'Card flip 3D',    kind:'shape' },
+          { key:'isometric-shift', label:'Isometric shift', kind:'shape' },
+          { key:'parallax',        label:'Parallax',        kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'liquefy',      label:'Liquefy',      kind:'shape' },
+          { key:'waveform',     label:'Waveform',     kind:'shape' },
+          { key:'splash-morph', label:'Splash morph', kind:'shape' },
+          { key:'blob-flow',    label:'Blob flow',    kind:'shape' },
+        ],
+      },
+    ],
+    flove: [
+      { // Row 1 — Brand
+        title: 'Brand',
+        'light-size': [
+          { key:'fireflies',     label:'Fireflies',     kind:'shape' },
+          { key:'canopy-glow',   label:'Canopy glow',   kind:'shape' },
+          { key:'dew-drop',      label:'Dew drop',      kind:'shape' },
+          { key:'bubble-splash', label:'Bubble splash', kind:'shape' },
+          { key:'leaf-fall',     label:'Leaf fall',     kind:'shape' },
+        ],
+        'hue-position': [
+          { key:'hue-flow',     label:'Hue flow',     kind:'text'  },
+          { key:'pollen-drift', label:'Pollen drift', kind:'shape' },
+          { key:'drop-in',      label:'Drop in',      kind:'shape' },
+          { key:'petal-drift',  label:'Petal drift',  kind:'shape' },
+        ],
+        'edge-motion': [
+          { key:'logo-bloom',   label:'Logo bloom',   kind:'shape' },
+          { key:'aura-breathe', label:'Aura breathe', kind:'shape' },
+          { key:'bump',         label:'Bump',         kind:'shape' },
+          { key:'leaf-rustle',  label:'Leaf rustle',  kind:'shape' },
+          { key:'pulse-glow',   label:'Pulse glow',   kind:'shape' },
+          { key:'bloom-burst',  label:'Bloom burst',  kind:'shape' },
+        ],
+      },
+    ],
+  };
+  const COL_TITLES = {
+    'light-size':   'Light / Size',
+    'hue-position': 'Hue / Position',
+    'edge-motion':  'Edge / Motion',
+  };
+  const COL_ORDER = ['light-size','hue-position','edge-motion'];
+
+  const animGrid = document.getElementById('animGrid');
+  const animTabs = document.querySelectorAll('.anim-tab');
+
+  function renderAnimGrid(setKey){
+    const rows = ANIM_SETS[setKey];
+    if(!rows) return;
+    animGrid.innerHTML = '';
+    if(animMerge.dataset.view === 'table'){
+      renderAnimTable(rows);
+    } else {
+      renderAnimSliders(rows);
+    }
+  }
+
+  function renderAnimSliders(rows){
+    rows.forEach((row, rowIdx) => {
+      COL_ORDER.forEach(colKey => {
+        const items = row[colKey];
+        if(!items || !items.length) return;
+        renderOneSlider(items, colKey, row.title, rowIdx);
+      });
+    });
+  }
+
+  function renderOneSlider(items, colKey, rowTitle, rowIdx){
+      const slider = document.createElement('div');
+      slider.className = 'anim-slider';
+      slider.dataset.rowIdx = String(rowIdx);
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'slider-title';
+      titleEl.textContent = (rowTitle ? rowTitle + ' · ' : '') + COL_TITLES[colKey];
+
+      const stage = document.createElement('div');
+      stage.className = 'slider-stage';
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.className = 'slider-arrow';
+      prev.textContent = '‹';
+      prev.setAttribute('aria-label', 'Previous');
+      const preview = document.createElement('div');
+      preview.className = 'anim-preview';
+      preview.title = 'Click to add to the form above';
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'slider-arrow';
+      next.textContent = '›';
+      next.setAttribute('aria-label', 'Next');
+      stage.appendChild(prev);
+      stage.appendChild(preview);
+      stage.appendChild(next);
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'slider-label';
+
+      const dots = document.createElement('div');
+      dots.className = 'slider-dots';
+      items.forEach((_, i) => {
+        const d = document.createElement('span');
+        d.className = 'dot' + (i === 0 ? ' active' : '');
+        d.dataset.idx = String(i);
+        dots.appendChild(d);
+      });
+
+      let idx = 0;
+      function update(){
+        const item = items[idx];
+        preview.className = 'anim-preview anim-' + item.key + (item.kind === 'text' ? ' text' : '');
+        labelEl.textContent = item.label;
+        Array.from(dots.children).forEach((d, i) => d.classList.toggle('active', i === idx));
+      }
+      prev.addEventListener('click', e => {
+        e.stopPropagation();
+        idx = (idx - 1 + items.length) % items.length;
+        update();
+      });
+      next.addEventListener('click', e => {
+        e.stopPropagation();
+        idx = (idx + 1) % items.length;
+        update();
+      });
+      dots.addEventListener('click', e => {
+        const d = e.target.closest('.dot');
+        if(!d) return;
+        idx = Number(d.dataset.idx) || 0;
+        update();
+      });
+      preview.addEventListener('click', () => {
+        const item = items[idx];
+        pushAnimToField(item.key, item.label.toLowerCase(), item);
+      });
+
+      slider.appendChild(titleEl);
+      slider.appendChild(stage);
+      slider.appendChild(labelEl);
+      slider.appendChild(dots);
+      animGrid.appendChild(slider);
+      update();
+  }
+
+  function renderAnimTable(rows){
+    const container = document.createElement('div');
+    container.className = 'anim-table-cols';
+    // Consolidate items from all rows into one column array per col
+    const colData = { 'light-size': [], 'hue-position': [], 'edge-motion': [] };
+    rows.forEach(row => {
+      COL_ORDER.forEach(colKey => {
+        (row[colKey] || []).forEach(it => colData[colKey].push(it));
+      });
+    });
+    COL_ORDER.forEach(colKey => {
+      const items = colData[colKey];
+      const colEl = document.createElement('div');
+      colEl.className = 'anim-table-col';
+      colEl.dataset.col = colKey;
+
+      const title = document.createElement('button');
+      title.type = 'button';
+      title.className = 'anim-col-title';
+      title.dataset.col = colKey;
+      title.textContent = COL_TITLES[colKey];
+      colEl.appendChild(title);
+
+      const body = document.createElement('div');
+      body.className = 'anim-col-body';
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'anim-row';
+        row.title = 'Click to add to the form above';
+        const target = ANIM_TARGET[item.key] || 'motion';
+        const preview = document.createElement('div');
+        preview.className = 'anim-preview anim-' + item.key + (item.kind === 'text' ? ' text' : '');
+        const name = document.createElement('span');
+        name.className = 'anim-name';
+        name.textContent = item.label;
+        const tag = document.createElement('span');
+        tag.className = 'target-tag';
+        tag.textContent = target;
+        row.appendChild(preview);
+        row.appendChild(name);
+        row.appendChild(tag);
+        row.addEventListener('click', () => pushAnimToField(item.key, item.label.toLowerCase(), item));
+        body.appendChild(row);
+      });
+      colEl.appendChild(body);
+
+      title.addEventListener('click', e => {
+        e.stopPropagation();
+        title.classList.toggle('collapsed');
+        body.classList.toggle('collapsed');
+      });
+      container.appendChild(colEl);
+    });
+    animGrid.appendChild(container);
+  }
+
+  animTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      animTabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAnimGrid(btn.dataset.set);
+    });
+  });
+
+  renderAnimGrid('popular');
+  buildFinalPreview();
+  renderActiveFields();
+  renderResumeTable();
+})();
+</script>
+
+</body>
+</html>

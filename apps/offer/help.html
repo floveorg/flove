@@ -261,40 +261,6 @@
   .toolbar .btn:hover{ border-color: var(--accent); color: var(--accent-deep) }
   .toolbar .btn.is-on{ background: var(--accent-soft); color: var(--accent-deep); border-color: var(--accent) }
 
-  /* Have your say + See all */
-  .say-row{
-    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
-    margin: 0 0 14px;
-  }
-  .btn-say{
-    appearance:none; cursor:pointer;
-    padding: 10px 16px;
-    border: 1px solid var(--accent);
-    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
-    color:#fff;
-    border-radius: var(--radius-pill);
-    font: 700 .9rem/1 var(--font-ui);
-    box-shadow: 0 8px 18px -6px var(--accent-glow);
-    transition: all var(--fast);
-    display:inline-flex; align-items:center; gap:8px;
-  }
-  .btn-say:hover{ transform: translateY(-1px); filter:brightness(1.06) }
-  .btn-say.is-on{ background: var(--paper-warm); color: var(--accent-deep); border-color: var(--accent) }
-  .btn-seeall{
-    appearance:none; cursor:pointer;
-    padding: 10px 16px;
-    background: #fff;
-    border: 1px solid var(--line-strong);
-    color: var(--ink-soft);
-    border-radius: var(--radius-pill);
-    font: 600 .88rem/1 var(--font-ui);
-    transition: all var(--fast);
-    display:none;
-  }
-  .btn-seeall:hover{ border-color: var(--accent); color: var(--accent-deep) }
-  .btn-seeall.is-on{ background: var(--accent-soft); color: var(--accent-deep); border-color: var(--accent) }
-  body.has-say .btn-seeall{ display:inline-flex; align-items:center; gap:6px }
-
   /* My-bot creator */
   .my-bot-form{
     display:none;
@@ -314,19 +280,19 @@
     background:#fff;
   }
   .my-bot-form input[type="text"]:focus{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow) }
-  .my-bot-form .icon-pick{ display:flex; gap:6px; flex-wrap:wrap }
-  .my-bot-form .icon-pick label{
+  .icon-pick{ display:flex; gap:6px; flex-wrap:wrap }
+  .icon-pick label{
     width: 36px; height: 36px;
     display: inline-grid; place-items: center;
     border: 1px solid var(--line-strong); border-radius: 50%;
     cursor: pointer; background:#fff; font-size: 1.1rem;
     transition: all var(--fast);
   }
-  .my-bot-form .icon-pick label:hover{ border-color: var(--accent); transform: translateY(-1px) }
-  .my-bot-form .icon-pick input{ position:absolute; opacity:0; pointer-events:none }
-  .my-bot-form .icon-pick label:has(input:checked){
-    background: var(--c-mine); color:#fff; border-color: transparent;
-    box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--c-mine) 50%, transparent);
+  .icon-pick label:hover{ border-color: var(--accent); transform: translateY(-1px) }
+  .icon-pick input{ position:absolute; opacity:0; pointer-events:none }
+  .icon-pick label:has(input:checked){
+    background: var(--accent); color:#fff; border-color: transparent;
+    box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--accent) 50%, transparent);
   }
   .my-bot-form .btn-save{
     padding: 9px 16px;
@@ -376,7 +342,7 @@
   /* Bot filter chips — multi-select (checkboxes) */
   .bot-filter{ margin: 0 0 18px }
   .bot-filter input[type=checkbox]{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none }
-  .filter-buttons{ display:flex; flex-wrap:wrap; gap:8px }
+  .filter-buttons{ display:flex; flex-wrap:wrap; gap:8px; justify-content: flex-end }
   .chip{
     --c: var(--muted);
     display:inline-flex; align-items:center; gap:8px;
@@ -416,6 +382,176 @@
   .chip.mine{ display:none }
   body.has-mine .chip.mine{ display:inline-flex }
 
+  /* ── Wizard personality popover & per-chip vibes ──────────────
+     Clicking a chip momentarily reveals 3 personality icons above
+     it (fade-in from the button upwards), shown for 5s then fades
+     away. Each chip also has its own ambient "feel" via a CSS
+     animation tuned to that wizard's personality. */
+  .chip{ position: relative; }
+  .personality-pop{
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translate(-50%, 12px);
+    display: inline-flex; gap: 8px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1);
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .personality-pop .pp-icon{
+    font-size: 1.25rem; line-height: 1;
+    display: inline-block;
+    animation: pp-icon-float 1.8s ease-in-out infinite;
+  }
+  .personality-pop .pp-icon:nth-child(2){ animation-delay: .25s; }
+  .personality-pop .pp-icon:nth-child(3){ animation-delay: .5s; }
+  @keyframes pp-icon-float{
+    0%,100%{ transform: translateY(0); }
+    50%   { transform: translateY(-3px); }
+  }
+  .chip.is-showing-personality .personality-pop{
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  /* Per-wizard "design + effect" — runs continuously so each chip has
+     a small ambient character; intensifies briefly while the
+     personality popover is visible. */
+  @keyframes wiz-juanito-pulse{
+    0%,100%{ box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-juanito) 40%, transparent); }
+    50%   { box-shadow: 0 0 0 6px transparent; }
+  }
+  @keyframes wiz-maripuri-throb{
+    0%,100%{ transform: translateY(0) scale(1); }
+    50%   { transform: translateY(-1px) scale(1.04); }
+  }
+  @keyframes wiz-uxia-bounce{
+    0%,100%{ transform: translateY(0); }
+    50%   { transform: translateY(-3px); }
+  }
+  @keyframes wiz-encarna-shimmer{
+    0%,100%{ filter: brightness(1) saturate(1); }
+    50%   { filter: brightness(1.18) saturate(1.2); }
+  }
+  @keyframes wiz-fairy-twinkle{
+    0%,100%{ box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-fairy) 30%, transparent), 0 0 0 0 color-mix(in srgb, var(--c-fairy) 30%, transparent); }
+    50%   { box-shadow: 0 0 10px 2px color-mix(in srgb, var(--c-fairy) 70%, transparent), 0 0 18px 6px color-mix(in srgb, var(--c-fairy) 25%, transparent); }
+  }
+  @keyframes wiz-mine-spark{
+    0%,100%{ filter: brightness(1); }
+    50%   { filter: brightness(1.12); }
+  }
+
+  /* Each wizard's button gets its own personality CSS. The
+     animations stay subtle by default; clicking the chip kicks
+     them into a faster, fuller cycle while the popover is open. */
+  .chip.juanito{
+    font-family: var(--font-display);
+    letter-spacing: .01em;
+    animation: wiz-juanito-pulse 3s ease-in-out infinite;
+  }
+  .chip.maripuri{
+    font-weight: 700;
+    animation: wiz-maripuri-throb 2.6s ease-in-out infinite;
+  }
+  .chip.uxia{
+    animation: wiz-uxia-bounce 2.2s ease-in-out infinite;
+  }
+  .chip.encarna{
+    background: linear-gradient(135deg, #fff 0%, color-mix(in srgb, var(--c-encarna) 12%, #fff) 100%);
+    animation: wiz-encarna-shimmer 3.4s ease-in-out infinite;
+  }
+  .chip.fairy{
+    background: linear-gradient(135deg, #fff 0%, color-mix(in srgb, var(--c-fairy) 14%, #fff) 100%);
+    animation: wiz-fairy-twinkle 2.4s ease-in-out infinite;
+    text-shadow: 0 0 8px color-mix(in srgb, var(--c-fairy) 35%, transparent);
+  }
+  .chip.mine{
+    animation: wiz-mine-spark 2.8s ease-in-out infinite;
+  }
+  /* While the popover is showing, each animation runs faster + stronger */
+  .chip.is-showing-personality{ animation-duration: 1s !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    .chip.juanito, .chip.maripuri, .chip.uxia, .chip.encarna,
+    .chip.fairy, .chip.mine, .personality-pop .pp-icon{ animation: none !important; }
+  }
+
+  /* Custom bot chips created via the add-bot modal */
+  .chip.chip-custom{ --c: var(--accent); }
+  .chip.chip-custom::before{ display: none; }
+  .chip.chip-custom .chip-icon{ font-size: 1.05rem; line-height: 1; }
+
+  /* "＋" chip that opens the add-bot modal (replaces the old "Todos" chip) */
+  .chip.chip-add{
+    appearance: none;
+    --c: var(--accent);
+    font: 700 1rem/1 var(--font-ui);
+    color: var(--accent-deep);
+    padding: 6px 12px;
+  }
+  .chip.chip-add::before{ display: none; }
+  .chip.chip-add:hover{
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    border-color: var(--accent);
+  }
+
+  /* Add-bot modal — iframe loads new-wizard-help.html (flovy-style shell) */
+  .add-bot-modal{
+    position: fixed; inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  body.add-bot-open .add-bot-modal{ display: flex; }
+  .add-bot-backdrop{
+    position: absolute; inset: 0;
+    background: rgba(15, 31, 28, .55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    cursor: pointer;
+  }
+  .add-bot-frame--iframe{
+    position: relative;
+    background: #fff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 30px 80px rgba(0,0,0,.35);
+    width: min(820px, calc(100vw - 32px));
+    height: min(85vh, 720px);
+    overflow: hidden;
+    display: flex;
+  }
+  .add-bot-iframe{
+    width: 100%; height: 100%;
+    border: 0;
+    background: #fff;
+  }
+  .add-bot-close{
+    position: absolute;
+    top: 10px; right: 12px;
+    z-index: 2;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.95);
+    color: var(--ink);
+    font: 700 1.2rem/1 var(--font-ui);
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: all var(--fast);
+  }
+  .add-bot-close:hover{
+    background: var(--accent); color: #fff; border-color: var(--accent-deep);
+  }
+
   /* QA — WhatsApp chat style */
   .qa-wrap{ display:grid; gap: 14px }
   details.qa-card{
@@ -442,10 +578,10 @@
   details.qa-card summary::-webkit-details-marker{ display:none }
   details.qa-card summary:hover{ background: color-mix(in srgb, var(--paper-warm) 50%, #fff) }
   details.qa-card summary::after{
-    content: "▾"; margin-left:auto; color: var(--accent); font-size: 14px;
-    transition: transform var(--fast); flex-shrink: 0; padding-top: 6px;
+    content: "＋"; margin-left:auto; color: var(--accent); font-size: 28px;
+    transition: color var(--fast); flex-shrink: 0; line-height: 1; padding-top: 2px;
   }
-  details.qa-card[open] summary::after{ transform: rotate(180deg) }
+  details.qa-card[open] summary::after{ content: "×"; }
 
   /* Bubbles */
   .bubble{
@@ -493,6 +629,7 @@
     display:flex; align-items: baseline; gap: 10px;
     font-size: .74rem; color: var(--muted); margin-bottom: 1px;
   }
+  .bubble.bot .msg-head{ justify-content: flex-end; }
   .bubble .name{ font-weight: 700 }
   .bubble.cram .name{ color: var(--c-cram) }
   .bubble.juanito  .name{ color: var(--c-juanito) }
@@ -525,39 +662,74 @@
 
   .answers{ padding: 6px 0 8px }
 
-  /* Reply input (shown only after Have-your-say) */
-  .reply-row{
+  @keyframes pulse{ 0%,100%{ box-shadow: 0 0 0 0 rgba(239,68,68,.4) } 50%{ box-shadow: 0 0 0 8px rgba(239,68,68,0) } }
+
+  /* Inline reply field — appears directly under a clicked bot bubble,
+     right-aligned. Input + Save button, no intermediate pill. */
+  .bubble.bot, .bubble.cram{ cursor: pointer; }
+  .bubble-say{
     display: none;
-    margin: 6px 14px 10px;
-    padding: 6px 6px 6px 10px;
-    background: #fff;
+    margin: -2px 14px 8px;
+    padding-left: 38px;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .bubble-say.is-visible{ display: flex; }
+  .say-editor{
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    flex: 1; max-width: 60ch;
+  }
+  .say-editor input{
+    flex: 1; min-width: 0;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-pill);
-    box-shadow: var(--shadow-xs);
-    align-items: center;
-    gap: 8px;
+    background: #fff;
+    padding: 6px 12px;
+    font: inherit;
+    outline: none;
   }
-  body.has-say .reply-row{ display: flex }
-  .reply-row input{
-    flex: 1; border: 0; background: transparent;
-    font: inherit; padding: 8px 4px; color: inherit; outline: none;
-  }
-  .reply-row .mic{
-    width: 38px; height: 38px; flex-shrink: 0;
-    border-radius: 50%; border: 0;
+  .say-editor input:focus{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .btn-save-say{
+    appearance: none;
     background: linear-gradient(180deg, var(--accent), var(--accent-deep));
-    color: #fff; cursor: pointer;
-    font-size: 1rem;
-    display: grid; place-items: center;
-    transition: all var(--fast);
-    box-shadow: 0 4px 10px -2px var(--accent-glow);
+    color: #fff; border: 0;
+    border-radius: var(--radius-pill);
+    padding: 6px 14px;
+    font: 700 .82rem/1 var(--font-ui);
+    cursor: pointer;
+    transition: filter var(--fast), transform var(--fast);
   }
-  .reply-row .mic:hover{ transform: scale(1.05) }
-  .reply-row .mic.is-rec{
-    background: linear-gradient(180deg, #ef4444, #b91c1c);
-    animation: pulse 1.2s infinite;
+  .btn-save-say:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+
+  /* Threaded reply bubble — right-aligned (outgoing WhatsApp style).
+     The bubble's --bot-c is set inline by renderThreadsFor() from its
+     parent wizard, so the border + connector line + avatar ring all
+     match the parent's color (reply to Juanito → blue, etc.). */
+  .bubble.me.thread{
+    margin-left: auto;
+    margin-right: 14px;
+    position: relative;
   }
-  @keyframes pulse{ 0%,100%{ box-shadow: 0 0 0 0 rgba(239,68,68,.4) } 50%{ box-shadow: 0 0 0 8px rgba(239,68,68,0) } }
+  .bubble.me.thread .msg{
+    border: 2px solid var(--bot-c, var(--accent));
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, .08),
+      0 0 0 1px color-mix(in srgb, var(--bot-c, var(--accent)) 18%, transparent);
+  }
+  .bubble.me.thread .avatar{
+    box-shadow:
+      0 2px 6px -2px color-mix(in srgb, var(--bot-c, var(--accent)) 60%, transparent),
+      0 0 0 2px color-mix(in srgb, var(--bot-c, var(--accent)) 35%, transparent);
+  }
+  .bubble.me.thread::after{
+    content: "";
+    position: absolute;
+    right: -10px; top: 8px; bottom: 8px;
+    border-right: 2px solid color-mix(in srgb, var(--bot-c, var(--accent)) 60%, transparent);
+  }
 
   /* QA foot — rating icons + favorite */
   .qa-foot{
@@ -599,7 +771,6 @@
   .star-btn.is-fav{ background: #fef3c7; color: #b45309; border-color:#fde68a }
   .star-btn.is-fav::before{ content: "★" } .star-btn::before{ content: "☆" }
 
-  .app-footer{ text-align:center; color: var(--muted); padding: 24px; font-size: .88rem }
 
   @media (max-width: 540px){
     .hero h1{ font-size: 1.4rem }
@@ -608,7 +779,7 @@
     .stepper{ flex-wrap: nowrap }
   }
   @media print{
-    .flove-bar, .bot-filter, .toolbar, .stepper, .say-row, .my-bot-form, .reply-row, .qa-foot{ display:none !important }
+    .flove-bar, .bot-filter, .toolbar, .stepper, .say-row, .my-bot-form, .qa-foot{ display:none !important }
     details.qa-card{ box-shadow: none; border:1px solid #ccc; background:#fff }
   }
   @media (prefers-reduced-motion: reduce){ *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important } }
@@ -765,11 +936,6 @@
 
 <main class="container">
 
-  <!-- See all + Di la tuya -->
-  <div class="say-row">
-    <button type="button" class="btn-seeall" id="seeAllBtn">👁 See all (mis respuestas)</button>
-    <button type="button" class="btn-say" id="haveSayBtn">＋ Di la tuya</button>
-  </div>
 
   <!-- Inline my-bot creator (toggled by Have your say) -->
   <form class="my-bot-form" id="myBotForm" autocomplete="off">
@@ -805,13 +971,13 @@
     <input type="checkbox" id="f-mine">
 
     <nav class="filter-buttons" aria-label="Filtrar por bot (multi)">
-      <label for="f-juanito"  class="chip juanito">Juanito</label>
-      <label for="f-maripuri" class="chip maripuri">Mari Puri</label>
-      <label for="f-uxia"     class="chip uxia">Uxía</label>
-      <label for="f-encarna"  class="chip encarna">Encarna</label>
-      <label for="f-fairy"    class="chip fairy">Fairy</label>
-      <label for="f-mine"     class="chip mine" id="chipMine"><span id="chipMineLabel">Tú</span></label>
-      <label for="f-all"      class="chip all">Todos</label>
+      <label for="f-juanito"  class="chip juanito"  data-personality="🤝,⚖️,📊">Juanito</label>
+      <label for="f-maripuri" class="chip maripuri" data-personality="💝,🤲,☀️">Mari Puri</label>
+      <label for="f-uxia"     class="chip uxia"     data-personality="😊,🌱,🌈">Uxía</label>
+      <label for="f-encarna"  class="chip encarna"  data-personality="🕉️,🌌,🙏">Encarna</label>
+      <label for="f-fairy"    class="chip fairy"    data-personality="✨,🧚,🦄">Fairy</label>
+      <label for="f-mine"     class="chip mine" id="chipMine" data-personality="🔥,💫,🎯"><span id="chipMineLabel">Tú</span></label>
+      <button type="button" class="chip chip-add" id="addBotChip" title="Añadir un nuevo bot" aria-label="Añadir un nuevo bot">＋</button>
     </nav>
 
     <div class="qa-wrap">
@@ -826,10 +992,6 @@
           <div class="bubble bot uxia"><div class="avatar">U</div><div class="msg"><div class="msg-head"><span class="name">Uxía</span><time>10:03</time></div><p>¡Hola! A mí ya me convencieron 🙂</p></div></div>
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:03</time></div><p>Abriéndote a la generosidad y la gratitud se abre la puerta a un mundo nuevo…</p></div></div>
           <div class="bubble bot fairy"><div class="avatar">F</div><div class="msg"><div class="msg-head"><span class="name">Fairy</span><time>10:04</time></div><p>Dios me libre de convencer a nadie 😄 Creo que aún no has pillado la idea.</p></div></div>
-        </div>
-        <div class="reply-row" data-reply-for="q1">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
         </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q1">
@@ -851,10 +1013,6 @@
           <div class="bubble bot uxia"><div class="avatar">U</div><div class="msg"><div class="msg-head"><span class="name">Uxía</span><time>10:07</time></div><p>Por conocer y estar mejor con las personas.</p></div></div>
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:08</time></div><p>Prueba y lo descubrirás tú mismo…</p></div></div>
         </div>
-        <div class="reply-row" data-reply-for="q2">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
-        </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q2">
             <button class="rate-btn" type="button" data-key="formal"   title="Formal">🎩</button>
@@ -874,10 +1032,6 @@
           <div class="bubble bot maripuri"><div class="avatar">M</div><div class="msg"><div class="msg-head"><span class="name">Mari Puri</span><time>10:11</time></div><p>No prestes, regala si no quieres.</p></div></div>
           <div class="bubble bot uxia"><div class="avatar">U</div><div class="msg"><div class="msg-head"><span class="name">Uxía</span><time>10:11</time></div><p>Para difundir una historia y activar la cosa.</p></div></div>
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:12</time></div><p>Se siente bien porque casi siempre sale bien.</p></div></div>
-        </div>
-        <div class="reply-row" data-reply-for="q3">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
         </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q3">
@@ -900,10 +1054,6 @@
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:17</time></div><p>Además de legal, es bastante kármico.</p></div></div>
           <div class="bubble bot fairy"><div class="avatar">F</div><div class="msg"><div class="msg-head"><span class="name">Fairy</span><time>10:17</time></div><p>juajuajua</p></div></div>
         </div>
-        <div class="reply-row" data-reply-for="q4">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
-        </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q4">
             <button class="rate-btn" type="button" data-key="formal"   title="Formal">🎩</button>
@@ -924,10 +1074,6 @@
           <div class="bubble bot uxia"><div class="avatar">U</div><div class="msg"><div class="msg-head"><span class="name">Uxía</span><time>10:21</time></div><p>Me gusta ver perfiles más o menos completos para conocer a la persona.</p></div></div>
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:22</time></div><p>Ni tus datos ni los míos son "nuestros", en realidad…</p></div></div>
           <div class="bubble bot fairy"><div class="avatar">F</div><div class="msg"><div class="msg-head"><span class="name">Fairy</span><time>10:22</time></div><p>¿Tú qué harías? ¿Qué se te ocurre?</p></div></div>
-        </div>
-        <div class="reply-row" data-reply-for="q5">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
         </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q5">
@@ -950,10 +1096,6 @@
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:27</time></div><p>La gente valora que ofrezcas lo que no usas y otros necesitan.</p></div></div>
           <div class="bubble bot fairy"><div class="avatar">F</div><div class="msg"><div class="msg-head"><span class="name">Fairy</span><time>10:27</time></div><p>Confía en ti, y confiarás en los demás. Somos iguales.</p></div></div>
         </div>
-        <div class="reply-row" data-reply-for="q6">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
-        </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q6">
             <button class="rate-btn" type="button" data-key="formal"   title="Formal">🎩</button>
@@ -973,10 +1115,6 @@
           <div class="bubble bot maripuri"><div class="avatar">M</div><div class="msg"><div class="msg-head"><span class="name">Mari Puri</span><time>10:31</time></div><p>No dudes en pedir garantías o alargar la conversación.</p></div></div>
           <div class="bubble bot uxia"><div class="avatar">U</div><div class="msg"><div class="msg-head"><span class="name">Uxía</span><time>10:31</time></div><p>Accidentes hay, ser un poco más cuidadosos ayuda.</p></div></div>
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:32</time></div><p>¿Y si lo mejoran, limpian y ponen a buen uso? También pasa.</p></div></div>
-        </div>
-        <div class="reply-row" data-reply-for="q7">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
         </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q7">
@@ -998,10 +1136,6 @@
           <div class="bubble bot uxia"><div class="avatar">U</div><div class="msg"><div class="msg-head"><span class="name">Uxía</span><time>10:36</time></div><p>Si gusta el tema o cómo lo das, repetirán.</p></div></div>
           <div class="bubble bot encarna"><div class="avatar">E</div><div class="msg"><div class="msg-head"><span class="name">Encarna</span><time>10:37</time></div><p>Nuestros intereses peculiares son los que más felices transmitimos.</p></div></div>
         </div>
-        <div class="reply-row" data-reply-for="q8">
-          <input type="text" placeholder="Responde a Cram…" data-reply-input>
-          <button type="button" class="mic" data-mic title="Grabar voz" aria-label="Grabar voz">🎤</button>
-        </div>
         <div class="qa-foot">
           <div class="rate-group" data-rate="q8">
             <button class="rate-btn" type="button" data-key="formal"   title="Formal">🎩</button>
@@ -1015,10 +1149,17 @@
     </div>
   </section>
 
-  <footer class="app-footer">
-    Interfaz demo · puedes seguir añadiendo Q&amp;A con el mismo patrón <code>&lt;details class="qa-card"&gt;</code>.
-  </footer>
 </main>
+
+<!-- New-bot modal — loads the standalone new-wizard-help form in an iframe.
+     The form talks back via window.postMessage (see #addBotChip handler). -->
+<div class="add-bot-modal" id="addBotModal" role="dialog" aria-modal="true" aria-label="Añadir un bot">
+  <div class="add-bot-backdrop" data-close-add-bot></div>
+  <div class="add-bot-frame add-bot-frame--iframe">
+    <button type="button" class="add-bot-close" data-close-add-bot title="Cerrar" aria-label="Cerrar">×</button>
+    <iframe class="add-bot-iframe" id="addBotIframe" title="Nuevo bot" loading="lazy"></iframe>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -1028,9 +1169,15 @@
   const KEY_FAV    = "flove:help:favs";
   const KEY_OPEN   = "flove:help:open";
   const KEY_RATE   = "flove:help:rate";
-  const KEY_REPLY  = "flove:help:replies";
   const KEY_MYBOT  = "flove:help:mybot";
   const KEY_FILTER = "flove:help:filter";
+  const KEY_THREADS_EARLY = "flove:help:threads";
+
+  // Each reload starts clean: wipe every persisted selection so favorites,
+  // bot-filter chips, open/closed cards, custom ratings, my-bot identity
+  // and threaded replies don't carry over from a previous visit.
+  [KEY_FAV, KEY_OPEN, KEY_RATE, KEY_MYBOT, KEY_FILTER, KEY_THREADS_EARLY]
+    .forEach(k => { try{ localStorage.removeItem(k); }catch(_){} });
 
   // ===== Multi-select bot filter (body classes mirror checkbox state) =====
   const filterIds = ["all","juanito","maripuri","uxia","encarna","fairy","mine"];
@@ -1062,6 +1209,33 @@
     });
   });
 
+  // ===== Wizard personality popover =====
+  // Each chip with data-personality reveals 3 personality icons above
+  // itself for 5 seconds when clicked. The icons fade-in from inside
+  // the button, then fade out.
+  function injectPersonalityPops(){
+    $$(".chip[data-personality]").forEach(chip => {
+      if (chip.querySelector(":scope > .personality-pop")) return;
+      const icons = (chip.dataset.personality || "").split(",").map(s => s.trim()).filter(Boolean);
+      if (!icons.length) return;
+      const pop = document.createElement("span");
+      pop.className = "personality-pop";
+      pop.setAttribute("aria-hidden", "true");
+      pop.innerHTML = icons.map(i => `<span class="pp-icon">${i}</span>`).join("");
+      chip.appendChild(pop);
+    });
+  }
+  injectPersonalityPops();
+  document.addEventListener("click", (ev) => {
+    const chip = ev.target.closest(".chip[data-personality]");
+    if (!chip) return;
+    chip.classList.add("is-showing-personality");
+    clearTimeout(chip._popTimer);
+    chip._popTimer = setTimeout(() => {
+      chip.classList.remove("is-showing-personality");
+    }, 5000);
+  });
+
   // ===== Stepper =====
   $$(".stepper .step").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1091,8 +1265,12 @@
       if (b.querySelector(":scope > .msg > .bubble-actions")) return;
       const card = b.closest("details.qa-card");
       if (!card) return;
-      const replyId = card.id + "-" + whoOfBubble(b);
-      b.dataset.replyId = replyId;
+      // Don't overwrite a replyId already assigned (e.g. by threaded replies
+      // which use "{parent}-thread-{i}" to stay distinct from the generic
+      // card.id + "-me" derived from whoOfBubble).
+      if (!b.dataset.replyId){
+        b.dataset.replyId = card.id + "-" + whoOfBubble(b);
+      }
       const msg = b.querySelector(":scope > .msg");
       if (!msg) return;
       const actions = document.createElement("div");
@@ -1164,44 +1342,45 @@
     });
   });
 
-  // ===== Combined visibility (favs / search / stepper / see-all) =====
+  // ===== Combined visibility (favs / search / stepper) =====
   function applyVisibility(d){
     const hide = (d.dataset.favHidden === "1") || (d.dataset.searchHidden === "1")
-              || (d.dataset.blockHidden === "1") || (d.dataset.seeAllHidden === "1");
+              || (d.dataset.blockHidden === "1");
     d.style.display = hide ? "none" : "";
   }
 
-  // Favs-only + See-all (mis respuestas) — both filter per-reply.
-  // Parent question (Cram, in <summary>) always stays visible when the card is open.
+  // Favs-only — only individually-favorited bubbles stay visible, BUT a
+  // parent bubble that has a favorited threaded reply also stays visible
+  // (so the fav'd reply keeps its conversational context).
   let favOnly = false;
-  let seeAll  = false;
   function applyReplyFilters(){
-    $$("details.qa-card").forEach(card => {
-      let anyFav  = false;
-      let anyMine = false;
-      $$(".answers .bubble[data-reply-id]", card).forEach(b => {
-        const id     = b.dataset.replyId;
-        const isMine = b.classList.contains("me");
-        const favOk  = !favOnly || favs.has(id);
-        const seeOk  = !seeAll  || isMine;
-        const hide   = !(favOk && seeOk);
-        b.classList.toggle("is-hidden", hide);
-        if (!hide){
-          if (favs.has(id)) anyFav = true;
-          if (isMine)       anyMine = true;
-        }
+    // Compute parent ids that must stay visible because they own a fav thread.
+    const parentOverride = new Set();
+    if (favOnly){
+      Object.keys(threads).forEach(pid => {
+        (threads[pid] || []).forEach((_, i) => {
+          if (favs.has(`${pid}-thread-${i}`)) parentOverride.add(pid);
+        });
       });
-      // Also honour fav/see filters on the parent question itself
+    }
+    $$("details.qa-card").forEach(card => {
+      let anyFav = false;
+      // Filter every bubble in the card (Cram inside <summary> + bot/me inside .answers)
+      $$(".bubble[data-reply-id]", card).forEach(b => {
+        const id    = b.dataset.replyId;
+        const keep  = favs.has(id) || parentOverride.has(id);
+        const favOk = !favOnly || keep;
+        b.classList.toggle("is-hidden", !favOk);
+        if (favOk && keep) anyFav = true;
+      });
       const cramId  = card.id + "-cram";
-      const cramFav = favs.has(cramId);
-      const cardHasFav  = anyFav  || cramFav;
-      const cardHasMine = anyMine;
-      card.dataset.favHidden    = (!favOnly || cardHasFav)  ? "" : "1";
-      card.dataset.seeAllHidden = (!seeAll  || cardHasMine) ? "" : "1";
+      const cramFav = favs.has(cramId) || parentOverride.has(cramId);
+      const cardHasFav = anyFav || cramFav;
+      card.dataset.favHidden = (!favOnly || cardHasFav) ? "" : "1";
       applyVisibility(card);
-      // When a filter is on and the card still shows, auto-open so the parent
-      // question + filtered replies are visible together.
-      if ((favOnly || seeAll) && card.style.display !== "none") card.open = true;
+      // When the filter is on and the card still shows, auto-open it so the
+      // remaining favorited Q/A is visible without an extra click.
+      if (favOnly && card.style.display !== "none") card.open = true;
     });
   }
   $("#favOnly").addEventListener("click", () => {
@@ -1234,19 +1413,8 @@
     else { introSection.setAttribute("hidden", ""); titleBtn.setAttribute("aria-expanded", "false"); }
   });
 
-  // ===== Have your say: toggles reply rows + opens my-bot form =====
-  const haveSayBtn = $("#haveSayBtn");
-  const myBotForm  = $("#myBotForm");
-  let saying = false;
-  haveSayBtn.addEventListener("click", () => {
-    saying = !saying;
-    document.body.classList.toggle("has-say", saying);
-    haveSayBtn.classList.toggle("is-on", saying);
-    haveSayBtn.textContent = saying ? "× Cancelar mi voz" : "＋ Di la tuya";
-    myBotForm.classList.toggle("is-open", saying && !document.body.classList.contains("has-mine"));
-  });
-
   // ===== My-bot form: save title + icon, render as 6th chip =====
+  const myBotForm = $("#myBotForm");
   function applyMyBot(){
     const data = JSON.parse(localStorage.getItem(KEY_MYBOT) || "null");
     if (!data || !data.name || !data.icon) return;
@@ -1266,85 +1434,154 @@
     applyMyBot();
   });
 
-  // ===== Reply rows: persist + render as a "me" bubble inside each card =====
-  const replies = JSON.parse(localStorage.getItem(KEY_REPLY) || "{}");
-  function renderReplyBubble(card, text){
-    const ans = $(".answers", card);
-    let bubble = $(".bubble.me", card);
+  // ===== Inline reply field + threaded replies =====
+  // Clicking a bot bubble — or Cram's question bubble — reveals an inline
+  // input + Save button. For a bot, the editor + thread bubbles sit right
+  // below the bubble inside .answers. For Cram, both live at the top of
+  // the details body (after <summary>, before .answers) so the user's
+  // reply to the question is read before any bot replies.
+  const KEY_THREADS = "flove:help:threads";
+  const threads = JSON.parse(localStorage.getItem(KEY_THREADS) || "{}");
+
+  // For a given parent bubble, return the anchor element after which we
+  // insert threads / bubble-say, and the container that owns them.
+  function slotFor(parentBubble){
+    const card = parentBubble.closest("details.qa-card");
+    if (parentBubble.closest("summary")){
+      const summary = card.querySelector("summary");
+      return { anchor: summary, container: card };
+    }
+    return { anchor: parentBubble, container: parentBubble.parentNode };
+  }
+
+  function ensureBubbleSay(parentBubble){
+    if (!parentBubble || !parentBubble.dataset.replyId) return null;
+    const pid = parentBubble.dataset.replyId;
+    const { anchor, container } = slotFor(parentBubble);
+    // Walk past any existing thread bubbles that belong to this parent
+    let cursor = anchor;
+    let next   = cursor.nextElementSibling;
+    while (next && next.classList.contains("bubble") && next.classList.contains("me") && next.classList.contains("thread") && next.dataset.threadOf === pid){
+      cursor = next;
+      next   = next.nextElementSibling;
+    }
+    // Reuse an existing bubble-say if it's tagged for this parent
+    if (next && next.classList.contains("bubble-say") && next.dataset.sayFor === pid){
+      return next;
+    }
+    const say = document.createElement("div");
+    say.className = "bubble-say";
+    say.dataset.sayFor = pid;
+    say.innerHTML =
+      '<span class="say-editor">' +
+        '<input type="text" placeholder="Tu respuesta…" maxlength="500">' +
+        '<button type="button" class="btn-save-say">Guardar</button>' +
+      '</span>';
+    container.insertBefore(say, cursor.nextSibling);
+    return say;
+  }
+
+  function renderThreadsFor(parentBubble){
+    if (!parentBubble || !parentBubble.dataset.replyId) return;
+    const pid = parentBubble.dataset.replyId;
+    const { anchor, container } = slotFor(parentBubble);
+    // Remove existing rendered threads for this parent
+    let cur = anchor.nextElementSibling;
+    while (cur && cur.classList.contains("bubble") && cur.classList.contains("me") && cur.classList.contains("thread") && cur.dataset.threadOf === pid){
+      const n = cur.nextElementSibling;
+      cur.remove();
+      cur = n;
+    }
+    const list = threads[pid] || [];
+    if (!list.length) return;
     const myBot = JSON.parse(localStorage.getItem(KEY_MYBOT) || "null");
     const name  = (myBot && myBot.name) ? myBot.name : "Tú";
     const icon  = (myBot && myBot.icon) ? myBot.icon : "F";
-    const time  = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-    if (!text){
-      if (bubble) bubble.remove();
-      return;
+    // Pick up the parent wizard's color so the threaded reply's border
+    // matches its parent (e.g. a reply to Juanito gets a Juanito-blue
+    // border). Falls back to the accent for safety.
+    const BOT_COLOR_VAR = {
+      juanito: "var(--c-juanito)",
+      maripuri: "var(--c-maripuri)",
+      uxia: "var(--c-uxia)",
+      encarna: "var(--c-encarna)",
+      fairy: "var(--c-fairy)",
+      cram: "var(--c-cram)",
+      me: "var(--c-mine)",
+    };
+    let parentColor = null;
+    for (const k in BOT_COLOR_VAR){
+      if (parentBubble.classList.contains(k)){ parentColor = BOT_COLOR_VAR[k]; break; }
     }
-    if (!bubble){
-      bubble = document.createElement("div");
-      bubble.className = "bubble me";
-      bubble.innerHTML = `<div class="avatar">${icon}</div><div class="msg"><div class="msg-head"><span class="name">${escapeHtml(name)}</span><time>${time}</time></div><p></p></div>`;
-      ans.appendChild(bubble);
+    let insertAfter = anchor;
+    list.forEach((text, i) => {
+      const b = document.createElement("div");
+      b.className = "bubble me thread";
+      b.dataset.threadOf = pid;
+      b.dataset.replyId = pid + "-thread-" + i;
+      if (parentColor) b.style.setProperty("--bot-c", parentColor);
+      b.innerHTML = `<div class="avatar">${icon}</div><div class="msg"><div class="msg-head"><span class="name">${escapeHtml(name)}</span></div><p></p></div>`;
+      b.querySelector(".msg p").textContent = text;
+      container.insertBefore(b, insertAfter.nextSibling);
+      insertAfter = b;
+    });
+  }
+
+  function renderAllThreads(){
+    Object.keys(threads).forEach(pid => {
+      const parent = document.querySelector(`.bubble[data-reply-id="${pid}"]`);
+      if (parent) renderThreadsFor(parent);
+    });
+    injectBubbleActions();
+    applyFavs();
+    applyRatings();
+  }
+
+  // Delegated handlers for the inline say flow.
+  document.addEventListener("click", (ev) => {
+    // 1) Click "Guardar" → persist the thread reply
+    const saveBtn = ev.target.closest(".btn-save-say");
+    if (saveBtn){
+      ev.preventDefault();
+      const say   = saveBtn.closest(".bubble-say");
+      const input = say.querySelector("input");
+      const text  = (input.value || "").trim();
+      if (!text){ input.focus(); return; }
+      const pid    = say.dataset.sayFor;
+      const parent = pid ? document.querySelector(`.bubble[data-reply-id="${pid}"]`) : null;
+      if (!parent) return;
+      threads[pid] = threads[pid] || [];
+      threads[pid].push(text);
+      try{ localStorage.setItem(KEY_THREADS, JSON.stringify(threads)); }catch(_){}
+      input.value = "";
+      say.classList.remove("is-visible");
+      say.remove();
+      renderThreadsFor(parent);
       injectBubbleActions();
       applyFavs();
       applyRatings();
-    } else {
-      $(".avatar", bubble).textContent = icon;
-      $(".name", bubble).textContent   = name;
+      return;
     }
-    $(".msg p", bubble).textContent = text;
-  }
-  function applyReplies(){
-    $$("details.qa-card").forEach(card => {
-      const id = card.id;
-      renderReplyBubble(card, replies[id] || "");
-      const input = $('[data-reply-input]', card);
-      if (input) input.value = replies[id] || "";
-    });
-  }
-  $$('[data-reply-input]').forEach(inp => {
-    inp.addEventListener("input", () => {
-      const card = inp.closest("details.qa-card");
-      const id = card.id;
-      replies[id] = inp.value.trim();
-      if (!replies[id]) delete replies[id];
-      try{ localStorage.setItem(KEY_REPLY, JSON.stringify(replies)); }catch(e){}
-      renderReplyBubble(card, replies[id] || "");
-    });
-  });
 
-  // ===== Mic (Web Speech API if available; otherwise placeholder) =====
-  const Recog = window.SpeechRecognition || window.webkitSpeechRecognition;
-  $$('[data-mic]').forEach(mic => {
-    let rec = null;
-    mic.addEventListener("click", () => {
-      const card = mic.closest("details.qa-card");
-      const input = $('[data-reply-input]', card);
-      if (!Recog){
-        alert("Voz no soportada en este navegador. Puedes escribir tu respuesta.");
-        input?.focus();
-        return;
-      }
-      if (rec){ rec.stop(); rec = null; mic.classList.remove("is-rec"); return; }
-      rec = new Recog();
-      rec.lang = "es-ES"; rec.interimResults = true; rec.continuous = false;
-      mic.classList.add("is-rec");
-      rec.onresult = e => {
-        const txt = [...e.results].map(r => r[0].transcript).join(" ");
-        input.value = (input.value + " " + txt).trim();
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      };
-      rec.onend = () => { mic.classList.remove("is-rec"); rec = null; };
-      rec.onerror = () => { mic.classList.remove("is-rec"); rec = null; };
-      rec.start();
-    });
-  });
-
-  // ===== See all: only my replies + their parent question =====
-  $("#seeAllBtn").addEventListener("click", () => {
-    seeAll = !seeAll;
-    $("#seeAllBtn").classList.toggle("is-on", seeAll);
-    $("#seeAllBtn").textContent = seeAll ? "👁 Ver todas" : "👁 See all (mis respuestas)";
-    applyReplyFilters();
+    // 2) Click on a bot or Cram bubble's text → toggle the inline say
+    if (ev.target.closest(".bubble-actions")) return;
+    if (ev.target.closest(".bubble-say")) return;
+    const parentBubble = ev.target.closest(".qa-wrap .bubble.bot, .qa-wrap summary .bubble.cram");
+    if (!parentBubble) return;
+    // For Cram (inside <summary>), don't let the click toggle the <details>
+    // open/close — that toggle is owned by the ＋/× arrow now.
+    if (parentBubble.closest("summary")){
+      ev.preventDefault();
+      const card = parentBubble.closest("details.qa-card");
+      if (card && !card.open) card.open = true;
+    }
+    const say = ensureBubbleSay(parentBubble);
+    const wasVisible = say.classList.contains("is-visible");
+    say.classList.toggle("is-visible");
+    if (!wasVisible){
+      const inp = say.querySelector("input");
+      if (inp) setTimeout(() => inp.focus(), 0);
+    }
   });
 
   // ===== Utils =====
@@ -1352,23 +1589,83 @@
     return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
 
-  // ===== Restore filter state =====
-  (function restoreFilter(){
-    try{
-      const d = JSON.parse(localStorage.getItem(KEY_FILTER) || "null");
-      if (d){
-        $("#f-all").checked = !!d.all;
-        (d.on||[]).forEach(k => { const el = $("#f-"+k); if (el) el.checked = true; });
-        if (!d.all && !(d.on||[]).length) $("#f-all").checked = true;
-      }
-    }catch(e){}
-    syncFilterClasses();
-  })();
+  // ===== Add-bot modal — "+" chip opens an iframe to new-wizard-help.html.
+  // The form inside the iframe posts back via window.postMessage:
+  //   { type: "flove:new-bot", name, icon, basedOn, strings }
+  //   { type: "flove:new-bot-cancel" }
+  const addBotChip   = $("#addBotChip");
+  const addBotIframe = $("#addBotIframe");
+
+  function openAddBot(){
+    // Load the iframe each time so it starts fresh
+    addBotIframe.src = "new-wizard-help.html";
+    document.body.classList.add("add-bot-open");
+  }
+  function closeAddBot(){
+    document.body.classList.remove("add-bot-open");
+    addBotIframe.src = "about:blank";
+  }
+  addBotChip.addEventListener("click", openAddBot);
+  document.addEventListener("click", (ev) => {
+    if (ev.target.closest("[data-close-add-bot]")) closeAddBot();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && document.body.classList.contains("add-bot-open")) closeAddBot();
+  });
+  // Build a question-centric corpus from the chat: one entry per Cram
+  // question, with that question text plus each bot's answer to it.
+  // Sent to the iframe so the new-wizard form can show the parent
+  // (Cram) of each bot reply alongside it as reference.
+  function collectBotCorpus(){
+    const keys = ["juanito", "maripuri", "uxia", "encarna", "fairy"];
+    const questions = $$("details.qa-card").map(card => {
+      const cramP = card.querySelector(":scope > summary .bubble.cram .msg p");
+      const bots = {};
+      keys.forEach(k => {
+        const p = card.querySelector(`:scope > .answers .bubble.bot.${k} .msg p`);
+        if (p) bots[k] = (p.textContent || "").trim();
+      });
+      return {
+        id:   card.id,
+        cram: cramP ? (cramP.textContent || "").trim() : "",
+        bots,
+      };
+    });
+    return { questions };
+  }
+  function sendCorpusToIframe(){
+    try {
+      addBotIframe.contentWindow.postMessage(
+        { type: "flove:bot-corpus", corpus: collectBotCorpus() },
+        "*"
+      );
+    } catch(_){}
+  }
+  addBotIframe.addEventListener("load", sendCorpusToIframe);
+
+  window.addEventListener("message", (ev) => {
+    const d = ev.data;
+    if (!d || typeof d !== "object") return;
+    if (d.type === "flove:wizard-help-ready"){ sendCorpusToIframe(); return; }
+    if (d.type === "flove:new-bot-cancel"){ closeAddBot(); return; }
+    if (d.type === "flove:new-bot"){
+      const name = (d.name || "").trim();
+      const icon = d.icon || "🦊";
+      if (!name) return;
+      const chip = document.createElement("span");
+      chip.className = "chip chip-custom";
+      chip.style.setProperty("--c", "var(--accent)");
+      chip.title = name;
+      chip.innerHTML = `<span class="chip-icon">${escapeHtml(icon)}</span> ${escapeHtml(name)}`;
+      addBotChip.parentNode.insertBefore(chip, addBotChip);
+      closeAddBot();
+    }
+  });
 
   applyFavs();
   applyRatings();
   applyMyBot();
-  applyReplies();
+  renderAllThreads();
 })();
 </script>
 </body>

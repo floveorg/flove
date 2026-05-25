@@ -2998,3 +2998,138 @@ ${cardBody(d)}
     },
   });
 })();
+
+/* ============================================================
+   flove.wizard · inject / clear bot text without losing user typing
+   ============================================================
+   Per-element state held in a WeakMap. inject() either swaps the
+   previous bot insertion in place or appends after the user's text.
+   clear() removes only the bot block — leading/trailing user text
+   (and any text typed between insertions) is preserved.
+
+   API
+     flove.wizard.inject(el, text)
+     flove.wizard.clear(el)
+     flove.wizard.current(el)
+
+   Both inject() and clear() dispatch an "input" event so any
+   change/refresh listener on the form picks the new value up.
+   ============================================================ */
+(() => {
+  'use strict';
+  const state = new WeakMap();
+
+  function inject(el, text){
+    if (!el || text == null) return;
+    const oldText = state.get(el);
+    let val = el.value || "";
+    if (oldText && val.indexOf(oldText) !== -1){
+      val = val.replace(oldText, text);
+    } else {
+      const trimmed = val.replace(/\s+$/, "");
+      val = (trimmed ? trimmed + " " : "") + text;
+    }
+    el.value = val;
+    state.set(el, text);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function clear(el){
+    if (!el) return;
+    const oldText = state.get(el);
+    if (oldText && el.value && el.value.indexOf(oldText) !== -1){
+      const i = el.value.indexOf(oldText);
+      const before = el.value.slice(0, i);
+      const after  = el.value.slice(i + oldText.length);
+      let seam = "";
+      if (/\s$/.test(before) && /^\s/.test(after)) seam = " ";
+      el.value = before.replace(/\s+$/, "") + seam + after.replace(/^\s+/, "");
+    }
+    state.delete(el);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function current(el){
+    return el ? state.get(el) : undefined;
+  }
+
+  window.flove = Object.assign(window.flove || {}, {
+    wizard: { inject, clear, current },
+  });
+})();
+
+/* ============================================================
+   flove.wizard auto-wirer for the flovy "wizard-arm" pattern
+   ============================================================
+   Activates on pages whose entry fields use the legacy markup:
+
+     .entry-field
+       .entry-textareas
+         textarea.entry-textarea--default   ← user-writable
+         textarea.entry-textarea--magic     ← bot text source
+         textarea.entry-textarea--lovely(-N)
+         textarea.entry-textarea--joy(-N)
+         textarea.entry-textarea--wisdom(-N)
+       .wizard-arms
+         label.wizard-arm[for="wizard-choice-<scope>-<variant>"]
+         label.wizard-arm[for="wizard-main-p-<LJW><N>"]
+         label.wizard-arm--clear[for="wizard-choice-<scope>-none"]
+         label.wizard-arm--clear[for="wizard-main-p-0"]
+         label.wizard-arm--more[for="new-wizard-modal"]   ← skipped
+
+   On a click, the arm's `for=` tells which variant textarea to read.
+   The text is injected into the field's `--default` textarea via
+   flove.wizard.inject (or cleared via .clear). The radios still
+   toggle for any CSS state that depends on them, but the variant
+   textareas are hidden via the host page's stylesheet.
+   ============================================================ */
+(() => {
+  'use strict';
+
+  function variantInfo(forId){
+    if (!forId) return null;
+    if (forId === 'wizard-main-p-0') return { clear: true };
+    if (/^wizard-choice-(?:main|extra|alternative|note)-none$/.test(forId)) return { clear: true };
+
+    let m = forId.match(/^wizard-choice-(?:main|extra|alternative|note)-(magic|lovely|joy|wisdom)$/);
+    if (m) return { variant: m[1] };
+
+    m = forId.match(/^wizard-main-p-([LJW])([1-5])$/);
+    if (m){
+      const bot = { L: 'lovely', J: 'joy', W: 'wisdom' }[m[1]];
+      return { variant: bot, index: parseInt(m[2], 10) };
+    }
+    return null;
+  }
+
+  function findVariantText(field, info){
+    if (!field || !info) return '';
+    const cls = info.index
+      ? `entry-textarea--${info.variant}-${info.index}`
+      : `entry-textarea--${info.variant}`;
+    const ta = field.querySelector('.' + cls);
+    return ta ? (ta.value || '') : '';
+  }
+
+  function defaultTextareaFor(field){
+    return field ? field.querySelector('.entry-textarea--default') : null;
+  }
+
+  document.addEventListener('click', (ev) => {
+    const arm = ev.target.closest('.wizard-arm');
+    if (!arm) return;
+    if (arm.classList.contains('wizard-arm--more')) return;
+    const forId = arm.getAttribute('for');
+    const info  = variantInfo(forId);
+    if (!info) return;
+    const field = arm.closest('.entry-field');
+    const ta    = defaultTextareaFor(field);
+    if (!ta) return;
+    if (info.clear){
+      window.flove.wizard.clear(ta);
+    } else {
+      const text = findVariantText(field, info).trim();
+      if (text) window.flove.wizard.inject(ta, text);
+    }
+  }, true);
+})();

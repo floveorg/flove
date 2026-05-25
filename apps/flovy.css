@@ -1,0 +1,2715 @@
+/* ============================================================
+   shared flovy chrome — topbar + summary.
+   Consumer page must define --accent, --accent-deep,
+   --accent-glow, --accent-rgb on :root before importing.
+
+   Extracted from flovy/flovynormal.html (inline <style> block).
+   Sections kept: 1 (vocabulary intro), 2 (chrome) full,
+   bare 3 stepper + summary-related rules, 15 (summary panel)
+   full, 16 (mobile responsive overrides).
+   Sections skipped: form (4), layout/effects/animations/text
+   (5-13), page-load choreography (14), and form-specific
+   rules from section 3.
+   ============================================================ */
+
+/* ============================================================
+   1. VOCABULARY — locked terms for the interface
+   ████████████████████████████████████████████████████████████
+
+   These names are the contract. Keep code, comments and UI text
+   consistent with them.
+
+   • RAY  whole-UI personality switch (logo, title, panel
+                  labels, slogan, rater emoji, font/bg preset).
+                  Lives in the ✨ magic dropdown.
+                  Variables: --labeler-*
+                  Inputs:    name="topbar-labeler" (radio group)
+                  Trigger:   .ray / .labeler-sub icons (see "ray" below)
+
+   • BOT          per-field content suggester. Pre-fills a textarea
+                  with a stylistic variant (lovely / joy / wisdom).
+                  Lives next to each entry-field, opened by ✦.
+                  Classes:   .wizard-arm, .wizard-arms
+                  Inputs:    #wizard-choice-{1,2,extra,mini}-{magic,lovely,joy,wisdom,…}
+
+   • RATER        emoji reaction picker (heart / fun / love / thoughts).
+                  Lives next to each entry-field, opened by ★.
+                  Classes:   .rate-step, .rate-cell, .rate-{h,f,l,t},
+                             .rater-legend, .rater-emoji-trigger
+
+   ============================================================ */
+
+/* ============================================================
+   2. CHROME — site shell, controls and overlays
+   ============================================================ */
+
+/* ── 2.1  design tokens ──────────────────────────────────── */
+:root{
+
+  --ink:            #212121;
+  --ink-soft:       #5a5a5a;
+  --ink-mute:       #8a8a8a;
+  --line:           rgba(0, 0, 0, .10);
+  --line-strong:    rgba(0, 0, 0, .18);
+
+  --fill-soft:      rgba(var(--accent-rgb), .08);
+  --fill-mid:       rgba(var(--accent-rgb), .14);
+  --fill-pressed:   rgba(var(--accent-rgb), .50);
+  --grad-active:    linear-gradient(150deg, var(--accent), var(--accent-deep));
+
+  --panel-bg:       rgba(255, 255, 255, .18);
+  --panel-border:   rgba(var(--accent-rgb), .25);
+  --panel-blur:     blur(16px) saturate(140%);
+  --panel-shadow:   0 16px 40px rgba(0, 0, 0, .14);
+
+  --font-ui:        'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display:   'Georgia', 'Times New Roman', serif;
+
+  --radius:         16px;
+  --radius-pill:    999px;
+
+  --bounce:         cubic-bezier(.2, .8, .2, 1);
+  --fast:           .15s var(--bounce);
+  --btn-trans:      background var(--fast), border-color var(--fast),
+                    color var(--fast), box-shadow var(--fast);
+
+  --z-overlay:      95;
+  --z-topbar:       100;
+  --z-dropdown:     110;
+  --z-subdrop:      120;
+}
+
+/* ── 2.2  i18n: dual-span swap ───────────────────────────── */
+.t-es{ display: none; }
+body:has(#ui-lang-es:checked) .t-en{ display: none; }
+body:has(#ui-lang-es:checked) .t-es{ display: inline; }
+
+/* ── 2.3  base ───────────────────────────────────────────── */
+*{ box-sizing: border-box; }
+html, body{ margin: 0; padding: 0; overflow-x: hidden; }
+body{
+  min-height: 100vh;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 20%, var(--fill-soft), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, .08), transparent 50%),
+    linear-gradient(180deg, #fafafa, #d9d9d9);
+  background-attachment: fixed;
+}
+label[for]{ cursor: pointer; user-select: none; }
+
+.ctl{
+  /* fixed (not absolute) so focusing one of these hidden inputs via a label
+     never scrolls the page — the input is already inside the viewport. */
+  position: fixed; top: 0; left: 0;
+  width: 1px; height: 1px;
+  opacity: 0; pointer-events: none;
+  margin: 0;
+}
+
+/* ── 2.4  topbar ─────────────────────────────────────────── */
+.topbar{
+  position: sticky; top: 0;
+  z-index: var(--z-topbar);
+  background: transparent;
+}
+.topbar-inner{
+  position: relative;
+  max-width: 420px; width: 100%;
+  margin: 0 auto;
+  padding: .75rem 1rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.topbar-spacer{ flex: 1; }
+
+.mark-link{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: .15rem .25rem;
+  border-radius: 50%;
+  color: inherit; text-decoration: none;
+  transform: translateX(-10px);          /* nudged 10px leftwards */
+  transition: background var(--fast), transform var(--fast);
+}
+.mark-link:hover{ background: var(--fill-mid); transform: translate(-10px, -1px); }
+.mark{
+  font-size: 1.9rem;
+  color: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+.title-label{
+  display: inline-flex; align-items: center;
+  margin: 0 0 0 .25rem;
+  padding: .15rem .4rem;
+  border-radius: 10px;
+  transform: translateX(-30px);          /* nudged 30px leftwards */
+  transition: background var(--fast), transform var(--fast);
+}
+.title-label:hover{ background: rgba(var(--accent-rgb), .10); transform: translate(-30px, -1px); }
+body:has(#intro-open:checked) .title-label{ background: rgba(var(--accent-rgb), .18); }
+/* .title-h1 wraps the .title-label label semantically without affecting layout. */
+.title-h1{ display: contents; margin: 0; }
+.title-label .title-text,
+.title-label{
+  /* Text-only styling for the visible title element (the label) */
+  font-family: var(--font-display);
+  font-size: 1.5rem; font-weight: 700;
+  letter-spacing: -.01em; line-height: 1;
+  background: linear-gradient(90deg,
+    var(--accent) 0%,
+    #ff8a65 50%,
+    #ffb74d 75%,
+    var(--accent) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+  animation: flovy-wave 5.85s linear 14.5s infinite;
+}
+@keyframes flovy-wave{
+  to { background-position: -220% 0; }
+}
+
+/* ── 2.5  search row (lives at the top of the ☰ menu) ───── */
+.menu-search-row{
+  display: flex; align-items: center; gap: .4rem;
+  padding: .4rem .55rem .55rem;
+  list-style: none;
+}
+.menu-search-row .search-wrap,
+.menu-search-row .search-go{ transition: opacity .2s var(--fast); }
+.menu-search-row .search-wrap{ flex: 1; min-width: 0; opacity: .3; }
+/* Go button rides 30 percentage points hotter than the input on every state. */
+.menu-search-row .search-go{ opacity: .6; }
+.menu-search-row:hover .search-wrap,
+.menu-search-row:focus-within .search-wrap{ opacity: .6; }
+.menu-search-row:hover .search-go,
+.menu-search-row:focus-within .search-go{ opacity: .9; }
+.search-input{
+  width: 100%;
+  padding: .45rem .8rem;
+  font: 400 .95rem/1.2 var(--font-ui);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .85);
+  border: 3px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  transition: background var(--fast), border-color var(--fast);
+}
+.search-input::placeholder{ color: var(--ink-mute); }
+.search-input:focus{ border-color: var(--accent); background: rgba(255, 255, 255, 1); }
+
+.search-go{
+  flex: 0 0 auto;
+  padding: .35rem .85rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .04em;
+  cursor: pointer;
+  border: 0;
+  transition: filter var(--fast), transform var(--fast);
+}
+.search-go:hover{ filter: brightness(1.08); }
+.search-go:active{ transform: scale(.96); }
+
+.menu-search-row .menu-plus{
+  flex: 0 0 auto;
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: 700 1rem/1 var(--font-ui);
+  cursor: pointer;
+  border: 1px solid var(--line);
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.menu-search-row .menu-plus:hover,
+body:has(#menu-plus-open:checked) .menu-search-row .menu-plus{
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+
+.menu-minrow{
+  display: none;
+  align-items: center; justify-content: space-evenly;
+  gap: .4rem;
+  padding: 0 .55rem .55rem;
+  list-style: none;
+}
+body:has(#menu-plus-open:checked) .menu-minrow{ display: flex; }
+.menu-minbtn{
+  flex: 0 0 auto;
+  min-width: 30px; height: 28px;
+  padding: 0 .55rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .85);
+  color: var(--ink);
+  font: 700 .78rem/1 var(--font-ui);
+  cursor: pointer;
+  border: 1px solid var(--line);
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.menu-minbtn:hover{ background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── 2.6  round icon buttons ─────────────────────────────── */
+.ray, .labeler-sub, .magic-btn, .menu-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  transition: var(--btn-trans);
+}
+.ray, .labeler-sub{ width: 34px; height: 34px; font-size: 1rem; }
+.labeler:hover, .labeler-sub:hover, .magic-btn:hover, .menu-btn:hover{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+.menu-btn{ border-color: var(--line); }
+.menu-btn:hover{ background: transparent; box-shadow: 0 6px 16px var(--accent-glow); }
+.magic-btn{ color: var(--accent); font-size: 1.5rem; }
+.magic-btn:hover{ background: transparent; transform: translateY(-1px); box-shadow: 0 6px 16px var(--accent-glow); }
+
+body:has(#magic-open:checked) .magic-btn{
+  background: var(--grad-active); border-color: var(--accent-deep); color: #fff;
+}
+body:has(#d-menu:checked) .menu-btn{
+  border-color: var(--accent); color: var(--accent-deep);
+}
+.labeler-cell:has(input:checked) .ray,
+.labeler-sub-cell:has(input:checked) .labeler-sub{
+  background: var(--fill-pressed); border-color: var(--accent); color: #fff;
+}
+
+/* ── 2.7  All toggle ─────────────────────────────────────── */
+.app-toggle-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; padding: 0 .9rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  font: 700 .82rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  transition: var(--btn-trans);
+}
+.app-toggle-btn:hover{
+  border-color: var(--accent);
+  color: var(--accent-deep); box-shadow: 0 6px 16px var(--accent-glow);
+}
+body:has(#all-pressed:checked) .app-toggle-btn{
+  background: rgba(var(--accent-rgb), .5); border-color: var(--accent);
+}
+
+/* ── 2.7b  compass — display-mode switcher ──────────────────
+   Ported from flovybasic. The 🧭 button (a <label> for
+   #compass-open) opens a row of BARE mode icons. The chosen
+   radio (name="disp-mode") re-lays-out the section "fields":
+   the bg/anim/text tiles, the mood chips and the who-section
+   saved-field rows.  On flovynormal an inline <script> also
+   enhances the modes (real shuffle / sort / cloud sizing).
+     ≡  none   — natural layout (default, checked on load)
+     ▮  scope  — graded sizes for some texts & fields
+     ☁  cloud  — fields drift & sweep like clouds
+     🎲 random — random sizes, orders & motion across sections */
+.compass-wrap{ position: relative; display: inline-flex; align-items: center; z-index: 96; }
+
+/* bare icon — no box, no background; sized to the SVG itself */
+.compass-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: auto; height: auto;
+  padding: 0; border: 0; background: transparent;
+  color: rgba(var(--accent-rgb), .5);    /* red, less intense by default */
+  cursor: pointer;
+  position: relative; z-index: 2;
+  transition: color var(--fast), transform var(--fast);
+}
+.compass-btn svg{ display: block; transition: transform var(--fast); }
+.compass-btn:hover{ color: var(--accent-deep); transform: translateY(-1px); }
+/* clicked/open — icon jumps to full red intensity and spins once */
+body:has(#compass-open:checked) .compass-btn{ color: var(--accent); }
+body:has(#compass-open:checked) .compass-btn svg{ animation: compass-spin .5s ease; }
+@keyframes compass-spin{
+  from{ transform: rotate(0deg); }
+  to  { transform: rotate(360deg); }
+}
+
+/* the expanding row of mode icons — bare, no panel/background */
+.mode-buttons{
+  position: absolute;
+  top: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center; gap: .55rem;
+  white-space: nowrap;
+  z-index: 1;
+}
+body:has(#compass-open:checked) .mode-buttons{ display: inline-flex; }
+
+/* compass and magic sub-menus are mutually exclusive — while the compass
+   is open, the magic dropdown is hidden (the .magic-wrap ancestor lifts
+   specificity above the rules that reveal .magic-rays / .labeler-list). */
+body:has(#compass-open:checked) .magic-wrap :is(.magic-rays, .labeler-list){ display: none; }
+
+/* each mode icon — bare glyph, no box; the selected one rides accent + larger */
+.mode-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: transparent;
+  color: var(--ink-mute);
+  font-size: 1.5rem; line-height: 1;
+  cursor: pointer;
+  transition: color var(--fast), transform var(--fast);
+}
+.mode-btn svg{ display: block; width: 27px; height: 27px; }
+.mode-btn:hover{ color: var(--accent-deep); transform: translateY(-1px); }
+body:has(#disp-none:checked)   .mode-btn[for="disp-none"],
+body:has(#disp-scope:checked)  .mode-btn[for="disp-scope"],
+body:has(#disp-cloud:checked)  .mode-btn[for="disp-cloud"],
+body:has(#disp-random:checked) .mode-btn[for="disp-random"]{
+  color: var(--accent); transform: scale(1.3);
+}
+
+/* ───── the modes, applied to the section "fields" ─────
+   Target set = the repeating field-like blocks in the step
+   panels: background/animation/text tiles, mood chips, and the
+   who-section saved-field rows. disp-none has no rule (natural).
+   The pure-CSS rules below are the no-JS fallback; the inline
+   <script> overrides them with truly computed values. */
+
+/* smooth morphing between modes */
+body :is(.bg-tile, .bg-mood, .entry-list li){
+  transition: transform .55s var(--bounce), scale .55s var(--bounce),
+              font-size .45s var(--fast);
+}
+
+/* — scope — graded sizes: some texts and fields grow small → large — */
+body:has(#disp-scope:checked) :is(.bg-tile, .bg-mood):nth-child(4n+1){ scale: .8; }
+body:has(#disp-scope:checked) :is(.bg-tile, .bg-mood):nth-child(4n+2){ scale: .93; }
+body:has(#disp-scope:checked) :is(.bg-tile, .bg-mood):nth-child(4n+3){ scale: 1.08; }
+body:has(#disp-scope:checked) :is(.bg-tile, .bg-mood):nth-child(4n+4){ scale: 1.22; }
+body:has(#disp-scope:checked) .entry-list{ align-items: flex-start; }
+body:has(#disp-scope:checked) .entry-list li{ transform-origin: left center; }
+body:has(#disp-scope:checked) .entry-saved--1{ scale: .82; }
+body:has(#disp-scope:checked) .entry-saved--2{ scale: 1; }
+body:has(#disp-scope:checked) .entry-saved--3{ scale: 1.22; }
+body:has(#disp-scope:checked) .step-panel h2{ font-size: 1.85rem; }
+body:has(#disp-scope:checked) .step-panel p { font-size: 17px; }
+
+/* — cloud — fields drift & sweep their positions, like clouds — */
+body:has(#disp-cloud:checked) :is(.bg-tile, .bg-mood, .entry-list li){
+  animation: field-drift 6s ease-in-out infinite;
+}
+body:has(#disp-cloud:checked) :is(.bg-tile, .bg-mood):nth-child(4n+1){ animation-delay:  0s;    animation-duration: 6.5s; }
+body:has(#disp-cloud:checked) :is(.bg-tile, .bg-mood):nth-child(4n+2){ animation-delay: -1.6s;  animation-duration: 7.4s; }
+body:has(#disp-cloud:checked) :is(.bg-tile, .bg-mood):nth-child(4n+3){ animation-delay: -3.1s;  animation-duration: 5.8s; }
+body:has(#disp-cloud:checked) :is(.bg-tile, .bg-mood):nth-child(4n+4){ animation-delay: -4.7s;  animation-duration: 8.2s; }
+@keyframes field-drift{
+  0%, 100% { transform: translate(0, 0)        rotate(0deg); }
+  25%      { transform: translate(14px, -10px) rotate(2.5deg); }
+  50%      { transform: translate(-8px, 8px)   rotate(-2deg); }
+  75%      { transform: translate(10px, 6px)   rotate(1.5deg); }
+}
+
+/* — random (dice) — random-looking sizes, orders & motion — */
+body:has(#disp-random:checked) :is(.bg-tile, .bg-mood, .entry-list li){
+  animation: field-jitter 3.4s ease-in-out infinite;
+}
+body:has(#disp-random:checked) :is(.bg-tile, .bg-mood):nth-child(4n+1){ order: 3; scale: 1.18; animation-delay: -0.4s; animation-duration: 3.1s; }
+body:has(#disp-random:checked) :is(.bg-tile, .bg-mood):nth-child(4n+2){ order: 1; scale: .8;   animation-delay: -2.3s; animation-duration: 4.2s; }
+body:has(#disp-random:checked) :is(.bg-tile, .bg-mood):nth-child(4n+3){ order: 4; scale: 1.05; animation-delay: -1.1s; animation-duration: 2.7s; }
+body:has(#disp-random:checked) :is(.bg-tile, .bg-mood):nth-child(4n+4){ order: 0; scale: 1.32; animation-delay: -3.0s; animation-duration: 4.6s; }
+body:has(#disp-cloud:checked)  .entry-list,
+body:has(#disp-random:checked) .entry-list{ flex-flow: row wrap; justify-content: center; }
+body:has(#disp-cloud:checked)  .entry-list li,
+body:has(#disp-random:checked) .entry-list li{ flex: 0 0 auto; }
+body:has(#disp-random:checked) .entry-saved--1{ order: 2; scale: 1.15; }
+body:has(#disp-random:checked) .entry-saved--2{ order: 0; scale: .85; }
+body:has(#disp-random:checked) .entry-saved--3{ order: 1; scale: 1.05; }
+@keyframes field-jitter{
+  0%, 100% { transform: translate(0, 0)         rotate(-5deg); }
+  20%      { transform: translate(-12px, 9px)   rotate(7deg); }
+  40%      { transform: translate(15px, -7px)   rotate(-4deg); }
+  60%      { transform: translate(-9px, -11px)  rotate(6deg); }
+  80%      { transform: translate(11px, 10px)   rotate(-8deg); }
+}
+
+/* — section 1's editable field(s) respond too — contained motion: small
+   offsets / tiny rotation so the 100%-width field never looks clipped
+   (body already has overflow-x:hidden). scope bumps the text size. */
+body:has(#disp-scope:checked)  .who-section .entry-field .entry-textarea{ font-size: 1.06rem; }
+body:has(#disp-cloud:checked)  .who-section .entry-field{ animation: field-drift-soft 6.5s ease-in-out infinite; }
+body:has(#disp-random:checked) .who-section .entry-field{ animation: field-jitter-soft 3.6s ease-in-out infinite; }
+@keyframes field-drift-soft{
+  0%, 100% { transform: translate(0, 0)     rotate(0deg); }
+  33%      { transform: translate(4px, -8px) rotate(1deg); }
+  66%      { transform: translate(-4px, 6px) rotate(-0.8deg); }
+}
+@keyframes field-jitter-soft{
+  0%, 100% { transform: translate(0, 0)     rotate(-1.2deg); }
+  25%      { transform: translate(-5px, 6px) rotate(1.6deg); }
+  50%      { transform: translate(5px, -5px) rotate(-1deg); }
+  75%      { transform: translate(-3px, 4px) rotate(1.1deg); }
+}
+
+/* — dice mode also EXCHANGES positions (pure-CSS `order` on flex items):
+   the topbar icons reshuffle — the compass keeps slot 3 so its own menu
+   doesn't jump — and the main section's field blocks swap order. */
+body:has(#disp-random:checked) .topbar-inner > .app-toggle-btn{ order: 1; }
+body:has(#disp-random:checked) .topbar-inner > .magic-wrap    { order: 2; }
+body:has(#disp-random:checked) .topbar-inner > .compass-wrap  { order: 3; }
+body:has(#disp-random:checked) .topbar-inner > .top-menu      { order: 4; }
+body:has(#disp-random:checked) .topbar-inner > .topbar-spacer { order: 5; }
+body:has(#disp-random:checked) .topbar-inner > .mark-link     { order: 6; }
+body:has(#disp-random:checked) .topbar-inner   .title-label     { order: 7; }
+body:has(#disp-random:checked) .topbar-inner > .labeler-slogan    { order: 8; }
+
+body:has(#disp-random:checked):has(#step-0:checked) .who-section{
+  display: flex; flex-direction: column;
+}
+body:has(#disp-random:checked):has(#step-0:checked) .who-section > .who-head       { order: 0; }
+body:has(#disp-random:checked):has(#step-0:checked) .who-section > .section-tagline{ order: 1; }
+body:has(#disp-random:checked):has(#step-0:checked) .who-section > .entry-row--main { order: 2; }
+body:has(#disp-random:checked):has(#step-0:checked) .who-section > .entry-row--extra{ order: 3; }
+body:has(#disp-random:checked):has(#step-0:checked) .who-section > .entry-list      { order: 5; }
+body:has(#disp-random:checked):has(#step-0:checked) .who-section > .plus-add-wrap   { order: 6; }
+
+@media (prefers-reduced-motion: reduce){
+  .bg-tile, .bg-mood, .entry-list li{ transition: none; }
+  body:has(#disp-cloud:checked)  :is(.bg-tile, .bg-mood, .entry-list li),
+  body:has(#disp-random:checked) :is(.bg-tile, .bg-mood, .entry-list li),
+  body:has(#disp-cloud:checked)  .who-section .entry-field,
+  body:has(#disp-random:checked) .who-section .entry-field{ animation: none; }
+  body:has(#compass-open:checked) .compass-btn svg{ animation: none; }
+}
+
+/* compass mode-switch — particle burst (JS-spawned sparks) */
+.compass-spark{
+  position: fixed; width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  pointer-events: none; z-index: 210;
+  animation: compass-spark .6s ease-out forwards;
+}
+@keyframes compass-spark{
+  from{ transform: translate(0,0) scale(1); opacity: 1; }
+  to  { transform: translate(var(--dx,0), var(--dy,0)) scale(0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce){ .compass-spark{ display: none; } }
+
+/* ── 2.8  magic + arms ───────────────────────────────────── */
+.magic-wrap{ position: relative; display: inline-flex; align-items: center; }
+/* keep the magic-btn on its own stacking layer above any absolute sibling */
+.magic-btn{ position: relative; z-index: 2; }
+
+.magic-rays{
+  position: absolute;
+  top: calc(100% + 8px);    /* drop below the magic-btn */
+  right: 0;                 /* anchor to magic-btn's right edge */
+  display: none;            /* hidden until magic is open — no flow impact */
+  flex-direction: row;
+  align-items: center; gap: .5rem;
+  background: transparent;
+  white-space: nowrap;
+  z-index: 1;               /* below the magic-btn so it never blocks the click */
+}
+body:has(#magic-open:checked) .magic-rays{ display: flex; }
+.labeler-cell{
+  display: inline-flex; flex-direction: column; align-items: center;
+  flex: 0 0 auto;
+}
+.labeler-reset{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: .95rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: var(--btn-trans);
+}
+.labeler-reset:hover{ border-color: var(--accent); color: var(--accent-deep); background: var(--fill-soft); }
+
+.labeler-label, .labeler-sub-label{
+  display: none;            /* hidden until its input is checked */
+  font-size: .62rem; color: var(--accent-deep);
+  letter-spacing: .04em; text-transform: lowercase;
+  line-height: 1; white-space: nowrap;
+  margin-top: 2px; font-weight: 600;
+  transition: color var(--fast);
+}
+.labeler-sub-label{ margin-top: 1px; }
+body:has(#labeler-formal:checked)   .labeler-label[for="labeler-formal"],
+body:has(#labeler-informal:checked) .labeler-label[for="labeler-informal"],
+body:has(#labeler-hotter:checked)   .labeler-label[for="labeler-hotter"],
+body:has(#labeler-dramatic:checked) .labeler-sub-label[for="labeler-dramatic"],
+body:has(#labeler-nerdy:checked)    .labeler-sub-label[for="labeler-nerdy"],
+body:has(#labeler-cheeky:checked)   .labeler-sub-label[for="labeler-cheeky"],
+body:has(#labeler-whimsy:checked)   .labeler-sub-label[for="labeler-whimsy"],
+body:has(#labeler-mythic:checked)   .labeler-sub-label[for="labeler-mythic"],
+body:has(#labeler-queer:checked)    .labeler-sub-label[for="labeler-queer"],
+body:has(#labeler-magical:checked)  .labeler-sub-label[for="labeler-magical"],
+body:has(#labeler-cool:checked)     .labeler-sub-label[for="labeler-cool"]{ display: block; }
+
+.magic-rays .labeler-more--close,
+.top-menu .menu-btn--close{ display: none; }
+body:has(#d-armmore:checked) .magic-rays .labeler-more--open,
+body:has(#d-menu:checked)    .top-menu  .menu-btn--open{ display: none; }
+body:has(#d-armmore:checked) .magic-rays .labeler-more--close,
+body:has(#d-menu:checked)    .top-menu  .menu-btn--close{ display: inline-flex; }
+body:has(#d-armmore:checked) .magic-rays .labeler-more--close{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+
+/* ── 2.8b  tier pop — 5-level switcher, sits left of the ☰ menu.
+   Clicking the icon fans the five flovy tiers out toward its LEFT;
+   while open, the ✨ magic cluster steps aside (display:none) so the
+   tiers have room. Pure CSS: one #tier-pop-open checkbox. ───────── */
+.tier-pop{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+/* keep the icon on its own layer, above the fanned-out tiers */
+.tier-pop-btn{
+  position: relative;
+  z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: var(--btn-trans);
+}
+.tier-pop-btn svg{ display: block; }
+.tier-pop-btn:hover{
+  border-color: var(--accent); color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+body:has(#tier-pop-open:checked) .tier-pop-btn{
+  background: var(--grad-active); border-color: var(--accent-deep); color: #fff;
+}
+
+/* the five tiers fan out to the LEFT of the icon — anchored to its
+   left edge, hidden until #tier-pop-open is checked (no flow impact). */
+.tier-pop-rays{
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: .1rem;
+  margin: 0; padding: .3rem .45rem;
+  list-style: none;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  white-space: nowrap;
+  z-index: var(--z-dropdown);
+}
+body:has(#tier-pop-open:checked) .tier-pop-rays{ display: flex; }
+
+.tier-pop-step{
+  display: flex; flex-direction: column; align-items: center;
+  gap: .2rem;
+  padding: .2rem .4rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--fast);
+}
+.tier-pop-step:hover{ background: var(--fill-soft); }
+.tier-pop-node{
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--line-strong);
+  transition: background var(--fast), border-color var(--fast), transform var(--fast), box-shadow var(--fast);
+}
+.tier-pop-step:hover .tier-pop-node{ border-color: var(--accent); }
+.tier-pop-label{
+  font: 600 .6rem/1 var(--font-ui);
+  letter-spacing: .02em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.tier-pop-step:hover .tier-pop-label{ color: var(--accent-deep); }
+/* current tier — filled node (set statically; this file is the advanced tier) */
+.tier-pop-step--current .tier-pop-node{
+  background: var(--accent);
+  border-color: var(--accent-deep);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.tier-pop-step--current .tier-pop-label{ color: var(--accent-deep); font-weight: 700; }
+
+/* Complexity bar: widen gap + draw connecting lines between consecutive steps. */
+.tier-pop-rays{ gap: 1.1rem; }
+.tier-pop-step{ position: relative; z-index: 1; }
+/* Connector line between consecutive nodes — wide ribbon that visibly
+   chains the nodes together. Reddish overrides for previous/current/
+   unlocked apply on top of this base layer (further below). */
+.tier-pop-step:not(:last-child)::after{
+  content: ""; position: absolute;
+  top: 6px; left: 100%;
+  width: 1.4rem; height: 8px;
+  background: var(--ink-soft, #6a6a6a);
+  opacity: .55;
+  border-radius: 4px;
+  z-index: 0;
+}
+/* Work-in-progress placeholders (advanced + super): dimmed at 40%. */
+.tier-pop-step--wip{ opacity: .4; pointer-events: none; cursor: default; }
+.tier-pop-step--wip.is-unlocked{
+  opacity: .85;
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 12px;
+  animation: tier-pop-step-aura 2.2s ease-in-out infinite;
+}
+.tier-pop-step--wip.is-unlocked:hover,
+.tier-pop-step--wip.is-unlocked:focus-visible{ opacity: 1; }
+.tier-pop-step--wip.is-unlocked .tier-pop-node{
+  background: var(--accent);
+  border-color: var(--accent-deep);
+}
+.tier-pop-step--wip.is-unlocked .tier-pop-label{
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+@keyframes tier-pop-step-aura{
+  0%, 100%{ box-shadow: 0 0 8px 2px rgba(var(--accent-rgb), .35); }
+  50%{ box-shadow: 0 0 14px 5px rgba(var(--accent-rgb), .55); }
+}
+
+/* ── Complexity-bar progression ── nodes grow mini→super; nodes for the
+   current tier and any earlier tier get a reddish tint (sense of "you
+   have already passed these"). The unlocked Advanced node gets a
+   reddish halo around its clickable area — no border / no pressed look,
+   just an inviting glow + a one-time splash on first unlock. */
+.tier-pop-rays > li:nth-child(1) .tier-pop-node{ width: 8px;  height: 8px;  }
+.tier-pop-rays > li:nth-child(2) .tier-pop-node{ width: 11px; height: 11px; }
+.tier-pop-rays > li:nth-child(3) .tier-pop-node{ width: 14px; height: 14px; }
+.tier-pop-rays > li:nth-child(4) .tier-pop-node{ width: 17px; height: 17px; }
+.tier-pop-rays > li:nth-child(5) .tier-pop-node{ width: 20px; height: 20px; }
+/* Per-node top adjust so the 8px line stays centred with each node's
+   smaller radius (nodes grow mini → super so each connector must sit
+   at the LEFT node's vertical centre). */
+.tier-pop-rays > li:nth-child(1) .tier-pop-step::after{ top: 0px;   }
+.tier-pop-rays > li:nth-child(2) .tier-pop-step::after{ top: 1.5px; }
+.tier-pop-rays > li:nth-child(3) .tier-pop-step::after{ top: 3px;   }
+.tier-pop-rays > li:nth-child(4) .tier-pop-step::after{ top: 4.5px; }
+/* Connector line inherits the node state — reddish from any passed
+   step (including current and unlocked Advanced); pulses + splashes
+   in sync with the unlocked node. */
+.tier-pop-rays > li:has(~ li > .tier-pop-step--current) .tier-pop-step::after,
+.tier-pop-step--current::after,
+.tier-pop-step--wip.is-unlocked::after{
+  background: rgba(178, 34, 34, .9);
+}
+.tier-pop-step--wip.is-unlocked::after{
+  animation: tier-pop-line-aura-reddish 2.2s ease-in-out infinite;
+}
+@keyframes tier-pop-line-aura-reddish{
+  0%, 100%{ box-shadow: 0 0 6px 1px rgba(217, 70, 70, .35); }
+  50%    { box-shadow: 0 0 10px 3px rgba(217, 70, 70, .55); }
+}
+.tier-pop-step--wip.is-unlocked.just-unlocked::after{
+  animation: tier-pop-splash-line .9s ease-out;
+}
+@keyframes tier-pop-splash-line{
+  0%  { box-shadow: 0 0 0 0   rgba(217, 70, 70, .9); }
+  60% { box-shadow: 0 0 0 12px rgba(217, 70, 70, 0); }
+  100%{ box-shadow: 0 0 0 0   rgba(217, 70, 70, 0); }
+}
+
+/* PREVIOUS nodes (before the current tier): no "selected" look on the
+   node itself — only the surrounding step area gets a subtle reddish
+   tint, slightly more reddish than the future nodes to the right. */
+.tier-pop-rays > li:has(~ li > .tier-pop-step--current) > .tier-pop-step{
+  background: rgba(217, 70, 70, .12);
+  border-radius: 8px;
+}
+.tier-pop-rays > li:has(~ li > .tier-pop-step--current) .tier-pop-label{
+  color: rgba(178, 34, 34, .8);
+}
+
+/* CURRENT tier: full reddish node + bold label (only the active one
+   reads as "selected"). */
+.tier-pop-step--current .tier-pop-node{
+  background: rgba(217, 70, 70, .85);
+  border-color: rgba(178, 34, 34, .9);
+  box-shadow: none;
+  transform: none;
+}
+.tier-pop-step--current .tier-pop-label{
+  color: rgba(178, 34, 34, .95);
+  font-weight: 700;
+}
+
+/* UNLOCKED tiers (Advanced) — just an inviting reddish halo around the
+   clickable area. No extra border on the node (keeps the base
+   .tier-pop-node border so the node doesn't look "selected"). */
+.tier-pop-step--wip.is-unlocked{
+  animation: tier-pop-step-aura-reddish 2.2s ease-in-out infinite;
+}
+.tier-pop-step--wip.is-unlocked .tier-pop-node{
+  background: rgba(217, 70, 70, .85);
+  box-shadow: none;
+  transform: none;
+}
+.tier-pop-step--wip.is-unlocked .tier-pop-label{
+  color: rgba(178, 34, 34, .95);
+  font-weight: 700;
+}
+@keyframes tier-pop-step-aura-reddish{
+  0%, 100%{ box-shadow: 0 0 10px 2px rgba(217, 70, 70, .35); }
+  50%{ box-shadow: 0 0 16px 6px rgba(217, 70, 70, .55); }
+}
+.tier-pop-step--wip.is-unlocked.just-unlocked .tier-pop-node{
+  animation: tier-pop-splash .9s ease-out;
+}
+@keyframes tier-pop-splash{
+  0%  { box-shadow: 0 0 0 0  rgba(217, 70, 70, .9); transform: scale(1);   }
+  60% { box-shadow: 0 0 0 18px rgba(217, 70, 70, 0); transform: scale(1.4); }
+  100%{ box-shadow: 0 0 0 0  rgba(217, 70, 70, 0); transform: scale(1);   }
+}
+
+/* while the tier pop is open, hide the ✨ magic cluster */
+body:has(#tier-pop-open:checked) .magic-wrap{ display: none; }
+
+/* ── 2.9  panels ─────────────────────────────────────────── */
+.labeler-list, .menu-list{
+  position: absolute;
+  margin: 0; padding: .4rem;
+  list-style: none;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  display: none;
+}
+.labeler-list{
+  top: calc(100% + 8px); right: 40px;
+  width: 130px; padding: .6rem;
+  grid-template-columns: repeat(2, 1fr);
+  row-gap: .7rem; column-gap: .35rem;
+  align-items: start;
+  z-index: var(--z-dropdown);
+}
+body:has(#magic-open:checked):has(#d-armmore:checked) .labeler-list{ display: grid; }
+
+.labeler-sub-cell{ display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.labeler-sub-cell.is-more{ grid-column: 1 / -1; justify-self: center; }
+.labeler-list-sep{
+  grid-column: 1 / -1; height: 1px;
+  background: rgba(0, 0, 0, .10);
+  margin: .25rem .2rem .15rem;
+}
+.labeler-wizardry{
+  grid-column: 1 / -1;
+  display: inline-flex; align-items: center; justify-content: center; gap: .3rem;
+  width: 100%; padding: .35rem .5rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(var(--accent-rgb), .45);
+  background: rgba(var(--accent-rgb), .10);
+  color: var(--accent-deep);
+  font-size: .8rem; font-weight: 400;
+  letter-spacing: .04em; text-decoration: none;
+  transition: background var(--fast), transform var(--fast);
+}
+.labeler-wizardry strong{ font-weight: 800; }
+.labeler-wizardry:hover{ background: rgba(var(--accent-rgb), .20); transform: translateY(-1px); }
+
+/* ── 2.10 menu ☰ ─────────────────────────────────────────── */
+.top-menu{ position: relative; }
+.menu-list{
+  top: calc(100% + 8px); right: 0;
+  min-width: 286px;
+  z-index: var(--z-dropdown);
+  /* Override the panel-bg + blur defaults: the menu must fully invade the
+     interface — opaque background, no see-through to the underlying UI. */
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+body:has(#d-menu:checked) .menu-list{ display: block; }
+/* No extra close rule needed: d-menu sits in the same radio group as step-0..5,
+   so picking a design link (or any step) auto-unchecks d-menu and the menu
+   disappears. Opening the menu auto-unchecks the current step and hides its
+   panel. The X / close button targets #step-0 to land on Introduction. */
+.menu-list li > a,
+.menu-list li > label[for],
+.menu-list li > .menu-design-link{
+  display: block;
+  padding: .55rem .7rem;
+  border-radius: 8px;
+  font-size: .92rem;
+  color: var(--ink); text-decoration: none;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.menu-list li > a:hover,
+.menu-list li > label[for]:hover,
+.menu-list li > .menu-design-link:hover{
+  background: var(--fill-mid); color: var(--accent-deep);
+}
+.menu-list .mi{
+  display: none;
+}
+/* Languages: the menu-switch-flag overrides the generic .mi hide rule so
+   the flag of the currently selected language still shows as its icon. */
+.menu-list .menu-switch-flag.mi{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  margin-right: .55rem;
+  font-size: 1rem;
+  background: transparent;
+  vertical-align: -4px;
+}
+.menu-section-title{
+  padding: .25rem .7rem .15rem;
+  font-size: .68rem;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-mute); pointer-events: none;
+}
+.menu-section-title--collapsible{ pointer-events: auto; }
+.menu-section-toggle{
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .4rem;
+  padding: .15rem .25rem;
+  border-radius: 6px;
+  color: inherit; cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.menu-section-toggle:hover{ background: var(--fill-soft); color: var(--accent-deep); }
+.menu-section-caret{
+  font-size: .8rem; color: var(--ink-soft);
+  transition: transform var(--fast);
+}
+body:has(#menu-design-open:checked) .menu-section-toggle .menu-section-caret{
+  transform: rotate(180deg);
+}
+/* Design uses a big "+" aligned right instead of a caret. The whole row is
+   still the click target (the label is the full li width), and the glyph
+   swaps to a literal "×" when the section is open, signalling "collapse
+   back". Same affordance is reused on the Navigation toggle. */
+.menu-section-plus{
+  margin-left: auto;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--accent-deep);
+}
+.menu-section-toggle:hover .menu-section-plus,
+.menu-nav-toggle:hover .menu-section-plus{ color: var(--accent); }
+.menu-section-plus .plus-close{ display: none; }
+body:has(#menu-design-open:checked) .menu-section-toggle .menu-section-plus .plus-open{ display: none; }
+body:has(#menu-design-open:checked) .menu-section-toggle .menu-section-plus .plus-close{ display: inline; }
+body:has(#menu-nav-open:checked)    .menu-nav-toggle    .menu-section-plus .plus-open{ display: none; }
+body:has(#menu-nav-open:checked)    .menu-nav-toggle    .menu-section-plus .plus-close{ display: inline; }
+.menu-design-item{ display: none; }
+body:has(#menu-design-open:checked) .menu-design-item{ display: list-item; }
+body:has(#menu-design-open:checked) .menu-design-item.menu-switch--split{ display: flex; }
+
+/* Navigation section collapsed by default: the 5-node bar (and the Mode
+   row that depends on it) hide unless menu-nav-open is checked. The "+"
+   on the Navigation label rotates / swaps to "×" exactly like Design. */
+.menu-nav-toggle-li{ list-style: none; }
+.menu-nav-toggle{
+  display: flex; align-items: center; gap: .55rem;
+  padding: .55rem .7rem;
+  border-radius: 8px;
+  font-size: .92rem;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.menu-nav-toggle:hover{ background: var(--fill-mid); color: var(--accent-deep); }
+.menu-nav-item{ display: none; }
+body:has(#menu-nav-open:checked) .menu-nav-item.menu-nav-row{ display: list-item; }
+body:has(#menu-nav-open:checked) .menu-nav-item.menu-switch--mode{ display: list-item; }
+/* Mode stays gated on nav depth in addition to the section being open. */
+body:not(:has(#nav-advanced:checked)):not(:has(#nav-super:checked))
+  .menu-nav-item.menu-switch--mode{ display: none; }
+.menu-divider{ height: 1px; margin: .35rem; background: rgba(0, 0, 0, .10); list-style: none; }
+
+/* ── 2.11 menu switches (Sound / Mode / Visibility) ──────── */
+.menu-switch{ list-style: none; position: relative; }
+.menu-switch-add{
+  position: absolute;
+  top: 50%; right: .15rem;
+  transform: translateY(-50%);
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 255, 255, .55);
+  color: var(--ink-soft);
+  font: 600 .85rem/1 var(--font-ui);
+  cursor: pointer;
+  transition: var(--btn-trans);
+}
+.menu-switch-add:hover{
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent-deep);
+  background: var(--fill-soft);
+}
+.menu-switch--with-add .menu-switch-label{ padding-right: 1.8rem; }
+
+/* ── split switch (Sound): icon+name = link to Sounds section, slider = on/off toggle.
+   Track column kept at the same 130px right slot as the other switches. ── */
+.menu-switch--split{
+  display: flex; align-items: stretch;
+  gap: .45rem;
+  padding: 0 .7rem;
+}
+.menu-switch--split .menu-switch-name-link{
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: .45rem;
+  padding: .45rem 0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: inherit; text-decoration: none;
+  transition: background var(--fast), color var(--fast);
+}
+.menu-switch--split .menu-switch-name-link:hover{
+  background: var(--fill-mid);
+  color: var(--accent-deep);
+}
+.menu-switch--split .menu-switch-label--track-only{
+  flex: 0 0 130px;
+  display: flex; align-items: center;
+  padding: .45rem 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.menu-switch--split .menu-switch-label--track-only .menu-switch-state{ width: 100%; }
+.menu-switch--split .menu-switch-label--track-only:hover{ background: var(--fill-mid); }
+
+.menu-switch-label{
+  display: grid;
+  grid-template-columns: auto 1fr 130px;
+  align-items: center; gap: .45rem;
+  padding: .45rem .7rem;
+  border-radius: 8px;
+  font-size: .92rem; color: var(--ink);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.menu-switch-label:hover{ background: var(--fill-mid); color: var(--accent-deep); }
+.menu-switch-icon{ flex: 0 0 auto; }
+.menu-switch-name{ min-width: 0; }
+.menu-switch-state{
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: .35rem;
+  font-size: .72rem; color: var(--ink-mute);
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.menu-switch-left{ text-align: right; }
+.menu-switch-right{ text-align: left; }
+.menu-switch-left, .menu-switch-right{
+  transition: color var(--fast), font-weight var(--fast);
+}
+.menu-switch-track{
+  position: relative; display: inline-block;
+  width: 28px; height: 14px;
+  background: rgba(0, 0, 0, .12);
+  border-radius: 999px;
+  transition: background var(--fast);
+}
+.menu-switch-thumb{
+  position: absolute; top: 1px; left: 1px;
+  width: 12px; height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+  transition: left var(--fast);
+}
+body:has(#opt-sound:checked) .menu-switch-label[for="opt-sound"] .menu-switch-track,
+body:has(#opt-vis:checked)   .menu-switch-label[for="opt-vis"]   .menu-switch-track{
+  background: rgba(var(--accent-rgb), .55);
+}
+body:has(#opt-sound:checked) .menu-switch-label[for="opt-sound"] .menu-switch-thumb,
+body:has(#opt-vis:checked)   .menu-switch-label[for="opt-vis"]   .menu-switch-thumb{
+  left: 15px;
+}
+/* highlight active side */
+body:not(:has(#opt-sound:checked)) .menu-switch-label[for="opt-sound"] .menu-switch-left,
+body:not(:has(#opt-vis:checked))   .menu-switch-label[for="opt-vis"]   .menu-switch-left,
+body:has(#opt-sound:checked) .menu-switch-label[for="opt-sound"] .menu-switch-right,
+body:has(#opt-vis:checked)   .menu-switch-label[for="opt-vis"]   .menu-switch-right{
+  color: var(--accent-deep); font-weight: 700;
+}
+
+/* ── 2.12 Navigation 5-node bar — replaces the old Simple/Adv toggle.
+   Each step is a label (whole vertical strip clickable) tied to one of
+   five nav-level radios. Track line runs behind the nodes via a
+   pseudo-element. The row extends slightly past the normal menu-list
+   padding (negative side margins + scale) so the bar occupies ~10% more
+   width than a regular menu row, keeping all five labels comfortable. ── */
+.menu-nav-row{
+  list-style: none;
+  padding: .55rem .15rem .65rem;
+  margin: 0 -.55rem;
+}
+.menu-nav-title{
+  display: none;
+}
+.menu-nav-bar{
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+}
+.menu-nav-bar::before{
+  content: "";
+  position: absolute;
+  top: 11px; left: 8%; right: 8%;
+  height: 2px;
+  background: var(--line-strong);
+  border-radius: 2px;
+  z-index: 0;
+}
+.menu-nav-step{
+  position: relative;
+  z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: .25rem;
+  padding: .25rem .15rem .15rem;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--fast);
+}
+.menu-nav-step:hover{ background: var(--fill-soft); }
+.menu-nav-node{
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--line-strong);
+  margin-top: 3px;
+  transition: background var(--fast), border-color var(--fast), transform var(--fast), box-shadow var(--fast);
+}
+.menu-nav-step:hover .menu-nav-node{ border-color: var(--accent); }
+.menu-nav-label{
+  font: 600 .62rem/1.05 var(--font-ui);
+  letter-spacing: .02em;
+  color: var(--ink-soft);
+  text-align: center;
+  white-space: nowrap;
+}
+.menu-nav-step:hover .menu-nav-label{ color: var(--accent-deep); }
+/* Current tier — filled, slightly larger node. The tier nav steps are
+   real links now; the step pointing at THIS file carries
+   .menu-nav-step--current (set statically — this file is the advanced tier). */
+.menu-nav-step--current .menu-nav-node{
+  background: var(--accent);
+  border-color: var(--accent-deep);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.menu-nav-step--current .menu-nav-label{
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+/* Sound-level bar — same node visuals as Navigation; only visible while
+   the Sound switch is on. flove.js reads the checked radio + the data-
+   attributes to enable the corresponding behavior. */
+.menu-sound-row{ display: none; }
+body:has(#opt-sound:checked) .menu-sound-row{ display: list-item; }
+body:has(#sound-mini:checked)     .menu-nav-step[for="sound-mini"]     .menu-nav-node,
+body:has(#sound-basic:checked)    .menu-nav-step[for="sound-basic"]    .menu-nav-node,
+body:has(#sound-normal:checked)   .menu-nav-step[for="sound-normal"]   .menu-nav-node,
+body:has(#sound-advanced:checked) .menu-nav-step[for="sound-advanced"] .menu-nav-node,
+body:has(#sound-super:checked)    .menu-nav-step[for="sound-super"]    .menu-nav-node{
+  background: var(--accent);
+  border-color: var(--accent-deep);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+body:has(#sound-mini:checked)     .menu-nav-step[for="sound-mini"]     .menu-nav-label,
+body:has(#sound-basic:checked)    .menu-nav-step[for="sound-basic"]    .menu-nav-label,
+body:has(#sound-normal:checked)   .menu-nav-step[for="sound-normal"]   .menu-nav-label,
+body:has(#sound-advanced:checked) .menu-nav-step[for="sound-advanced"] .menu-nav-label,
+body:has(#sound-super:checked)    .menu-nav-step[for="sound-super"]    .menu-nav-label{
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+/* Mode row visibility is controlled by .menu-nav-item rules below: hidden
+   unless the Navigation section is expanded AND nav level is Advanced/Super.
+   When shown, the label + its switch sit on a single non-wrapping row. */
+.menu-switch--mode .menu-switch-label{ flex-wrap: nowrap; white-space: nowrap; }
+.menu-switch--mode .menu-switch-state{ white-space: nowrap; }
+
+/* Languages — dropdown (no track/thumb): clicking the row opens the
+   language list anchored to its left. The whole closed row is one
+   non-wrapping line: flag | Languages | English ▾. */
+.menu-switch--lang{ position: relative; }
+.menu-switch-label--drop{ flex-wrap: nowrap; white-space: nowrap; }
+.menu-switch-label--drop .menu-switch-name,
+.menu-switch-label--drop .menu-switch-state,
+.menu-switch-label--drop .menu-switch-current{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.menu-switch-label--drop .menu-switch-state{
+  grid-template-columns: 1fr auto;
+  justify-self: end;
+  color: var(--ink);
+}
+.menu-switch-current{
+  font-weight: 600; color: var(--accent-deep);
+  text-align: right;
+}
+.menu-switch-caret{
+  font-size: .9rem; color: var(--ink-soft);
+  transition: transform var(--fast);
+}
+body:has(#opt-lang:checked) .menu-switch-caret{ transform: rotate(180deg); }
+.lang-others{
+  position: absolute;
+  top: 0; right: calc(100% + 4px);
+  margin: 0; padding: .25rem;
+  list-style: none;
+  min-width: 130px;
+  background: #fdfdfd;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  box-shadow: var(--panel-shadow);
+  display: none;
+  z-index: var(--z-subdrop);
+}
+body:has(#d-menu:checked):has(#opt-lang:checked) .lang-others{ display: block; }
+/* When the language dropdown is open, tighten the menu so the dropdown
+   doesn't push outside the viewport. */
+body:has(#opt-lang:checked) .menu-list{
+  min-width: 247px;
+  padding: .25rem;
+}
+body:has(#opt-lang:checked) .menu-list li > a,
+body:has(#opt-lang:checked) .menu-list li > .menu-design-link,
+body:has(#opt-lang:checked) .menu-switch-label,
+body:has(#opt-lang:checked) .menu-switch--split{ padding-top: .3rem; padding-bottom: .3rem; font-size: .86rem; }
+body:has(#opt-lang:checked) .menu-switch-label{ grid-template-columns: auto 1fr 110px; }
+body:has(#opt-lang:checked) .menu-switch--split .menu-switch-label--track-only{ flex-basis: 110px; }
+.lang-others li > a,
+.lang-others li > label,
+.lang-others-more > label{
+  display: flex; align-items: center; gap: .4rem;
+  padding: .3rem .45rem;
+  border-radius: 6px;
+  font-size: .82rem; color: var(--ink); text-decoration: none;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.lang-others li > a:hover,
+.lang-others li > label:hover,
+.lang-others-more > label:hover{ background: var(--fill-mid); color: var(--accent-deep); }
+body:has(#ui-lang-en:checked) .lang-others li > label[for="ui-lang-en"],
+body:has(#ui-lang-es:checked) .lang-others li > label[for="ui-lang-es"]{
+  background: var(--fill-mid);
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+.lang-others-more > label{ color: var(--ink-soft); }
+.lang-others-more .lang-flag{
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 255, 255, .35);
+  color: var(--accent-deep);
+}
+.lang-flag{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  font-size: 1rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .55);
+}
+
+/* ── 2.13 related apps card ──────────────────────────────── */
+.related-apps-card{
+  list-style: none;
+  margin: .25rem .15rem;
+  padding: .55rem .55rem .6rem;
+  background: rgba(var(--accent-rgb), .06);
+  border: 1px solid rgba(var(--accent-rgb), .18);
+  border-radius: 12px;
+}
+.related-apps-head{
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 0 0 .45rem;
+}
+.related-apps-title{
+  font-size: .68rem;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.related-apps-foryou{
+  display: inline-flex; align-items: center;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--accent-rgb), .45);
+  background: rgba(var(--accent-rgb), .10);
+  color: var(--accent-deep);
+  font-size: .72rem; font-weight: 600;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: background var(--fast), transform var(--fast);
+}
+.related-apps-foryou:hover{ background: rgba(var(--accent-rgb), .20); transform: translateY(-1px); }
+.related-foryou-close{ display: none; }
+body:has(#related-foryou:checked) .related-foryou-open{ display: none; }
+body:has(#related-foryou:checked) .related-foryou-close{ display: inline; }
+.related-apps-grid, .related-apps-more{
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: .35rem;
+}
+.related-apps-more{
+  margin-top: .4rem;
+  display: none;
+}
+body:has(#related-foryou:checked) .related-apps-more{ display: grid; }
+.related-apps-grid li > a, .related-apps-more li > a{
+  display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  padding: .35rem .25rem;
+  border-radius: 8px;
+  font-size: .72rem; color: var(--ink); text-decoration: none;
+  transition: background var(--fast), color var(--fast);
+}
+.related-apps-grid li > a:hover, .related-apps-more li > a:hover{
+  background: var(--fill-mid); color: var(--accent-deep);
+}
+.related-app-logo{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .7);
+  font-size: 1rem;
+}
+.related-app-name{ font-weight: 600; letter-spacing: .02em; }
+.related-apps-all{
+  display: inline-block;
+  margin-top: .4rem;
+  padding: .2rem .55rem;
+  font-size: .72rem; font-weight: 600;
+  color: var(--accent-deep);
+  background: rgba(var(--accent-rgb), .10);
+  border: 1px solid rgba(var(--accent-rgb), .35);
+  border-radius: 999px;
+  text-decoration: none;
+  align-self: flex-start;
+}
+.related-apps-all:hover{ background: rgba(var(--accent-rgb), .20); }
+
+/* outside-click overlay */
+.dropdown-overlay{
+  position: fixed; inset: 0;
+  z-index: var(--z-overlay); display: none;
+}
+body:has(input[name="topdrop"]:not(#d-none):checked) .dropdown-overlay--armmore,
+body:has(#d-menu:checked) .dropdown-overlay--menu,
+body:has(#compass-open:checked) .dropdown-overlay--compass{ display: block; }
+
+/* ── 2.14 new-ray / new-bot / new-language / new-sound modal (shared shell) ── */
+.newlabeler-modal,
+.newwizard-modal,
+.newlanguage-modal,
+.newsound-modal{
+  position: fixed; inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 1.2rem;
+}
+body:has(#new-labeler-modal:checked) .newlabeler-modal,
+body:has(#new-wizard-modal:checked) .newwizard-modal,
+body:has(#new-language-modal:checked) .newlanguage-modal,
+body:has(#new-sound-modal:checked) .newsound-modal{ display: flex; }
+.newlabeler-backdrop,
+.newwizard-backdrop,
+.newlanguage-backdrop,
+.newsound-backdrop{
+  position: absolute; inset: 0;
+  background: rgba(20, 16, 24, .55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+.newlabeler-frame,
+.newwizard-frame,
+.newlanguage-frame,
+.newsound-frame{
+  position: relative;
+  width: 50vw;
+  height: 50vh;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
+  overflow: hidden;
+}
+.newlabeler-close,
+.newwizard-close,
+.newlanguage-close,
+.newsound-close{
+  position: absolute;
+  top: 10px; right: 14px;
+  z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 700 1.2rem/1 var(--font-ui);
+  cursor: pointer;
+  transition: var(--btn-trans);
+}
+.newlabeler-close:hover,
+.newwizard-close:hover,
+.newlanguage-close:hover,
+.newsound-close:hover{ background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+.newlabeler-iframe,
+.newwizard-iframe,
+.newlanguage-iframe,
+.newsound-iframe{
+  display: block;
+  width: 100%; height: 100%;
+  border: 0;
+  background: #fafafa;
+}
+
+/* ── 2.15 info box ───────────────────────────────────────── */
+.intro-section{
+  position: relative;
+  max-width: 420px; margin: .4rem auto 1.2rem;
+  padding: 1.1rem 1.3rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  background: linear-gradient(150deg, rgba(var(--accent-rgb), .08), rgba(0, 0, 0, .04));
+  color: var(--ink);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
+  display: none;
+}
+body:has(#intro-open:checked) .intro-section,
+body:has(#all-pressed:checked) .intro-section{ display: block; }
+.intro-lead{ margin: 0 0 .8rem; font-size: 1.02rem; line-height: 1.55; }
+.intro-lead strong{ color: var(--accent-deep); }
+.see-more-btn{
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .4rem .9rem; border-radius: var(--radius-pill);
+  border: 1px solid rgba(var(--accent-rgb), .45);
+  background: transparent; color: var(--accent-deep);
+  font: 600 .82rem/1 var(--font-ui);
+  letter-spacing: .06em; text-transform: uppercase;
+  transition: background var(--fast), border-color var(--fast);
+}
+.see-more-btn:hover{ background: rgba(var(--accent-rgb), .10); border-color: var(--accent); }
+.see-more-btn .chev{ display: inline-block; transition: transform .2s ease; }
+body:has(#see-more:checked) .see-more-btn .chev,
+body:has(#intro-open:checked) .see-more-btn .chev,
+body:has(#all-pressed:checked) .see-more-btn .chev{ transform: rotate(180deg); }
+body:has(#see-more:checked) .see-more-btn,
+body:has(#intro-open:checked) .see-more-btn,
+body:has(#all-pressed:checked) .see-more-btn{ display: none; }
+.intro-more{
+  overflow: hidden; max-height: 0; opacity: 0; margin-top: 0;
+  transition: max-height .4s ease, opacity .35s ease, margin .35s ease;
+}
+body:has(#see-more:checked) .intro-more,
+body:has(#intro-open:checked) .intro-more,
+body:has(#all-pressed:checked) .intro-more{ max-height: 800px; opacity: 1; margin-top: .9rem; }
+.intro-more p{ margin: 0 0 .6rem; }
+.intro-columns{ display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .8rem; }
+.intro-columns h4{
+  margin: 0 0 .4rem; font-size: .82rem;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--accent-deep);
+}
+.slides-mock, .video-mock{
+  aspect-ratio: 16 / 9;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  border: 1px dashed rgba(var(--accent-rgb), .3);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), .12), rgba(0, 0, 0, .06));
+  color: var(--accent-deep);
+  font-size: .82rem; letter-spacing: .04em; text-transform: uppercase;
+}
+@media (max-width: 640px){ .intro-columns{ grid-template-columns: 1fr; } }
+.intro-close{
+  border: 1px solid var(--accent-deep);
+  background: var(--grad-active); color: #fff;
+  box-shadow: 0 6px 14px var(--accent-glow);
+  font: 700 1.4rem/1 var(--font-ui);
+  transition: transform .2s var(--bounce), box-shadow var(--fast), filter var(--fast);
+}
+.intro-close:hover{ transform: rotate(90deg) scale(1.08); box-shadow: 0 10px 22px var(--accent-glow); filter: brightness(1.05); }
+.intro-close-tr{
+  position: absolute; top: .55rem; right: .55rem;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: 50%; display: inline-grid; place-items: center;
+}
+.intro-close-bottom{
+  position: absolute; left: 50%; bottom: 0;
+  width: 48px; height: 48px; padding: 0; font-size: 1.7rem;
+  border-radius: 50%; display: none; place-items: center;
+  transform: translate(-50%, 50%);
+}
+body:has(#see-more:checked) .intro-close-bottom,
+body:has(#intro-open:checked) .intro-close-bottom,
+body:has(#all-pressed:checked) .intro-close-bottom{ display: inline-grid; }
+.intro-close-bottom:hover{ transform: translate(-50%, 50%) rotate(90deg) scale(1.08); }
+
+.ghost-body{ max-width: 1100px; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+.ghost-body .row{ height: 14px; margin: 12px 0; border-radius: 6px; background: rgba(0, 0, 0, .06); }
+.ghost-body .row.mid  { width: 75%; }
+.ghost-body .row.short{ width: 50%; }
+
+/* ============================================================
+   3. STEPPER — 7 elementos, sin numeración, último = resumen
+   ============================================================ */
+.step-panels{
+  max-width: 420px; margin: 0 auto;
+  padding: calc(1.2rem + 30px) 1.25rem calc(7rem - 30px);
+  min-height: 50vh;
+}
+.step-panel{ display: none; }
+body:has(#step-0:checked) .step-panel:nth-of-type(1),
+body:has(#step-1:checked) .step-panel:nth-of-type(2),
+body:has(#step-2:checked) .step-panel:nth-of-type(3),
+body:has(#step-3:checked) .step-panel:nth-of-type(4),
+body:has(#step-4:checked) .step-panel:nth-of-type(5),
+body:has(#step-5:checked) .step-panel:nth-of-type(6){ display: block; }
+/* "All" reveals the Design panels (Backgrounds / Animations / Sounds)
+   even though they are no longer in the main stepper. */
+body:has(#all-pressed:checked) .step-panel:nth-of-type(2),
+body:has(#all-pressed:checked) .step-panel:nth-of-type(3),
+body:has(#all-pressed:checked) .step-panel:nth-of-type(4),
+body:has(#all-pressed:checked) .step-panel:nth-of-type(6){ display: block; }
+
+/* single-centered placeholder element for stub panels */
+.single-centered{
+  display: flex; align-items: center; justify-content: center;
+  min-height: 240px;
+  margin: 1.4rem 0;
+  font: 700 2.4rem/1 var(--font-display);
+  color: var(--ink-mute);
+  letter-spacing: .04em;
+  text-align: center;
+}
+.step-panel h2{
+  margin: 0 0 .6rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem; font-weight: 700; color: var(--accent-deep);
+}
+.step-panel p{ margin: 0 0 .8rem; color: var(--ink-soft); font-size: 14px; line-height: 1.55; }
+.step-panel.is-summary{
+  /* Extra bottom padding so the absolutely-positioned Download button
+     (cycle-row.download-bar, ~58px below the Save trigger) sits inside
+     the section's background, with a bit of margin underneath it. */
+  padding: 1.2rem 1.4rem 3rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+}
+.step-panel.is-summary ul{ margin: .4rem 0; padding-left: 22px; color: var(--ink); font-size: 14px; }
+.step-panel.is-summary ul li{ margin-bottom: 4px; }
+
+
+/* ── Summary-related rules originally interleaved in section 3 ── */
+/* Resume → live mirror of the main entry textarea (the field above the
+   summary). The phrase content is the user's text plus any bot
+   suggestion they've accepted, with line breaks preserved. */
+[data-flove-phrase] .flove-phrase-text,
+.clause-magic .flove-phrase-text{
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Inline rater emojis next to each field's text — no background, no
+   borders, no preposition. They sit on the same line as the field text. */
+[data-flove-phrase] .flove-phrase-emos{
+  display: inline;
+  margin-left: .3em;
+  letter-spacing: -.06em;
+  vertical-align: baseline;
+}
+/* Heart icon in the resume — filled body, dim-but-warm red by default
+   (.5 → .625, a 25% opacity bump so the red reads stronger) and full
+   when the field's rater has clicks (the `.is-on` flag the renderer
+   adds). Sits BEFORE its related text. */
+[data-flove-phrase] .flove-phrase-heart{
+  display: inline;
+  margin-right: .25em;
+  color: #b25d5d; /* heart red — 50% less saturated than the old #d33 */
+  font-size: 1.38em;
+  opacity: .625;
+  vertical-align: baseline;
+}
+/* "Add note" field lines in the resume carry a small "Note:" label. */
+[data-flove-phrase] .flove-phrase-note-lbl{
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-right: .15em;
+}
+[data-flove-phrase] .flove-phrase-heart.is-on{ opacity: 1; }
+
+/* (Legacy) compact chip styling — kept so other consumers of the
+   helpers can still use it if they want the chip rendering. */
+[data-flove-phrase] .flove-rater-compact{
+  display: inline-flex; flex-wrap: wrap; gap: .35em;
+  margin-top: .55em;
+  font: 13px/1.2 var(--font-ui);
+}
+[data-flove-phrase] .flove-rater-chip{
+  display: inline-flex; align-items: center; gap: .2em;
+  padding: .12em .55em .15em;
+  background: var(--fill-soft);
+  border: 1px solid rgba(var(--accent-rgb), .15);
+  border-radius: 999px;
+  color: var(--ink);
+}
+[data-flove-phrase] .flove-rater-chip em{
+  font-style: normal; font-weight: 600;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
+}
+[data-flove-phrase] .flove-rater-prep{
+  color: var(--ink-soft); font-style: italic;
+}
+[data-flove-phrase] .flove-rater-emos{
+  letter-spacing: -.06em;
+}
+
+/* Summary action row — tighter so Views + Insight + Magic + Copy fit
+   on one line. Buttons are 15% smaller than the .btn default. Copy is
+   pinned to the right side of the row. */
+.step-panel.is-summary .action-row{
+  gap: .25rem !important;
+  flex-wrap: nowrap;
+}
+.step-panel.is-summary .action-row > .btn,
+.step-panel.is-summary .action-row > .insight-cycle .btn,
+.step-panel.is-summary .action-row .flove-phrase-btn{
+  height: 31px;
+  padding: 0 .47rem;
+  font-size: .7rem;
+  white-space: nowrap;
+}
+.step-panel.is-summary .action-row .flove-phrase-btn{ margin-left: 0; }
+.step-panel.is-summary .action-row > .copy-btn{ margin-left: auto; }
+
+/* Download button — louder. Filled gradient, soft glow, gentle pulse so
+   it reads as "the next thing to click" inside the Save drawer. Width
+   + height owned by the .dl-btn rule below; this layer only adds the
+   visual emphasis. */
+.step-panel.is-summary .dl-btn{
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  font-weight: 700;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 0 var(--accent-glow),
+    0 6px 16px -6px var(--accent-glow);
+  animation: flove-dl-pulse 2.4s ease-in-out infinite;
+  transition: transform .15s ease, box-shadow .25s ease;
+}
+.step-panel.is-summary .dl-btn:hover{
+  transform: translateY(-1px) scale(1.02);
+  box-shadow:
+    0 0 0 6px rgba(var(--accent-rgb), .15),
+    0 10px 22px -6px var(--accent-glow);
+  animation-play-state: paused;
+}
+@keyframes flove-dl-pulse{
+  0%, 100%{ box-shadow:
+    0 0 0 0   rgba(var(--accent-rgb), .35),
+    0 6px 16px -6px var(--accent-glow); }
+  50%     { box-shadow:
+    0 0 0 8px rgba(var(--accent-rgb), 0),
+    0 8px 22px -6px var(--accent-glow); }
+}
+
+/* Keep the ✨ Magic button label fixed — the separate "Phrase" button
+   injected by flove.js handles the exit. Override the prior CSS swap
+   that turned the label to "Phrase" when the toggle was on. */
+body:has(#magic-toggle:checked) .magic-btn-summary .label-off{ display: inline !important; }
+body:has(#magic-toggle:checked) .magic-btn-summary .label-on{ display: none !important; }
+
+/* Phrase escape button — appears only while magic is on. */
+.flove-phrase-btn{
+  margin-left: .35rem;
+}
+body:not(:has(#magic-toggle:checked)) .flove-phrase-btn{ display: none; }
+
+/* Bars / Vertical / Axial / Spider views — worthing-style recap with
+   mini-bars. Rendered by flove.js when the phrase is in any of
+   .flove-view--phrase--{bars,vertical,axial,spider}. */
+[data-flove-phrase] .flove-recap{
+  display: grid;
+  gap: .25em;
+  margin-top: .75em;
+  padding: .65em .8em;
+  border-top: 1px dashed rgba(0, 0, 0, .08);
+}
+[data-flove-phrase] .flove-recap-row{
+  display: grid;
+  grid-template-columns: 1.2em minmax(72px, auto) 1fr auto;
+  align-items: center;
+  gap: .55em;
+  font: 13px/1.3 var(--font-ui);
+}
+[data-flove-phrase] .flove-recap-emo{ font-size: 1.05em; }
+[data-flove-phrase] .flove-recap-lbl{ color: var(--ink-soft); font-weight: 600; }
+[data-flove-phrase] .flove-mini-bar{
+  position: relative;
+  height: 8px;
+  background: rgba(0, 0, 0, .06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+[data-flove-phrase] .flove-mini-fill{
+  position: absolute; inset: 0 auto 0 0;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  transition: width .2s ease;
+}
+[data-flove-phrase] .flove-recap-val{
+  color: var(--ink); font-variant-numeric: tabular-nums;
+  font-size: 90%;
+}
+
+
+/* ============================================================
+   15. SUMMARY PANEL — last step output + action grid
+   ============================================================ */
+.clause{
+  display: block; margin: 0 0 1rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  background: linear-gradient(150deg, rgba(255, 255, 255, .92), rgba(255, 250, 242, .78));
+  font-family: var(--font-display);
+  font-size: 1.02rem; line-height: 1.6;
+  color: var(--ink); min-height: 72px;
+}
+.clause:empty::before{ content: "Fill the form to render your output here."; color: var(--ink-mute); }
+.clause-code{
+  display: inline;
+  padding: .08em .35em;
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: .85em;
+  color: var(--accent-deep);
+  background: rgba(var(--accent-rgb), .08);
+  border: 1px solid rgba(var(--accent-rgb), .2);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.action-grid{ display: flex; flex-direction: column; gap: .6rem; }
+.action-row{ display: flex; flex-wrap: wrap; gap: .5rem; }
+.action-row.right{ justify-content: flex-end; }
+
+.btn{
+  display: inline-flex; align-items: center; gap: .25rem;
+  height: 36px; padding: 0 .55rem;
+  border-radius: var(--radius-pill);
+  font: 600 .82rem/1 var(--font-ui);
+  letter-spacing: .04em; cursor: pointer;
+  text-decoration: none;
+  transition: var(--btn-trans), transform var(--fast);
+}
+.btn.ghost{ background: transparent; border: 1px solid var(--line-strong); color: var(--ink-soft); }
+.btn.ghost:hover{
+  background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
+  box-shadow: 0 6px 16px var(--accent-glow); transform: translateY(-1px);
+}
+.btn.ghost:active{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+  transform: translateY(0); box-shadow: none;
+}
+.btn.solid{ background: var(--grad-active); color: #fff; border: 1px solid var(--accent-deep); }
+.btn.solid:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+.btn[aria-pressed="true"]{ background: var(--fill-pressed); color: #fff; border-color: var(--accent); }
+
+.btn-popup-wrap{ position: relative; display: inline-flex; }
+.popup-menu{
+  position: absolute; min-width: 200px; padding: .5rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  z-index: var(--z-dropdown);
+}
+.popup-menu[hidden]{ display: none; }
+.popup-menu.publish-above{ bottom: calc(100% + 8px); right: 0; }
+.popup-menu.publish-below, .popup-menu.save-menu{ top: calc(100% + 8px); right: 0; }
+.popup-row{ display: flex; flex-wrap: wrap; gap: .35rem; padding: .3rem 0; }
+.popup-row + .popup-row{ border-top: 1px solid rgba(0, 0, 0, .06); margin-top: .3rem; padding-top: .55rem; }
+.popup-row .btn{ height: 30px; padding: 0 .7rem; font-size: .76rem; }
+
+/* magic toggle — swaps clause + label */
+.clause-magic{ display: none; }
+body:has(#magic-toggle:checked) .clause-default{ display: none; }
+body:has(#magic-toggle:checked) .clause-magic{ display: block; }
+.magic-btn-summary .label-on{ display: none; }
+body:has(#magic-toggle:checked) .magic-btn-summary .label-off{ display: none; }
+body:has(#magic-toggle:checked) .magic-btn-summary .label-on { display: inline; }
+body:has(#magic-toggle:checked) .magic-btn-summary{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
+
+/* insight cycle — 5 states (0 empty + 4 texts), advances on each click */
+.insight-cycle{ display: inline-flex; position: relative; }
+.insight-step{ display: none; }
+/* show one step at a time — the one that triggers the NEXT state */
+body:has(#insight-0:checked) .insight-step:nth-child(1),
+body:has(#insight-1:checked) .insight-step:nth-child(2),
+body:has(#insight-2:checked) .insight-step:nth-child(3),
+body:has(#insight-3:checked) .insight-step:nth-child(4),
+body:has(#insight-4:checked) .insight-step:nth-child(5){ display: inline-flex; }
+/* visual "pressed" feedback whenever a content state is showing (1-4) */
+body:has(#insight-1:checked) .insight-step:nth-child(2),
+body:has(#insight-2:checked) .insight-step:nth-child(3),
+body:has(#insight-3:checked) .insight-step:nth-child(4),
+body:has(#insight-4:checked) .insight-step:nth-child(5){
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
+
+.insight-panel{
+  display: none;
+  margin-top: .9rem; padding: .9rem 1rem;
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), .06);
+  border: 1px solid rgba(var(--accent-rgb), .18);
+  font-size: .88rem; line-height: 1.55; color: var(--ink);
+}
+/* editable clause — visible focus + hover affordance */
+.clause[contenteditable="true"]{ cursor: text; }
+.clause[contenteditable="true"]:hover{ border-color: rgba(var(--accent-rgb), .45); }
+.clause[contenteditable="true"]:focus{
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
+}
+
+/* Top-row buttons (Views / Insight / Magic / Copy) are 15% smaller so
+   the row stays light. No icons — just labels. */
+.action-row > .btn,
+.action-row > .insight-cycle .btn{
+  height: 31px;
+  padding: 0 .47rem;
+  font-size: .7rem;
+}
+
+/* Subtab row — sits IMMEDIATELY below the action-row of Views/Insight/
+   Magic/Copy, with a -16px top margin so it tucks 8px above where the
+   .action-grid gap (.6rem ≈ 9.6px) would otherwise place it. Layout
+   space always reserved (visibility:hidden when Views is off) so
+   clicking Views never reflows the page. */
+.action-row--views{
+  display: flex;
+  visibility: hidden;
+  justify-content: flex-start;
+  gap: .25rem;
+  margin: -16px 0 0 0;
+  min-height: 22px;
+}
+body:has(#views-open:checked) .action-row--views{ visibility: visible; }
+.action-row--views .view-pick{
+  height: 22px !important;
+  padding: 0 .5rem !important;
+  font-size: .75rem !important;
+  line-height: 1;
+  border-radius: 6px;
+}
+body:has(#view-bars:checked)     .view-pick[for="view-bars"],
+body:has(#view-vertical:checked) .view-pick[for="view-vertical"],
+body:has(#view-axial:checked)    .view-pick[for="view-axial"],
+body:has(#view-spider:checked)   .view-pick[for="view-spider"]{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
+body:has(#views-open:checked) .views-btn,
+body:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked) .views-btn{
+  background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
+}
+
+/* ── Chart slot ──────────────────────────────────────────────────────
+   All four views (bars / vertical / axial / spider) render inside the
+   SAME .cssviz-out container, centered with a common max-width. When
+   no view is marked, the slot collapses (display:none); when a view is
+   marked, the chart appears and pushes Save/Share/Publish below it. */
+.cssviz-out{
+  margin-top: .85rem;
+  padding-top: .7rem;
+  border-top: 1px dashed rgba(0, 0, 0, .08);
+}
+body:not(:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked)) .cssviz-out{
+  display: none;
+}
+.cssviz{ display: none; max-width: 360px; margin: 0 auto; }
+body:has(#view-bars:checked) .cssviz--bars{ display: block; }
+body:has(#view-vertical:checked) .cssviz--vertical{
+  display: flex; align-items: flex-end; justify-content: space-around; gap: .7rem;
+}
+body:has(#view-vertical:checked) .cssviz--bars{ display: none; }
+.cssviz--svg{ text-align: center; }
+
+/* Picker emojis — sit INLINE inside each .clause output, next to the
+   end of the phrase text. JS (syncPickerToResume) writes the picked
+   glyphs here. contenteditable="false" on the element keeps both the
+   user and the browser from disturbing the JS-injected text. */
+.flove-phrase-picked{
+  display: inline;
+  margin-left: .35em;
+  letter-spacing: .15em;
+  white-space: pre-wrap;
+}
+body:has(#view-axial:checked) .cssviz--svg,
+body:has(#view-spider:checked) .cssviz--svg{ display: block; }
+/* When axial/spider is active and bars/vertical aren't, hide those too
+   to avoid double-rendering. */
+body:has(#view-axial:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--bars,
+body:has(#view-axial:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--vertical,
+body:has(#view-spider:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--bars,
+body:has(#view-spider:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .cssviz--vertical{
+  display: none;
+}
+.cssbar{ display: flex; align-items: center; gap: .55rem; margin: .34rem 0; }
+.cssbar-emo{ width: 1.5em; text-align: center; font-size: 1.1rem; }
+.cssbar-trk{
+  position: relative; flex: 1; height: 10px;
+  background: rgba(0, 0, 0, .08); border-radius: 999px; overflow: hidden;
+}
+.cssbar-trk > i{
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: var(--accent); transition: width .2s ease;
+}
+.csscol{ display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+.csscol-trk{
+  position: relative; width: 14px; height: 104px;
+  background: rgba(0, 0, 0, .08); border-radius: 999px; overflow: hidden;
+}
+.csscol-trk > i{
+  position: absolute; left: 0; right: 0; bottom: 0; height: 0;
+  background: var(--accent); transition: height .2s ease;
+}
+body{ --fh: 0%; --ff: 0%; --fl: 0%; --ft: 0%; }
+body:has(#rh-1:checked){ --fh: 20%; } body:has(#rh-2:checked){ --fh: 40%; }
+body:has(#rh-3:checked){ --fh: 60%; } body:has(#rh-4:checked){ --fh: 80%; }
+body:has(#rh-5:checked){ --fh: 100%; }
+body:has(#rf-1:checked){ --ff: 20%; } body:has(#rf-2:checked){ --ff: 40%; }
+body:has(#rf-3:checked){ --ff: 60%; } body:has(#rf-4:checked){ --ff: 80%; }
+body:has(#rf-5:checked){ --ff: 100%; }
+body:has(#rl-1:checked){ --fl: 20%; } body:has(#rl-2:checked){ --fl: 40%; }
+body:has(#rl-3:checked){ --fl: 60%; } body:has(#rl-4:checked){ --fl: 80%; }
+body:has(#rl-5:checked){ --fl: 100%; }
+body:has(#rt-1:checked){ --ft: 20%; } body:has(#rt-2:checked){ --ft: 40%; }
+body:has(#rt-3:checked){ --ft: 60%; } body:has(#rt-4:checked){ --ft: 80%; }
+body:has(#rt-5:checked){ --ft: 100%; }
+.cssax--h .cssbar-trk > i{ width: var(--fh); } .cssax--h .csscol-trk > i{ height: var(--fh); }
+.cssax--f .cssbar-trk > i{ width: var(--ff); } .cssax--f .csscol-trk > i{ height: var(--ff); }
+.cssax--l .cssbar-trk > i{ width: var(--fl); } .cssax--l .csscol-trk > i{ height: var(--fl); }
+.cssax--t .cssbar-trk > i{ width: var(--ft); } .cssax--t .csscol-trk > i{ height: var(--ft); }
+/* The Views buttons never restyle the resume text — they only drive the
+   data chart that flove.js renders into .flove-viz-out below the phrase. */
+
+.copy-btn{ margin: 0; }
+.copy-hint-panel{
+  display: none;
+  margin-top: .6rem; padding: .7rem .9rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .04);
+  border: 1px dashed var(--line-strong);
+  font-size: .85rem; line-height: 1.5; color: var(--ink-soft);
+  text-align: center;
+}
+.copy-hint-panel kbd{
+  display: inline-block; padding: 1px 6px; margin: 0 1px;
+  font: 600 .78rem/1 var(--font-ui);
+  background: #fff; border: 1px solid var(--line-strong);
+  border-bottom-width: 2px; border-radius: 4px;
+  color: var(--ink);
+}
+body:has(#copy-hint:checked) .copy-hint-panel{ display: block; }
+body:has(#copy-hint:checked) .copy-btn{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
+
+/* Modals — pure CSS, each one toggled by its own checkbox */
+.modal{
+  position: fixed; inset: 0;
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal-backdrop{
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, .42);
+  cursor: pointer;
+}
+.modal-panel{
+  position: relative;
+  width: 50vw; height: 50vh;
+  padding: 1.4rem 1.4rem 1rem;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+  overflow: auto;
+}
+.modal-title{
+  margin: 0 0 .4rem;
+  font: 700 1.15rem/1.2 var(--font-display);
+  color: var(--accent-deep);
+}
+.modal-text{ margin: 0 0 1rem; color: var(--ink-soft); font-size: .9rem; line-height: 1.55; }
+.modal-link{ color: var(--accent-deep); text-decoration: underline; }
+.modal-link:hover{ color: var(--accent); }
+.modal-actions{ display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+.modal-close{ display: inline-flex; }
+
+/* Inline 3-state cycle (Save / Share / Publish) — parent trigger sits
+   in flow; the sub-rows above/below are absolute-positioned so they
+   never push the parent. The three cycles share a single `cycle` radio
+   group, so opening any one auto-collapses the other two. */
+.save-wrap, .share-wrap, .pub-wrap{
+  position: relative;
+  display: inline-flex; flex-direction: column;
+}
+.save-wrap { align-items: flex-start; }
+.share-wrap{ align-items: center; }
+.pub-wrap  { align-items: flex-end; }
+.cycle-trigger{ position: relative; display: inline-flex; }
+.cycle-step{ display: none; }
+
+/* Save left · Share center · Publish right. The action-row pads top
+   and bottom to reserve room for the absolute sub-rows above and below
+   the parents; align-items: flex-start keeps the three trigger pills
+   on a single horizontal line at all times. */
+.action-row.right{
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: calc(25px + .35rem) 0;
+  flex-wrap: nowrap;
+  gap: .35rem;
+}
+
+/* Save / Share / Publish parent triggers — compact so the three pills
+   always fit on a single row, even on narrow viewports. */
+.save-btn, .share-btn, .publish-btn{
+  height: 28px;
+  padding: 0 .55rem;
+  font-size: .7rem;
+  white-space: nowrap;
+}
+/* Save / Share / Publish sub-buttons match the .view-pick row exactly
+   so the formats row and the views row read as one family. */
+.cycle-row .btn{
+  height: 22px;
+  padding: 0 .5rem;
+  font-size: .75rem;
+  line-height: 1;
+  border-radius: 6px;
+}
+body:not(:has(#cycle-save:checked))  .save-wrap  .cycle-step--open,
+body:not(:has(#cycle-pub:checked))   .pub-wrap   .cycle-step--open,
+body:not(:has(#cycle-share:checked)) .share-wrap .cycle-step--open{ display: inline-flex; }
+body:has(#cycle-save:checked)  .save-wrap  .cycle-step--close,
+body:has(#cycle-pub:checked)   .pub-wrap   .cycle-step--close,
+body:has(#cycle-share:checked) .share-wrap .cycle-step--close{ display: inline-flex; }
+
+/* Pure-CSS mutex: when one cycle is open, dim the other two so the user
+   closes it before opening another. No JS needed. */
+/* The three cycle triggers (Save / Share / Publish) used to dim and
+   disable each other when one was open. They now stay fully interactive
+   so the user can switch between them with a single click. */
+
+/* Sub-rows positioned absolutely above and below the parent trigger.
+   Save's subs anchor to its left edge; Publish's subs anchor to its right edge.
+   Visibility toggles — parent buttons never move. */
+.cycle-row{
+  position: absolute;
+  display: inline-flex; flex-wrap: nowrap; gap: .25rem;
+  white-space: nowrap;
+  visibility: hidden;
+}
+.cycle-row.above{ bottom: calc(100% + .35rem); }
+.cycle-row.below{ top:    calc(100% + .35rem); }
+.cycle-row.download-bar{ top: calc(100% + 2.1rem); }
+/* App sits ABOVE Save (not after the download bar). Visibility follows
+   the generic cycle-row rule — hidden when Save is closed, revealed when
+   Save is open — same behaviour as the format buttons below. */
+.cycle-row.app-row{ bottom: calc(100% + .35rem); top: auto; }
+
+/* Download button now uses the same ghost styling as the format buttons
+   in the row above (transparent fill, line-strong border, ink-soft text). */
+
+/* Platform row — 3-pane slider sitting below Publish. The ＋ on the right
+   advances pub-plat-set 0 → 1 → 2 → 0; only the ＋ for the current state
+   is shown, and it points at the next state. Pure CSS. */
+.plat-row{ align-items: center; gap: .25rem; }
+.plat-viewport{
+  --plat-set-w: 13.5rem;
+  overflow: hidden;
+  width: var(--plat-set-w);
+}
+.plat-track{
+  display: flex;
+  flex-wrap: nowrap;
+  transition: transform .35s ease;
+  will-change: transform;
+}
+.plat-set{
+  display: inline-flex;
+  flex: 0 0 var(--plat-set-w);
+  width: var(--plat-set-w);
+  gap: .25rem;
+}
+.plat-set .btn{
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 .35rem;
+  text-align: center;
+  justify-content: center;
+}
+body:has(#pub-plat-set-1:checked) .plat-track{ transform: translateX(calc(-1 * var(--plat-set-w))); }
+body:has(#pub-plat-set-2:checked) .plat-track{ transform: translateX(calc(-2 * var(--plat-set-w))); }
+.plat-nav{
+  display: none;
+  align-items: center; justify-content: center;
+  width: 22px; height: 25px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .6);
+  cursor: pointer;
+  font-size: .95rem; line-height: 1;
+  color: var(--ink-soft);
+  user-select: none;
+}
+.plat-nav:hover{ background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+body:has(#pub-plat-set-0:checked) .plat-nav[data-when-set="0"],
+body:has(#pub-plat-set-1:checked) .plat-nav[data-when-set="1"],
+body:has(#pub-plat-set-2:checked) .plat-nav[data-when-set="2"]{ display: inline-flex; }
+
+/* Inline Go button next to Publish. Collapsed to zero width while Publish
+   is closed; expands when #cycle-pub is checked. Because .pub-wrap is
+   right-aligned, the growing Go pushes the Publish label visually to the
+   left, opening the send slot on the right. */
+.pub-wrap .go-btn{
+  min-width: 0;
+  max-width: 0;
+  padding: 0;
+  margin: 0;
+  border-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  height: 29px;
+  font-size: .72rem;
+  text-decoration: none;
+  transition: max-width .3s ease, padding .3s ease, margin .3s ease, opacity .25s ease .05s;
+}
+body:has(#cycle-pub:checked) .pub-wrap .go-btn{
+  max-width: 6rem;
+  padding: 0 .55rem;
+  margin-left: .35rem;
+  border-width: 1px;
+  opacity: 1;
+}
+.cycle-row.plat-more{ top: calc(100% + 2.1rem); flex-direction: column; align-items: stretch; gap: .35rem; }
+.cycle-row.pub-go-row{ top: calc(100% + 9.5rem); }
+.save-wrap  .cycle-row{ left: 0;  justify-content: flex-start; }
+.pub-wrap   .cycle-row{ right: 0; justify-content: flex-end; }
+.share-wrap .cycle-row{ left: 50%; transform: translateX(-50%); justify-content: center; }
+/* The full-width Go bar should NOT be re-centered like the other share-wrap
+   subs — it spans the full publish wrap width. */
+.pub-wrap   .cycle-row.pub-go-row{ left: 0; right: 0; }
+
+/* ── Download row — own row below Save/Share/Publish, spans the full
+   action-grid width. Opacity of the button reflects how many formats
+   (and whether App) the user has armed via additive CSS math. */
+.download-row{
+  display: flex;
+  width: 100%;
+  margin-top: .6rem;
+}
+.download-row .dl-btn{ flex: 1 1 0; }
+.dl-btn{
+  --dl-base: 60;
+  --dl-md: 0; --dl-jpg: 0; --dl-html: 0; --dl-csv: 0; --dl-xml: 0; --dl-json: 0;
+  --dl-app: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: 36px;
+  padding: 0 .72rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: .86rem;
+  letter-spacing: .03em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: calc(
+    (var(--dl-base) + var(--dl-md) + var(--dl-jpg) + var(--dl-html)
+     + var(--dl-csv) + var(--dl-xml) + var(--dl-json) + var(--dl-app)) / 100
+  );
+  transition: opacity var(--fast);
+}
+body:has(#save-fmt-md:checked)   .dl-btn{ --dl-md: 5; }
+body:has(#save-fmt-jpg:checked)  .dl-btn{ --dl-jpg: 5; }
+body:has(#save-fmt-html:checked) .dl-btn{ --dl-html: 5; }
+body:has(#save-fmt-csv:checked)  .dl-btn{ --dl-csv: 5; }
+body:has(#save-fmt-xml:checked)  .dl-btn{ --dl-xml: 5; }
+body:has(#save-fmt-json:checked) .dl-btn{ --dl-json: 5; }
+body:has(#save-app:checked)      .dl-btn{ --dl-app: 25; }
+
+/* Download label suffixes — "results" appears when any format is
+   checked, " App" appears when App destination is picked. Both stack
+   ("results App") when both conditions hold. Spans inside the .dl-btn
+   are hidden by default and revealed via :has() rules. */
+.dl-btn .dl-results,
+.dl-btn .dl-app{ display: none; }
+body:has(#save-fmt-md:checked)   .dl-btn .dl-results,
+body:has(#save-fmt-jpg:checked)  .dl-btn .dl-results,
+body:has(#save-fmt-html:checked) .dl-btn .dl-results,
+body:has(#save-fmt-csv:checked)  .dl-btn .dl-results,
+body:has(#save-fmt-xml:checked)  .dl-btn .dl-results,
+body:has(#save-fmt-json:checked) .dl-btn .dl-results{ display: inline; }
+body:has(#save-app:checked) .dl-btn .dl-app{ display: inline; }
+body:has(#cycle-save:checked)  .save-wrap  .cycle-row,
+body:has(#cycle-pub:checked)   .pub-wrap   .cycle-row,
+body:has(#cycle-share:checked) .share-wrap .cycle-row{ visibility: visible; }
+/* The single Download button also surfaces whenever a chart view is
+   marked — same affordance for both formats and views. */
+body:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked) .save-wrap .cycle-row.download-bar{
+  visibility: visible;
+}
+
+/* Schedule row is the exception: opening Publish alone shouldn't reveal
+   it. It only appears when Publish is open AND 0asis is the picked
+   platform — so it tracks the 0asis click, not the Publish click. */
+body:has(#cycle-pub:checked) .pub-wrap .cycle-row.pub-row--schedule{
+  visibility: hidden;
+}
+body:has(#cycle-pub:checked):has(#pub-plat-0asis:checked) .pub-wrap .cycle-row.pub-row--schedule{
+  visibility: visible;
+}
+
+/* Plat-intro appears immediately below the platform row — just enough
+   to clear the absolutely-positioned cycle-row.below (.35rem offset +
+   25px button height = 30.6px), no extra breathing room. */
+.pub-wrap .plat-intro{ margin-top: calc(25px + .35rem); }
+
+/* Subbuttons — 30% smaller, squared, more intense when checked */
+.cycle-row .btn{
+  height: 25px;
+  padding: 0 .5rem;
+  border-radius: 4px;
+  font-size: .72rem;
+  letter-spacing: .03em;
+}
+.cycle-row .btn:hover{ box-shadow: none; transform: none; }
+body:has(#save-app:checked)         [for="save-app"],
+body:has(#save-fmt-md:checked)      [for="save-fmt-md"],
+body:has(#save-fmt-jpg:checked)     [for="save-fmt-jpg"],
+body:has(#save-fmt-html:checked)    [for="save-fmt-html"],
+body:has(#save-fmt-csv:checked)     [for="save-fmt-csv"],
+body:has(#save-fmt-xml:checked)     [for="save-fmt-xml"],
+body:has(#save-fmt-json:checked)    [for="save-fmt-json"],
+body:has(#pub-all:checked)          [for="pub-all"],
+body:has(#pub-plat-wizardry:checked)    [for="pub-plat-wizardry"],
+body:has(#pub-plat-reddit:checked)  [for="pub-plat-reddit"],
+body:has(#pub-plat-0asis:checked)   [for="pub-plat-0asis"]{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-deep);
+  box-shadow: inset 0 0 0 1px var(--accent-deep), 0 2px 6px var(--accent-glow);
+}
+
+/* App destination — 15% larger pill with rounded corners and a tactile
+   click effect. Independent of the format buttons; no longer cascades
+   to mark them as checked. */
+.app-row [for="save-app"]{
+  height: calc(25px * 1.15);
+  padding: 0 .8rem;
+  border-radius: 999px;
+  font-weight: 700;
+  transition: transform var(--fast), box-shadow var(--fast), background var(--fast);
+}
+.app-row [for="save-app"]:hover{
+  box-shadow: 0 4px 10px var(--accent-glow);
+}
+.app-row [for="save-app"]:active{
+  animation: app-press .35s ease;
+}
+@keyframes app-press{
+  0%   { transform: scale(1); }
+  40%  { transform: scale(.9);  box-shadow: 0 0 0 6px var(--accent-glow); }
+  100% { transform: scale(1);   box-shadow: 0 4px 10px var(--accent-glow); }
+}
+
+/* TXT direct download — clicking the anchor triggers the data: download
+   and the button vanishes (loses focus → reappears, but for the post-
+   click moment it disappears, matching the requested behaviour). */
+.dl-txt-direct{ transition: opacity .15s var(--fast); }
+.dl-txt-direct:focus{
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Pressed state on parent trigger while cycle is open */
+body:has(#cycle-save:checked)  .save-btn,
+body:has(#cycle-pub:checked)   .publish-btn,
+body:has(#cycle-share:checked) .share-btn{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
+
+/* Publish schedule row — datetime + "to" + audience select + All button.
+   Sits in the above-cycle-row slot of .pub-wrap; styled lighter than the
+   .btn pills so the inputs read as a single composed control. */
+/* Schedule controls live in the above-cycle-row slot of .pub-wrap, but
+   visibility is tied to the 0asis platform being chosen (rules further
+   down) — not to Publish being opened. */
+.pub-row--schedule{
+  align-items: center;
+  gap: .35rem;
+  padding: 0;
+  /* Lock everything onto a single line — the row is the absolute "above"
+     slot, so wrapping would push fields out of the reserved space. */
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.pub-row--schedule .pub-hh,
+.pub-row--schedule .pub-mm,
+.pub-row--schedule .pub-target{
+  height: 25px;
+  padding: 0 .4rem;
+  font: 600 .72rem/1 var(--font-ui);
+  letter-spacing: .03em;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.pub-row--schedule .pub-hh:focus,
+.pub-row--schedule .pub-mm:focus,
+.pub-row--schedule .pub-target:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.pub-row--schedule .pub-colon{
+  font: 700 .85rem/1 var(--font-ui);
+  color: var(--ink-soft);
+}
+.pub-row--schedule .pub-to{
+  font: 600 .76rem/1 var(--font-ui);
+  color: var(--ink-soft);
+  letter-spacing: .02em;
+  margin: 0 .15rem;
+}
+.pub-row--schedule .pub-all-btn{ flex: 0 0 auto; }
+
+/* Calendar control — label holding a 📅 icon + the native <input type="date">.
+   The input is fully visible so it shows the chosen date inline; clicking
+   either the icon or the date text opens the native picker again. */
+.pub-cal-wrap{ position: relative; display: inline-flex; }
+.pub-cal{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 25px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .9);
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
+}
+.pub-cal:hover,
+.pub-cal:focus-within{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+body:has(#pub-cal-open:checked) .pub-cal{
+  background: var(--accent); color: #fff; border-color: var(--accent-deep);
+}
+.pub-cal .pub-cal-icon{
+  pointer-events: none;
+  font-size: .95rem;
+  line-height: 1;
+}
+
+/* Calendar panel — pops up above the icon when #pub-cal-open is on.
+   Day/Month/Year are three selects; the X in the top-left also flips
+   the checkbox off (same target), so users can collapse via icon or X. */
+.pub-cal-panel{
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  padding: 24px .5rem .45rem;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .15);
+  white-space: nowrap;
+}
+body:has(#pub-cal-open:checked) .pub-cal-panel{
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+.pub-cal-close{
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 700 .85rem/1 var(--font-ui);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.pub-cal-close:hover{
+  background: var(--accent); color: #fff; border-color: var(--accent-deep);
+}
+.pub-cal-sel{
+  height: 25px;
+  padding: 0 .35rem;
+  font: 600 .72rem/1 var(--font-ui);
+  letter-spacing: .03em;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+.pub-cal-sel:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* Platform intros — appear inline below the platform row when picked.
+   No background or border — just the text/grid inside, riding on top of
+   the section's own background. */
+.plat-intro{
+  display: none;
+  width: 100%; max-width: 320px;
+  margin-top: .35rem;
+  padding: .6rem .8rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-align: center;
+  font-size: .85rem; color: var(--ink); line-height: 1.5;
+}
+.plat-intro p{ margin: 0 0 .35rem; }
+.plat-intro p:last-child{ margin-bottom: 0; }
+/* Plat-intros only show while Publish is open AND the matching platform is
+   selected — so closing Publish (or switching to Save/Share) collapses
+   the info, instead of leaving it stuck open beneath everything else. */
+body:has(#cycle-pub:checked):has(#pub-plat-wizardry:checked)   .plat-intro--wizardry,
+body:has(#cycle-pub:checked):has(#pub-plat-reddit:checked) .plat-intro--reddit,
+body:has(#cycle-pub:checked):has(#pub-plat-0asis:checked)  .plat-intro--0asis{ display: block; }
+
+/* extra row of breathing between action-rows in the summary */
+.action-grid{ gap: 2rem; }
+
+
+/* Boty 3×3 bot card grid — each card stacks icon, name and an inline
+   2-line info that only reveals while that card's radio is checked. */
+.wizardry-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .45rem;
+}
+.wizardry-cell{
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: .15rem;
+  min-height: 64px;
+  padding: .45rem .35rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .85);
+  font-size: .78rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--btn-trans), opacity var(--fast), transform var(--fast), background var(--fast);
+}
+.wizardry-cell:hover{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+  transform: translateY(-1px);
+}
+.wizardry-cell-icon{ font-size: 1.6rem; line-height: 1; }
+.wizardry-cell-name{ font: 700 .72rem/1 var(--font-ui); color: var(--ink-soft); letter-spacing: .04em; }
+.wizardry-cell-info{
+  display: none;
+  margin-top: .25rem;
+  font: 400 .7rem/1.35 var(--font-ui);
+  color: var(--ink);
+}
+/* Selection-dim siblings (selection-dim convention). */
+body:has(input[name="wizardry-pick"]:not(#wizardry-none):checked) .wizardry-cell{ opacity: .5; }
+body:has(#wizardry-sage:checked)  .wizardry-cell[for="wizardry-sage"],
+body:has(#wizardry-spark:checked) .wizardry-cell[for="wizardry-spark"],
+body:has(#wizardry-echo:checked)  .wizardry-cell[for="wizardry-echo"],
+body:has(#wizardry-coral:checked) .wizardry-cell[for="wizardry-coral"],
+body:has(#wizardry-nova:checked)  .wizardry-cell[for="wizardry-nova"],
+body:has(#wizardry-lyra:checked)  .wizardry-cell[for="wizardry-lyra"],
+body:has(#wizardry-mira:checked)  .wizardry-cell[for="wizardry-mira"],
+body:has(#wizardry-pico:checked)  .wizardry-cell[for="wizardry-pico"],
+body:has(#wizardry-vega:checked)  .wizardry-cell[for="wizardry-vega"]{
+  opacity: 1;
+  border-color: var(--accent-deep);
+  background: var(--fill-mid);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+/* Reveal the selected card's inline info block beneath its icon + name.
+   The card grows to fit it; the rest of the grid auto-aligns. */
+body:has(#wizardry-sage:checked)  .wizardry-cell[for="wizardry-sage"]  .wizardry-cell-info,
+body:has(#wizardry-spark:checked) .wizardry-cell[for="wizardry-spark"] .wizardry-cell-info,
+body:has(#wizardry-echo:checked)  .wizardry-cell[for="wizardry-echo"]  .wizardry-cell-info,
+body:has(#wizardry-coral:checked) .wizardry-cell[for="wizardry-coral"] .wizardry-cell-info,
+body:has(#wizardry-nova:checked)  .wizardry-cell[for="wizardry-nova"]  .wizardry-cell-info,
+body:has(#wizardry-lyra:checked)  .wizardry-cell[for="wizardry-lyra"]  .wizardry-cell-info,
+body:has(#wizardry-mira:checked)  .wizardry-cell[for="wizardry-mira"]  .wizardry-cell-info,
+body:has(#wizardry-pico:checked)  .wizardry-cell[for="wizardry-pico"]  .wizardry-cell-info,
+body:has(#wizardry-vega:checked)  .wizardry-cell[for="wizardry-vega"]  .wizardry-cell-info{ display: block; }
+
+/* Boty intro panel has no boxed background — it floats over the publish
+   area as a transparent reveal. */
+.plat-intro--wizardry{
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  max-width: 100%;
+}
+.plat-intro--wizardry .plat-intro-lead{ margin: 0 0 .6rem; font-size: .82rem; color: var(--ink-soft); }
+
+/* Extra-platforms list (the "+" at the end of platforms reveals 8 more
+   in 3 titled tiers). Sits as a stacked cycle-row below the platforms
+   row, only shown while Publish is open AND the "+" is checked. */
+.cycle-row.plat-more{ display: none !important; }
+body:has(#cycle-pub:checked):has(#pub-plat-more:checked) .cycle-row.plat-more{
+  display: flex !important;
+  visibility: visible;
+}
+.plat-more-tier{
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: .35rem;
+  padding: .4rem .5rem;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.plat-tier-title{
+  font: 700 .65rem/1 var(--font-ui);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.plat-tier-cards{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .35rem;
+}
+.plat-card{
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: .15rem;
+  min-height: 60px;
+  padding: .4rem .3rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .9);
+  font-size: .76rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--btn-trans), opacity var(--fast), transform var(--fast);
+}
+.plat-card:hover{
+  border-color: var(--accent);
+  background: var(--fill-soft);
+  transform: translateY(-1px);
+}
+.plat-card-icon{ font-size: 1.4rem; line-height: 1; }
+.plat-card-name{ font: 700 .7rem/1 var(--font-ui); color: var(--ink-soft); letter-spacing: .04em; }
+.plat-card-info{
+  display: none;
+  margin-top: .25rem;
+  font: 400 .68rem/1.35 var(--font-ui);
+  color: var(--ink);
+}
+/* Selection-dim siblings + highlight the picked card. Uses the existing
+   pub-plat radio group (any pub-plat-* checked dims the others). The "+"
+   already auto-unchecks Boty/Reddit/0asis (same radio group), and picking
+   an extended platform auto-unchecks the original three. */
+body:has(input[name="pub-plat"]:checked:not(#pub-plat-none):not(#pub-plat-wizardry):not(#pub-plat-reddit):not(#pub-plat-0asis)) .plat-card{ opacity: .55; }
+body:has(#pub-plat-mastodon:checked) .plat-card[for="pub-plat-mastodon"],
+body:has(#pub-plat-bsky:checked)     .plat-card[for="pub-plat-bsky"],
+body:has(#pub-plat-threads:checked)  .plat-card[for="pub-plat-threads"],
+body:has(#pub-plat-x:checked)        .plat-card[for="pub-plat-x"],
+body:has(#pub-plat-tumblr:checked)   .plat-card[for="pub-plat-tumblr"],
+body:has(#pub-plat-medium:checked)   .plat-card[for="pub-plat-medium"],
+body:has(#pub-plat-substack:checked) .plat-card[for="pub-plat-substack"],
+body:has(#pub-plat-ghost:checked)    .plat-card[for="pub-plat-ghost"]{
+  opacity: 1;
+  border-color: var(--accent-deep);
+  background: var(--fill-mid);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+/* Reveal selected card's inline info, same way Boty does it. */
+body:has(#pub-plat-mastodon:checked) .plat-card[for="pub-plat-mastodon"] .plat-card-info,
+body:has(#pub-plat-bsky:checked)     .plat-card[for="pub-plat-bsky"]     .plat-card-info,
+body:has(#pub-plat-threads:checked)  .plat-card[for="pub-plat-threads"]  .plat-card-info,
+body:has(#pub-plat-x:checked)        .plat-card[for="pub-plat-x"]        .plat-card-info,
+body:has(#pub-plat-tumblr:checked)   .plat-card[for="pub-plat-tumblr"]   .plat-card-info,
+body:has(#pub-plat-medium:checked)   .plat-card[for="pub-plat-medium"]   .plat-card-info,
+body:has(#pub-plat-substack:checked) .plat-card[for="pub-plat-substack"] .plat-card-info,
+body:has(#pub-plat-ghost:checked)    .plat-card[for="pub-plat-ghost"]    .plat-card-info{ display: block; }
+.plat-more-toggle{
+  /* Same chip styling as the other platforms; rotates 45° (→ ×) when
+     the extra list is open. */
+  font-weight: 700;
+}
+body:has(#pub-plat-more:checked) .plat-more-toggle{
+  background: var(--fill-mid);
+  color: var(--accent-deep);
+  transform: rotate(45deg);
+}
+
+/* Full-width Go button — visible whenever Publish is open. Eye-catching
+   accent gradient, sits the full width of the publish trigger, anchored
+   below the platforms list (and below the extra-platforms tiers when
+   they are revealed). Hooked for flove.js via data-flove-publish="go". */
+.cycle-row.pub-go-row{ left: 0; right: 0; justify-content: stretch; }
+.pub-go{
+  display: flex; align-items: center; justify-content: center;
+  width: 100%;
+  padding: .55rem .9rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #fff !important;
+  font: 800 .92rem/1 var(--font-ui);
+  letter-spacing: .12em; text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 8px 24px var(--accent-glow), inset 0 0 0 1px rgba(255, 255, 255, .25);
+  opacity: .3;
+  transition: transform var(--fast), box-shadow var(--fast), filter var(--fast), opacity var(--fast);
+  animation: pub-go-pulse 1.8s ease-in-out infinite;
+}
+/* Click / focus / hover brings it to full opacity. :focus persists after
+   a click on the <a>, so the user keeps the button bright until they
+   click somewhere else. */
+.pub-go:hover,
+.pub-go:focus,
+.pub-go:focus-visible,
+.pub-go:active{
+  opacity: 1;
+  transform: translateY(-1px) scale(1.02);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 30px var(--accent-glow), inset 0 0 0 1px rgba(255, 255, 255, .35);
+}
+@keyframes pub-go-pulse{
+  0%, 100% { box-shadow: 0 8px 24px var(--accent-glow), inset 0 0 0 1px rgba(255, 255, 255, .25); }
+  50%      { box-shadow: 0 8px 36px rgba(var(--accent-rgb), .55), inset 0 0 0 1px rgba(255, 255, 255, .35); }
+}
+/* (Legacy margins removed — the full-width Go bar is gone and the
+   plat-more tier deck is hidden, so the default
+   .pub-wrap .plat-intro margin-top above is enough.) */
+
+/* Info icon — sits beside section headings, opens the Reminder modal */
+.info-icon{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  margin-left: .4rem;
+  border-radius: 50%;
+  font-size: 2rem; line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+  vertical-align: middle;
+  transform: translateY(-7px);
+  transition: var(--btn-trans);
+}
+.info-icon:hover,
+.info-icon:focus-visible{
+  background: var(--fill-soft);
+  color: var(--accent-deep);
+  outline: none;
+}
+body:has(#insight-1:checked) .insight-1-content,
+body:has(#insight-2:checked) .insight-2-content,
+body:has(#insight-3:checked) .insight-3-content,
+body:has(#insight-4:checked) .insight-4-content{ display: block; }
+
+@media (max-width: 480px){
+  .action-row, .action-row.right{ flex-direction: column; align-items: stretch; gap: calc(25px + .7rem); }
+  .btn{ justify-content: center; }
+}
+
+/* ============================================================
+   16. MOBILE — topbar nunca debe generar scroll lateral (regla 0)
+   ============================================================ */
+@media (max-width: 640px){
+  .topbar-inner{ gap: .35rem; padding: .55rem .7rem; }
+  .mark{ font-size: 1.55rem; }
+  .mark-link{ padding: .1rem .15rem; }
+  .title-label{ margin-left: .15rem; padding: .12rem .3rem; }
+  .title-label h1{
+    font-size: 1.05rem; max-width: 30vw;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ray, .labeler-sub, .magic-btn, .menu-btn{ width: 32px; height: 32px; font-size: .95rem; }
+  .ray, .labeler-sub{ width: 30px; height: 30px; font-size: .9rem; }
+  .app-toggle-btn{ height: 32px; padding: 0 .55rem; font-size: .68rem; letter-spacing: .04em; }
+  .magic-rays{ gap: .35rem; }
+  .labeler-label, .labeler-sub-label{ font-size: .56rem; }
+  .menu-list, .labeler-list, .popup-menu{ max-width: calc(100vw - 16px); }
+}
+@media (max-width: 380px){
+  .topbar-inner{ gap: .25rem; padding: .5rem .55rem; }
+  .title-label h1{ font-size: .98rem; max-width: 26vw; }
+  .app-toggle-btn{ padding: 0 .45rem; font-size: .62rem; }
+  .ray, .labeler-sub, .magic-btn, .menu-btn{ width: 30px; height: 30px; }
+  .magic-rays{ gap: .3rem; }
+}
+

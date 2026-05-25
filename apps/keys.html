@@ -389,6 +389,66 @@
   .summary-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:start}
   .summary-actions{display:flex;gap:.7rem;justify-content:center;margin-top:1.2rem}
 
+  /* ============== Intro slider (paginated 1→N) ============== */
+  .intro-slider{
+    margin:0 auto;max-width:720px;width:100%;
+    border:1px solid var(--stroke);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.012)),var(--panel);
+    overflow:hidden;
+    box-shadow:0 18px 50px rgba(0,0,0,.4);
+  }
+  .intro-slider.hidden{display:none}
+  .intro-track{
+    display:flex;overflow-x:auto;
+    scroll-snap-type:x mandatory;scroll-behavior:smooth;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .intro-track::-webkit-scrollbar{display:none}
+  .intro-slide{
+    flex:0 0 100%;scroll-snap-align:center;
+    padding:34px 24px 28px;min-height:220px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+    gap:10px;
+  }
+  .intro-slide .step-num{
+    font:700 .78rem/1 system-ui,sans-serif;color:var(--muted);
+    letter-spacing:3px;text-transform:uppercase;
+  }
+  .intro-slide h2{
+    font:600 1.5rem/1.15 ui-serif,Georgia,serif;margin:0;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .intro-slide p{
+    color:var(--muted);margin:0;font-size:.98rem;max-width:50ch;line-height:1.55;
+  }
+  .intro-slide b{color:var(--ink);font-weight:600}
+  .intro-controls{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:10px 16px 12px;border-top:1px dashed var(--stroke);flex-wrap:wrap;
+  }
+  .intro-dots{display:flex;gap:8px;justify-content:center;flex:1;min-width:0}
+  .intro-dots button{
+    width:9px;height:9px;border-radius:50%;
+    background:#2e2e44;border:0;cursor:pointer;padding:0;
+    transition:background .2s ease, transform .25s ease;
+  }
+  .intro-dots button.active{
+    background:linear-gradient(135deg,var(--brand),var(--accent));transform:scale(1.4);
+  }
+  .intro-arrows{display:flex;gap:8px}
+  .intro-arrows button{
+    width:2rem;height:2rem;border-radius:50%;
+    background:var(--fx);border:1px solid var(--stroke);color:var(--ink);
+    cursor:pointer;display:grid;place-items:center;
+    font:700 1rem/1 system-ui;
+    transition:color .2s ease, border-color .2s ease, transform .15s ease;
+  }
+  .intro-arrows button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+  .intro-arrows button:disabled{opacity:.3;cursor:not-allowed;transform:none}
+  .intro-cta{display:flex;justify-content:center;padding:0 16px 16px}
+  .intro-cta .btn-primary{animation:pulse 2.6s ease-in-out infinite}
+
   /* ============== Paso 0 · Prelude (15 cartas → 5 grupos → orden) ============== */
   .prelude{
     display:none;
@@ -556,8 +616,22 @@
 
   <header>
     <h1>keys</h1>
-    <p>Diez llaves boca abajo. <span class="hint">Toca un mazo: sus cartas suben al centro como una mano. Arrástralas o usa <b>← →</b> para ordenar. Abre <b>Por qué</b> para grabar (voz o texto) la razón de ese orden y guárdalo. Luego cierra con <b>Listo</b>. En el slot puedes refinar el orden con <b>↑ ↓</b>; si cambia respecto al porqué guardado, aparece un <b>+ por qué</b> para anotar uno nuevo.</span></p>
+    <p>Diez llaves boca abajo.</p>
   </header>
+
+  <section class="intro-slider" id="intro-slider" aria-label="Cómo se juega">
+    <div class="intro-track" id="intro-track"></div>
+    <div class="intro-controls">
+      <div class="intro-arrows">
+        <button id="intro-prev" type="button" aria-label="Anterior">←</button>
+        <button id="intro-next" type="button" aria-label="Siguiente">→</button>
+      </div>
+      <div class="intro-dots" id="intro-dots" role="tablist" aria-label="Slides"></div>
+    </div>
+    <div class="intro-cta">
+      <button class="btn btn-primary" id="intro-start" type="button">Empezar →</button>
+    </div>
+  </section>
 
   <section class="prelude" id="prelude">
     <h2>Paso 0 <span class="sub">· opcional</span></h2>
@@ -649,6 +723,8 @@
     isRecording: false,
     porQueBase: '',              // baseline text when recording started
     dragSrcPos: null,
+    // ----- Intro slider -----
+    introActive: true,           // shown on first load; dismissed via "Empezar →"
     // ----- Paso 0 (prelude) -----
     preludeActive: true,         // shown on boot; user can skip
     preludePhase: 'A',           // 'A' = group 15→5; 'B' = order 5 groups
@@ -1113,6 +1189,76 @@
     }
   }
 
+  // ============== Intro slider ==============
+  const $intro = document.getElementById('intro-slider');
+  const INTRO_SLIDES = [
+    { n:'01', t:'Diez llaves boca abajo',  b:'Cinco tríadas y cinco pentadas. Tu trabajo: ordenar cada llave según tu propio criterio.' },
+    { n:'02', t:'Toca un mazo',            b:'Sus cartas suben al centro de la mesa, como una mano abierta en abanico.' },
+    { n:'03', t:'Ordena las cartas',       b:'Arrástralas con drag-and-drop o usa las flechas <b>← →</b> de cada carta. La de la izquierda va primero.' },
+    { n:'04', t:'¿ Por qué',               b:'Pulsa el botón y graba (voz o texto) la razón de ese orden. Se guarda pegado a la tríada.' },
+    { n:'05', t:'Listo · refina · porqué', b:'Cierra con <b>Listo</b>. En el slot ajustas con <b>↑ ↓</b>; si el orden cambia respecto al porqué guardado, aparece un <b>+ por qué</b> para anotar uno nuevo.' },
+  ];
+  let introSlide = 0;
+  let introObserver = null;
+
+  function renderIntro(){
+    const $track = document.getElementById('intro-track');
+    const $dots  = document.getElementById('intro-dots');
+    $track.innerHTML = ''; $dots.innerHTML = '';
+    INTRO_SLIDES.forEach((s, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'intro-slide';
+      slide.dataset.idx = String(i);
+      slide.innerHTML = `<span class="step-num">${s.n}</span><h2>${s.t}</h2><p>${s.b}</p>`;
+      $track.appendChild(slide);
+
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.setAttribute('role','tab');
+      dot.setAttribute('aria-label', `Slide ${i+1}`);
+      dot.addEventListener('click', () => gotoSlide(i));
+      $dots.appendChild(dot);
+    });
+    // Observe which slide is centered to keep dots in sync
+    if (introObserver) introObserver.disconnect();
+    introObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6){
+          introSlide = parseInt(entry.target.dataset.idx, 10);
+          updateIntroUI();
+        }
+      });
+    }, { root: $track, threshold: 0.6 });
+    $track.querySelectorAll('.intro-slide').forEach(s => introObserver.observe(s));
+    updateIntroUI();
+  }
+
+  function gotoSlide(i){
+    const $track = document.getElementById('intro-track');
+    introSlide = Math.max(0, Math.min(INTRO_SLIDES.length - 1, i));
+    const slide = $track.children[introSlide];
+    if (slide) $track.scrollTo({ left: slide.offsetLeft, behavior: 'smooth' });
+    updateIntroUI();
+  }
+
+  function updateIntroUI(){
+    const $dots = document.getElementById('intro-dots');
+    Array.from($dots.children).forEach((d, i) => d.classList.toggle('active', i === introSlide));
+    document.getElementById('intro-prev').disabled = introSlide === 0;
+    document.getElementById('intro-next').disabled = introSlide === INTRO_SLIDES.length - 1;
+  }
+
+  function dismissIntro(){
+    state.introActive = false;
+    setUIMode(state.preludeActive ? 'prelude' : 'main');
+    if (state.preludeActive) renderPrelude();
+    else render();
+  }
+
+  document.getElementById('intro-prev').addEventListener('click', () => gotoSlide(introSlide - 1));
+  document.getElementById('intro-next').addEventListener('click', () => gotoSlide(introSlide + 1));
+  document.getElementById('intro-start').addEventListener('click', () => dismissIntro());
+
   // ============== Paso 0 · Prelude ==============
   const $prelude = document.getElementById('prelude');
 
@@ -1134,15 +1280,16 @@
     state.preludeAxisChecked = null;
   }
 
-  function setPreludeMode(on){
-    $prelude.classList.toggle('active', on);
-    // Hide / show main UI sections
-    ['stage-label','board','stage-cta','summary'].forEach(id => {
+  // Unified UI mode: 'intro' | 'prelude' | 'main'
+  function setUIMode(mode){
+    $intro.classList.toggle('hidden', mode !== 'intro');
+    $prelude.classList.toggle('active', mode === 'prelude');
+    const showMain = mode === 'main';
+    ['stage-label','board','stage-cta'].forEach(id => {
       const el = document.getElementById(id);
-      if (!el) return;
-      if (on) el.dataset.preludeHidden = '1', el.style.display = 'none';
-      else if (el.dataset.preludeHidden) { delete el.dataset.preludeHidden; el.style.display = ''; }
+      if (el) el.style.display = showMain ? '' : 'none';
     });
+    if (!showMain) document.getElementById('summary').classList.remove('active');
   }
 
   function renderPrelude(){
@@ -1390,7 +1537,7 @@
 
   function finishPrelude(){
     state.preludeActive = false;
-    setPreludeMode(false);
+    setUIMode('main');
     render();
   }
 
@@ -1404,8 +1551,9 @@
 
   // ============== Boot ==============
   initPrelude();
-  setPreludeMode(true);
-  renderPrelude();
+  renderIntro();
+  renderPrelude();   // build prelude DOM in advance (hidden by setUIMode)
+  setUIMode('intro');
 })();
 </script>
 </body>

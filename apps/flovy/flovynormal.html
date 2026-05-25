@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FlovyAdvanced</title>
+<title>FlovyNormal</title>
 <!-- Favicon: inline SVG heart in the flovy accent (#d32f2f) — no external file. -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path fill='%23d32f2f' d='M16 27.5C16 27.5 3.5 19.8 3.5 11.2 3.5 7.3 6.6 4.5 10 4.5 12.7 4.5 15 6 16 8.2 17 6 19.3 4.5 22 4.5 25.4 4.5 28.5 7.3 28.5 11.2 28.5 19.8 16 27.5 16 27.5Z'/></svg>">
 <script src="../flove.js" defer></script>
@@ -355,7 +355,7 @@ body:has(#all-pressed:checked) .app-toggle-btn{
    #compass-open) opens a row of BARE mode icons. The chosen
    radio (name="disp-mode") re-lays-out the section "fields":
    the bg/anim/text tiles, the mood chips and the who-section
-   saved-field rows.  On flovyadvanced an inline <script> also
+   saved-field rows.  On flovynormal an inline <script> also
    enhances the modes (real shuffle / sort / cloud sizing).
      ≡  none   — natural layout (default, checked on load)
      ▮  scope  — graded sizes for some texts & fields
@@ -732,6 +732,60 @@ body:has(#tier-pop-open:checked) .tier-pop-rays{ display: flex; }
 @keyframes tier-pop-step-aura{
   0%, 100%{ box-shadow: 0 0 8px 2px rgba(var(--accent-rgb), .35); }
   50%{ box-shadow: 0 0 14px 5px rgba(var(--accent-rgb), .55); }
+}
+
+/* ── Complexity-bar progression ── nodes grow mini→super; nodes for the
+   current tier and any earlier tier get a reddish tint (sense of "you
+   have already passed these"). The unlocked Advanced node gets a
+   reddish halo around its clickable area — no border / no pressed look,
+   just an inviting glow + a one-time splash on first unlock. */
+.tier-pop-rays > li:nth-child(1) .tier-pop-node{ width: 8px;  height: 8px;  }
+.tier-pop-rays > li:nth-child(2) .tier-pop-node{ width: 11px; height: 11px; }
+.tier-pop-rays > li:nth-child(3) .tier-pop-node{ width: 14px; height: 14px; }
+.tier-pop-rays > li:nth-child(4) .tier-pop-node{ width: 17px; height: 17px; }
+.tier-pop-rays > li:nth-child(5) .tier-pop-node{ width: 20px; height: 20px; }
+.tier-pop-rays > li:nth-child(1) .tier-pop-step::after{ top: 7px;   }
+.tier-pop-rays > li:nth-child(2) .tier-pop-step::after{ top: 8.5px; }
+.tier-pop-rays > li:nth-child(3) .tier-pop-step::after{ top: 10px;  }
+.tier-pop-rays > li:nth-child(4) .tier-pop-step::after{ top: 11.5px;}
+
+.tier-pop-rays > li:has(~ li > .tier-pop-step--current) .tier-pop-node,
+.tier-pop-step--current .tier-pop-node{
+  background: rgba(217, 70, 70, .85);
+  border-color: rgba(178, 34, 34, .9);
+  box-shadow: none;
+  transform: none;
+}
+.tier-pop-rays > li:has(~ li > .tier-pop-step--current) .tier-pop-label,
+.tier-pop-step--current .tier-pop-label{
+  color: rgba(178, 34, 34, .95);
+  font-weight: 700;
+}
+
+.tier-pop-step--wip.is-unlocked{
+  animation: tier-pop-step-aura-reddish 2.2s ease-in-out infinite;
+}
+.tier-pop-step--wip.is-unlocked .tier-pop-node{
+  background: rgba(217, 70, 70, .85);
+  border-color: rgba(178, 34, 34, .9);
+  box-shadow: none;
+  transform: none;
+}
+.tier-pop-step--wip.is-unlocked .tier-pop-label{
+  color: rgba(178, 34, 34, .95);
+  font-weight: 700;
+}
+@keyframes tier-pop-step-aura-reddish{
+  0%, 100%{ box-shadow: 0 0 10px 2px rgba(217, 70, 70, .35); }
+  50%{ box-shadow: 0 0 16px 6px rgba(217, 70, 70, .55); }
+}
+.tier-pop-step--wip.is-unlocked.just-unlocked .tier-pop-node{
+  animation: tier-pop-splash .9s ease-out;
+}
+@keyframes tier-pop-splash{
+  0%  { box-shadow: 0 0 0 0  rgba(217, 70, 70, .9); transform: scale(1);   }
+  60% { box-shadow: 0 0 0 18px rgba(217, 70, 70, 0); transform: scale(1.4); }
+  100%{ box-shadow: 0 0 0 0  rgba(217, 70, 70, 0); transform: scale(1);   }
 }
 
 /* while the tier pop is open, hide the ✨ magic cluster */
@@ -3695,31 +3749,32 @@ body:has(#rater-show-1:checked) .entry-row--main > .rater{ display: flex; }
 body:has(#rater-show-2:checked) .entry-row--extra{ grid-template-columns: 3fr 2fr; }
 body:has(#rater-show-2:checked) .entry-row--extra > .rater{ display: flex; }
 
-/* heart icon — empty/filled glyph swap. The heart is the rater toggle:
-   when its rater is open, the heart fills. Pure-CSS, no JS. */
+/* heart icon — empty outline by default, filled red on check. */
 .entry-tool--heart{
-  color: #b25d5d; /* heart red — 50% less saturated than the old #d33 */
-  font-size: 1.518rem; /* +15% on top of the previous 1.32rem (parent hearts) */
+  color: currentColor;
+  font-size: 1.518rem;
   border: 0 !important;
   background: transparent !important;
-  opacity: .625; /* default — 25% opacity bump over the old .5 so the red reads stronger */
-  transition: opacity .15s ease, color .15s ease, transform .15s ease;
+  opacity: 1;
+  transition: color .15s ease, transform .15s ease;
 }
 .entry-tool--heart:hover{
-  color: #b25d5d; /* heart red — 50% less saturated than the old #d33 */
+  color: var(--accent);
   border: 0 !important;
   background: transparent !important;
-  opacity: .75;
-  transform: scale(1.08);
+  transform: translateY(-15px) scale(1.08);
 }
-/* Always show the filled body — the inside-background reads as a warm
-   dim red by default (.625 opacity), snapping to full red when the
-   rater below is opened. */
-.entry-tool--heart::before{ content: "♥"; }
+.entry-tool--heart::before{ content: "♡"; }
 body:has(#rater-show-1:checked)  .entry-row--main .entry-field--main:not(.entry-field--extra) .entry-tool--heart,
 body:has(#rater-show-1e:checked) .entry-row--main .entry-field--extra .entry-tool--heart,
 body:has(#rater-show-2:checked)  .entry-row--extra .entry-tool--heart{
+  color: var(--accent);
   opacity: 1;
+}
+body:has(#rater-show-1:checked)  .entry-row--main .entry-field--main:not(.entry-field--extra) .entry-tool--heart::before,
+body:has(#rater-show-1e:checked) .entry-row--main .entry-field--extra .entry-tool--heart::before,
+body:has(#rater-show-2:checked)  .entry-row--extra .entry-tool--heart::before{
+  content: "♥";
 }
 
 /* Vertical lifts: magic + heart 15px, sub-bots 25px, rater 4 emojis 20px. */
@@ -5132,31 +5187,39 @@ body:has(#insight-4:checked) .insight-step:nth-child(5){
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
 }
 
-/* Views popup — opens below, auto-closes when focus leaves the wrap
-   (any other label/button takes focus → :focus-within fails → popup hides). */
-.views-wrap{ position: relative; display: inline-flex; }
+/* Views row — opens INLINE below the Views button, expanding rightwards.
+   Checkboxes (not radios) so multiple views can be marked at once for
+   batch download via the ⬇ Download button. A transparent overlay closes
+   the row when the user clicks anywhere else on the page. The "active
+   view" applied to the phrase is tracked by JS via [data-active-view]. */
+.views-wrap{ position: relative; display: inline-flex; flex-wrap: wrap; align-items: center; }
+.views-btn{ position: relative; z-index: 5; }
 .views-popup{
-  position: absolute; top: calc(100% + 8px); left: 0;
-  display: none; flex-direction: column;
-  min-width: 170px;
-  padding: .35rem;
-  background: rgba(255, 255, 255, .96);
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .12);
-  z-index: 5;
+  display: none;
+  flex-basis: 100%;
+  margin-top: 8px;
+  flex-direction: row; flex-wrap: wrap;
+  align-items: center; gap: .35rem;
+  position: relative; z-index: 5;
 }
-/* Views popup — toggled open by the #views-open checkbox. Clicking the
-   Views button again collapses it; the selected view radio is untouched. */
 body:has(#views-open:checked) .views-popup{ display: flex; }
-/* Views button keeps a slight background while the popup is open OR while
-   any chart view (Bars / Vertical / Axial / Spider) is selected. */
+.views-overlay{
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 4;
+  background: transparent;
+  cursor: default;
+}
+body:has(#views-open:checked) .views-overlay{ display: block; }
+
+/* Views button keeps a slight background while the row is open OR while
+   any chart view is marked. */
 body:has(#views-open:checked) .views-btn,
 body:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked) .views-btn{
   background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
 }
 .views-popup .view-pick{ justify-content: flex-start; }
-/* Active view sub-button highlight (radios — only ever one at a time). */
+/* Marked-view highlight (checkboxes — multiple can be checked at once). */
 body:has(#view-plain:checked)    .view-pick[for="view-plain"],
 body:has(#view-bars:checked)     .view-pick[for="view-bars"],
 body:has(#view-vertical:checked) .view-pick[for="view-vertical"],
@@ -5164,11 +5227,15 @@ body:has(#view-axial:checked)    .view-pick[for="view-axial"],
 body:has(#view-spider:checked)   .view-pick[for="view-spider"]{
   background: var(--fill-pressed); color: #fff; border-color: var(--accent);
 }
+.views-download-btn{ margin-left: .75rem; }
+body:has(#views-download:checked) .views-download-btn{
+  background: var(--fill-pressed); color: #fff; border-color: var(--accent);
+}
 /* The Views buttons never restyle the resume text — they only drive the
    data chart that flove.js renders into .flove-viz-out below the phrase. */
 
-/* Copy lives in its own row, centered */
-.action-row--copy{ justify-content: center; }
+/* Copy lives in its own row, centered, with extra breathing room above. */
+.action-row--copy{ justify-content: center; margin-top: 8px; }
 .copy-btn{ margin: 0; }
 .copy-hint-panel{
   display: none;
@@ -5927,6 +5994,34 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   .ray, .labeler-sub, .magic-btn, .menu-btn{ width: 30px; height: 30px; }
   .magic-rays{ gap: .3rem; }
 }
+
+/* ── wizard inject-model override ─────────────────────────────
+   Bot text is injected directly into the user's default textarea
+   via flove.wizard (see flove.js). The pre-filled variant text-
+   areas remain in the DOM as a text-source for the wiring code,
+   but stay visually hidden. The default textarea always stays
+   visible so the user's typing is never hidden when a bot is
+   picked. The legacy inline preview strip (.entry-magic-inline)
+   is hidden for the same reason. */
+.entry-textareas .entry-textarea--default{
+  display: block !important;
+}
+.entry-textareas .entry-textarea:not(.entry-textarea--default){
+  display: none !important;
+}
+.entry-magic-inline{
+  display: none !important;
+}
+
+/* ── hearts: independent, no animations triggered by other parts ──
+   State-wise the three hearts (rater-show-1 / -1e / -2) are already
+   on independent checkboxes, so clicking one never toggles another.
+   The only thing left to guard against is animations triggered by
+   external state (labeler rays, anim-target-hearts), which used to
+   make hearts pulse/shimmer on unrelated clicks — disable them. */
+.entry-tool--heart{
+  animation: none !important;
+}
 </style>
 </head>
 <body>
@@ -5977,7 +6072,6 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 <input type="radio" name="topbar-labeler" id="labeler-cool"     class="ctl">
 
 <input type="checkbox" id="opt-sound" class="ctl">
-<input type="checkbox" id="opt-vis"   class="ctl">
 <input type="checkbox" id="opt-lang"  class="ctl">
 <input type="checkbox" id="menu-design-open" class="ctl">
 <input type="checkbox" id="menu-nav-open" class="ctl">
@@ -6262,7 +6356,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   <label for="compass-open" class="dropdown-overlay dropdown-overlay--compass" aria-hidden="true"></label>
   <div class="topbar-inner">
 
-    <a class="mark-link" href="flovyadvanced.html" title="Reload" aria-label="Reload">
+    <a class="mark-link" href="flovynormal.html" title="Reload" aria-label="Reload">
       <span class="mark" aria-hidden="true">♡</span>
     </a>
 
@@ -6280,7 +6374,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
         </svg>
       </label>
       <div class="mode-buttons" role="group" aria-label="Display modes">
-        <label class="mode-btn" for="disp-none" title="Normal — tidy list" aria-label="Normal list" tabindex="0">
+        <label class="mode-btn" for="disp-none" title="List" aria-label="List" tabindex="0">
           <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
             <circle cx="4" cy="6"  r="2.3"/><rect x="9" y="4.2"  width="13" height="3.6" rx="1.8"/>
             <circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/>
@@ -6425,17 +6519,6 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
         <li class="menu-divider" role="separator" aria-hidden="true"></li>
 
         <li><label for="intro-open" title="About" tabindex="0"><span class="mi">ⓘ</span><span class="t-en">About</span><span class="t-es">Acerca</span></label></li>
-        <li class="menu-switch menu-switch--mode">
-          <label class="menu-switch-label" for="opt-vis" tabindex="0">
-            <span class="menu-switch-icon mi">◉</span>
-            <span class="menu-switch-name"><span class="t-en">Mode</span><span class="t-es">Modo</span></span>
-            <span class="menu-switch-state">
-              <span class="menu-switch-left"><span class="t-en">Local</span><span class="t-es">Local</span></span>
-              <span class="menu-switch-track"><span class="menu-switch-thumb"></span></span>
-              <span class="menu-switch-right"><span class="t-en">Public</span><span class="t-es">Público</span></span>
-            </span>
-          </label>
-        </li>
         <li class="menu-switch menu-switch--split">
           <label class="menu-switch-name-link" for="step-5" tabindex="0" title="Go to the Sounds section" aria-label="Go to the Sounds section">
             <span class="menu-switch-icon mi">♪</span>
@@ -6576,7 +6659,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   <label class="intro-close intro-close-tr" for="intro-open" aria-label="Close" tabindex="0">×</label>
 
   <p class="intro-lead">
-    <strong>FlovyAdvanced.html</strong> (this page) features a lightweight and clean HTML calling to two external CSS and JS files. <strong>FlovyBasic</strong> features advanced CSS in a single file (<a href="flovybasic.html">flovybasic.html</a>). For further JS in one single file, go to Normal Navigation (<a href="flovynormal.html">flovynormal.html</a>). <strong>FlovySuper</strong> publishes on Platforms — hooks on to backends (<a href="flovysuper.html">flovysuper.html</a>).
+    <strong>FlovyNormal.html</strong> (this page) features a lightweight and clean HTML calling to two external CSS and JS files. <strong>FlovyBasic</strong> features advanced CSS in a single file (<a href="flovybasic.html">flovybasic.html</a>). For the self-contained single-file JS variant, go to <a href="flovynormal-one.html">flovynormal-one.html</a>. <strong>FlovySuper</strong> publishes on Platforms — hooks on to backends (<a href="flovysuper.html">flovysuper.html</a>).
   </p>
 </section>
 
@@ -6983,23 +7066,26 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     <div class="action-grid">
       <div class="action-row">
         <div class="views-wrap">
-          <!-- Views: one checkbox toggles the popup open/closed; the rest
-               are RADIOS in a single group, so picking a view never stacks
-               with another. Plain is the default and the "no chart" state
-               (selecting it removes any active visualization). -->
+          <!-- Views: one checkbox toggles the inline-row open/closed; the
+               rest are CHECKBOXES so multiple views can be marked at once
+               and batch-downloaded. JS (window.flove.views) tracks click
+               order to apply the most recently clicked view to the phrase. -->
           <input type="checkbox" id="views-open" class="ctl">
-          <input type="radio" name="view" id="view-plain"    class="ctl" checked>
-          <input type="radio" name="view" id="view-bars"     class="ctl">
-          <input type="radio" name="view" id="view-vertical" class="ctl">
-          <input type="radio" name="view" id="view-axial"    class="ctl">
-          <input type="radio" name="view" id="view-spider"   class="ctl">
+          <input type="checkbox" id="view-plain"    class="ctl" checked>
+          <input type="checkbox" id="view-bars"     class="ctl">
+          <input type="checkbox" id="view-vertical" class="ctl">
+          <input type="checkbox" id="view-axial"    class="ctl">
+          <input type="checkbox" id="view-spider"   class="ctl">
+          <input type="checkbox" id="views-download" class="ctl">
           <label class="btn ghost views-btn" for="views-open" aria-haspopup="true">👁 <span class="t-en">Views</span><span class="t-es">Vistas</span></label>
-          <div class="views-popup" role="menu" aria-label="Phrase view mode">
-            <label class="btn ghost view-pick" for="view-plain"    aria-label="Plain — no chart">📃 Plain</label>
-            <label class="btn ghost view-pick" for="view-bars"     aria-label="Bars view">▦ Bars</label>
-            <label class="btn ghost view-pick" for="view-vertical" aria-label="Vertical view">│ Vertical</label>
-            <label class="btn ghost view-pick" for="view-axial"    aria-label="Axial view">✛ Axial</label>
-            <label class="btn ghost view-pick" for="view-spider"   aria-label="Spider view">✺ Spider</label>
+          <label class="views-overlay" for="views-open" aria-hidden="true" tabindex="-1"></label>
+          <div class="views-popup" role="group" aria-label="Phrase view mode" data-active-view="plain">
+            <label class="btn ghost view-pick" for="view-plain"    data-view="plain"    aria-label="Plain — no chart">📃 Plain</label>
+            <label class="btn ghost view-pick" for="view-bars"     data-view="bars"     aria-label="Bars view">▦ Bars</label>
+            <label class="btn ghost view-pick" for="view-vertical" data-view="vertical" aria-label="Vertical view">│ Vertical</label>
+            <label class="btn ghost view-pick" for="view-axial"    data-view="axial"    aria-label="Axial view">✛ Axial</label>
+            <label class="btn ghost view-pick" for="view-spider"   data-view="spider"   aria-label="Spider view">✺ Spider</label>
+            <label class="btn ghost views-download-btn" for="views-download" title="Download marked views" aria-label="Download marked views">⬇ <span class="t-en">Download</span><span class="t-es">Descargar</span></label>
           </div>
         </div>
         <span class="insight-cycle">
@@ -7777,6 +7863,28 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     45%{ transform: scale(1.16); }
     100%{ transform: scale(1); }
   }
+  /* "You can now switch to Advanced" — appears alongside the counters
+     once the threshold is met. The JS that flips the [hidden] attribute
+     lives in ../flove.js (window.flove.counters); the CSS hook is ready
+     here so once that module lands the affordance appears automatically. */
+  .pc-advance-text{
+    pointer-events: none;
+    max-width: 11rem;
+    margin-top: 4px;
+    padding: .5rem .7rem;
+    background: rgba(217, 70, 70, .1);
+    border: 1px solid rgba(178, 34, 34, .35);
+    border-radius: 10px;
+    color: rgba(178, 34, 34, .95);
+    font: 700 .7rem/1.3 'Inter', system-ui, sans-serif;
+    text-align: center;
+    animation: pc-advance-pulse 2.4s ease-in-out infinite;
+  }
+  .pc-advance-text[hidden]{ display: none !important; }
+  @keyframes pc-advance-pulse{
+    0%, 100%{ box-shadow: 0 0 0 0 rgba(217, 70, 70, .25); }
+    50%    { box-shadow: 0 0 0 6px rgba(217, 70, 70, 0); }
+  }
 </style>
 <div id="tierIframeOverlay" class="tier-iframe-overlay" hidden>
   <div class="tier-iframe-backdrop"></div>
@@ -7797,6 +7905,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     <div class="pc-badge"><span class="pc-num" id="pointsStars">0</span></div>
     <span class="pc-label">Stars</span>
   </div>
+  <div class="pc-advance-text" id="advanceText" hidden>You can now switch to <strong>Advanced</strong> navigation</div>
 </div>
 
 </body>

@@ -103,6 +103,7 @@
   .card{ background:transparent }
   .slider{
     display:flex; gap:14px; padding:18px 20px 22px;
+    align-items:flex-start;
     overflow-x:auto; overflow-y:visible; scroll-snap-type:x proximity; scrollbar-width:thin;
   }
   .slider::-webkit-scrollbar{ height:8px }
@@ -190,24 +191,116 @@
   .oi-info{ font-size:.76rem; color:var(--muted); white-space:nowrap }
   .oi-info strong{ color:var(--card-accent); font-size:.98rem; font-weight:700 }
 
-  /* card tools — message + forward buttons, centred below the card */
-  .card-tools{ display:flex; justify-content:center; gap:8px }
-  .msg-btn, .fwd-btn{
-    width:112px; height:30px; border-radius:var(--radius-pill);
+  /* card tools — details menu + message button, centred below the card.
+     The details menu sits BEFORE the message button. Both icons are 2×
+     the previous size so the row reads at a glance. */
+  .card-tools{ display:flex; justify-content:center; gap:8px; align-items:flex-start; margin-top:12px }
+  .msg-btn, .fwd-btn, .details-btn{
+    width:112px; height:44px; border-radius:var(--radius-pill);
     border:1px solid var(--line-strong); background:var(--accent-soft); color:var(--accent);
-    font-size:.95rem; cursor:pointer; transition:all var(--fast);
+    font-size:1.9rem; line-height:1; cursor:pointer; transition:all var(--fast);
     display:inline-flex; align-items:center; justify-content:center;
   }
-  .msg-btn:hover, .fwd-btn:hover{ background:#fff; border-color:var(--accent) }
-  .fwd-wrap{ position:relative; display:inline-flex }
-  /* dropdown opens upward, over the card */
+  .msg-btn:hover, .fwd-btn:hover, .details-btn:hover{ background:#fff; border-color:var(--accent) }
+  .details-btn.is-open{ background:var(--accent); color:#fff; border-color:var(--accent-deep) }
+  .fwd-wrap{ position:relative; display:inline-flex; flex-direction:column; align-items:center }
+  /* fwd-menu still opens upward; details-menu opens DOWNWARD (below the
+     ＋/× button) so the info boxes stack underneath the card tools. */
   .fwd-menu{
     position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
-    width:212px; z-index:40;
+    width:240px; z-index:40;
     background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius);
-    box-shadow:var(--shadow); padding:6px; display:flex; flex-direction:column; gap:2px;
+    box-shadow:var(--shadow); padding:8px; display:flex; flex-direction:column; gap:2px;
   }
-  .fwd-menu[hidden]{ display:none }
+  /* details-menu is INLINE inside the card so it expands the card
+     downward (pushing the row's content below to make room), instead
+     of floating absolutely and getting clipped by the slider's
+     overflow. Same expand-and-cover feel as the card's own details. */
+  .details-menu{
+    margin-top:10px;
+    background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:8px; display:flex; flex-direction:column; gap:2px;
+  }
+  .fwd-menu[hidden], .details-menu[hidden]{ display:none }
+  .details-row{
+    display:grid; grid-template-columns:24px 1fr; gap:6px;
+    padding:7px 8px; border-radius:var(--radius-sm);
+    font:600 .8rem/1.3 var(--font-ui); color:var(--ink);
+    text-align:left;
+  }
+  .details-row + .details-row{ border-top:1px dashed var(--line) }
+  .details-row .d-icon{ font-size:1rem; line-height:1.3 }
+  .details-row .d-head{
+    display:flex; align-items:center; gap:6px;
+    margin-bottom:2px;
+  }
+  .details-row .d-label{
+    display:inline-block;
+    font:700 .66rem/1 var(--font-ui);
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent-deep);
+  }
+  .details-row .d-val{
+    display:block;
+    font:400 .82rem/1.35 var(--font-ui);
+    color:var(--ink-soft);
+    word-break:break-word;
+  }
+  /* "extra" panel that ships inline (no toggle) — used for the Name
+     section so the user's deep info is visible immediately. The panel
+     grows naturally with its content; since the parent .details-menu is
+     position:absolute (z-index:40), the popover overlaps whatever sits
+     below the card — same expand-and-cover behavior as the cards. */
+  .details-row .d-extra{
+    grid-column:1 / -1;
+    margin-top:6px;
+    padding:6px 10px;
+    background:var(--accent-soft);
+    border-left:3px solid var(--accent);
+    border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+    font:400 .78rem/1.4 var(--font-ui);
+    color:var(--ink-soft);
+  }
+  .details-row .d-extra strong{ display:block; margin-bottom:4px }
+  .details-row .d-extra ul{ margin:2px 0 0; padding-left:18px }
+  .details-row .d-extra li{ margin:2px 0 }
+  .details-row .d-name-link{
+    color:var(--accent-deep);
+    font-weight:600;
+    text-decoration:underline;
+    text-underline-offset:2px;
+    text-decoration-thickness:1px;
+    transition:color var(--fast);
+  }
+  .details-row .d-name-link:hover{ color:var(--accent); }
+  /* "more ▾" button per row + collapsible deep-detail panel.
+     Used on the first three rows of the details menu (name, role, ratings). */
+  .details-row .d-more{
+    appearance:none; border:0; background:transparent; cursor:pointer;
+    margin-left:auto; padding:2px 0;
+    font:700 .68rem/1 var(--font-ui);
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent-deep);
+    align-self:center;
+  }
+  .details-row .d-more::after{
+    content:" ▾"; transition:transform var(--fast); display:inline-block;
+  }
+  .details-row.is-open .d-more::after{ transform:rotate(180deg) translateY(2px) }
+  .details-row .d-deep{
+    grid-column:1 / -1;
+    margin-top:6px;
+    padding:8px 10px;
+    background:var(--accent-soft);
+    border-left:3px solid var(--accent);
+    border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+    font:400 .8rem/1.4 var(--font-ui);
+    color:var(--ink-soft);
+    display:none;
+  }
+  .details-row.is-open .d-deep{ display:block }
+  .details-row .d-deep ul{ margin:4px 0 0; padding-left:18px }
+  .details-row .d-deep li{ margin:2px 0 }
   .fwd-cat{ position:relative }
   .fwd-cat-label{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -236,6 +329,9 @@
 
   /* big centred "add 6 more users" button */
   .addmore{ display:flex; justify-content:center; margin-top:20px }
+  /* hidden attribute must win over the display:flex above — the bottom
+     collapse × stays hidden until the user has expanded the extras. */
+  .addmore[hidden]{ display:none !important }
   .add-btn{
     width:64px; height:64px; border-radius:50%; border:none; cursor:pointer;
     background:linear-gradient(180deg,var(--accent),var(--accent-deep)); color:#fff;
@@ -738,6 +834,12 @@
   <!-- users added by the + button — a wrapping row below, no extra lateral scroll -->
   <div class="more-users" id="moreUsers"></div>
 
+  <!-- collapse button shown only after expanding — duplicates the top +
+       (which becomes ×) so the user can fold the list back from the bottom too -->
+  <div class="addmore addmore--bottom" id="collapseMoreWrap" hidden>
+    <button type="button" class="add-btn" id="collapseMore" aria-label="Collapse extra users">×</button>
+  </div>
+
   <!-- Comparison -->
   <section class="compare">
     <!-- clickable colour legend — tap a name to expand/collapse that person -->
@@ -806,8 +908,7 @@
     <textarea class="modal-field" id="modalField"></textarea>
     <div class="modal-links" id="modalLinks" hidden></div>
     <div class="modal-magic">
-      <button type="button" class="magic-btn" id="magicBtn">✨ Magic suggestions</button>
-      <div class="bot-tray" id="botTray" hidden></div>
+      <div class="bot-tray" id="botTray"></div>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn" id="modalCancel">Cancel</button>
@@ -904,7 +1005,10 @@
   ];
 
   function closeAllMenus(){
-    document.querySelectorAll('.fwd-menu').forEach(function(m){ m.hidden = true; });
+    document.querySelectorAll('.fwd-menu, .details-menu').forEach(function(m){ m.hidden = true; });
+    document.querySelectorAll('.details-btn.is-open').forEach(function(b){
+      b.classList.remove('is-open'); b.textContent = '+';
+    });
     document.querySelectorAll('.fwd-cat.open').forEach(function(c){ c.classList.remove('open'); });
   }
   document.addEventListener('click', closeAllMenus);
@@ -942,58 +1046,163 @@
     return cat;
   }
 
-  /* message + forward buttons, shown below the card */
+  /* card tools — details dropdown (about the user this card belongs to)
+     followed by the message button. The dropdown sits BEFORE the message
+     button; opening it drops the info boxes DOWNWARD below the buttons.
+     Fields shown: Name (link to profile) / Role (with more) / Ratings
+     (with more) / Availability (with more). The first row's name is a
+     clickable link to that user's profile page. */
+  // buildDetailsRow(icon, label, valueHtml, opts)
+  //   opts.deepHtml  → adds a "more / less" toggle on the right of the
+  //                    title row that reveals a collapsible panel below
+  //   opts.extraHtml → adds an always-visible panel below the value
+  //                    (used for the Name row so the user's deep info
+  //                    is on screen without needing to scroll/click)
+  function buildDetailsRow(icon, label, valueHtml, opts){
+    opts = opts || {};
+    var row = document.createElement('div');
+    row.className = 'details-row';
+    var iconEl = document.createElement('span');
+    iconEl.className = 'd-icon'; iconEl.textContent = icon;
+    var body = document.createElement('div');
+    var head = document.createElement('div');
+    head.className = 'd-head';
+    var lbl = document.createElement('span');
+    lbl.className = 'd-label'; lbl.textContent = label;
+    head.appendChild(lbl);
+    var val = document.createElement('span');
+    val.className = 'd-val'; val.innerHTML = valueHtml || '—';
+    body.appendChild(head);
+    body.appendChild(val);
+    row.appendChild(iconEl);
+    row.appendChild(body);
+
+    if (opts.extraHtml){
+      var extra = document.createElement('div');
+      extra.className = 'd-extra';
+      extra.innerHTML = opts.extraHtml;
+      row.appendChild(extra);
+    }
+    if (opts.deepHtml){
+      var moreBtn = document.createElement('button');
+      moreBtn.type = 'button'; moreBtn.className = 'd-more';
+      moreBtn.textContent = 'more';
+      var deep = document.createElement('div');
+      deep.className = 'd-deep';
+      deep.innerHTML = opts.deepHtml;
+      moreBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        row.classList.toggle('is-open');
+        moreBtn.textContent = row.classList.contains('is-open') ? 'less' : 'more';
+      });
+      head.appendChild(moreBtn);
+      row.appendChild(deep);
+    }
+    return row;
+  }
+  function escAttr(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  function buildDetailsMenu(card){
+    var menu = document.createElement('div');
+    menu.className = 'details-menu'; menu.hidden = true;
+    menu.addEventListener('click', function(e){ e.stopPropagation(); });
+    var id = card.dataset.id;
+    var person = PEOPLE[id] || {};
+    var ratings = 'souls ' + (person.s != null ? person.s : '—') +
+                  ' · trust ' + (person.t != null ? person.t : '—') +
+                  ' · deal '  + (person.d != null ? person.d : '—');
+
+    // Deep panels — placeholder content for the demo; collapsible via
+    // the "more / less" toggle on each row.
+    var roleDeep =
+      '<strong>About the role</strong>' +
+      '<ul>' +
+        '<li>Specialty: ' + escAttr(person.role || '—') + '</li>' +
+        '<li>Experience: 3+ years</li>' +
+        '<li>Areas covered: TBD</li>' +
+        '<li>Available: afternoons and weekends</li>' +
+      '</ul>';
+    var ratDeep =
+      '<strong>Ratings breakdown</strong>' +
+      '<ul>' +
+        '<li>🫶 Souls: ' + (person.s != null ? person.s : '—') + ' / 100</li>' +
+        '<li>🤝 Trust: ' + (person.t != null ? person.t : '—') + ' / 100</li>' +
+        '<li>💼 Deal: '  + (person.d != null ? person.d : '—') + ' / 100</li>' +
+        '<li>Recent reviews: coming soon</li>' +
+      '</ul>';
+    var availDeep =
+      '<strong>Availability detail</strong>' +
+      '<ul>' +
+        '<li>Hours: ' + escAttr(person.terms ? person.terms.replace(/<[^>]+>/g, '') : 'flexible') + '</li>' +
+        '<li>Time zone: local</li>' +
+        '<li>Booking lead time: 24 h</li>' +
+        '<li>Holidays: notified separately</li>' +
+      '</ul>';
+
+    // 1) Name — clickable link to the user's profile (no extra panel)
+    var nameLink =
+      '<a class="d-name-link" href="profile.html?id=' + escAttr(id) + '">' +
+        (person.emoji ? person.emoji + ' ' : '') + escAttr(person.name || '') +
+      '</a>';
+    menu.appendChild(buildDetailsRow('👤', 'Name', nameLink));
+
+    // 2) Role + 3) Ratings — keep the "more / less" toggles (now right-
+    //    aligned on the title row).
+    menu.appendChild(buildDetailsRow('📋', 'Role',    escAttr(person.role), { deepHtml: roleDeep }));
+    menu.appendChild(buildDetailsRow('⭐', 'Ratings', escAttr(ratings),     { deepHtml: ratDeep }));
+
+    // 4) Availability — also carries a "more / less" toggle.
+    menu.appendChild(buildDetailsRow('🗓', 'Availability',
+      escAttr(person.terms ? person.terms.replace(/<[^>]+>/g, '') : '—'),
+      { deepHtml: availDeep }));
+
+    // Offers (only when the user actually has any)
+    if (person.offers && person.offers.length){
+      menu.appendChild(buildDetailsRow('🎁', 'Offers',
+        escAttr(person.offers.map(function(o){ return o.l; }).join(' · '))));
+    }
+    return menu;
+  }
+
   function buildTools(card){
     var tools = document.createElement('div');
     tools.className = 'card-tools';
 
-    var msg = document.createElement('button');
-    msg.type = 'button'; msg.className = 'msg-btn'; msg.title = 'Message'; msg.textContent = '✉';
-    msg.addEventListener('click', function(e){ e.stopPropagation(); closeAllMenus(); openModal(card, null); });
-
+    // Details dropdown — "+" button + menu about THIS user. The "+" flips
+    // to "×" while the menu is open so the same button collapses it back.
     var wrap = document.createElement('div');
     wrap.className = 'fwd-wrap';
-    var fbtn = document.createElement('button');
-    fbtn.type = 'button'; fbtn.className = 'fwd-btn'; fbtn.title = 'Forward or save'; fbtn.textContent = '▾';
-    var menu = document.createElement('div');
-    menu.className = 'fwd-menu'; menu.hidden = true;
-    menu.addEventListener('click', function(e){ e.stopPropagation(); });
-
-    USER_LISTS.forEach(function(list){
-      menu.appendChild(buildCat(list.icon, list.name, list.users, function(nm){
-        closeAllMenus(); openModal(card, nm);
-      }));
-    });
-
-    if(isMobile){
-      menu.appendChild(buildCat('📱', 'Forward via app', APPS, function(nm, b){
-        b.textContent = '✓ Sent to ' + nm;
-        setTimeout(function(){ closeAllMenus(); b.textContent = nm; }, 800);
-      }));
-    } else {
-      var save = document.createElement('button');
-      save.type = 'button'; save.className = 'fwd-item fwd-save';
-      save.textContent = '💾 Save card locally';
-      save.addEventListener('click', function(){
-        saveCard(card);
-        save.textContent = '✓ Saved locally';
-        setTimeout(function(){ closeAllMenus(); save.textContent = '💾 Save card locally'; }, 900);
-      });
-      menu.appendChild(save);
-    }
-
-    fbtn.addEventListener('click', function(e){
+    var dbtn = document.createElement('button');
+    dbtn.type = 'button'; dbtn.className = 'details-btn'; dbtn.title = 'More details about this user'; dbtn.textContent = '+';
+    var menu = buildDetailsMenu(card);
+    dbtn.addEventListener('click', function(e){
       e.stopPropagation();
       var was = menu.hidden;
       closeAllMenus();
       menu.hidden = !was;
+      dbtn.classList.toggle('is-open', !was);
+      dbtn.textContent = !was ? '×' : '+';
     });
+    wrap.appendChild(dbtn);
 
-    wrap.appendChild(fbtn);
-    wrap.appendChild(menu);
-    tools.appendChild(msg);
+    // Message button — opens the message modal
+    var msg = document.createElement('button');
+    msg.type = 'button'; msg.className = 'msg-btn'; msg.title = 'Message'; msg.textContent = '✉';
+    msg.addEventListener('click', function(e){ e.stopPropagation(); closeAllMenus(); openModal(card, null); });
+
+    // Details first, then the message button (swapped from the old order)
     tools.appendChild(wrap);
-    return tools;
+    tools.appendChild(msg);
+
+    // The details menu sits as a SIBLING of the tools row, directly inside
+    // the card, so it spans the card's full width (block element) instead
+    // of being squished by the inline-flex wrap.
+    card.appendChild(tools);
+    card.appendChild(menu);
+    return null;
   }
 
   /* wire one slider cell — card toggle, sub-offers, forward tools */
@@ -1019,7 +1228,9 @@
         item.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
     });
-    cell.appendChild(buildTools(card));
+    // buildTools appends the tools row AND (separately) the details menu
+    // into the card itself — the menu spans the card's full width.
+    buildTools(card);
   }
   Array.prototype.slice.call(document.querySelectorAll('.pcell')).forEach(registerCell);
   var sliderIds = allIds.slice();   /* the original six — only these reorder in the slider */
@@ -1260,7 +1471,7 @@
   var mTitle   = document.getElementById('modalTitle');
   var mField   = document.getElementById('modalField');
   var modalLinks = document.getElementById('modalLinks');
-  var magicBtn = document.getElementById('magicBtn');
+  // Magic suggestions are now always expanded — no toggle button.
   var botTray  = document.getElementById('botTray');
   var sendBtn  = document.getElementById('modalSend');
 
@@ -1296,7 +1507,6 @@
     }
     modalLinks.hidden = !favName;
 
-    botTray.hidden = true;
     sendBtn.textContent = favName ? 'Forward' : 'Send message';
     sendBtn.disabled = false;
     backdrop.hidden = false;
@@ -1316,20 +1526,30 @@
     setTimeout(closeModal, 850);
   });
 
-  /* magic suggestion bots — reveal on click, inject text into the field */
-  BOTS.forEach(function(bot){
+  /* magic suggestion bots — reveal on click, inject text into the field.
+     The FIRST bot (greeting) goes at the start of the textarea so the
+     message opens with it; the others append at the end. */
+  BOTS.forEach(function(bot, idx){
     var chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'bot-chip';
     chip.textContent = bot.icon + ' ' + bot.name;
     chip.addEventListener('click', function(){
-      mField.value = mField.value.replace(/\s*$/,'') + '\n' + bot.text;
-      mField.focus();
-      mField.setSelectionRange(mField.value.length, mField.value.length);
+      if (idx === 0){
+        var rest = mField.value.replace(/^\s*/, '');
+        mField.value = bot.text + (rest ? '\n' + rest : '');
+        mField.focus();
+        var caret = bot.text.length;
+        mField.setSelectionRange(caret, caret);
+      } else {
+        mField.value = mField.value.replace(/\s*$/,'') + '\n' + bot.text;
+        mField.focus();
+        mField.setSelectionRange(mField.value.length, mField.value.length);
+      }
     });
     botTray.appendChild(chip);
   });
-  magicBtn.addEventListener('click', function(){ botTray.hidden = !botTray.hidden; });
+  // (no magic toggle — the bot tray is always visible inside the modal)
 
   /* ---- 6 more real users, added by the + button into the row below ---- */
   var EXTRAS = [
@@ -1390,16 +1610,48 @@
     return cell;
   }
 
-  var moreUsers = document.getElementById('moreUsers');
-  document.getElementById('addMore').addEventListener('click', function(){
+  var moreUsers       = document.getElementById('moreUsers');
+  var addMoreBtn      = document.getElementById('addMore');
+  var collapseMoreBtn = document.getElementById('collapseMore');
+  var collapseWrap    = document.getElementById('collapseMoreWrap');
+  var extraIds        = [];
+
+  function expandExtras(){
+    extraIds = EXTRAS.map(function(p){ return p.id; });
     EXTRAS.forEach(function(p){
       PEOPLE[p.id] = p;
       var cell = buildCell(p);
-      moreUsers.appendChild(cell);   /* a wrapping row below — no extra lateral scroll */
+      moreUsers.appendChild(cell);
       registerCell(cell);
     });
-    this.disabled = true;
-  });
+    addMoreBtn.textContent = '×';
+    addMoreBtn.setAttribute('aria-label', 'Collapse extra users');
+    collapseWrap.hidden = false;
+  }
+  function collapseExtras(){
+    extraIds.forEach(function(id){
+      delete PEOPLE[id];
+      delete cardOf[id];
+      delete cellOf[id];
+      var idx = allIds.indexOf(id);
+      if (idx !== -1) allIds.splice(idx, 1);
+      // Remove from selection order if currently selected
+      var oi = order.indexOf(id);
+      if (oi !== -1) order.splice(oi, 1);
+      collapsed.delete(id);
+    });
+    extraIds = [];
+    moreUsers.innerHTML = '';
+    addMoreBtn.textContent = '+';
+    addMoreBtn.setAttribute('aria-label', 'Add 6 more users');
+    collapseWrap.hidden = true;
+    if (typeof render === 'function') render();
+  }
+  function toggleExtras(){
+    if (extraIds.length) collapseExtras(); else expandExtras();
+  }
+  addMoreBtn.addEventListener('click', toggleExtras);
+  collapseMoreBtn.addEventListener('click', collapseExtras);
 
   render();
 })();

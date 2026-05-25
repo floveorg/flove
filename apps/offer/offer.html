@@ -1340,9 +1340,9 @@
      🤔 emoji must not restyle the clause text beside it. */
   .opt-row .radio-clauses label.clause:has(input:checked){ font-weight: 700; }
 
-  /* ── Single 📝 notes icon on every sub-sub clause, right-aligned
-     just before the 🤔 (clause-plus) ── */
-  .opt-row .radio-clauses label.clause:has(.clause-tools){ padding-right: 56px; }
+  /* ── Inline tools wrapper on every sub-sub clause: holds the 📝
+     (injected by initNotes) and the 🤔 (clause-plus), right-aligned. ── */
+  .opt-row .radio-clauses label.clause:has(.clause-tools){ padding-right: 58px; }
   .clause-tools{
     position: absolute; right: 6px; top: 50%;
     transform: translateY(-50%);
@@ -1354,17 +1354,6 @@
     position: static; transform: none;
     margin-left: 2px;
   }
-  .clause-note-tool{
-    border: 0; background: transparent; padding: 0; margin: 0;
-    font-size: .82rem; line-height: 1; cursor: pointer;
-    opacity: .35;
-    transition: opacity var(--fast), transform var(--fast);
-    width: 18px; height: 18px;
-    display: inline-grid; place-items: center;
-    position: relative;
-  }
-  .clause-note-tool:hover{ opacity: .85; transform: translateY(-1px) }
-  .clause-note-tool.is-on{ opacity: 1 }
 
 
   /* Routed cross-link chip dropped into a target field */
@@ -1859,17 +1848,38 @@
   }
   .note-icon-btn:hover{ opacity: 1; transform: scale(1.18); }
   .note-icon-btn.is-open{ opacity: 1; transform: scale(1.1); }
+  /* Compact 📝 when it lives inside the inline .clause-tools row */
+  .clause-tools .note-icon-btn{
+    padding: 0;
+    width: 18px; height: 18px;
+    display: inline-grid; place-items: center;
+    font-size: .82rem;
+    opacity: .4;
+  }
+  .clause-tools .note-icon-btn:hover{ opacity: .9; transform: translateY(-1px); }
+  .clause-tools .note-icon-btn.is-open{ opacity: 1; }
   .note-panel{
     display: none;
-    margin: 4px 0 4px 18px;
+    margin: 4px 0;
     padding: 5px 8px;
     background: var(--paper-warm, #fff8f0);
     border: 1px dashed var(--accent, #2f6eb0);
     border-radius: 8px;
     gap: 6px;
     align-items: center;
+    width: 100%;
+    box-sizing: border-box;
   }
   .note-panel.is-open{ display: flex; }
+  /* When the panel lives as a grid row of .radio-clauses, span the full
+     column so it matches the column width on every level. */
+  .radio-clauses > .note-panel,
+  .radio-clauses > .note-saved,
+  .more-details-panel > .note-panel,
+  .more-details-panel > .note-saved{
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
   .note-input{
     flex: 1 1 auto; min-width: 60px;
     padding: 4px 8px;
@@ -1887,7 +1897,7 @@
   }
   .note-save:hover{ filter: brightness(1.1); }
   .note-saved{
-    margin: 4px 0 4px 18px;
+    margin: 4px 0;
     padding: 4px 10px 4px 12px;
     background: var(--accent-soft, #e8f0fa);
     border-left: 3px solid var(--accent, #2f6eb0);
@@ -3239,24 +3249,16 @@
       recordClick();
     });
   });
-  // ── Single 📝 notes icon on every sub-sub clause, right-aligned
-  //    just before the 🤔 (clause-plus) ──
-  $$('.radio-clauses label.clause').forEach(lbl => {
+  // ── Wrap the 🤔 of every sub-sub clause in a .clause-tools span so
+  //    initNotes can later drop its 📝 icon right before the 🤔. ──
+  $$('.radio-clauses label.clause, .more-details-panel label.clause').forEach(lbl => {
     if (lbl.querySelector('.clause-tools')) return;
     const plus = lbl.querySelector('.clause-plus');
     if (!plus) return;
     const tools = document.createElement('span');
     tools.className = 'clause-tools';
     plus.parentNode.insertBefore(tools, plus);
-    tools.innerHTML = '<button type="button" class="clause-note-tool clause-note" aria-label="Note" title="Note">📝</button>';
     tools.appendChild(plus);
-  });
-  // Clicking the 📝 must NOT toggle the parent clause checkbox.
-  $$('.clause-tools .clause-note').forEach(b => {
-    b.addEventListener('click', e => {
-      e.preventDefault(); e.stopPropagation();
-      b.classList.toggle('is-on');
-    });
   });
 
   // Remove a routed chip via its ✕ — also un-press the source "+".
@@ -3750,10 +3752,13 @@
 
   // host = element after which to insert panel + saved (note appears below)
   // iconParent = element that receives the 📝 icon (visually next to title/label)
-  function attachNote(host, iconParent){
+  // beforeEl (optional) = sibling inside iconParent to insert the icon before;
+  //   when omitted, the icon is appended at the end
+  function attachNote(host, iconParent, beforeEl){
     if (iconParent.querySelector(':scope > .note-icon-btn')) return;
     const icon  = makeIcon();
-    iconParent.appendChild(icon);
+    if (beforeEl){ iconParent.insertBefore(icon, beforeEl); }
+    else         { iconParent.appendChild(icon); }
     const panel = makePanel();
     const saved = makeSaved();
     host.insertAdjacentElement('afterend', saved);
@@ -3771,10 +3776,18 @@
     attachNote(head, head);
   });
 
-  // 3) Sub-clauses — icon at end of label.clause, note appears below as new grid row
+  // 3) Sub-clauses — icon goes INSIDE the .clause-tools span, right before
+  //    the 🤔 (clause-plus). Panel/saved still get inserted as siblings of
+  //    the clause label so they land as new full-width rows in the grid.
   document.querySelectorAll('.radio-clauses label.clause, .more-details-panel label.clause').forEach(label => {
     if (label.nextElementSibling && label.nextElementSibling.classList.contains('note-panel')) return;
-    attachNote(label, label);
+    const tools = label.querySelector(':scope > .clause-tools');
+    if (tools){
+      const plus = tools.querySelector('.clause-plus');
+      attachNote(label, tools, plus);
+    } else {
+      attachNote(label, label);
+    }
   });
 })();
 </script>

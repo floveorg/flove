@@ -192,14 +192,11 @@
   .for-reasons > .reason-chip{
     position:absolute;
     white-space:nowrap;
-    transition: left 4.6s ease-in-out, top 4.6s ease-in-out,
-                background var(--fast), border-color var(--fast), color var(--fast);
-    animation: chip-float 10s ease-in-out infinite;
+    /* Movement is driven by a JS physics loop — no CSS transition on
+       left/top, no chip-float keyframe animation. Only colour/border
+       state transitions remain. */
+    transition: background var(--fast), border-color var(--fast), color var(--fast);
   }
-  .for-reasons > :nth-child(2){ animation-delay:-3.2s }
-  .for-reasons > :nth-child(3){ animation-delay:-6.5s }
-  .for-reasons > :nth-child(4){ animation-delay:-1.8s }
-  .for-reasons > :nth-child(5){ animation-delay:-5.1s }
 
   /* parent / sub chips — parents are 2× the size of subs */
   .reason-chip.parent-chip{
@@ -258,8 +255,7 @@
     position:absolute; z-index:3;
     width:47px; height:47px;
     font-size:1.56rem;
-    transition: left 4.6s ease-in-out, top 4.6s ease-in-out;
-    animation: chip-float 10s ease-in-out infinite; animation-delay:-2.6s;
+    /* Position is driven by the same JS physics loop as the chips. */
   }
   /* new-reason input — sits right after the column title, in flow */
   .new-reason-input{
@@ -274,10 +270,6 @@
   }
   .new-reason-input.is-open{ display:inline-block }
   .new-reason-input:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-glow) }
-  @keyframes chip-float{
-    0%,100%{ transform:translateY(0) }
-    50%{ transform:translateY(-10px) }
-  }
   .reason-chip{
     display:inline-flex; align-items:center; gap:7px;
     padding: 8px 12px;
@@ -520,10 +512,12 @@
   .tree{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
   .tree-col{ display: grid; gap: 10px; align-content: start }
   @media (max-width: 640px){ .tree{ grid-template-columns: 1fr } }
-  /* tree levels — each unlocked only once its parent group has a pick */
+  /* tree levels — each unlocked once the previous group has a pick.
+     lvl-2 (Past/Current/Future) is optional refinement (hidden behind +),
+     so lvl-3 unlocks straight from lvl-1 — picking lvl-2 isn't required. */
   .lvl-2, .lvl-3, .lvl-4, .lvl-5{ transition: opacity var(--fast) }
   .tree:not(:has(input[name="t1"]:checked)) .lvl-2,
-  .tree:not(:has(input[name="t2"]:checked)) .lvl-3,
+  .tree:not(:has(input[name="t1"]:checked)) .lvl-3,
   .tree:not(:has(input[name="t3"]:checked)) .lvl-4,
   .tree:not(:has(input[name="t4"]:checked)) .lvl-5{
     opacity:.4; pointer-events:none;
@@ -1585,18 +1579,110 @@
     const expandBtn = col ? col.querySelector(".expand-plus") : null;
     const dock = col ? col.querySelector(".for-docked") : null;
 
-    // each chip drifts gently around its own "home" cell so they stay spread out
+    // ── Chips are positioned by a JS physics loop: each chip has a small
+    //    velocity, bounces off the cloud walls (stays inside its column),
+    //    and bounces off other chips on contact — no overlap, direction
+    //    alters on touch. ──
     const visibleChips = () =>
       $$(":scope > .reason-chip, :scope > .add-reason", cloud)
         .filter(c => c.style.display !== "none");
-    const drift = () => {
-      visibleChips().forEach(c => {
-        if (!c.dataset.homeX) return;
-        // Smaller jitter so chips stay near their grid cell — avoids pile-ups
-        c.style.left = (+c.dataset.homeX + (Math.random()-0.5)*3) + "%";
-        c.style.top  = (+c.dataset.homeY + (Math.random()-0.5)*3) + "%";
+
+    const physics = new Map(); // chip element → {x, y, w, h, vx, vy}  (all in % of cloud)
+    let rafId = null;
+
+    const randVel = () => (Math.random() - 0.5) * 0.30;  // ≈ ±9 %/s at 60 fps
+
+    function measureChip(el, cloudRect){
+      const r = el.getBoundingClientRect();
+      return {
+        w: r.width  && cloudRect.width  ? (r.width  / cloudRect.width)  * 100 : 10,
+        h: r.height && cloudRect.height ? (r.height / cloudRect.height) * 100 : 10,
+      };
+    }
+
+    function syncPhysicsList(){
+      const chips = visibleChips();
+      const cloudRect = cloud.getBoundingClientRect();
+      if (!cloudRect.width || !cloudRect.height) return;
+      // prune stale entries (chip docked, removed, or hidden)
+      Array.from(physics.keys()).forEach(el => {
+        if (el.parentNode !== cloud || el.style.display === "none"){
+          physics.delete(el);
+        }
       });
-    };
+      // seed new chips at their grid-home position
+      chips.forEach(c => {
+        if (physics.has(c)) return;
+        const m = measureChip(c, cloudRect);
+        physics.set(c, {
+          x: parseFloat(c.dataset.homeX) || 0,
+          y: parseFloat(c.dataset.homeY) || 0,
+          w: m.w, h: m.h,
+          vx: randVel(),
+          vy: randVel(),
+        });
+      });
+    }
+
+    function stepPhysics(){
+      const cloudRect = cloud.getBoundingClientRect();
+      if (!cloudRect.width || !cloudRect.height){
+        rafId = requestAnimationFrame(stepPhysics);
+        return;
+      }
+      // prune + refresh sizes (chips may have wrapped or fonts loaded late)
+      const items = [];
+      Array.from(physics.keys()).forEach(el => {
+        if (el.parentNode !== cloud || el.style.display === "none"){
+          physics.delete(el);
+          return;
+        }
+        const it = physics.get(el);
+        const m = measureChip(el, cloudRect);
+        it.w = m.w; it.h = m.h;
+        items.push({ el, it });
+      });
+      // integrate + wall bounce
+      for (const { it } of items){
+        it.x += it.vx;
+        it.y += it.vy;
+        if (it.x < 0)            { it.x = 0;            it.vx =  Math.abs(it.vx); }
+        if (it.x + it.w > 100)   { it.x = 100 - it.w;   it.vx = -Math.abs(it.vx); }
+        if (it.y < 0)            { it.y = 0;            it.vy =  Math.abs(it.vy); }
+        if (it.y + it.h > 100)   { it.y = 100 - it.h;   it.vy = -Math.abs(it.vy); }
+      }
+      // pairwise AABB resolution — push apart along the shallowest overlap
+      // axis and swap velocity components on that axis (elastic, equal mass)
+      for (let i = 0; i < items.length; i++){
+        const a = items[i].it;
+        for (let j = i + 1; j < items.length; j++){
+          const b = items[j].it;
+          if (a.x < b.x + b.w && a.x + a.w > b.x &&
+              a.y < b.y + b.h && a.y + a.h > b.y){
+            const dx = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
+            const dy = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
+            if (dx < dy){
+              const push = dx / 2;
+              if (a.x < b.x){ a.x -= push; b.x += push; }
+              else          { a.x += push; b.x -= push; }
+              const t = a.vx; a.vx = b.vx; b.vx = t;
+            } else {
+              const push = dy / 2;
+              if (a.y < b.y){ a.y -= push; b.y += push; }
+              else          { a.y += push; b.y -= push; }
+              const t = a.vy; a.vy = b.vy; b.vy = t;
+            }
+          }
+        }
+      }
+      // commit positions to DOM
+      for (const { el, it } of items){
+        el.style.left = it.x.toFixed(2) + "%";
+        el.style.top  = it.y.toFixed(2) + "%";
+      }
+      rafId = requestAnimationFrame(stepPhysics);
+    }
+
     const layout = () => {
       const chips = visibleChips();
       // shuffle so a group's children scatter across the cloud, not sit together
@@ -1604,18 +1690,27 @@
         const j = Math.floor(Math.random() * (i + 1));
         [chips[i], chips[j]] = [chips[j], chips[i]];
       }
-      // Spread chips across the full cloud (top → bottom), so the top row
-      // sits near y=4% (just under the title) instead of being pushed down
-      // by the (i+0.5)/rows centering bias.
+      // Seed positions on a grid that fits inside the cloud, so chips don't
+      // start clumped. Physics takes over from there.
       const cols = Math.max(1, Math.ceil(Math.sqrt(chips.length)));
       const rows = Math.max(1, Math.ceil(chips.length / cols));
       const colDen = Math.max(1, cols - 1);
       const rowDen = Math.max(1, rows - 1);
-      chips.forEach((c,i) => {
-        c.dataset.homeX = (4 + (i % cols)        / colDen * 88).toFixed(2);
-        c.dataset.homeY = (4 + Math.floor(i/cols)/ rowDen * 92).toFixed(2);
+      chips.forEach((c, i) => {
+        const hx = +(4 + (i % cols)        / colDen * 80).toFixed(2);
+        const hy = +(4 + Math.floor(i/cols)/ rowDen * 88).toFixed(2);
+        c.dataset.homeX = hx;
+        c.dataset.homeY = hy;
+        c.style.left = hx + "%";
+        c.style.top  = hy + "%";
+        // reseed velocity so re-laid-out chips don't keep stale momentum
+        const ex = physics.get(c);
+        if (ex){ ex.x = hx; ex.y = hy; ex.vx = randVel(); ex.vy = randVel(); }
       });
-      drift();
+      syncPhysicsList();
+      if (!rafId && physics.size && !matchMedia("(prefers-reduced-motion: reduce)").matches){
+        rafId = requestAnimationFrame(stepPhysics);
+      }
     };
 
     // 3 steps: 0 = two parents · 1 = all parents · 2 = all parents + children
@@ -1658,9 +1753,7 @@
     });
 
     applyExpand();
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches){
-      setInterval(drift, 4400);
-    }
+    // No more setInterval drift — the rAF physics loop above runs continuously.
 
     // "+" in the cloud — type a custom reason; Enter adds it as a parent tab
     const addChip = txt => {

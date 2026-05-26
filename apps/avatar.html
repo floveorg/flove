@@ -11,7 +11,8 @@
 <style>
   /* ============================================================
      avatar — your living profile
-     Pure-CSS (no JS), light theme, flove identity.
+     Light theme, flove identity. Minimal JS for intensity scales,
+     nested chip reveals, and the Contact message composer.
      ============================================================ */
   :root {
     --app-accent:        #ff9b5e;
@@ -60,7 +61,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ── flove-bar tweaks (matches sibling apps) ── */
+  /* ── flove-bar tweaks ── */
   .flove-bar {
     background: rgba(255,247,240,.78);
     border-bottom-color: var(--line);
@@ -74,6 +75,8 @@
     max-width: 1080px;
     margin: 0 auto;
     padding: 28px 18px 56px;
+    display: grid;
+    gap: 22px;
   }
   .card {
     background: linear-gradient(180deg, #ffffffcc 0%, #ffffff88 100%);
@@ -84,57 +87,12 @@
     backdrop-filter: blur(10px) saturate(120%);
   }
 
-  /* ── pure-CSS tabs ── */
-  .tabs > input { position: absolute; opacity: 0; pointer-events: none; }
-  .tabbar {
+  /* ── USER PRESENTATION (header, always visible) ── */
+  .presentation {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    margin-bottom: 22px;
-    padding: 6px;
-    background: rgba(255,255,255,.55);
-    border: 1px solid var(--line);
-    border-radius: var(--pill);
-  }
-  .tabbar label {
-    text-align: center;
-    padding: 10px 14px;
-    border-radius: var(--pill);
-    font-weight: 600;
-    font-size: 13px;
-    letter-spacing: .4px;
-    color: var(--muted);
-    cursor: pointer;
-    user-select: none;
-    transition: background var(--fast), color var(--fast), transform var(--fast), opacity var(--medium);
-    opacity: .55;
-  }
-  .tabbar label:hover { opacity: 1; color: var(--ink); }
-  #t-id:checked     ~ .tabbar label[for=t-id],
-  #t-contrib:checked ~ .tabbar label[for=t-contrib],
-  #t-offers:checked  ~ .tabbar label[for=t-offers],
-  #t-contact:checked ~ .tabbar label[for=t-contact] {
-    background: var(--app-accent);
-    color: var(--app-ink-on-accent);
-    opacity: 1;
-    box-shadow: 0 6px 16px -8px var(--accent-glow);
-  }
-  .tabbar label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  .panel { display: none; animation: fade .3s var(--fast); }
-  #t-id:checked     ~ #p-id,
-  #t-contrib:checked ~ #p-contrib,
-  #t-offers:checked  ~ #p-offers,
-  #t-contact:checked ~ #p-contact { display: block; }
-  @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
-
-  /* ── IDENTITY panel ── */
-  .profile {
-    display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr minmax(180px, 240px);
     gap: 22px;
     align-items: center;
-    margin-bottom: 22px;
   }
   .avatar {
     width: 132px; height: 132px;
@@ -166,10 +124,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .who {
-    display: grid;
-    gap: 4px;
-  }
+  .who { display: grid; gap: 4px; }
   .who .name {
     font-family: var(--font-display);
     font-size: 28px;
@@ -181,27 +136,207 @@
   .who .handle { color: var(--muted); font-size: 14px; }
   .who .bio { margin-top: 8px; color: var(--ink-soft); max-width: 52ch; }
 
+  /* trends — moved to right side of presentation */
+  .trends-card {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    align-self: stretch;
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .trends-card::before {
+    content: "";
+    position: absolute;
+    inset: auto -30% -60% auto;
+    width: 70%; height: 130%;
+    background: radial-gradient(60% 60% at 50% 50%, var(--app-accent-soft) 0, transparent 60%);
+    transform: rotate(-12deg);
+    opacity: .55;
+  }
+  .trends-card h3 {
+    margin: 0;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: .8px; text-transform: uppercase;
+    font-weight: 600;
+    position: relative;
+  }
+  .trends-card ul {
+    margin: 0; padding: 0;
+    list-style: none;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    position: relative;
+  }
+  .trends-card ul li {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: var(--pill);
+    background: var(--app-accent-soft);
+    color: var(--app-ink-on-accent);
+  }
+
+  /* ── TABS ── */
+  .tabs > input { position: absolute; opacity: 0; pointer-events: none; }
+  .tabbar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 22px;
+    padding: 6px;
+    background: rgba(255,255,255,.55);
+    border: 1px solid var(--line);
+    border-radius: var(--pill);
+  }
+  .tabbar label {
+    text-align: center;
+    padding: 10px 14px;
+    border-radius: var(--pill);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: .4px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--fast), color var(--fast), opacity var(--medium);
+    opacity: .55;
+  }
+  .tabbar label:hover { opacity: 1; color: var(--ink); }
+  #t-souls:checked    ~ .tabbar label[for=t-souls],
+  #t-trusts:checked   ~ .tabbar label[for=t-trusts],
+  #t-contrib:checked  ~ .tabbar label[for=t-contrib],
+  #t-offers:checked   ~ .tabbar label[for=t-offers],
+  #t-contact:checked  ~ .tabbar label[for=t-contact] {
+    background: var(--app-accent);
+    color: var(--app-ink-on-accent);
+    opacity: 1;
+    box-shadow: 0 6px 16px -8px var(--accent-glow);
+  }
+
+  .panel { display: none; animation: fade .3s var(--fast); }
+  #t-souls:checked    ~ #p-souls,
+  #t-trusts:checked   ~ #p-trusts,
+  #t-contrib:checked  ~ #p-contrib,
+  #t-offers:checked   ~ #p-offers,
+  #t-contact:checked  ~ #p-contact { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+
+  /* ── SOULS panel: Interests + Preferences microcards ── */
+  .microcards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .microcards article {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 16px;
+    min-height: 110px;
+    position: relative;
+    overflow: hidden;
+  }
+  .microcards article::before {
+    content: "";
+    position: absolute;
+    inset: auto -30% -60% auto;
+    width: 70%; height: 130%;
+    background: radial-gradient(60% 60% at 50% 50%, var(--app-accent-soft) 0, transparent 60%);
+    transform: rotate(-12deg);
+    opacity: .55;
+  }
+  .microcards h3 {
+    margin: 0 0 6px;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: .8px; text-transform: uppercase;
+    font-weight: 600;
+    position: relative;
+  }
+  .microcards ul {
+    margin: 0; padding: 0;
+    list-style: none;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    position: relative;
+  }
+  .microcards ul li {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: var(--pill);
+    background: var(--app-accent-soft);
+    color: var(--app-ink-on-accent);
+  }
+  .soul-quote {
+    margin: 16px 0 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--accent);
+    background: #fff;
+    border-radius: 12px;
+    color: var(--ink-soft);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 15px;
+  }
+
+  /* ── TRUSTS panel ── */
+  .trusts {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; gap: 10px;
+  }
+  .trusts li {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+  }
+  .trusts .face {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--app-accent), var(--accent-deep));
+    color: var(--app-ink-on-accent);
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 600; font-size: 16px;
+  }
+  .trusts .name { font-weight: 600; color: var(--ink); }
+  .trusts .meta { color: var(--muted); font-size: 13px; }
+  .trusts .level {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: var(--pill);
+    background: var(--app-accent-soft);
+    color: var(--app-ink-on-accent);
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ── CONTRIBS panel: Active/Historic bars + gallery ── */
   .stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin: 10px 0 22px;
+    margin: 0 0 18px;
   }
   .stat {
     background: #fff;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 12px 14px;
-    transition: border-color var(--fast), box-shadow var(--fast), transform var(--fast);
   }
-  .stat:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
   .stat-head {
     display: flex; justify-content: space-between; align-items: baseline;
     font-size: 12px; letter-spacing: .8px; text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 8px;
   }
-  .stat-head b { color: var(--ink); font-size: 15px; font-weight: 600; font-family: var(--font-display); letter-spacing: 0; text-transform: none; }
+  .stat-head b {
+    color: var(--ink); font-size: 15px; font-weight: 600;
+    font-family: var(--font-display); letter-spacing: 0; text-transform: none;
+  }
   .bar {
     --v: 50%;
     position: relative;
@@ -220,106 +355,6 @@
     box-shadow: 0 0 10px var(--accent-glow);
   }
 
-  /* microcards: INTERESTS · PREFERENCES · TRENDS */
-  .triplet {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-  .triplet article {
-    border: 1px solid var(--line);
-    background: #fff;
-    border-radius: var(--radius);
-    padding: 16px;
-    min-height: 110px;
-    transition: transform var(--fast), box-shadow var(--fast), border-color var(--fast);
-    position: relative;
-    overflow: hidden;
-  }
-  .triplet article::before {
-    content: "";
-    position: absolute;
-    inset: auto -30% -60% auto;
-    width: 70%; height: 130%;
-    background: radial-gradient(60% 60% at 50% 50%, var(--app-accent-soft) 0, transparent 60%);
-    transform: rotate(-12deg);
-    opacity: .55;
-    transition: opacity var(--medium);
-  }
-  .triplet article:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--line-strong);
-  }
-  .triplet article:hover::before { opacity: 1; }
-  .triplet h3 {
-    margin: 0 0 6px;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .triplet p {
-    margin: 0;
-    color: var(--ink-soft);
-    font-size: 14px;
-    line-height: 1.45;
-    position: relative;
-  }
-  .triplet ul {
-    margin: 0; padding: 0;
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    position: relative;
-  }
-  .triplet ul li {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: var(--pill);
-    background: var(--app-accent-soft);
-    color: var(--app-ink-on-accent);
-  }
-
-  /* pills row (WISHES / WANTS / PROJECTS) — selection-dim pattern */
-  .pillbar {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    justify-content: center;
-    padding-top: 4px;
-  }
-  .pillbar input { position: absolute; opacity: 0; pointer-events: none; }
-  .pillbar label {
-    display: inline-flex; align-items: center; gap: 8px;
-    border: 1px solid var(--line-strong);
-    background: #fff;
-    padding: 8px 16px;
-    border-radius: var(--pill);
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-    letter-spacing: .4px;
-    color: var(--ink-soft);
-    transition: transform var(--fast), opacity var(--medium), background var(--fast), color var(--fast), border-color var(--fast);
-  }
-  .pillbar label .count {
-    font-weight: 500;
-    color: var(--muted);
-    font-size: 12px;
-  }
-  .pillbar label:hover { transform: translateY(-1px); }
-  .pillbar:has(input:checked) label { opacity: .5; }
-  .pillbar:has(input:checked) label:has(input:checked) {
-    opacity: 1;
-    background: var(--app-accent);
-    color: var(--app-ink-on-accent);
-    border-color: var(--app-accent);
-  }
-  .pillbar label:has(input:checked) .count { color: var(--app-ink-on-accent); }
-
-  /* ── CONTRIBS gallery ── */
   .gallery {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -339,7 +374,7 @@
     font-family: var(--font-display);
     font-size: 14px;
     cursor: pointer;
-    transition: transform var(--fast), box-shadow var(--fast), opacity var(--medium), border-color var(--fast);
+    transition: transform var(--fast), box-shadow var(--fast), border-color var(--fast);
     position: relative;
     overflow: hidden;
   }
@@ -356,29 +391,45 @@
   }
   .gallery figure:hover { transform: scale(1.02); box-shadow: var(--shadow-sm); border-color: var(--line-strong); }
   .gallery figure:hover figcaption { opacity: 1; }
-  .gallery:hover figure:not(:hover) { opacity: .5; }
   .gallery .more {
     background: #fff;
     border-style: dashed;
     color: var(--muted);
   }
 
-  /* ── OFFERS list ── */
+  /* ── OFFERS panel: selectable list ── */
   .offers { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
   .offers li {
     padding: 14px 16px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: #fff;
-    position: relative;
-    cursor: default;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 10px;
-    transition: transform var(--fast), box-shadow var(--fast), border-color var(--fast);
+    gap: 12px;
+    cursor: pointer;
+    transition: transform var(--fast), box-shadow var(--fast), border-color var(--fast), background var(--fast);
+    position: relative;
   }
   .offers li:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--line-strong); }
+  .offers li.is-selected {
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
+  }
+  .offers li .pick {
+    width: 22px; height: 22px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line-strong);
+    background: #fff;
+    display: grid; place-items: center;
+    font-size: 14px; color: var(--app-accent);
+  }
+  .offers li.is-selected .pick {
+    background: var(--app-accent);
+    border-color: var(--app-accent);
+    color: var(--app-ink-on-accent);
+  }
   .offers li .label { font-weight: 600; color: var(--ink); }
   .offers li .meta { color: var(--muted); font-size: 13px; }
   .offers li .badge {
@@ -391,27 +442,9 @@
     text-transform: uppercase;
     font-weight: 600;
   }
-  .offers li::after {
-    content: attr(data-tip);
-    position: absolute;
-    left: 16px;
-    bottom: calc(100% + 8px);
-    background: var(--ink);
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    white-space: nowrap;
-    opacity: 0;
-    transform: translateY(6px);
-    transition: opacity var(--fast), transform var(--fast);
-    pointer-events: none;
-    z-index: 2;
-  }
-  .offers li:hover::after { opacity: 1; transform: translateY(0); }
 
-  /* ── CONTACT rows ── */
-  .contact { display: grid; gap: 10px; max-width: 560px; }
+  /* ── CONTACT panel ── */
+  .contact { display: grid; gap: 10px; max-width: 560px; margin-bottom: 22px; }
   .contact a {
     display: grid;
     grid-template-columns: 32px 1fr auto;
@@ -439,20 +472,320 @@
   }
   .contact .kicker { font-size: 11px; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
   .contact .value { color: var(--ink-soft); font-size: 14px; }
-  .contact a:hover .value { color: var(--app-ink-on-accent); }
   .contact .arrow { color: var(--muted); font-size: 18px; }
-  .contact a:hover .arrow { color: var(--app-ink-on-accent); transform: translateX(2px); }
+
+  .compose {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    padding: 16px;
+    display: grid; gap: 12px;
+  }
+  .compose h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .compose .selected-list {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    min-height: 30px;
+    padding: 6px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px;
+    background: var(--paper);
+  }
+  .compose .selected-list:empty::before {
+    content: "Tap an offer or a saved want above to add it here.";
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+    padding: 4px 8px;
+  }
+  .compose .selected-list .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--app-accent-soft);
+    color: var(--app-ink-on-accent);
+    padding: 4px 10px;
+    border-radius: var(--pill);
+    font-size: 12px; font-weight: 600;
+  }
+  .compose .selected-list .pill .x {
+    cursor: pointer;
+    opacity: .6;
+    font-weight: 700;
+  }
+  .compose .selected-list .pill .x:hover { opacity: 1; }
+  .compose textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 12px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 110px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .compose .compose-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .compose .hint { color: var(--muted); font-size: 12px; }
+  .compose .send {
+    background: var(--app-accent);
+    color: var(--app-ink-on-accent);
+    border: 0;
+    padding: 10px 18px;
+    border-radius: var(--pill);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background var(--fast), transform var(--fast);
+  }
+  .compose .send:hover { background: var(--accent-deep); transform: translateY(-1px); }
+
+  /* ── WANTY SECTION (always visible, below tabs) ── */
+  .wanty-section h2,
+  .apps-section h2 {
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .wanty-section .kicker {
+    display: block;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: .8px; text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .wanty-cats {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 6px;
+  }
+  /* 10-step intensity → background goes from soft (0) to bold accent (10).
+     CSS color-mix interpolates with --intensity (0..10) set via JS. */
+  .wanty-cat {
+    --intensity: 0;
+    border: 1.5px solid var(--app-accent);
+    background: color-mix(in oklab,
+      var(--app-accent-soft) calc((10 - var(--intensity)) * 10%),
+      var(--app-accent)      calc(var(--intensity) * 10%));
+    color: color-mix(in oklab,
+      var(--app-ink-on-accent) calc(50% + var(--intensity) * 5%),
+      var(--accent-deep)       calc(50% - var(--intensity) * 5%));
+    padding: 9px 18px;
+    border-radius: var(--pill);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: .2px;
+    cursor: pointer;
+    transition: background var(--fast), transform var(--fast), box-shadow var(--fast);
+    position: relative;
+  }
+  .wanty-cat:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .wanty-cat[aria-expanded="true"] {
+    box-shadow: 0 6px 16px -8px var(--accent-glow);
+  }
+  .wanty-cat .count {
+    margin-left: 6px;
+    font-size: 11px;
+    opacity: .75;
+    font-weight: 500;
+  }
+
+  .wanty-chips {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 4px;
+    padding: 10px 12px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 14px;
+    background: rgba(255,255,255,.5);
+  }
+  .wanty-chips.is-open { display: flex; }
+
+  .chip {
+    --c-intensity: 0;
+    background: color-mix(in oklab,
+      #fff calc((10 - var(--c-intensity)) * 10%),
+      var(--app-accent-soft) calc(var(--c-intensity) * 10%));
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    padding: 5px 12px;
+    border-radius: var(--pill);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background var(--fast), border-color var(--fast);
+  }
+  .chip:hover { border-color: var(--app-accent); }
+  .chip.is-open {
+    background: var(--app-accent);
+    border-color: var(--app-accent);
+    color: var(--app-ink-on-accent);
+  }
+  .chip .plus {
+    display: inline-grid; place-items: center;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--app-accent);
+    color: var(--app-ink-on-accent);
+    font-size: 12px; font-weight: 700;
+    line-height: 1;
+  }
+  .chip.has-content .plus {
+    background: var(--accent-deep);
+  }
+  .chip.is-open .plus {
+    background: #fff;
+    color: var(--accent-deep);
+  }
+
+  .chip-panel {
+    display: none;
+    flex-basis: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .chip-panel.is-open { display: block; }
+  .chip-panel .field-title {
+    font-weight: 600; color: var(--ink); font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .chip-panel .entry-row {
+    display: flex; gap: 6px; align-items: stretch;
+  }
+  .chip-panel textarea {
+    flex: 1;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 12px;
+    padding: 8px 10px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.4;
+    resize: vertical;
+    min-height: 38px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .chip-panel .save-btn {
+    background: var(--app-accent);
+    color: var(--app-ink-on-accent);
+    border: 0;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 700;
+    font-size: 18px;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: background var(--fast), transform var(--fast);
+  }
+  .chip-panel .save-btn:hover { background: var(--accent-deep); transform: scale(1.05); }
+  .chip-panel .entries {
+    list-style: none; margin: 8px 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .chip-panel .entry {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--paper);
+    border: 1px solid var(--line-strong);
+    padding: 4px 6px 4px 12px;
+    border-radius: var(--pill);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background var(--fast), border-color var(--fast);
+  }
+  .chip-panel .entry:hover { border-color: var(--app-accent); }
+  .chip-panel .entry.is-selected {
+    background: var(--app-accent);
+    color: var(--app-ink-on-accent);
+    border-color: var(--app-accent);
+  }
+  .chip-panel .entry .rm {
+    border: 0; background: transparent;
+    color: inherit;
+    cursor: pointer;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 700;
+    opacity: .55;
+  }
+  .chip-panel .entry .rm:hover { opacity: 1; background: rgba(0,0,0,.06); }
+  .chip-panel .entry.is-selected .rm:hover { background: rgba(255,255,255,.25); }
+
+  /* ── APPS PLAYED grid (always visible, below wanty) ── */
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .app-card {
+    --plays: 0;
+    --p-intensity: 0;
+    border: 1px solid var(--line);
+    background: color-mix(in oklab,
+      #fff calc((10 - var(--p-intensity)) * 10%),
+      var(--app-accent) calc(var(--p-intensity) * 10%));
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    display: grid; gap: 6px;
+    place-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: transform var(--fast), box-shadow var(--fast), border-color var(--fast);
+    color: color-mix(in oklab,
+      var(--ink)               calc((10 - var(--p-intensity)) * 10%),
+      var(--app-ink-on-accent) calc(var(--p-intensity) * 10%));
+    text-decoration: none;
+  }
+  .app-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); border-color: var(--app-accent); }
+  .app-card .glyph {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.6);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-size: 22px;
+  }
+  .app-card .nm {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .app-card .plays-meta {
+    font-size: 10px;
+    color: inherit;
+    opacity: .65;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+  }
 
   /* ── responsive ── */
   @media (max-width: 760px) {
-    .shell { padding: 16px 12px 40px; }
+    .shell { padding: 16px 12px 40px; gap: 16px; }
     .card { padding: 16px; border-radius: var(--radius); }
-    .tabbar { grid-template-columns: repeat(4, 1fr); }
-    .tabbar label { padding: 9px 6px; font-size: 11px; }
-    .profile { grid-template-columns: 1fr; text-align: left; }
+    .presentation { grid-template-columns: 1fr; text-align: left; }
     .avatar { width: 96px; height: 96px; font-size: 40px; border-radius: 22px; }
-    .triplet { grid-template-columns: 1fr; }
+    .tabbar { grid-template-columns: repeat(5, 1fr); }
+    .tabbar label { padding: 9px 4px; font-size: 11px; letter-spacing: .2px; }
+    .microcards { grid-template-columns: 1fr; }
     .gallery { grid-template-columns: repeat(2, 1fr); }
+    .apps-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .apps-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -467,42 +800,46 @@
   </div>
 
   <main class="shell">
+
+    <!-- ── 1) USER PRESENTATION (always visible) ─────────── -->
+    <section class="card">
+      <div class="presentation">
+        <div class="avatar" aria-label="avatar">M</div>
+        <div class="who">
+          <h1 class="name">Marc</h1>
+          <span class="handle">@marcflove · futbolia.org</span>
+          <p class="bio">Building flove — a calm garden of tiny apps, each rooted in the four trees: <em>others, things, contexts, you</em>.</p>
+        </div>
+        <aside class="trends-card">
+          <h3>Trends</h3>
+          <ul>
+            <li>biology</li>
+            <li>fun</li>
+            <li>edgy</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ── 2) TABS ───────────────────────────────────────── -->
     <section class="card tabs">
-      <input type="radio" name="tab" id="t-id" checked>
+      <input type="radio" name="tab" id="t-souls" checked>
+      <input type="radio" name="tab" id="t-trusts">
       <input type="radio" name="tab" id="t-contrib">
       <input type="radio" name="tab" id="t-offers">
       <input type="radio" name="tab" id="t-contact">
 
       <nav class="tabbar" aria-label="Avatar sections">
-        <label for="t-id">Avatar</label>
+        <label for="t-souls">Souls</label>
+        <label for="t-trusts">Trusts</label>
         <label for="t-contrib">Contribs</label>
         <label for="t-offers">Offers</label>
         <label for="t-contact">Contact</label>
       </nav>
 
-      <!-- ── 1) IDENTITY ───────────────────────────── -->
-      <div class="panel" id="p-id">
-        <div class="profile">
-          <div class="avatar" aria-label="avatar">M</div>
-          <div class="who">
-            <h1 class="name">Marc</h1>
-            <span class="handle">@marcflove · futbolia.org</span>
-            <p class="bio">Building flove — a calm garden of tiny apps, each rooted in the four trees: <em>others, things, contexts, you</em>.</p>
-          </div>
-        </div>
-
-        <div class="stats">
-          <div class="stat">
-            <div class="stat-head"><span>Active</span><b>72%</b></div>
-            <div class="bar" style="--v:72%"></div>
-          </div>
-          <div class="stat">
-            <div class="stat-head"><span>Historic</span><b>48%</b></div>
-            <div class="bar" style="--v:48%"></div>
-          </div>
-        </div>
-
-        <div class="triplet">
+      <!-- SOULS -->
+      <div class="panel" id="p-souls">
+        <div class="microcards">
           <article>
             <h3>Interests</h3>
             <ul>
@@ -520,85 +857,101 @@
               <li>handmade</li>
             </ul>
           </article>
-          <article>
-            <h3>Trends</h3>
-            <ul>
-              <li>biology</li>
-              <li>fun</li>
-              <li>edgy</li>
-            </ul>
-          </article>
         </div>
-
-        <div class="pillbar" role="group" aria-label="Showcase">
-          <label><input type="radio" name="show">Wishes <span class="count">· 3</span></label>
-          <label><input type="radio" name="show">Wants <span class="count">· 5</span></label>
-          <label><input type="radio" name="show">Projects <span class="count">· 2</span></label>
-        </div>
+        <p class="soul-quote">“A soul is what stays steady while the seasons turn.”</p>
       </div>
 
-      <!-- ── 2) CONTRIBS ────────────────────────────── -->
+      <!-- TRUSTS -->
+      <div class="panel" id="p-trusts">
+        <ul class="trusts">
+          <li>
+            <span class="face">A</span>
+            <div>
+              <div class="name">Ada</div>
+              <div class="meta">3 years · mutual</div>
+            </div>
+            <span class="level">High</span>
+          </li>
+          <li>
+            <span class="face">L</span>
+            <div>
+              <div class="name">Lex</div>
+              <div class="meta">Co-built two apps · lends tools</div>
+            </div>
+            <span class="level">High</span>
+          </li>
+          <li>
+            <span class="face">R</span>
+            <div>
+              <div class="name">Rafa</div>
+              <div class="meta">Holóniké · TFM partner</div>
+            </div>
+            <span class="level">Med</span>
+          </li>
+          <li>
+            <span class="face">N</span>
+            <div>
+              <div class="name">Nora</div>
+              <div class="meta">Local cycling crew</div>
+            </div>
+            <span class="level">Med</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CONTRIBS -->
       <div class="panel" id="p-contrib">
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-head"><span>Active</span><b>72%</b></div>
+            <div class="bar" style="--v:72%"></div>
+          </div>
+          <div class="stat">
+            <div class="stat-head"><span>Historic</span><b>48%</b></div>
+            <div class="bar" style="--v:48%"></div>
+          </div>
+        </div>
         <div class="gallery">
-          <figure>
-            <span>flovy</span>
-            <figcaption>vocabulary editor</figcaption>
-          </figure>
-          <figure>
-            <span>crafty</span>
-            <figcaption>fair-share wizard</figcaption>
-          </figure>
-          <figure>
-            <span>daty</span>
-            <figcaption>data atlas</figcaption>
-          </figure>
-          <figure>
-            <span>sensy</span>
-            <figcaption>sensorility helper</figcaption>
-          </figure>
-          <figure>
-            <span>diesafe</span>
-            <figcaption>end-of-life</figcaption>
-          </figure>
-          <figure>
-            <span>goddy</span>
-            <figcaption>tiny rituals</figcaption>
-          </figure>
-          <figure>
-            <span>hoty</span>
-            <figcaption>hot takes</figcaption>
-          </figure>
-          <figure class="more">
-            <span>See more →</span>
-          </figure>
+          <figure><span>flovy</span><figcaption>vocabulary editor</figcaption></figure>
+          <figure><span>crafty</span><figcaption>fair-share wizard</figcaption></figure>
+          <figure><span>daty</span><figcaption>data atlas</figcaption></figure>
+          <figure><span>sensy</span><figcaption>sensorility helper</figcaption></figure>
+          <figure><span>diesafe</span><figcaption>end-of-life</figcaption></figure>
+          <figure><span>goddy</span><figcaption>tiny rituals</figcaption></figure>
+          <figure><span>hoty</span><figcaption>hot takes</figcaption></figure>
+          <figure class="more"><span>See more →</span></figure>
         </div>
       </div>
 
-      <!-- ── 3) OFFERS ──────────────────────────────── -->
+      <!-- OFFERS -->
       <div class="panel" id="p-offers">
-        <ul class="offers">
-          <li data-tip="Mint frame · barely used">
+        <ul class="offers" id="offersList">
+          <li data-id="offer-bike">
+            <span class="pick" aria-hidden="true">✓</span>
             <div>
               <div class="label">Urban Bike</div>
               <div class="meta">In Madrid · pickup or short loan</div>
             </div>
             <span class="badge">Lend</span>
           </li>
-          <li data-tip="Two-hour intro, beginner friendly">
+          <li data-id="offer-3dprint">
+            <span class="pick" aria-hidden="true">✓</span>
             <div>
               <div class="label">3D Print intro</div>
               <div class="meta">Sat afternoons · max 4 people</div>
             </div>
             <span class="badge">Teach</span>
           </li>
-          <li data-tip="Drill, hand tools, ladder">
+          <li data-id="offer-tools">
+            <span class="pick" aria-hidden="true">✓</span>
             <div>
               <div class="label">Building tools</div>
               <div class="meta">Borrow for the day · return clean</div>
             </div>
             <span class="badge">Share</span>
           </li>
-          <li data-tip="Code review, frontend">
+          <li data-id="offer-frontend">
+            <span class="pick" aria-hidden="true">✓</span>
             <div>
               <div class="label">Frontend help</div>
               <div class="meta">CSS, vanilla JS, small static sites</div>
@@ -608,36 +961,340 @@
         </ul>
       </div>
 
-      <!-- ── 4) CONTACT ─────────────────────────────── -->
+      <!-- CONTACT -->
       <div class="panel" id="p-contact">
         <div class="contact">
           <a href="mailto:marc@futbolia.org">
             <span class="ico" aria-hidden="true">✉</span>
-            <span>
-              <span class="kicker">Email</span><br>
-              <span class="value">marc@futbolia.org</span>
-            </span>
+            <span><span class="kicker">Email</span><br><span class="value">marc@futbolia.org</span></span>
             <span class="arrow" aria-hidden="true">→</span>
           </a>
           <a href="#">
             <span class="ico" aria-hidden="true">◐</span>
-            <span>
-              <span class="kicker">I prefer</span><br>
-              <span class="value">async messages · short calls on request</span>
-            </span>
+            <span><span class="kicker">I prefer</span><br><span class="value">async messages · short calls on request</span></span>
             <span class="arrow" aria-hidden="true">→</span>
           </a>
           <a href="#">
             <span class="ico" aria-hidden="true">◇</span>
-            <span>
-              <span class="kicker">Find me at</span><br>
-              <span class="value">flove garden · Madrid meetups</span>
-            </span>
+            <span><span class="kicker">Find me at</span><br><span class="value">flove garden · Madrid meetups</span></span>
             <span class="arrow" aria-hidden="true">→</span>
           </a>
         </div>
+
+        <div class="compose">
+          <h3>Send a message</h3>
+          <div class="selected-list" id="selectedList" aria-live="polite"></div>
+          <textarea id="messageBody" placeholder="Write a short note…"></textarea>
+          <div class="compose-row">
+            <span class="hint">Selected offers and wants attach automatically.</span>
+            <button type="button" class="send" id="sendBtn">Send a message</button>
+          </div>
+        </div>
       </div>
     </section>
+
+    <!-- ── 3) WANTY SECTION (always visible) ─────────────── -->
+    <section class="card wanty-section">
+      <span class="kicker">What I'm exploring</span>
+      <h2>My wants &amp; essences</h2>
+      <div class="wanty-cats" id="wantyCats"></div>
+      <div id="wantyChipsContainer"></div>
+    </section>
+
+    <!-- ── 4) APPS PLAYED grid ───────────────────────────── -->
+    <section class="card apps-section">
+      <h2>Apps you've played</h2>
+      <div class="apps-grid" id="appsGrid"></div>
+    </section>
+
   </main>
+
+<script>
+(() => {
+  // ── wanty tree (from offer/wanty.html) ────────────────
+  const TREE = {
+    'Like':     ['Favorite', 'Cheer', 'Affection', 'Joy'],
+    'Wish':     ['Fancy', 'Hope', 'Longing', 'Dream', 'Fantasy'],
+    'Interest': ['Preference', 'Curiosity', 'Inspiration', 'Idea', 'Willing', 'Hobby', 'Habit'],
+    'Purpose':  ['Calling', 'Aspiration', 'Vision', 'Vocation', 'Path', 'Mission', 'Destiny'],
+    'Project':  ['Projection', 'Pledge', 'Plan', 'Legacy'],
+    'Want':     ['Request', 'Demand', 'Need']
+  };
+
+  // Seed a few entries so the intensity scales are visible from the start.
+  const seed = {
+    'Like::Joy':         ['mornings without alarms'],
+    'Wish::Hope':        ['a quiet studio by a river'],
+    'Wish::Dream':       ['a year of slow travel', 'co-living with close friends'],
+    'Interest::Hobby':   ['linocut printing', 'spanish guitar'],
+    'Interest::Idea':    ['neighborhood seed-library'],
+    'Purpose::Vision':   ['a flove garden each city can plant'],
+    'Project::Plan':     ['ship flove F1 by autumn', 'launch crafty pilot'],
+    'Want::Need':        ['a slower phone routine']
+  };
+  // data[parent][child] = string[]
+  const data = {};
+  for (const p of Object.keys(TREE)) {
+    data[p] = {};
+    for (const c of TREE[p]) {
+      data[p][c] = seed[`${p}::${c}`] ? [...seed[`${p}::${c}`]] : [];
+    }
+  }
+
+  // ── 10-scale intensity ────────────────────────────────
+  // For wanty parents: count = total entries under that parent (capped at 10).
+  // For chips:         count = entries on that chip (capped at 10).
+  const clamp10 = n => Math.max(0, Math.min(10, n));
+
+  const parentCount = p => Object.values(data[p]).reduce((s, arr) => s + arr.length, 0);
+
+  // ── RENDER wanty section ──────────────────────────────
+  const catsEl   = document.getElementById('wantyCats');
+  const chipsBox = document.getElementById('wantyChipsContainer');
+
+  function render() {
+    catsEl.innerHTML = '';
+    chipsBox.innerHTML = '';
+
+    for (const parent of Object.keys(TREE)) {
+      const total = parentCount(parent);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wanty-cat';
+      btn.dataset.parent = parent;
+      btn.setAttribute('aria-expanded', 'false');
+      btn.style.setProperty('--intensity', clamp10(total));
+      btn.innerHTML = `${parent}<span class="count">${total > 0 ? '· ' + total : ''}</span>`;
+      btn.addEventListener('click', () => toggleParent(parent));
+      catsEl.appendChild(btn);
+
+      const row = document.createElement('div');
+      row.className = 'wanty-chips';
+      row.dataset.parent = parent;
+      row.id = 'chips-' + parent;
+
+      for (const child of TREE[parent]) {
+        const count = data[parent][child].length;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip' + (count > 0 ? ' has-content' : '');
+        chip.dataset.parent = parent;
+        chip.dataset.child = child;
+        chip.style.setProperty('--c-intensity', clamp10(count));
+        chip.innerHTML = `<span>${child}</span><span class="plus" aria-hidden="true">+</span>`;
+        chip.addEventListener('click', () => toggleChip(parent, child));
+        row.appendChild(chip);
+
+        const panel = document.createElement('div');
+        panel.className = 'chip-panel';
+        panel.dataset.parent = parent;
+        panel.dataset.child = child;
+        panel.innerHTML = renderPanel(parent, child);
+        row.appendChild(panel);
+      }
+      chipsBox.appendChild(row);
+    }
+    bindPanels();
+    refreshSelectedList();
+  }
+
+  function renderPanel(parent, child) {
+    const list = data[parent][child];
+    const entries = list.map((txt, i) => `
+      <li class="entry" data-parent="${parent}" data-child="${child}" data-idx="${i}">
+        <span>${escape(txt)}</span>
+        <button type="button" class="rm" aria-label="remove" data-rm="${i}">×</button>
+      </li>
+    `).join('');
+    return `
+      <div class="field-title">${parent} · ${child}</div>
+      <div class="entry-row">
+        <textarea placeholder="Add a ${child.toLowerCase()}…"></textarea>
+        <button type="button" class="save-btn" aria-label="save">+</button>
+      </div>
+      <ul class="entries">${entries}</ul>
+    `;
+  }
+
+  function bindPanels() {
+    chipsBox.querySelectorAll('.chip-panel').forEach(panel => {
+      const parent = panel.dataset.parent;
+      const child  = panel.dataset.child;
+      const ta     = panel.querySelector('textarea');
+      const save   = panel.querySelector('.save-btn');
+      save.addEventListener('click', () => {
+        const v = ta.value.trim();
+        if (!v) return;
+        data[parent][child].push(v);
+        ta.value = '';
+        render();
+        // re-open the same parent + chip
+        toggleParent(parent, true);
+        toggleChip(parent, child, true);
+      });
+      panel.querySelectorAll('.entry').forEach(li => {
+        const idx = +li.dataset.idx;
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.rm')) return;
+          li.classList.toggle('is-selected');
+          updateSelected(parent, child, idx, li.classList.contains('is-selected'), li.querySelector('span').textContent);
+        });
+        const rm = li.querySelector('.rm');
+        rm.addEventListener('click', (e) => {
+          e.stopPropagation();
+          data[parent][child].splice(idx, 1);
+          // remove any pending selection of this entry
+          selectedWants = selectedWants.filter(s => !(s.parent === parent && s.child === child && s.idx === idx));
+          // reindex selections after the removed
+          selectedWants.forEach(s => {
+            if (s.parent === parent && s.child === child && s.idx > idx) s.idx -= 1;
+          });
+          render();
+          toggleParent(parent, true);
+          toggleChip(parent, child, true);
+        });
+      });
+    });
+  }
+
+  function toggleParent(parent, forceOpen) {
+    const allRows = chipsBox.querySelectorAll('.wanty-chips');
+    const allBtns = catsEl.querySelectorAll('.wanty-cat');
+    const row = chipsBox.querySelector(`.wanty-chips[data-parent="${parent}"]`);
+    const btn = catsEl.querySelector(`.wanty-cat[data-parent="${parent}"]`);
+    const willOpen = forceOpen ? true : !row.classList.contains('is-open');
+    allRows.forEach(r => r.classList.remove('is-open'));
+    allBtns.forEach(b => b.setAttribute('aria-expanded', 'false'));
+    if (willOpen) {
+      row.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function toggleChip(parent, child, forceOpen) {
+    const row = chipsBox.querySelector(`.wanty-chips[data-parent="${parent}"]`);
+    if (!row || !row.classList.contains('is-open')) return;
+    const chip  = row.querySelector(`.chip[data-child="${child}"]`);
+    const panel = row.querySelector(`.chip-panel[data-child="${child}"]`);
+    const willOpen = forceOpen ? true : !panel.classList.contains('is-open');
+    row.querySelectorAll('.chip').forEach(c => c.classList.remove('is-open'));
+    row.querySelectorAll('.chip-panel').forEach(p => p.classList.remove('is-open'));
+    if (willOpen) {
+      chip.classList.add('is-open');
+      panel.classList.add('is-open');
+    }
+  }
+
+  // ── selections (wants + offers → compose message) ─────
+  let selectedWants  = []; // {parent, child, idx, text}
+  let selectedOffers = []; // {id, label, badge}
+
+  function updateSelected(parent, child, idx, on, text) {
+    selectedWants = selectedWants.filter(s => !(s.parent === parent && s.child === child && s.idx === idx));
+    if (on) selectedWants.push({ parent, child, idx, text });
+    refreshSelectedList();
+  }
+
+  const offersList   = document.getElementById('offersList');
+  offersList.querySelectorAll('li').forEach(li => {
+    li.addEventListener('click', () => {
+      const id    = li.dataset.id;
+      const label = li.querySelector('.label').textContent;
+      const badge = li.querySelector('.badge').textContent;
+      const isOn  = !li.classList.contains('is-selected');
+      li.classList.toggle('is-selected', isOn);
+      selectedOffers = selectedOffers.filter(o => o.id !== id);
+      if (isOn) selectedOffers.push({ id, label, badge });
+      refreshSelectedList();
+    });
+  });
+
+  const selectedListEl = document.getElementById('selectedList');
+  function refreshSelectedList() {
+    const offerPills = selectedOffers.map(o =>
+      `<span class="pill" data-kind="offer" data-id="${o.id}">${o.badge.toLowerCase()} · ${escape(o.label)}<span class="x" aria-label="remove">×</span></span>`
+    ).join('');
+    const wantPills = selectedWants.map(w =>
+      `<span class="pill" data-kind="want" data-parent="${w.parent}" data-child="${w.child}" data-idx="${w.idx}">${w.parent.toLowerCase()}·${w.child.toLowerCase()} · ${escape(w.text)}<span class="x" aria-label="remove">×</span></span>`
+    ).join('');
+    selectedListEl.innerHTML = offerPills + wantPills;
+    selectedListEl.querySelectorAll('.pill .x').forEach(x => {
+      x.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const pill = x.closest('.pill');
+        if (pill.dataset.kind === 'offer') {
+          const id = pill.dataset.id;
+          selectedOffers = selectedOffers.filter(o => o.id !== id);
+          const li = offersList.querySelector(`li[data-id="${id}"]`);
+          if (li) li.classList.remove('is-selected');
+        } else {
+          const { parent, child, idx } = pill.dataset;
+          selectedWants = selectedWants.filter(w => !(w.parent === parent && w.child === child && w.idx === +idx));
+          const li = chipsBox.querySelector(`.entry[data-parent="${parent}"][data-child="${child}"][data-idx="${idx}"]`);
+          if (li) li.classList.remove('is-selected');
+        }
+        refreshSelectedList();
+      });
+    });
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', () => {
+    const body = document.getElementById('messageBody').value.trim();
+    const lines = [];
+    if (body) lines.push(body, '');
+    if (selectedOffers.length) {
+      lines.push('I can offer:');
+      selectedOffers.forEach(o => lines.push(`  · ${o.label} (${o.badge.toLowerCase()})`));
+      lines.push('');
+    }
+    if (selectedWants.length) {
+      lines.push('I’m wanting / exploring:');
+      selectedWants.forEach(w => lines.push(`  · ${w.parent} · ${w.child} — ${w.text}`));
+      lines.push('');
+    }
+    const msg = lines.join('\n').trim() || '(empty message)';
+    const mailto = 'mailto:marc@futbolia.org?subject=' +
+      encodeURIComponent('A message from your avatar') +
+      '&body=' + encodeURIComponent(msg);
+    window.location.href = mailto;
+  });
+
+  // ── APPS PLAYED grid ──────────────────────────────────
+  const APPS = [
+    { id: 'flovy',    name: 'flovy',    glyph: '🗣', plays: 8 },
+    { id: 'crafty',   name: 'crafty',   glyph: '🎁', plays: 6 },
+    { id: 'daty',     name: 'daty',     glyph: '📊', plays: 9 },
+    { id: 'sensy',    name: 'sensy',    glyph: '👁', plays: 3 },
+    { id: 'diesafe',  name: 'diesafe',  glyph: '🌷', plays: 1 },
+    { id: 'goddy',    name: 'goddy',    glyph: '✨', plays: 10 },
+    { id: 'hoty',     name: 'hoty',     glyph: '🔥', plays: 7 },
+    { id: 'wanty',    name: 'wanty',    glyph: '⭐', plays: 5 },
+    { id: 'myfamily', name: 'myfamily', glyph: '👪', plays: 4 },
+    { id: 'maty',     name: 'maty',     glyph: '💞', plays: 2 }
+  ];
+  const grid = document.getElementById('appsGrid');
+  APPS.forEach(a => {
+    const card = document.createElement('a');
+    card.className = 'app-card';
+    card.href = `${a.id}.html`;
+    card.style.setProperty('--plays', a.plays);
+    card.style.setProperty('--p-intensity', clamp10(a.plays));
+    card.innerHTML = `
+      <span class="glyph" aria-hidden="true">${a.glyph}</span>
+      <span class="nm">${a.name}</span>
+      <span class="plays-meta">${a.plays} plays</span>
+    `;
+    grid.appendChild(card);
+  });
+
+  function escape(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  render();
+})();
+</script>
 </body>
 </html>

@@ -653,6 +653,12 @@
   }
   .s2-anopt-inline[hidden]{ display:none }
 
+  /* end-of-stage final input — extra row centered below the back/next nav */
+  .nav-centered{
+    display: flex; justify-content: center;
+    margin-top: .6rem;
+  }
+
   /* end-of-stage row: Get results centered + Continue Stage X right */
   .cta-row-split{
     display: grid;
@@ -798,7 +804,10 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-color">← Back</button>
-      <button class="btn primary" type="button" data-next="s1-reveal" disabled>Get results →</button>
+      <button class="btn primary" type="button" data-next="s2-species" data-advance-stage="1" disabled>Next Stage: Species &amp; Sense →</button>
+    </div>
+    <div class="nav-centered">
+      <button class="btn ghost" type="button" data-action="pause" data-from-stage="1">Get results</button>
     </div>
   </section>
   <section class="view" data-view="s1-reveal">
@@ -879,7 +888,10 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s2-sense">← Back</button>
-      <button class="btn primary" type="button" data-next="s2-reveal" disabled>Get results →</button>
+      <button class="btn primary" type="button" data-next="s3-species" data-advance-stage="2" disabled>Next Stage: Species &amp; Channel →</button>
+    </div>
+    <div class="nav-centered">
+      <button class="btn ghost" type="button" data-action="pause" data-from-stage="2">Get results</button>
     </div>
   </section>
   <section class="view" data-view="s2-reveal">
@@ -970,7 +982,10 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s3-channel">← Back</button>
-      <button class="btn primary" type="button" data-next="s3-reveal" disabled>Get results →</button>
+      <button class="btn primary" type="button" data-next="s4-matter" data-advance-stage="3" disabled>Next Stage: Matter &amp; System →</button>
+    </div>
+    <div class="nav-centered">
+      <button class="btn ghost" type="button" data-action="pause" data-from-stage="3">Get results</button>
     </div>
   </section>
   <section class="view" data-view="s3-reveal">
@@ -998,6 +1013,11 @@
       <div class="breadcrumb__body" id="s4BreadcrumbBody"></div>
     </details>
     <div class="pick-grid" id="matterPick"></div>
+    <div class="s2-anopt-inline" id="s4MatterAnoptWrap" hidden>
+      <form class="field" onsubmit="return false">
+        <input id="s4MatterSpecific" type="text" autocomplete="off" placeholder="(optional) a specific matter" />
+      </form>
+    </div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s3-reveal">← Back</button>
       <button class="btn primary" type="button" data-next="s4-mq" disabled>Next →</button>
@@ -1038,7 +1058,10 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s4-bio">← Back</button>
-      <button class="btn primary" type="button" data-next="s4-reveal" disabled>Get results →</button>
+      <button class="btn primary" type="button" data-next="s5-particle" data-advance-stage="4" disabled>Next Stage: Particle &amp; Subsystem →</button>
+    </div>
+    <div class="nav-centered">
+      <button class="btn ghost" type="button" data-action="pause" data-from-stage="4">Get results</button>
     </div>
   </section>
   <section class="view" data-view="s4-reveal">
@@ -1102,7 +1125,10 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s5-immune">← Back</button>
-      <button class="btn primary" type="button" data-next="s5-reveal" disabled>Get results →</button>
+      <span></span>
+    </div>
+    <div class="nav-centered">
+      <button class="btn primary" type="button" data-action="pause" data-from-stage="5" disabled id="s5GetResultsBtn">Get results</button>
     </div>
   </section>
   <section class="view" data-view="s5-reveal">
@@ -1253,7 +1279,7 @@
     'animal','aq1','aq2','aq3','color','cq1','cq2','cq3',
     'species','sp1','sp2','sp3','sn1','sn2','sn3',
     's3Species','s3Sp1','s3Sp2','s3Sp3','s3C1','s3C2','s3C3',
-    's4M1','s4M2','s4M3','s4B1','s4B2','s4B3',
+    's4MatterSpecific','s4M1','s4M2','s4M3','s4B1','s4B2','s4B3',
     's5P1','s5P2','s5P3','s5I1','s5I2','s5I3'
   ];
   const state = {
@@ -1271,7 +1297,7 @@
     s3Species:'', s3Sp1:'', s3Sp2:'', s3Sp3:'',
     s3Channel:'', s3C1:'', s3C2:'', s3C3:'',
     // stage 4
-    s4Matter:'', s4M1:'', s4M2:'', s4M3:'',
+    s4Matter:'', s4MatterSpecific:'', s4M1:'', s4M2:'', s4M3:'',
     s4Bio:'',    s4B1:'', s4B2:'', s4B3:'',
     // stage 5
     s5Particle:'', s5P1:'', s5P2:'', s5P3:'',
@@ -1368,7 +1394,7 @@
   });
 
   // ── picker render helper ────────────────────────────────
-  function renderPicker(containerSel, items, getValue, setValue){
+  function renderPicker(containerSel, items, getValue, setValue, onPick){
     const el = $(containerSel);
     if (!el) return () => {};
     el.innerHTML = '';
@@ -1388,6 +1414,7 @@
         reflectMirrors();
         refreshCounters();
         pulseChip('chipSels');
+        if (onPick) onPick(it.id);
       });
       el.appendChild(b);
     });
@@ -1414,7 +1441,31 @@
                           () => s3ChannelType()==='bio' ? s3ChannelId() : '',
                           v => { state.s3Channel = 'bio:' + v;   refreshS3Channel(); });
   refreshS3Channel = () => { syncS3Senses(); syncS3Bio(); };
-  const syncMatter    = renderPicker('#matterPick',   MATTER_SCALE, () => state.s4Matter,   v => state.s4Matter = v);
+  // matter anopt — inline text field for specific matter (e.g. "quartz" if matter=crystal)
+  const showMatterAnopt = (label) => {
+    const wrap = $('#s4MatterAnoptWrap');
+    if (!wrap) return;
+    wrap.hidden = false;
+    const input = $('#s4MatterSpecific');
+    if (input){
+      input.placeholder = `(optional) a specific ${label.toLowerCase()}`;
+      setTimeout(() => input.focus({preventScroll:true}), 80);
+    }
+  };
+  const toggleMatterAnopt = () => {
+    const wrap = $('#s4MatterAnoptWrap');
+    if (!wrap) return;
+    const m = matterObj();
+    if (m){
+      wrap.hidden = false;
+      const input = $('#s4MatterSpecific');
+      if (input) input.placeholder = `(optional) a specific ${m.label.toLowerCase()}`;
+    } else {
+      wrap.hidden = true;
+    }
+  };
+  const syncMatter    = renderPicker('#matterPick',   MATTER_SCALE, () => state.s4Matter,   v => state.s4Matter = v,
+                          (id) => { const m = MATTER_SCALE.find(x => x.id === id); showMatterAnopt(m ? m.label : 'matter'); });
   // s4 bio picker is rebuilt dynamically based on stage 3 choice
   let syncS4Bio = () => {};
   const buildS4Bio = () => {
@@ -1579,7 +1630,7 @@
     fill('[data-mirror="sense-verb"]',  senseObj ? senseObj.verb : 'sensing');
     fill('[data-mirror="s3channel-name"]', ch ? ch.label.toLowerCase() : 'the channel');
     fill('[data-mirror="s3channel-verb"]', ch ? ch.verb : 'sensing');
-    fill('[data-mirror="matter-name"]', m ? m.label.toLowerCase() : 'the matter');
+    fill('[data-mirror="matter-name"]', (state.s4MatterSpecific||'').trim().toLowerCase() || (m ? m.label.toLowerCase() : 'the matter'));
     fill('[data-mirror="s3-bio-name"]', BIO_SYSTEMS[s3BioIndex()] ? BIO_SYSTEMS[s3BioIndex()].label.toLowerCase() : 'the previous one');
     fill('[data-mirror="s4-bio-name"]', b4 ? b4.label.toLowerCase() : 'the system');
     fill('[data-mirror="s4-bio-verb"]', b4 ? b4.verb : 'doing');
@@ -1620,6 +1671,8 @@
       const fromView = btn.closest('.view').dataset.view;
       btn.disabled = !viewValid(fromView);
     });
+    const s5btn = $('#s5GetResultsBtn');
+    if (s5btn) s5btn.disabled = !viewValid('s5-iq');
   };
 
   // ── stage meta ──────────────────────────────────────────
@@ -1683,7 +1736,7 @@
       toggleAnoptInline('#s3AnoptWrap', '#s3Species', state.s3Cat);
     }
     if (viewId === 's3-channel') refreshRecapS3Channel();
-    if (viewId === 's4-matter')  renderBreadcrumb();
+    if (viewId === 's4-matter')  { renderBreadcrumb(); toggleMatterAnopt(); }
     if (viewId === 's4-bio')     buildS4Bio();
     if (viewId === 'save-intro') updateSaveIntroNav();
     if (viewId === 'save-form')  { renderPortrait(); renderTimeStats(); }
@@ -1707,7 +1760,17 @@
     }
     window.scrollTo({ top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   };
-  $$('[data-next]').forEach(b => b.addEventListener('click', () => { logEvent('next', b.dataset.next); goTo(b.dataset.next); }));
+  $$('[data-next]').forEach(b => b.addEventListener('click', () => {
+    const adv = +(b.dataset.advanceStage || 0);
+    if (adv && state.stars[adv] !== undefined && !state.stars[adv]){
+      state.stars[adv] = true;
+      pulseChip('chipStars');
+      state.fromReveal = `s${adv}-reveal`;
+      persist();
+    }
+    logEvent('next', b.dataset.next);
+    goTo(b.dataset.next);
+  }));
   $$('[data-go]'  ).forEach(b => b.addEventListener('click', () => goTo(b.dataset.go)));
 
   // ── slides (welcome) ───────────────────────────────────
@@ -1901,6 +1964,7 @@
     s3Species:'optional animal',
     s3Sp1:'thing 1', s3Sp2:'thing 2', s3Sp3:'thing 3',
     s3C1:'channel thing 1', s3C2:'channel thing 2', s3C3:'channel thing 3',
+    s4MatterSpecific:'specific matter',
     s4M1:'matter thing 1', s4M2:'matter thing 2', s4M3:'matter thing 3',
     s4B1:'system thing 1', s4B2:'system thing 2', s4B3:'system thing 3',
     s5P1:'particle thing 1', s5P2:'particle thing 2', s5P3:'particle thing 3',
@@ -1972,7 +2036,7 @@
       { kind:'Species',
         title: (state.s3Species || state.s3Cat || '').trim(),
         items:[state.s3Sp1, state.s3Sp2, state.s3Sp3] },
-      { kind:'Matter',   title: m ? m.label : '',items:[state.s4M1, state.s4M2, state.s4M3] },
+      { kind:'Matter',   title: ((state.s4MatterSpecific||'').trim() || (m ? m.label : '')).trim(), items:[state.s4M1, state.s4M2, state.s4M3] },
       { kind:'Particle', title: p ? p.label : '',items:[state.s5P1, state.s5P2, state.s5P3] }
     ];
     const senseObj = SENSES.find(x => x.id === state.sense);
@@ -2021,7 +2085,8 @@
     const ch = s3ChannelObj();
     block('Stage 3 · channel', ch ? ch.label : '', [state.s3C1,state.s3C2,state.s3C3]);
     const m = matterObj();
-    block('Stage 4 · matter',  m ? m.label : '', [state.s4M1,state.s4M2,state.s4M3]);
+    const matterTitle = ((state.s4MatterSpecific||'').trim() || (m ? m.label : '')).trim();
+    block('Stage 4 · matter', matterTitle, [state.s4M1,state.s4M2,state.s4M3]);
     const b4 = s4BioObj();
     block('Stage 4 · system',  b4 ? b4.label : '', [state.s4B1,state.s4B2,state.s4B3]);
     const p = particleObj();
@@ -2075,9 +2140,27 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         flash('Downloaded');
       } else if (action === 'finish'){
-        if (/^s\d-reveal$/.test(scope)) { state.fromReveal = scope; persist(); }
+        const sm = (scope || '').match(/^s(\d)-reveal$/);
+        if (sm){
+          state.fromReveal = scope;
+          const sN = +sm[1];
+          if (state.stars[sN] !== undefined && !state.stars[sN]){
+            state.stars[sN] = true;
+            pulseChip('chipStars');
+          }
+          persist();
+        }
         // s5 goes straight to the portrait
         goTo(scope === 's5-reveal' ? 'save-form' : 'save-intro');
+      } else if (action === 'pause'){
+        const sN = +(btn.dataset.fromStage || 0);
+        if (sN && state.stars[sN] !== undefined && !state.stars[sN]){
+          state.stars[sN] = true;
+          pulseChip('chipStars');
+        }
+        if (sN) state.fromReveal = `s${sN}-reveal`;
+        persist();
+        goTo('save-intro');
       } else if (action === 'keep-playing'){
         goTo(state.fromReveal || 's1-reveal');
       }

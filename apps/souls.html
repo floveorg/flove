@@ -39,18 +39,35 @@
 
   *{ box-sizing:border-box }
   html,body{ margin:0; padding:0 }
+  /* register custom props so the night-stage colour change can transition */
+  @property --sky-top { syntax: '<color>'; inherits: false; initial-value: #f3a76b; }
+  @property --sky-bot { syntax: '<color>'; inherits: false; initial-value: #6f4a8a; }
   body{
     color:var(--ink);
     font-family:'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size:16px; line-height:1.55; min-height:100vh;
+    /* night-sky: gradient is mixed via 5 stage variables; transitions on stage change */
+    --sky-top: #f3a76b;     /* late afternoon top */
+    --sky-bot: #6f4a8a;     /* late afternoon bottom */
+    --veil-a:  rgba(245,180,99,.18);
+    --veil-b:  rgba(237,138,166,.16);
+    --veil-c:  rgba(126,160,255,.12);
     background:
-      radial-gradient(60vmax 40vmax at 12% -10%, var(--soul-veil-a) 0, transparent 60%),
-      radial-gradient(55vmax 38vmax at 110% 30%, var(--soul-veil-b) 0, transparent 60%),
-      radial-gradient(70vmax 50vmax at 50% 110%, var(--soul-veil-c) 0, transparent 60%),
-      linear-gradient(180deg, var(--soul-bg-1) 0%, var(--soul-bg-2) 100%);
+      radial-gradient(60vmax 40vmax at 12% -10%, var(--veil-a) 0, transparent 60%),
+      radial-gradient(55vmax 38vmax at 110% 30%, var(--veil-b) 0, transparent 60%),
+      radial-gradient(70vmax 50vmax at 50% 110%, var(--veil-c) 0, transparent 60%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 100%);
     background-attachment:fixed;
     overflow-x:hidden;
+    transition: --sky-top 1.6s ease, --sky-bot 1.6s ease;
   }
+  /* night-stage steps — late afternoon → deep night */
+  body[data-night="0"]{ --sky-top:#f3a76b; --sky-bot:#6f4a8a; --veil-a:rgba(245,180,99,.20); --veil-b:rgba(237,138,166,.18); --veil-c:rgba(126,160,255,.10); }
+  body[data-night="1"]{ --sky-top:#c97a5c; --sky-bot:#4a356e; --veil-a:rgba(245,180,99,.18); --veil-b:rgba(237,138,166,.16); --veil-c:rgba(126,160,255,.12); }
+  body[data-night="2"]{ --sky-top:#7a4a6a; --sky-bot:#2a1f4a; --veil-a:rgba(245,180,99,.14); --veil-b:rgba(237,138,166,.14); --veil-c:rgba(126,160,255,.14); }
+  body[data-night="3"]{ --sky-top:#3a2a52; --sky-bot:#171034; --veil-a:rgba(245,180,99,.10); --veil-b:rgba(237,138,166,.12); --veil-c:rgba(126,160,255,.16); }
+  body[data-night="4"]{ --sky-top:#1f1740; --sky-bot:#0d0a1e; --veil-a:rgba(245,180,99,.07); --veil-b:rgba(237,138,166,.09); --veil-c:rgba(126,160,255,.16); }
+  body[data-night="5"]{ --sky-top:#0d0820; --sky-bot:#040311; --veil-a:rgba(245,180,99,.05); --veil-b:rgba(237,138,166,.06); --veil-c:rgba(126,160,255,.18); }
 
   .stars{
     position:fixed; inset:0; z-index:0; pointer-events:none;
@@ -62,11 +79,35 @@
       radial-gradient(1px 1px at 22% 62%, rgba(255,255,255,.3),  transparent 60%),
       radial-gradient(1px 1px at 62% 12%, rgba(255,255,255,.45), transparent 60%);
     animation: twinkle 7s ease-in-out infinite alternate;
-    opacity:.7;
+    opacity:.0;
+    transition: opacity 1.6s ease;
   }
-  @keyframes twinkle{ from{ opacity:.45 } to{ opacity:.85 } }
-  @media (prefers-reduced-motion: reduce){ .stars{ animation:none } }
-  body > *:not(.stars){ position:relative; z-index:1 }
+  .stars-extra{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      radial-gradient(1px 1px at 7% 88%, rgba(255,255,255,.6), transparent 60%),
+      radial-gradient(1.4px 1.4px at 44% 33%, rgba(255,255,255,.7), transparent 60%),
+      radial-gradient(1px 1px at 92% 14%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(1px 1px at 58% 71%, rgba(255,255,255,.45), transparent 60%),
+      radial-gradient(1px 1px at 27% 41%, rgba(255,255,255,.55), transparent 60%),
+      radial-gradient(1.2px 1.2px at 70% 8%, rgba(255,255,255,.6), transparent 60%),
+      radial-gradient(1px 1px at 16% 6%, rgba(255,255,255,.45), transparent 60%),
+      radial-gradient(1px 1px at 82% 60%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(1.4px 1.4px at 4% 48%, rgba(255,255,255,.7), transparent 60%),
+      radial-gradient(1px 1px at 50% 96%, rgba(255,255,255,.5), transparent 60%);
+    animation: twinkle2 9s ease-in-out infinite alternate;
+    opacity:.0;
+    transition: opacity 1.6s ease;
+  }
+  body[data-night="1"] .stars{ opacity:.18 }
+  body[data-night="2"] .stars{ opacity:.4 }
+  body[data-night="3"] .stars{ opacity:.65 }
+  body[data-night="4"] .stars{ opacity:.85 } body[data-night="4"] .stars-extra{ opacity:.55 }
+  body[data-night="5"] .stars{ opacity:1 }   body[data-night="5"] .stars-extra{ opacity:.95 }
+  @keyframes twinkle{ from{ filter:brightness(.85) } to{ filter:brightness(1.15) } }
+  @keyframes twinkle2{ from{ filter:brightness(.7) } to{ filter:brightness(1.2) } }
+  @media (prefers-reduced-motion: reduce){ .stars, .stars-extra{ animation:none } }
+  body > *:not(.stars):not(.stars-extra){ position:relative; z-index:1 }
 
   /* flove-bar */
   .flove-bar{
@@ -159,6 +200,8 @@
     font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
     color:var(--ink-dim); margin-bottom:.4rem;
   }
+  /* hide stage headers + descriptive hints — keep only the intro h1 */
+  .view .step-tag, .view > .hint, .view .hint{ display:none !important; }
   .view h1{
     margin:0 0 .35rem;
     font-family:'Cormorant Garamond', Georgia, serif;
@@ -401,6 +444,29 @@
   }
   .pick-btn.is-on .pick-label{ color:var(--ink); font-weight:600 }
   .pick-btn.is-on .pick-icon{ filter:none }
+  .pick-btn.is-locked{ opacity:.4; cursor:not-allowed; }
+  .pick-btn.is-locked:hover{ background:var(--panel); }
+
+  /* two-row picker layout (e.g. stage 3 bio) */
+  .pick-grid.two-rows{
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  @media (max-width: 559px){
+    .pick-grid.two-rows{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  /* lock-msg shown when a locked pick-btn is clicked */
+  .lock-msg{
+    margin: .2rem 0 .9rem;
+    padding: .7rem .9rem;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--rose);
+    border-radius:12px;
+    color:var(--ink-soft); font-size:.92rem; line-height:1.5;
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .lock-msg[hidden]{ display:none }
 
   .group-label{
     font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
@@ -674,6 +740,71 @@
     .cta-row-split > *{ justify-self: stretch }
   }
 
+  /* related-apps panel (shown on Keep-playing in save-intro) */
+  .related-apps{
+    margin: 1rem 0 .2rem;
+    padding: 1rem 1.1rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    animation: rise .35s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .related-apps[hidden]{ display:none }
+  .related-apps__label{
+    font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:.7rem;
+  }
+  .related-apps__grid,
+  .related-apps__extra{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:.55rem;
+  }
+  .related-apps__extra{ margin-top:.55rem }
+  .related-apps__extra[hidden]{ display:none }
+  @media (max-width: 480px){
+    .related-apps__grid,
+    .related-apps__extra{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .related-app-card{
+    display:flex; flex-direction:column; align-items:center; gap:.35rem;
+    padding:.85rem .6rem;
+    background:var(--panel-strong);
+    border:1px solid var(--line);
+    border-radius:14px;
+    color:var(--ink);
+    text-decoration:none;
+    text-align:center;
+    transition: background .2s ease, border-color .2s ease, transform .08s ease;
+  }
+  .related-app-card:hover{
+    background:rgba(255,255,255,.08);
+    border-color:var(--app-accent-soft);
+  }
+  .related-app-card:active{ transform:scale(.98) }
+  .related-app-card .ra-icon{
+    font-size:1.5rem; line-height:1;
+  }
+  .related-app-card .ra-name{
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-weight:600; font-size:1.05rem; color:var(--app-accent);
+    line-height:1.15;
+  }
+  .related-app-card .ra-sub{
+    font-size:.78rem; color:var(--ink-soft); line-height:1.35;
+  }
+  .related-apps__more{
+    margin: .8rem auto 0; display:block;
+    width:38px; height:38px; border-radius:50%;
+    background:transparent;
+    border:1px dashed var(--line);
+    color:var(--ink-soft);
+    cursor:pointer; font:inherit; font-size:1.2rem; line-height:1;
+    transition: color .2s, border-color .2s, transform .2s;
+  }
+  .related-apps__more:hover{ color:var(--ink); border-color:var(--app-accent-soft); }
+  .related-apps__more[aria-expanded="true"]{ transform: rotate(45deg); color:var(--app-accent); }
+
   /* per-click time timeline */
   .timestats__t-label{
     font-size:.66rem; letter-spacing:.18em; text-transform:uppercase;
@@ -694,9 +825,10 @@
   .timestats__t-row .t-delta{ color:var(--app-accent-soft); font-weight:600 }
 </style>
 </head>
-<body>
+<body data-night="0">
 
 <div class="stars" aria-hidden="true"></div>
+<div class="stars-extra" aria-hidden="true"></div>
 
 <nav class="flove-bar">
   <button class="flove-mark-btn" id="floveMarkBtn" type="button" aria-label="Back to flove">
@@ -915,14 +1047,6 @@
     <h1>Narrower still.</h1>
     <p class="hint">Below your stage 2 pick. Choose a category — and optionally name an animal of it.</p>
     <div class="s2-intro-grid">
-      <div class="s2-animal-card">
-        <div class="label">Your animal</div>
-        <div class="name" id="s3AnimalName">—</div>
-        <div class="sub">
-          <div class="label">Stage 2 narrower</div>
-          <div class="name" id="s3FromCat2">—</div>
-        </div>
-      </div>
       <div class="s2-cat-list" id="s3CatList"></div>
     </div>
     <div class="s2-anopt-inline" id="s3AnoptWrap" hidden>
@@ -951,21 +1075,14 @@
   </section>
   <section class="view" data-view="s3-channel" data-stage="3">
     <span class="step-tag">Stage 3 · A channel</span>
-    <h1>A sense, or a system.</h1>
-    <p class="hint">Choose any one of the five senses <em>or</em> any of the eleven biological systems.</p>
+    <h1>A system.</h1>
+    <p class="hint">Choose one of the eleven biological systems.</p>
 
-    <div class="recap" data-recap="s3-channel">
-      <button type="button" class="recap__btn">Show my previous channel</button>
-      <div class="recap__panel">
-        <div class="recap__label">Stage 2 · sense</div>
-        <div class="recap__group" data-recap-group="sense"></div>
-      </div>
+    <div class="lock-msg" id="s3NervousMsg" hidden role="status" aria-live="polite">
+      Select another system — you have already chosen the nervous system's senses in the previous stage.
     </div>
 
-    <div class="group-label">Senses</div>
-    <div class="pick-grid" id="s3SensesPick"></div>
-    <div class="group-label">Biological systems</div>
-    <div class="pick-grid" id="s3BioPick"></div>
+    <div class="pick-grid two-rows" id="s3BioPick"></div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s3-sq">← Back</button>
       <button class="btn primary" type="button" data-next="s3-cq" disabled>Next →</button>
@@ -1154,9 +1271,15 @@
       <h3 class="cta-h">What do you want to do?</h3>
       <p class="cta-sub">Nothing is lost either way.</p>
       <div class="cta-row cta-row-split">
-        <button class="btn ghost" type="button" data-action="keep-playing" id="keepPlayingBtn">↩ Keep playing</button>
+        <button class="btn ghost" type="button" data-action="show-related" id="keepPlayingBtn" aria-expanded="false" aria-controls="relatedApps">↩ Keep playing</button>
         <button class="btn primary" type="button" data-go="save-form" id="getResultsBtn">Get results</button>
-        <button class="btn" type="button" id="continueStageBtn" data-next="">Continue · Stage X →</button>
+        <span></span>
+      </div>
+      <div class="related-apps" id="relatedApps" hidden>
+        <div class="related-apps__label">Apps related to Souls</div>
+        <div class="related-apps__grid" id="relatedAppsGrid"></div>
+        <button class="related-apps__more" type="button" id="relatedAppsMoreBtn" aria-expanded="false" aria-controls="relatedAppsExtra">+</button>
+        <div class="related-apps__extra" id="relatedAppsExtra" hidden></div>
       </div>
     </div>
   </section>
@@ -1238,17 +1361,17 @@
   ];
   // species categories (popular naming)
   const SPECIES_TREE = {
-    'Mammals':       ['fox','wolf','lion','bear','dolphin','whale','elephant','horse','cat','dog','mouse','deer'],
-    'Birds':         ['eagle','owl','sparrow','crow','swan','hummingbird','parrot','hawk','dove'],
-    'Reptiles':      ['snake','turtle','lizard','crocodile','chameleon','gecko','iguana'],
-    'Amphibians':    ['frog','toad','salamander','axolotl','newt'],
+    'Mammal':        ['fox','wolf','lion','bear','dolphin','whale','elephant','horse','cat','dog','mouse','deer'],
+    'Bird':          ['eagle','owl','sparrow','crow','swan','hummingbird','parrot','hawk','dove'],
+    'Reptile':       ['snake','turtle','lizard','crocodile','chameleon','gecko','iguana'],
+    'Amphibian':     ['frog','toad','salamander','axolotl','newt'],
     'Fish':          ['shark','tuna','koi','seahorse','salmon','eel'],
-    'Insects':       ['bee','butterfly','ant','dragonfly','firefly','mantis','beetle'],
-    'Spiders & kin': ['spider','scorpion'],
-    'Sea creatures': ['octopus','jellyfish','coral','starfish','sea urchin','squid'],
-    'Trees':         ['oak','willow','pine','baobab','cherry blossom','palm','birch'],
-    'Flowers':       ['rose','lotus','sunflower','lily','jasmine','orchid'],
-    'Fungi':         ['mushroom','mycelium','truffle']
+    'Insect':        ['bee','butterfly','ant','dragonfly','firefly','mantis','beetle'],
+    'Spider & kin':  ['spider','scorpion'],
+    'Sea creature':  ['octopus','jellyfish','coral','starfish','sea urchin','squid'],
+    'Tree':          ['oak','willow','pine','baobab','cherry blossom','palm','birch'],
+    'Flower':        ['rose','lotus','sunflower','lily','jasmine','orchid'],
+    'Fungus':        ['mushroom','mycelium','truffle']
   };
   const MATTER_SCALE = [
     { id:'bacteria-virus', label:'Bacteria / virus', icon:'🦠' },
@@ -1314,6 +1437,12 @@
       Object.assign(state, saved);
       if (!state.stars)  state.stars  = { 1:false, 2:false, 3:false, 4:false, 5:false };
       if (!state.events) state.events = [];
+      // migrate: s3 channel no longer accepts senses (removed) and "nervous" is locked.
+      if (typeof state.s3Channel === 'string'){
+        if (state.s3Channel.startsWith('sense:') || state.s3Channel === 'bio:nervous'){
+          state.s3Channel = '';
+        }
+      }
     }
   } catch(_){}
 
@@ -1434,13 +1563,24 @@
   const syncSenses    = renderPicker('#sensesPick', SENSES,    () => state.sense, v => state.sense = v);
   // forward declared so the s3 setters can call it
   let refreshS3Channel = () => {};
-  const syncS3Senses  = renderPicker('#s3SensesPick', SENSES,
-                          () => s3ChannelType()==='sense' ? s3ChannelId() : '',
-                          v => { state.s3Channel = 'sense:' + v; refreshS3Channel(); });
   const syncS3Bio     = renderPicker('#s3BioPick', BIO_SYSTEMS,
                           () => s3ChannelType()==='bio' ? s3ChannelId() : '',
                           v => { state.s3Channel = 'bio:' + v;   refreshS3Channel(); });
-  refreshS3Channel = () => { syncS3Senses(); syncS3Bio(); };
+  refreshS3Channel = () => { syncS3Bio(); };
+
+  // lock the "nervous" bio button — its senses were already picked in stage 2.
+  (function lockNervousInS3(){
+    const btn = $('#s3BioPick .pick-btn[data-value="nervous"]');
+    const msg = $('#s3NervousMsg');
+    if (!btn) return;
+    btn.classList.add('is-locked');
+    btn.setAttribute('aria-disabled', 'true');
+    btn.addEventListener('click', (e) => {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      if (msg) msg.hidden = false;
+    }, true);
+  })();
   // matter anopt — inline text field for specific matter (e.g. "quartz" if matter=crystal)
   const showMatterAnopt = (label) => {
     const wrap = $('#s4MatterAnoptWrap');
@@ -1576,28 +1716,51 @@
     $$('#s3FromCat2').forEach(el => el.textContent = c);
   };
 
-  // save-intro nav — dynamic "Continue · Stage X+1" based on where the user came from
-  const NEXT_STAGE_ENTRY = {
-    2: 's2-species',
-    3: 's3-species',
-    4: 's4-matter',
-    5: 's5-particle'
-  };
-  function updateSaveIntroNav(){
-    const btn = $('#continueStageBtn');
-    if (!btn) return;
-    const fromReveal = state.fromReveal || 's1-reveal';
-    const m = fromReveal.match(/^s(\d)-reveal$/);
-    const cur = m ? +m[1] : 1;
-    const next = cur + 1;
-    if (cur >= 5 || !NEXT_STAGE_ENTRY[next]){
-      btn.hidden = true;
-      btn.dataset.next = '';
-    } else {
-      btn.hidden = false;
-      btn.textContent = `Continue · Stage ${next} →`;
-      btn.dataset.next = NEXT_STAGE_ENTRY[next];
+  // ── related apps (shown by Keep-playing in save-intro) ──
+  const RELATED_APPS_PRIMARY = [
+    { name:'Sensy',   sub:'the five senses',    icon:'👁',  href:'sensy.html' },
+    { name:'Avatar',  sub:'your inner figure',  icon:'✺',  href:'avatar.html' },
+    { name:'Hoty',    sub:'personality colours', icon:'❉', href:'hoty.html' }
+  ];
+  const RELATED_APPS_EXTRA = [
+    { name:'Goddy',     sub:'archetypes',        icon:'⚘',  href:'goddy.html' },
+    { name:'Crumbly',   sub:'inner crumbles',    icon:'✦',  href:'crumbly.html' },
+    { name:'Lovy',      sub:'love in five keys', icon:'❤',  href:'lovy.html' },
+    { name:'Realy',     sub:'what feels real',   icon:'◆',  href:'realy.html' },
+    { name:'Trusty',    sub:'whom you trust',    icon:'⌬',  href:'trusty.html' },
+    { name:'Hackboth',  sub:'parts of you',      icon:'✺',  href:'hackboth.html' }
+  ];
+  function makeAppCard(app){
+    const a = document.createElement('a');
+    a.className = 'related-app-card';
+    a.href = app.href;
+    a.innerHTML = `
+      <span class="ra-icon" aria-hidden="true">${app.icon}</span>
+      <span class="ra-name">${app.name}</span>
+      <span class="ra-sub">${app.sub}</span>`;
+    return a;
+  }
+  function renderRelatedApps(){
+    const grid  = $('#relatedAppsGrid');
+    const extra = $('#relatedAppsExtra');
+    if (!grid || !extra) return;
+    if (!grid.dataset.built){
+      RELATED_APPS_PRIMARY.forEach(a => grid.appendChild(makeAppCard(a)));
+      RELATED_APPS_EXTRA.forEach(a   => extra.appendChild(makeAppCard(a)));
+      grid.dataset.built = '1';
     }
+  }
+  // wire the + button (extra toggle)
+  document.addEventListener('DOMContentLoaded', () => {}); // no-op (script runs after DOM)
+  const moreBtn = $('#relatedAppsMoreBtn');
+  if (moreBtn){
+    moreBtn.addEventListener('click', () => {
+      const extra = $('#relatedAppsExtra');
+      const open = !extra.hidden;
+      extra.hidden = open;
+      moreBtn.setAttribute('aria-expanded', String(!open));
+      moreBtn.textContent = open ? '+' : '−';
+    });
   }
 
   // ── breadcrumb (stage 4) ────────────────────────────────
@@ -1714,6 +1877,23 @@
     });
   };
 
+  // ── night-sky stage (background) ────────────────────────
+  const updateNightStage = () => {
+    const view = currentView();
+    let n = 0;
+    if (view){
+      const ds = view.dataset.stage ? +view.dataset.stage : 0;
+      const m = (view.dataset.view || '').match(/^s(\d)-reveal$/);
+      n = ds || (m ? +m[1] : 0);
+      if (view.dataset.view === 'save-intro' || view.dataset.view === 'save-form'){
+        // pause/save inherits last stage reached
+        const fr = (state.fromReveal || '').match(/^s(\d)-reveal$/);
+        n = fr ? +fr[1] : n;
+      }
+    }
+    document.body.setAttribute('data-night', String(Math.max(0, Math.min(5, n))));
+  };
+
   // ── navigation ──────────────────────────────────────────
   const currentView = () => $(`.view[data-view="${state.view}"]`);
   const allViewsInDom = () => $$('.view').map(v => v.dataset.view);
@@ -1738,7 +1918,7 @@
     if (viewId === 's3-channel') refreshRecapS3Channel();
     if (viewId === 's4-matter')  { renderBreadcrumb(); toggleMatterAnopt(); }
     if (viewId === 's4-bio')     buildS4Bio();
-    if (viewId === 'save-intro') updateSaveIntroNav();
+    if (viewId === 'save-intro') renderRelatedApps();
     if (viewId === 'save-form')  { renderPortrait(); renderTimeStats(); }
     if (/^s\d-reveal$/.test(viewId)){
       const sNum = +viewId.match(/s(\d)-reveal/)[1];
@@ -1751,6 +1931,7 @@
     reflectMirrors();
     updateStageMeta();
     refreshCounters();
+    updateNightStage();
     // focus first empty input
     const v = currentView();
     if (v) {
@@ -2163,6 +2344,13 @@
         goTo('save-intro');
       } else if (action === 'keep-playing'){
         goTo(state.fromReveal || 's1-reveal');
+      } else if (action === 'show-related'){
+        const panel = $('#relatedApps');
+        if (!panel) return;
+        renderRelatedApps();
+        const open = panel.hidden;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
       }
     });
   });
@@ -2253,6 +2441,7 @@
   reflectMirrors();
   refreshCounters();
   goTo(state.view);
+  updateNightStage();
 })();
 </script>
 </body>

@@ -292,24 +292,32 @@
 
   /* ============== Deck — done (vertical with medals + ↑↓) ============== */
   .deck-done{
+    /* Same outer size as a closed deck so the row stays visually balanced */
     width:var(--slot-w);min-width:var(--slot-w);
+    min-height:var(--slot-h);
     background:linear-gradient(180deg,#363650,#2e2e44);
     border:1px solid var(--stroke);border-radius:14px;
-    padding:10px 9px 10px;display:flex;flex-direction:column;gap:6px;
+    padding:8px 7px;display:flex;flex-direction:column;gap:5px;
     box-shadow:0 8px 20px rgba(0,0,0,.25);
     cursor:pointer;
     transition:border-color .18s ease, box-shadow .18s ease, transform .15s ease;
   }
   .deck-done:hover{transform:translateY(-2px);border-color:#6a6a86;box-shadow:0 10px 24px rgba(0,0,0,.3)}
   .deck-done:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
-  .deck-done ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+  .deck-done ol{
+    margin:0;padding:0;list-style:none;
+    display:flex;flex-direction:column;
+    flex:1;min-height:0;
+  }
   .deck-done li{
-    padding:.45rem .55rem;border-radius:8px;
+    flex:1;min-height:0;
+    display:flex;align-items:center;justify-content:center;
+    padding:.35rem .5rem;border-radius:8px;
     border:1px solid #50506a;
     background:linear-gradient(170deg,#3c3c54 0%,#2f2f44 100%);
     font:600 .82rem/1.15 ui-serif,Georgia,serif;letter-spacing:.25px;
     color:var(--ink);
-    margin-top:-6px;position:relative;
+    margin-top:-4px;position:relative;
     box-shadow:0 2px 5px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
     text-align:center;
   }
@@ -733,6 +741,38 @@
   .summary-time::before{content:"⏱";font-size:.95rem}
   .summary-time b{color:var(--ink);font-weight:700}
 
+  /* Detailed time-stats panel (souls-style) */
+  .time-stats{
+    margin-top:1.2rem;padding:14px 16px 12px;
+    border:1px solid var(--stroke);border-radius:14px;
+    background:linear-gradient(180deg,rgba(168,228,255,.05),rgba(255,255,255,.015)),var(--fx);
+  }
+  .time-stats[hidden]{display:none}
+  .time-stats h3{
+    margin:0 0 .7rem;font:600 1rem/1 ui-serif,Georgia,serif;color:var(--gold);
+    letter-spacing:.4px;
+  }
+  .time-stats h3::before{content:"⏱ ";opacity:.8}
+  .ts-group{margin-bottom:.7rem}
+  .ts-group:last-child{margin-bottom:0}
+  .ts-cap{
+    font:700 .68rem/1 system-ui,sans-serif;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.12em;margin-bottom:.35rem;
+  }
+  .ts-row{
+    display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;
+    padding:.3rem .5rem;border-radius:8px;
+    background:rgba(255,255,255,.025);
+    font:500 .86rem/1.2 system-ui,sans-serif;color:var(--ink);
+    margin-bottom:3px;
+  }
+  .ts-row:last-child{margin-bottom:0}
+  .ts-row span{color:var(--muted)}
+  .ts-row b{color:var(--ink);font-weight:700;letter-spacing:.2px}
+  .ts-why{
+    margin-left:.4rem;color:var(--sky);font-weight:600;font-size:.78rem;
+  }
+
   /* ============== Responsive ============== */
   @media (max-width:680px){
     :root{--slot-w:118px;--slot-h:160px;--card-w:96px;--card-h:140px}
@@ -858,6 +898,7 @@
     <p>Here is the final order of your keys and their whys. Tap any tile to reopen and reorder, or tap a saved why to expand it.</p>
     <div class="summary-time" id="summary-time" hidden>Time · <b id="summary-time-val">—</b></div>
     <div class="summary-grid" id="summary-grid"></div>
+    <div class="time-stats" id="time-stats" hidden></div>
     <div class="summary-actions">
       <a class="btn btn-primary" href="http://flove.org/demos/keys/analysis">Analyze →</a>
     </div>
@@ -937,6 +978,18 @@
     stars: 0,
     t0: null,                    // start time (ms); set when user picks Step 0 or skips to Step 1
     tEnd: null,                  // freeze time when summary is shown
+    timing: {
+      perStep:  { step0: 0, step1: 0 },
+      perStage: [0, 0, 0, 0],
+      perDeck:  {},              // deckId -> ms
+      perWhy:   {},              // deckId -> ms (time spent in why panel)
+    },
+    _cur: {                      // currently-open intervals, mutually exclusive within scope
+      stepKey: null, stepStart: null,
+      stageIdx: -1,  stageStart: null,
+      deckIdx:  null, deckStart: null,
+      whyDeckId:null, whyStart: null,
+    },
   };
   DECKS.forEach(d => { state.orders[d.id] = d.items.map((_,i)=>i); });
 
@@ -989,6 +1042,7 @@
   }
   function fmtDuration(ms){
     if (!isFinite(ms) || ms < 0) return '—';
+    if (ms === 0) return '0s';
     if (ms < 10000) return (ms / 1000).toFixed(1) + 's';
     const s = Math.round(ms / 1000);
     if (s < 60) return s + 's';
@@ -996,6 +1050,65 @@
     if (m < 60) return m + 'm ' + r + 's';
     const h = Math.floor(m / 60);
     return h + 'h ' + (m % 60) + 'm';
+  }
+
+  // ----- Granular timing (per Step / Stage / Deck / Why) -----
+  // Intervals are accumulated additively so reopening a deck adds more time
+  // to its bucket rather than resetting it.
+  function _closeStep(now){
+    const c = state._cur;
+    if (c.stepKey && c.stepStart != null){
+      state.timing.perStep[c.stepKey] += now - c.stepStart;
+    }
+    c.stepKey = null; c.stepStart = null;
+  }
+  function _closeStage(now){
+    const c = state._cur;
+    if (c.stageIdx >= 0 && c.stageStart != null){
+      state.timing.perStage[c.stageIdx] = (state.timing.perStage[c.stageIdx] || 0) + (now - c.stageStart);
+    }
+    c.stageIdx = -1; c.stageStart = null;
+  }
+  function _closeDeck(now){
+    const c = state._cur;
+    if (c.deckIdx != null && c.deckStart != null){
+      const id = DECKS[c.deckIdx].id;
+      state.timing.perDeck[id] = (state.timing.perDeck[id] || 0) + (now - c.deckStart);
+    }
+    c.deckIdx = null; c.deckStart = null;
+  }
+  function _closeWhy(now){
+    const c = state._cur;
+    if (c.whyDeckId != null && c.whyStart != null){
+      state.timing.perWhy[c.whyDeckId] = (state.timing.perWhy[c.whyDeckId] || 0) + (now - c.whyStart);
+    }
+    c.whyDeckId = null; c.whyStart = null;
+  }
+  function startStep(key){
+    const now = Date.now();
+    _closeStep(now);
+    state._cur.stepKey = key; state._cur.stepStart = now;
+  }
+  function startStage(idx){
+    const now = Date.now();
+    _closeStage(now);
+    state._cur.stageIdx = idx; state._cur.stageStart = now;
+  }
+  function startDeck(deckIdx){
+    const now = Date.now();
+    _closeDeck(now);
+    state._cur.deckIdx = deckIdx; state._cur.deckStart = now;
+  }
+  function endDeck(){ _closeDeck(Date.now()); }
+  function startWhy(deckId){
+    const now = Date.now();
+    _closeWhy(now);
+    state._cur.whyDeckId = deckId; state._cur.whyStart = now;
+  }
+  function endWhy(){ _closeWhy(Date.now()); }
+  function finalizeTiming(){
+    const now = Date.now();
+    _closeWhy(now); _closeDeck(now); _closeStage(now); _closeStep(now);
   }
   function orderSig(deckId){ return state.orders[deckId].join(','); }
   function matchingPorQue(deckId){
@@ -1179,6 +1292,7 @@
 
     $spotlight.querySelector('#pq-cancel').addEventListener('click', () => {
       stopRecording();
+      endWhy();
       state.porQuePanelOpen = false;
       state.porQueDraft = '';
       renderSpotlight();
@@ -1187,6 +1301,7 @@
       const txt = $text.value.trim();
       if (!txt) { $text.placeholder = 'write or dictate something first'; $text.focus(); return; }
       stopRecording();
+      endWhy();
       savePorQue(deck.id, txt);
     });
 
@@ -1278,6 +1393,7 @@
       next.textContent = 'Next →';
       next.addEventListener('click', () => {
         state.stageIdx++;
+        startStage(state.stageIdx);
         render();
         setTimeout(() => $board.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
       });
@@ -1291,6 +1407,7 @@
   }
 
   function showSummary(){
+    finalizeTiming();
     stopTimer();
     $summary.classList.add('active');
     $sumGrid.innerHTML = '';
@@ -1299,18 +1416,59 @@
         $sumGrid.appendChild(renderDoneDeck(deckIdx));
       }
     });
-    // Total elapsed time pill (souls-style)
+    renderTimeStats();
+    setTimeout(() => $summary.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
+  }
+
+  function renderTimeStats(){
     const $timeBox = document.getElementById('summary-time');
     const $timeVal = document.getElementById('summary-time-val');
     if (state.t0 && state.tEnd && $timeBox && $timeVal){
       $timeVal.textContent = fmtDuration(state.tEnd - state.t0);
       $timeBox.hidden = false;
     }
-    setTimeout(() => $summary.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
+    const $panel = document.getElementById('time-stats');
+    if (!$panel) return;
+    const t = state.timing;
+    const stepRows = [
+      ['Step 0 (warm-up)', t.perStep.step0],
+      ['Step 1 (keys)',    t.perStep.step1],
+    ].filter(([_, ms]) => ms > 0).map(([n, ms]) =>
+      `<div class="ts-row"><span>${n}</span><b>${fmtDuration(ms)}</b></div>`
+    ).join('');
+
+    const stageRows = STAGES
+      .map((s, i) => ({ idx: i, name: s.name, ms: t.perStage[i] || 0 }))
+      .filter(s => s.ms > 0)
+      .map(s => `<div class="ts-row"><span>Stage ${s.idx+1} · ${escapeHTML(s.name)}</span><b>${fmtDuration(s.ms)}</b></div>`)
+      .join('');
+
+    const deckRows = decksActiveSoFar(state.stageIdx)
+      .filter(idx => state.done[DECKS[idx].id])
+      .map(idx => {
+        const d = DECKS[idx];
+        const deckMs = t.perDeck[d.id] || 0;
+        const whyMs  = t.perWhy[d.id]  || 0;
+        return `<div class="ts-row ts-deck">
+          <span>${escapeHTML(d.title)}</span>
+          <b>${fmtDuration(deckMs)}${whyMs ? ` <span class="ts-why">why ${fmtDuration(whyMs)}</span>` : ''}</b>
+        </div>`;
+      }).join('');
+
+    $panel.innerHTML = `
+      <h3>Time stats</h3>
+      ${stepRows ? `<div class="ts-group"><div class="ts-cap">Steps</div>${stepRows}</div>` : ''}
+      ${stageRows ? `<div class="ts-group"><div class="ts-cap">Stages</div>${stageRows}</div>` : ''}
+      ${deckRows ? `<div class="ts-group"><div class="ts-cap">Decks · why</div>${deckRows}</div>` : ''}
+    `;
+    $panel.hidden = !(stepRows || stageRows || deckRows);
   }
 
   // ============== Actions ==============
   function openDeck(deckIdx){
+    // Close any previously open deck/why interval before opening this one
+    endWhy();
+    startDeck(deckIdx);
     state.openDeckIdx = deckIdx;
     state.porQuePanelOpen = false;
     state.porQueDraft = '';
@@ -1320,6 +1478,8 @@
   }
   function doneDeck(deckIdx){
     stopRecording();
+    endWhy();
+    endDeck();
     const id = DECKS[deckIdx].id;
     const wasDone = state.done[id];
     state.done[id] = true;
@@ -1344,7 +1504,12 @@
   }
   function togglePorQuePanel(){
     state.porQuePanelOpen = !state.porQuePanelOpen;
-    if (!state.porQuePanelOpen) stopRecording();
+    if (state.porQuePanelOpen){
+      if (state.openDeckIdx != null) startWhy(DECKS[state.openDeckIdx].id);
+    } else {
+      stopRecording();
+      endWhy();
+    }
     renderSpotlight();
   }
   function savePorQue(deckId, text){
@@ -1506,9 +1671,10 @@
   document.getElementById('intro-more').addEventListener('click', () => setAboutOpen(true));
   document.getElementById('about-close').addEventListener('click', () => setAboutOpen(false));
 
-  // Chooser wiring (starts the elapsed-time clock too)
+  // Chooser wiring (starts the elapsed-time clock + Step 0/Step 1 buckets)
   document.getElementById('chooser-step0').addEventListener('click', () => {
     startTimer();
+    startStep('step0');
     state.preludeActive = true;
     initPrelude();
     setUIMode('prelude');
@@ -1516,6 +1682,8 @@
   });
   document.getElementById('chooser-step1').addEventListener('click', () => {
     startTimer();
+    startStep('step1');
+    startStage(0);
     state.preludeActive = false;
     setUIMode('main');
     render();
@@ -1806,6 +1974,9 @@
 
   function finishPrelude(){
     state.preludeActive = false;
+    // Hand off the timing buckets: close Step 0, open Step 1 + Stage 1
+    startStep('step1');
+    startStage(0);
     setUIMode('main');
     render();
   }

@@ -687,6 +687,19 @@
     background:linear-gradient(180deg,var(--c1),var(--c2));
     opacity:1;
   }
+  /* Time pill — rounded rectangle above the medal-style chips */
+  .pc-time .pc-time-display{
+    padding:.42rem .8rem;border-radius:12px;
+    background:linear-gradient(180deg,#2c3548,#202a3d);
+    border:1px solid #4a5a7a;
+    box-shadow:0 2px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+    display:grid;place-items:center;min-width:74px;
+  }
+  .pc-time .pc-time-num{
+    font:700 1.05rem/1 ui-serif,Georgia,serif;
+    color:var(--sky);text-shadow:0 0 8px rgba(168,228,255,.28);
+    letter-spacing:.5px;font-variant-numeric:tabular-nums;
+  }
   .pc-clicks .pc-badge{
     width:50px;height:50px;
     --c1:#fb923c;--c2:#ea580c;
@@ -722,6 +735,8 @@
   }
   @media (max-width:520px){
     .float-counters{left:8px;bottom:8px;gap:6px}
+    .pc-time .pc-time-display{padding:.3rem .55rem;min-width:58px}
+    .pc-time .pc-time-num{font-size:.86rem}
     .pc-clicks .pc-badge{width:38px;height:38px}
     .pc-sel .pc-badge{width:48px;height:44px}
     .pc-stars .pc-badge{width:44px;height:42px}
@@ -907,6 +922,10 @@
 </div>
 
 <div class="float-counters" aria-live="polite">
+  <div class="pc pc-time is-empty" id="chipTime" title="Total elapsed time">
+    <div class="pc-time-display"><span class="pc-time-num" id="pointsTime">0:00</span></div>
+    <span class="pc-label">Time</span>
+  </div>
   <div class="pc pc-clicks is-empty" id="chipClicks" title="Total clicks">
     <div class="pc-badge"><span class="pc-num" id="pointsClicks">0</span></div>
     <span class="pc-label">Clicks</span>
@@ -1036,9 +1055,41 @@
   document.addEventListener('click', () => bumpCounter('clicks'));
 
   // ----- Elapsed-time timer (souls-style) -----
-  function startTimer(){ if (!state.t0) state.t0 = Date.now(); }
+  let _liveTimerHandle = null;
+  function fmtLiveTimer(ms){
+    if (!isFinite(ms) || ms < 0) return '0:00';
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    if (m < 60) return m + ':' + String(r).padStart(2, '0');
+    const h = Math.floor(m / 60);
+    return h + ':' + String(m % 60).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+  }
+  function paintLiveTimer(){
+    const chip = document.getElementById('chipTime');
+    const num  = document.getElementById('pointsTime');
+    if (!chip || !num) return;
+    if (!state.t0){
+      chip.classList.add('is-empty');
+      return;
+    }
+    chip.classList.remove('is-empty');
+    const now = state.tEnd || Date.now();
+    num.textContent = fmtLiveTimer(now - state.t0);
+  }
+  function startTimer(){
+    if (!state.t0){
+      state.t0 = Date.now();
+      paintLiveTimer();
+      if (!_liveTimerHandle) _liveTimerHandle = setInterval(paintLiveTimer, 1000);
+    }
+  }
   function stopTimer(){
-    if (state.t0 && !state.tEnd) state.tEnd = Date.now();
+    if (state.t0 && !state.tEnd){
+      state.tEnd = Date.now();
+      if (_liveTimerHandle){ clearInterval(_liveTimerHandle); _liveTimerHandle = null; }
+      paintLiveTimer();
+    }
   }
   function fmtDuration(ms){
     if (!isFinite(ms) || ms < 0) return '—';

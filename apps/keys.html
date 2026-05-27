@@ -39,6 +39,24 @@
     max-width:1100px;margin:0 auto;
     padding:10px 18px;
     display:flex;align-items:center;gap:12px;
+    position:relative;
+  }
+  /* Progress bar lives in the centre of the topbar regardless of brand /
+     menu widths. Falls back to inline placement on very narrow viewports. */
+  .stage-progress.in-topbar{
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    padding:5px 9px;gap:5px;
+    pointer-events:none;
+  }
+  .stage-progress.in-topbar .seg{width:32px;height:5px}
+  @media (max-width:680px){
+    .stage-progress.in-topbar .seg{width:22px;height:4px}
+  }
+  @media (max-width:460px){
+    .stage-progress.in-topbar{position:static;transform:none;padding:3px 6px;gap:3px}
+    .stage-progress.in-topbar .seg{width:16px;height:3px}
+    .brand-text{font-size:1.05rem}
   }
   .brand-link{
     display:inline-flex;align-items:center;gap:9px;
@@ -589,10 +607,10 @@
   }
 
   /* Single-page Keys-closed view: when summary is up, the play area and
-     stage controls step aside so the summary owns the page. */
+     stage controls step aside so the summary owns the page. The progress
+     bar lives in the topbar now and stays visible to track Analyze level. */
   .wrap.summary-mode .play-area,
   .wrap.summary-mode .stage-cta,
-  .wrap.summary-mode .stage-progress,
   .wrap.summary-mode .embedded-triads-collapse{display:none !important}
 
   /* Triad pair: an extra-deck (Metaphysics / Space / Time / Sectors) sitting
@@ -1185,6 +1203,20 @@
     .pc-label{font-size:.48rem}
   }
 
+  /* Helper texts: surfaced by 2nd "more" and "See more" respectively. */
+  .keyword-help,
+  .see-more-help{
+    margin:1rem auto .2rem;max-width:560px;
+    padding:.7rem .9rem;border-radius:12px;
+    background:linear-gradient(180deg,rgba(168,228,255,.07),rgba(255,255,255,.02));
+    border:1px solid rgba(168,228,255,.28);
+    color:var(--ink);font-size:.9rem;line-height:1.5;text-align:center;
+    animation:fadein .25s ease;
+  }
+  .keyword-help[hidden],
+  .see-more-help[hidden]{display:none}
+  .see-more-help{margin:.6rem auto 0;border-color:rgba(250,220,146,.35);background:linear-gradient(180deg,rgba(250,220,146,.06),rgba(255,255,255,.02))}
+
   /* Detailed time-stats panel (souls-style).
      Total time + Analyze hint sit at the top; "More details" reveals
      the per-step / per-stage / per-deck breakdown below. */
@@ -1296,6 +1328,13 @@
       </svg>
       <span class="brand-text">keys</span>
     </a>
+    <div class="stage-progress in-topbar" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+    </div>
     <span class="topbar-spacer"></span>
     <div class="menu-wrap">
       <button id="menuBtn" class="menu-btn" type="button"
@@ -1412,14 +1451,6 @@
   <!-- Above-bar CTA: [← Go back] [Next →] -->
   <div class="stage-cta" id="stage-cta"></div>
 
-  <div class="stage-progress" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
-    <div class="seg"></div>
-    <div class="seg"></div>
-    <div class="seg"></div>
-    <div class="seg"></div>
-    <div class="seg"></div>
-  </div>
-
   <!-- Below-bar CTA: [Finish here / See results] -->
   <div class="stage-cta stage-cta-below" id="stage-cta-below"></div>
 
@@ -1433,9 +1464,9 @@
 
     <div class="summary-actions">
       <button class="btn btn-soft" id="btn-analyze" type="button">Analyze →</button>
-      <button class="btn btn-primary" id="btn-analyze-more-1" type="button" hidden>Analyze more</button>
-      <button class="btn btn-soft" id="btn-analyze-more-2" type="button" hidden>Analyze more</button>
-      <button class="btn btn-soft" id="btn-analyze-more-3" type="button" hidden>Analyze more</button>
+      <button class="btn btn-primary" id="btn-analyze-more-1" type="button" hidden>more</button>
+      <button class="btn btn-primary" id="btn-analyze-more-2" type="button" hidden>more</button>
+      <button class="btn btn-primary" id="btn-analyze-more-3" type="button" hidden>more</button>
     </div>
 
     <div class="analyze-bars" id="analyze-bars" hidden></div>
@@ -1455,11 +1486,19 @@
       <a class="btn btn-soft" href="simplex.html">Open simplex →</a>
     </div>
 
+    <p class="keyword-help" id="keyword-help" hidden>
+      Choose your favourite keywords from the lists (at least two) and check the timer section below.
+    </p>
+
     <div class="time-stats" id="time-stats" hidden></div>
 
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button">See more</button>
     </div>
+
+    <p class="see-more-help" id="see-more-help" hidden>
+      Clicking on any of the words from the decks above will lead you to its app too.
+    </p>
 
     <div class="related-apps" id="related-apps" hidden>
       <div class="related-row" id="related-row-3"></div>
@@ -1531,6 +1570,7 @@
     stageIdx: 0,
     openDeckIdx: null,
     embeddedPentadsMode: false,  // true once user enters pentads from the summary's "pentads" related-app card
+    analyzeLevel: 0,             // 0..3 — drives the topbar progress bar while the summary is up
     showExtras: false,           // when true, Tao/Confluence/Future sit beside their triads in the summary
     orders: {},                  // deckId -> [item idx in current order]
     done: {},                    // deckId -> bool (has been "Done'd" at least once)
@@ -1797,10 +1837,21 @@
     }
   }
 
+  function bumpAnalyzeLevel(lv){
+    state.analyzeLevel = Math.max(state.analyzeLevel || 0, lv);
+  }
   function renderStageLabel(){
-    // 5-segment progress bar: 4 stages + "keys closed" (summary) = 5 segments
+    // 5-segment progress bar:
+    //   • While playing → tracks state.stageIdx (0..3)
+    //   • In the summary → starts at level 2 (triads complete) and bumps with
+    //     each Analyze step: 1st Analyze → 3, 1st "more" → 4, 2nd "more" → 5.
     const isSummary = $summary.classList.contains('active');
-    const cur = isSummary ? 4 : state.stageIdx;  // 0..4
+    let cur;
+    if (isSummary){
+      cur = Math.min(4, 1 + (state.analyzeLevel || 0));
+    } else {
+      cur = state.stageIdx;
+    }
     $progress.querySelectorAll('.seg').forEach((s, i) => {
       s.classList.toggle('done',    i < cur);
       s.classList.toggle('current', i === cur);
@@ -2116,9 +2167,10 @@
   }
 
   // Display order for the triads — Time pair (Journalism + Future, idx 4)
-  // leads at the top; Service (t3, idx 2) sits right after Economy (t4, idx 3)
-  // so they read as a single Economy/Service block.
-  const TRIAD_DISPLAY_ORDER = [4, 0, 1, 3, 2];
+  // and Space pair (Psicosocial + Confluence, idx 1) lead in the top row;
+  // Philosophy (Tao, idx 0) and Economy (Sectors, idx 3) follow in the next
+  // row; Service (t3, idx 2) closes as the standalone trailing block.
+  const TRIAD_DISPLAY_ORDER = [4, 1, 0, 3, 2];
 
   function renderSummaryGrid(){
     $triads.innerHTML = '';
@@ -2164,12 +2216,40 @@
     state.embeddedPentadsMode = false;
     const $etc = document.getElementById('embedded-triads-collapse');
     if ($etc) $etc.hidden = true;
+    // Reset all analyze-related state — the user re-enters at level 2 with
+    // every Analyze panel collapsed.
+    state.analyzeLevel = 0;
+    state.showExtras = false;
+    _analyzeOn = false;
+    _barsOn = false;
+    [
+      ['btn-analyze',          {text:'Analyze →', hidden:false}],
+      ['btn-analyze-more-1',   {text:'more',       hidden:true}],
+      ['btn-analyze-more-2',   {text:'more',       hidden:true}],
+      ['btn-analyze-more-3',   {text:'more',       hidden:true}],
+    ].forEach(([id, cfg]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = cfg.text;
+      el.hidden = cfg.hidden;
+    });
+    ['keyword-help','see-more-help','analyze-bars'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    const $arrowsOverlay = document.getElementById('analyze-arrows');
+    if ($arrowsOverlay) $arrowsOverlay.classList.remove('is-on');
+    const $rel = document.getElementById('related-apps');
+    if ($rel) $rel.hidden = true;
+    const $smBtn = document.getElementById('btn-see-more');
+    if ($smBtn) $smBtn.textContent = 'See more';
+
     $summary.classList.add('active');
     document.querySelector('.wrap').classList.add('summary-mode');
     renderSummaryGrid();
     renderTimeStats();
     updateSimplexCTA();
-    renderStageLabel(); // light the 5th segment
+    renderStageLabel();
     setTimeout(() => $summary.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
 
@@ -2226,6 +2306,7 @@
       }).join('');
 
     const hasDetails = !!(stepRows || stageRows || deckRows);
+    const hasContent = !!(totalText || hintHTML || hasDetails);
 
     $panel.innerHTML = `
       <h3>Time stats</h3>
@@ -2238,7 +2319,10 @@
         ${deckRows ? `<div class="ts-group"><div class="ts-cap">Decks · why</div>${deckRows}</div>` : ''}
       </div>
     `;
-    $panel.hidden = !(totalText || hintHTML || hasDetails);
+    // Stay hidden — the 2nd "more" button is what reveals the panel. We just
+    // mark whether the panel has any content to show.
+    $panel.dataset.populated = hasContent ? '1' : '0';
+    $panel.hidden = true;
 
     const $more = document.getElementById('ts-more-btn');
     const $details = document.getElementById('ts-details');
@@ -2893,15 +2977,21 @@
     });
   }
   let _analyzeOn = false;
+  // 1st Analyze toggles BOTH the arrows AND the pairs (extras) along the
+  // results, and pushes the topbar progress bar to level 3.
   function toggleAnalyze(){
     _analyzeOn = !_analyzeOn;
+    state.showExtras = _analyzeOn;
+    if (_analyzeOn) bumpAnalyzeLevel(1);
     const overlay = document.getElementById('analyze-arrows');
     const more1   = document.getElementById('btn-analyze-more-1');
     const btn     = document.getElementById('btn-analyze');
     overlay.classList.toggle('is-on', _analyzeOn);
     more1.hidden = !_analyzeOn;
-    btn.textContent = _analyzeOn ? 'Hide arrows' : 'Analyze →';
-    if (_analyzeOn) positionAnalyzeArrows();
+    btn.textContent = _analyzeOn ? 'Hide' : 'Analyze →';
+    renderSummaryGrid();
+    renderStageLabel();
+    if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
   document.getElementById('btn-analyze').addEventListener('click', toggleAnalyze);
   window.addEventListener('resize', () => {
@@ -2990,15 +3080,17 @@
     const $btn   = document.getElementById('btn-analyze-more-1');
     const $btn2  = document.getElementById('btn-analyze-more-2');
     if (_barsOn){
+      bumpAnalyzeLevel(2);
       renderBarsPanel();
       $panel.hidden = false;
-      $btn.textContent = 'Hide bars';
+      $btn.textContent = 'Hide';
       $btn2.hidden = false;
     } else {
       $panel.hidden = true;
-      $btn.textContent = 'Analyze more';
-      // Keep the second "Analyze more" visible once revealed; do not re-hide
+      $btn.textContent = 'more';
+      // Keep the second "more" visible once revealed; do not re-hide
     }
+    renderStageLabel();
     if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
   document.getElementById('btn-analyze-more-1').addEventListener('click', toggleAnalyzeMore1);
@@ -3123,17 +3215,27 @@
     stamp(yangPos, 'female');
   }
 
+  // 2nd "more" surfaces the keyword-picking instructions and reveals the
+  // timer/stats panel (which is hidden up to this click).
   function toggleAnalyzeMore2(){
-    state.showExtras = !state.showExtras;
-    const $btn = document.getElementById('btn-analyze-more-2');
-    $btn.textContent = state.showExtras ? 'Hide lists' : 'Analyze more';
-    // Reveal the 3rd Analyze more (was Finish) once extras have shown up
-    if (state.showExtras){
+    const $help = document.getElementById('keyword-help');
+    const $time = document.getElementById('time-stats');
+    const $btn  = document.getElementById('btn-analyze-more-2');
+    const showing = $help && !$help.hidden;
+    if (showing){
+      if ($help) $help.hidden = true;
+      if ($time) $time.hidden = true;
+      $btn.textContent = 'more';
+    } else {
+      bumpAnalyzeLevel(3);
+      if ($help) $help.hidden = false;
+      // Only unhide the time-stats if renderTimeStats actually populated it.
+      if ($time && $time.dataset.populated === '1') $time.hidden = false;
+      $btn.textContent = 'Hide';
       const $btn3 = document.getElementById('btn-analyze-more-3');
       if ($btn3) $btn3.hidden = false;
     }
-    renderSummaryGrid();
-    if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
+    renderStageLabel();
   }
   document.getElementById('btn-analyze-more-2').addEventListener('click', toggleAnalyzeMore2);
 
@@ -3227,9 +3329,11 @@
   document.getElementById('btn-see-more').addEventListener('click', () => {
     const $panel = document.getElementById('related-apps');
     const $btn   = document.getElementById('btn-see-more');
+    const $help  = document.getElementById('see-more-help');
     const open = $panel.hidden;
     if (open) ensureRelatedAppsRendered();
     $panel.hidden = !open;
+    if ($help) $help.hidden = !open;
     $btn.textContent = open ? 'Hide apps' : 'See more';
   });
   document.getElementById('btn-related-plus').addEventListener('click', () => {

@@ -12,7 +12,7 @@
   :root{
     --app-accent:        #f5b463;
     --app-accent-soft:   #ffdfa8;
-    --app-ink-on-accent: #1a1208;
+    --app-ink-on-accent: #000000;
 
     --soul-bg-1:   #0d0a18;
     --soul-bg-2:   #1a1024;
@@ -20,9 +20,9 @@
     --soul-veil-b: rgba(237,138,166,.16);
     --soul-veil-c: rgba(126,160,255,.12);
 
-    --ink:        #f3ecdc;
-    --ink-soft:   #b7a99a;
-    --ink-dim:    #7a6f63;
+    --ink:        #ffffff;
+    --ink-soft:   #ffffff;
+    --ink-dim:    #ffffff;
 
     --rose:       #ed8aa6;
     --gold:       #f5b463;
@@ -470,22 +470,23 @@
   .pick-icon{ font-size:1.55rem; line-height:1; filter:saturate(.85) }
   .pick-label{ font-size:.85rem; color:var(--ink-soft); letter-spacing:.04em }
   .pick-btn.is-on{
-    background:linear-gradient(135deg, rgba(245,180,99,.18), rgba(237,138,166,.18));
-    border-color:var(--app-accent);
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    border-color:transparent;
   }
-  .pick-btn.is-on .pick-label{ color:var(--ink); font-weight:600 }
+  .pick-btn.is-on .pick-label{ color:var(--app-ink-on-accent); font-weight:600 }
   .pick-btn.is-on .pick-icon{ filter:none }
   .pick-btn.is-locked{ opacity:.3; cursor:not-allowed; }
   .pick-btn.is-locked:hover{ background:var(--panel); }
-  /* previous-tier pick: stays highlighted but is not clickable */
+  /* previous-tier pick: keep checked colour at 50% opacity, not clickable */
   .pick-btn.is-prev-tier{
-    background:linear-gradient(135deg, rgba(245,180,99,.22), rgba(237,138,166,.22));
-    border-color:var(--app-accent);
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    border-color:transparent;
     cursor:default;
+    opacity:.5;
   }
-  .pick-btn.is-prev-tier .pick-label{ color:var(--ink); font-weight:600 }
+  .pick-btn.is-prev-tier .pick-label{ color:var(--app-ink-on-accent); font-weight:600 }
   .pick-btn.is-prev-tier .pick-icon{ filter:none }
-  .pick-btn.is-prev-tier:hover{ background:linear-gradient(135deg, rgba(245,180,99,.22), rgba(237,138,166,.22)); }
+  .pick-btn.is-prev-tier:hover{ background:linear-gradient(135deg, var(--app-accent), var(--rose)); }
   /* "Integumentary" is the longest system label — shrink it 30% so it fits */
   .pick-btn[data-value="integumentary"] .pick-label{ font-size: .595rem; }
 
@@ -768,7 +769,7 @@
     opacity:.3;
   }
   .tier-preview .tier-chip.is-on{
-    opacity:1;
+    opacity:.5;
     background:linear-gradient(135deg, var(--app-accent), var(--rose));
     color:var(--app-ink-on-accent);
     border-color:transparent; font-weight:600;
@@ -787,6 +788,13 @@
     opacity: .3; pointer-events: none; cursor: not-allowed;
   }
   .s2-cat-list .chip.is-on{ opacity: 1 }
+  /* previous-stage species pick: keep checked colour but at 50% */
+  .s2-cat-list .chip.is-prev{
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    color:var(--app-ink-on-accent);
+    border-color:transparent; font-weight:600;
+    opacity:.5;
+  }
   .s2-anopt-inline{
     margin: .8rem auto 0;
     max-width: 480px;
@@ -1671,25 +1679,9 @@
     aqNest: { aq1:'', aq2:'', aq3:'' },
     cqNest: { cq1:'', cq2:'', cq3:'' }
   };
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (saved && typeof saved === 'object') {
-      Object.assign(state, saved);
-      if (!state.stars)  state.stars  = { 1:false, 2:false, 3:false, 4:false, 5:false };
-      if (!state.events) state.events = [];
-      if (!state.aqNest) state.aqNest = { aq1:'', aq2:'', aq3:'' };
-      if (!state.cqNest) state.cqNest = { cq1:'', cq2:'', cq3:'' };
-      // migrate: s3 channel no longer accepts senses (removed) and "nervous" is locked.
-      if (typeof state.s3Channel === 'string'){
-        if (state.s3Channel.startsWith('sense:') || state.s3Channel === 'bio:nervous'){
-          state.s3Channel = '';
-        }
-        // rename urinary → excretory (id changed)
-        if (state.s3Channel === 'bio:urinary') state.s3Channel = 'bio:excretory';
-      }
-      if (state.s4Bio === 'urinary') state.s4Bio = 'excretory';
-    }
-  } catch(_){}
+  // Reload always starts fresh — wipe any persisted state from prior sessions
+  // so nothing typed or selected carries over after a page refresh.
+  try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
 
   // ── hidden timer ──
   const logEvent = (kind, target) => {
@@ -1947,11 +1939,13 @@
       const allPicks = new Set([state.s2Cat1, state.s2Cat2, state.s3Cat].filter(Boolean));
       chips.forEach((b, cat) => {
         const idx = +b.dataset.idx;
-        const isHighlight = allPicks.has(cat) || cat === cur;
-        b.classList.toggle('is-on', isHighlight);
+        const isCurrent = cat === cur;
+        const isPrev    = !isCurrent && allPicks.has(cat);
+        b.classList.toggle('is-on',   isCurrent);
+        b.classList.toggle('is-prev', isPrev);
         if (dimRefFn){
           // dim items already passed (idx <= refIdx) unless they're a tracked pick
-          b.classList.toggle('is-dim', refIdx >= 0 && idx <= refIdx && !isHighlight);
+          b.classList.toggle('is-dim', refIdx >= 0 && idx <= refIdx && !isCurrent && !isPrev);
         }
       });
     }

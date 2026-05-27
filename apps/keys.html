@@ -269,15 +269,22 @@
   }
   .mic-btn svg{width:1.15rem;height:1.15rem;fill:currentColor}
 
-  /* ============== Board (slot row) ============== */
+  /* ============== Board (two stacked rows) ============== */
+  /* Top row: closed / placeholder cells.
+     Bottom row: done decks land here, in the same column where they were
+     tapped — so each deck keeps its column identity. The bottom row sits
+     empty by default until decks are completed. */
   .board{
+    display:flex;flex-direction:column;gap:10px;
+    padding:14px 6px;
+    border:1px dashed var(--stroke);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
+  }
+  .board-row{
     display:grid;gap:14px;
     grid-template-columns:repeat(5,minmax(0,1fr));
     align-items:start;justify-items:center;
-    min-height:calc(var(--slot-h) + 30px);
-    padding:18px 6px;
-    border:1px dashed var(--stroke);border-radius:18px;
-    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
+    min-height:var(--slot-h);
   }
   .slot{width:100%;display:flex;justify-content:center;align-items:flex-start}
   .slot.empty{
@@ -1536,21 +1543,47 @@
 
   function renderBoard(){
     $board.innerHTML = '';
+    const topRow = document.createElement('div');
+    topRow.className = 'board-row board-row-top';
+    const botRow = document.createElement('div');
+    botRow.className = 'board-row board-row-bot';
+
     STAGES[state.stageIdx].layout.forEach(deckIdx => {
-      const slot = document.createElement('div');
-      slot.className = 'slot';
-      if (deckIdx === null) {
-        slot.classList.add('empty');
-      } else if (state.openDeckIdx === deckIdx) {
-        slot.classList.add('placeholder');
-        slot.textContent = 'in the center ↑';
-      } else if (state.done[DECKS[deckIdx].id]) {
-        slot.appendChild(renderDoneDeck(deckIdx));
+      const topSlot = document.createElement('div');
+      topSlot.className = 'slot';
+      const botSlot = document.createElement('div');
+      botSlot.className = 'slot';
+
+      if (deckIdx === null){
+        topSlot.classList.add('empty');
+        botSlot.classList.add('empty');
       } else {
-        slot.appendChild(renderClosedDeck(deckIdx));
+        const id     = DECKS[deckIdx].id;
+        const isDone = !!state.done[id];
+        const isOpen = state.openDeckIdx === deckIdx;
+
+        if (isOpen){
+          // Placeholder appears in the deck's "home" row (bottom once done)
+          const home  = isDone ? botSlot : topSlot;
+          const other = isDone ? topSlot : botSlot;
+          home.classList.add('placeholder');
+          home.textContent = 'in the center ↑';
+          other.classList.add('empty');
+        } else if (isDone){
+          topSlot.classList.add('empty');
+          botSlot.appendChild(renderDoneDeck(deckIdx));
+        } else {
+          topSlot.appendChild(renderClosedDeck(deckIdx));
+          botSlot.classList.add('empty');
+        }
       }
-      $board.appendChild(slot);
+
+      topRow.appendChild(topSlot);
+      botRow.appendChild(botSlot);
     });
+
+    $board.appendChild(topRow);
+    $board.appendChild(botRow);
   }
 
   function renderClosedDeck(deckIdx){

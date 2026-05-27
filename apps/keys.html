@@ -32,14 +32,12 @@
   .wrap{max-width:1100px;margin:auto;padding:28px 18px 80px;display:grid;gap:22px}
   @media (max-width:520px){.wrap{padding:18px 12px 60px;gap:16px}}
 
-  /* Sticky play area: a reserved slot for the reordering view on top, the
-     board below in a fixed area. Spotlight is a normal-flow child whose
-     min-height pre-allocates space so the board doesn't shift when a deck
-     is tapped — empty space sits up there by default. */
+  /* Sticky play area: reordering view (when active) above the board, with
+     just a small gap between them. */
   .play-area{
     position:sticky;top:0;z-index:40;
-    display:flex;flex-direction:column;gap:14px;
-    padding:8px 0 12px;
+    display:flex;flex-direction:column;gap:6px;
+    padding:6px 0 10px;
     background:
       radial-gradient(1200px 700px at 85% -10%, #3a3a58 0%, transparent 55%),
       radial-gradient(900px 600px at -10% 110%, #3a2548 0%, transparent 60%),
@@ -87,26 +85,15 @@
   }
   .onboard b{color:var(--sky);font-weight:600}
 
-  /* ============== Spotlight (reserved reordering slot) ============== */
-  /* Always rendered so its min-height pre-allocates space above the board.
-     Visible chrome (panel background / border / shadow) only when .active. */
-  .spotlight{
+  /* ============== Spotlight (reordering view) ============== */
+  /* Borderless, no panel chrome — sits flush with the board below. */
+  .spotlight{display:none}
+  .spotlight.active{
     display:block;
     margin:0 auto;width:calc(100% - 16px);max-width:780px;
-    min-height:320px;
-  }
-  .spotlight.active{
-    background:
-      linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02)),
-      var(--panel);
-    border:1px solid var(--stroke);border-radius:20px;
-    padding:6px 18px 12px;
-    box-shadow:0 30px 80px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04) inset,
-               0 0 80px rgba(255,95,220,.1);
+    padding:2px 12px 4px;
     animation:pop .25s ease;
   }
-  @media (max-width:680px){ .spotlight{min-height:280px} }
-  @media (max-width:460px){ .spotlight{min-height:220px} }
   @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
 
   .spot-head{
@@ -274,22 +261,17 @@
   }
   .mic-btn svg{width:1.15rem;height:1.15rem;fill:currentColor}
 
-  /* ============== Board (two stacked rows) ============== */
-  /* Top row: closed / placeholder cells.
-     Bottom row: done decks land here, in the same column where they were
-     tapped — so each deck keeps its column identity. The bottom row sits
-     empty by default until decks are completed. */
+  /* ============== Board (single row) ============== */
+  /* Done decks land back in their original slot — same position as the
+     closed deck they replace, so they stay near where they were tapped. */
   .board{
-    display:flex;flex-direction:column;gap:10px;
-    padding:14px 6px;
-    border:1px dashed var(--stroke);border-radius:18px;
-    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
-  }
-  .board-row{
     display:grid;gap:14px;
     grid-template-columns:repeat(5,minmax(0,1fr));
     align-items:start;justify-items:center;
-    min-height:var(--slot-h);
+    min-height:calc(var(--slot-h) + 16px);
+    padding:14px 6px;
+    border:1px dashed var(--stroke);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
   }
   .slot{width:100%;display:flex;justify-content:center;align-items:flex-start}
   .slot.empty{
@@ -1548,47 +1530,21 @@
 
   function renderBoard(){
     $board.innerHTML = '';
-    const topRow = document.createElement('div');
-    topRow.className = 'board-row board-row-top';
-    const botRow = document.createElement('div');
-    botRow.className = 'board-row board-row-bot';
-
     STAGES[state.stageIdx].layout.forEach(deckIdx => {
-      const topSlot = document.createElement('div');
-      topSlot.className = 'slot';
-      const botSlot = document.createElement('div');
-      botSlot.className = 'slot';
-
+      const slot = document.createElement('div');
+      slot.className = 'slot';
       if (deckIdx === null){
-        topSlot.classList.add('empty');
-        botSlot.classList.add('empty');
+        slot.classList.add('empty');
+      } else if (state.openDeckIdx === deckIdx){
+        slot.classList.add('placeholder');
+        slot.textContent = 'in the center ↑';
+      } else if (state.done[DECKS[deckIdx].id]){
+        slot.appendChild(renderDoneDeck(deckIdx));
       } else {
-        const id     = DECKS[deckIdx].id;
-        const isDone = !!state.done[id];
-        const isOpen = state.openDeckIdx === deckIdx;
-
-        if (isOpen){
-          // Placeholder appears in the deck's "home" row (bottom once done)
-          const home  = isDone ? botSlot : topSlot;
-          const other = isDone ? topSlot : botSlot;
-          home.classList.add('placeholder');
-          home.textContent = 'in the center ↑';
-          other.classList.add('empty');
-        } else if (isDone){
-          topSlot.classList.add('empty');
-          botSlot.appendChild(renderDoneDeck(deckIdx));
-        } else {
-          topSlot.appendChild(renderClosedDeck(deckIdx));
-          botSlot.classList.add('empty');
-        }
+        slot.appendChild(renderClosedDeck(deckIdx));
       }
-
-      topRow.appendChild(topSlot);
-      botRow.appendChild(botSlot);
+      $board.appendChild(slot);
     });
-
-    $board.appendChild(topRow);
-    $board.appendChild(botRow);
   }
 
   function renderClosedDeck(deckIdx){

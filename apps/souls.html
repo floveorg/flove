@@ -165,11 +165,8 @@
   .stage{ max-width:700px; margin: 1.4rem auto 4rem; padding: 0 1.1rem; }
   .stage-meta{
     display:flex; flex-direction:column; align-items:center;
-    gap:.6rem; margin-bottom:1rem;
+    gap:.4rem; margin-bottom:1rem;
   }
-  .stage-stars{ display:flex; justify-content:center; }
-  .stage-stars .pc{ pointer-events:auto; }
-  .stage-stars .pc.is-empty{ display:none }
   .stage-meta .label{
     font-size:.7rem; letter-spacing:.2em; text-transform:uppercase;
     color:var(--ink-dim);
@@ -189,6 +186,20 @@
   }
   .progress li:hover{ background:rgba(255,255,255,.18) }
   .progress li.done:hover{ filter:brightness(1.1) }
+
+  /* in-stage progress (one dot per view within the current stage) */
+  .progress.progress-inner{ gap:.3rem; }
+  .progress.progress-inner li{
+    width:16px; height:3px;
+    background:rgba(255,255,255,.06);
+  }
+  .progress.progress-inner li.done{
+    background: var(--ink-dim);
+  }
+  .progress.progress-inner li.current{
+    background: var(--ink-soft);
+    transform: scaleY(1.4);
+  }
   .progress li.done{ background:var(--app-accent-soft) }
   .progress li.current{
     background:linear-gradient(90deg, var(--app-accent), var(--rose));
@@ -622,7 +633,7 @@
   /* ── floating arcade counters (no threshold) ── */
   .float-counters{
     position: fixed; left: 14px; bottom: 14px; z-index: 80;
-    display: flex; flex-direction: row; align-items: flex-end; gap: 12px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     pointer-events: none;
   }
   .pc{ pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -745,9 +756,31 @@
   @media (min-width: 560px){
     .cq-nest__list{ grid-template-columns: 1fr 1fr 1fr; }
   }
-  .cq-nest-item{
-    display:flex; flex-direction:column; gap:.35rem;
-    min-width:0;
+  .cq-nest-item{ min-width: 0; }
+  .cq-nest-row{
+    display:flex; align-items:center; gap:.35rem;
+    background:var(--field);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:.5rem .85rem;
+    cursor:text;
+    transition: background .2s ease, border-color .2s ease;
+  }
+  .cq-nest-row:focus-within{
+    background:var(--field-focus);
+    border-color:var(--app-accent);
+  }
+  .cq-nest-parent-input{
+    flex:1; min-width:0;
+    background:transparent; border:0; outline:none;
+    color:var(--app-accent-soft); font-weight:600;
+    font:inherit; font-size:.95rem;
+    padding:0;
+  }
+  .cq-nest-sub{
+    flex-shrink:0;
+    color:var(--ink-soft); font-size:.95rem;
+    white-space:nowrap;
   }
 
   /* refine page (combined aq + cq nest at the end of stage 1) */
@@ -766,33 +799,6 @@
     margin: 1.1rem 0 .5rem;
   }
   .refine-h:first-of-type{ margin-top: .2rem }
-  .cq-nest-input{
-    padding:.5rem .85rem;
-    background:var(--field);
-    border:1px solid var(--app-accent);
-    border-radius:12px;
-    color:var(--ink);
-    font:inherit; font-size:.9rem;
-    width:100%;
-  }
-  .cq-nest-input:focus{ outline:none; background:var(--field-focus); }
-  .cq-nest-input[hidden]{ display:none; }
-  .cq-nest-word{
-    appearance:none;
-    display:inline-flex; align-items:center; gap:.3rem;
-    padding:.45rem .85rem;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:999px;
-    color:var(--ink);
-    font:inherit; font-size:.92rem;
-    cursor:pointer;
-    transition: background .15s, border-color .15s;
-  }
-  .cq-nest-word:hover{ background:var(--panel-strong); border-color:var(--app-accent-soft); }
-  .cq-nest-parent{ color:var(--app-accent-soft); font-weight:600; }
-  .cq-nest-arrow{ color:var(--ink-dim); }
-  .cq-nest-sub{ color:var(--ink-soft); }
 
   /* nested-word display in the portrait results */
   .portrait-cell li.nest-li{
@@ -974,14 +980,9 @@
 <main class="stage" aria-live="polite">
 
   <div class="stage-meta" id="stageMeta" hidden>
-    <div class="stage-stars">
-      <div class="pc pc-stars is-empty" id="chipStars" title="Stars — one per completed stage (max 5)">
-        <div class="pc-badge"><span class="pc-num" id="numStars">0</span></div>
-        <span class="pc-label">Stars</span>
-      </div>
-    </div>
     <span class="label" id="stageLabel"></span>
-    <ol class="progress" id="progress"></ol>
+    <ol class="progress progress-stages" id="progress"></ol>
+    <ol class="progress progress-inner"  id="progressInner"></ol>
   </div>
 
   <!-- WELCOME -->
@@ -1226,9 +1227,7 @@
     <h1>A system.</h1>
     <p class="hint">Choose one of the eleven biological systems.</p>
 
-    <div class="lock-msg" id="s3NervousMsg" hidden role="status" aria-live="polite">
-      Select another system — you have already chosen the nervous system's senses in the previous stage.
-    </div>
+    <div class="lock-msg" id="s3NervousMsg" hidden role="status" aria-live="polite"></div>
 
     <div class="pick-grid two-rows" id="s3BioPick"></div>
     <div class="nav">
@@ -1473,11 +1472,15 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- floating arcade counter — selections (stars counter moved above the progress bar) -->
+<!-- floating arcade counters — selections on top, stars below -->
 <div class="float-counters" aria-live="polite">
   <div class="pc pc-sel is-empty" id="chipSels" title="Selections — every filled field & picked option">
     <div class="pc-badge"><span class="pc-num" id="numSels">0</span></div>
     <span class="pc-label">Selections</span>
+  </div>
+  <div class="pc pc-stars is-empty" id="chipStars" title="Stars — one per completed stage (max 5)">
+    <div class="pc-badge"><span class="pc-num" id="numStars">0</span></div>
+    <span class="pc-label">Stars</span>
   </div>
 </div>
 
@@ -1726,29 +1729,44 @@
                           v => { state.s3Channel = 'bio:' + v;   refreshS3Channel(); });
   refreshS3Channel = () => { syncS3Bio(); };
 
-  // lock the "nervous" bio button — its senses were already picked in stage 2.
-  // Click toggles the info box; it also auto-hides 10s after being opened.
-  (function lockNervousInS3(){
-    const btn = $('#s3BioPick .pick-btn[data-value="nervous"]');
+  // lock several s3 bio systems — nervous (its senses live in stage 2),
+  // immune + reproductive (reserved for later stages).
+  // Click shows the reason; clicking again (or 10s) closes it.
+  (function lockSystemsInS3(){
     const msg = $('#s3NervousMsg');
-    if (!btn) return;
-    btn.classList.add('is-locked');
-    btn.setAttribute('aria-disabled', 'true');
+    if (!msg) return;
+    const reasons = {
+      nervous:      'Select another system — you have already chosen the nervous system’s senses in the previous stage.',
+      immune:       'The immune system is reserved for later — pick another for now.',
+      reproductive: 'The reproductive system is reserved for later — pick another for now.'
+    };
     let dismissT = null;
-    btn.addEventListener('click', (e) => {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      if (!msg) return;
-      if (msg.hidden){
+    let lastId   = null;
+    Object.entries(reasons).forEach(([id, text]) => {
+      const btn = $(`#s3BioPick .pick-btn[data-value="${id}"]`);
+      if (!btn) return;
+      btn.classList.add('is-locked');
+      btn.setAttribute('aria-disabled', 'true');
+      btn.addEventListener('click', (e) => {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (!msg.hidden && lastId === id){
+          msg.hidden = true;
+          clearTimeout(dismissT); dismissT = null;
+          lastId = null;
+          return;
+        }
+        msg.textContent = text;
         msg.hidden = false;
+        lastId = id;
         clearTimeout(dismissT);
-        dismissT = setTimeout(() => { msg.hidden = true; dismissT = null; }, 10000);
-      } else {
-        msg.hidden = true;
-        clearTimeout(dismissT);
-        dismissT = null;
-      }
-    }, true);
+        dismissT = setTimeout(() => {
+          msg.hidden = true;
+          dismissT = null;
+          lastId = null;
+        }, 10000);
+      }, true);
+    });
   })();
   // matter anopt — inline text field for specific matter (e.g. "quartz" if matter=crystal)
   const showMatterAnopt = (_label) => {
@@ -2052,47 +2070,30 @@
       const item = document.createElement('div');
       item.className = 'cq-nest-item';
 
+      const row = document.createElement('label');
+      row.className = 'cq-nest-row';
+
       const input = document.createElement('input');
       input.type = 'text';
-      input.className = 'cq-nest-input';
+      input.className = 'cq-nest-parent-input';
       input.value = (state[nestKey][k] || '');
-      input.hidden = !input.value.trim();
       input.dataset.key = k;
       input.autocomplete = 'off';
-
-      const wordBtn = document.createElement('button');
-      wordBtn.type = 'button';
-      wordBtn.className = 'cq-nest-word';
-
-      const paint = () => {
-        const p = (state[nestKey][k] || '').trim();
-        if (p){
-          wordBtn.innerHTML =
-            `<span class="cq-nest-parent">${escapeHtml(p)}</span>` +
-            `<span class="cq-nest-arrow">›</span>` +
-            `<span class="cq-nest-sub">${escapeHtml(word)}</span>`;
-        } else {
-          wordBtn.textContent = word;
-        }
-      };
-      paint();
-
       input.addEventListener('input', () => {
         state[nestKey][k] = input.value;
         persist();
-        paint();
       });
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
       });
 
-      wordBtn.addEventListener('click', () => {
-        input.hidden = !input.hidden;
-        if (!input.hidden) setTimeout(() => input.focus({preventScroll:true}), 50);
-      });
+      const sub = document.createElement('span');
+      sub.className = 'cq-nest-sub';
+      sub.textContent = word;
 
-      item.appendChild(input);
-      item.appendChild(wordBtn);
+      row.appendChild(input);
+      row.appendChild(sub);
+      item.appendChild(row);
       wrap.appendChild(item);
     });
   }
@@ -2155,6 +2156,7 @@
     4: 's4-matter',
     5: 's5-particle'
   };
+  const progressInnerEl = $('#progressInner');
   const updateStageMeta = () => {
     const view = currentView();
     const stage = view ? +view.dataset.stage : 0;
@@ -2172,6 +2174,7 @@
       stageLabelEl.innerHTML = `Stage <b>${curStage}</b> of 5`;
     }
 
+    // stage-level bar: 5 dots, click jumps to start of stage
     progressEl.innerHTML = '';
     [1,2,3,4,5].forEach(sNum => {
       const startView = STAGE_STARTS[sNum];
@@ -2184,6 +2187,24 @@
       li.addEventListener('click', () => goTo(startView));
       progressEl.appendChild(li);
     });
+
+    // in-stage bar: one dot per view within current stage, click jumps to that view
+    if (progressInnerEl){
+      progressInnerEl.innerHTML = '';
+      const list = STAGE_VIEWS[curStage] || [];
+      const curViewId = isReveal ? null : (view ? view.dataset.view : null);
+      const idx = curViewId ? list.indexOf(curViewId) : list.length; // reveal = all done
+      list.forEach((vId, i) => {
+        const li = document.createElement('li');
+        li.dataset.view = vId;
+        li.title = `Go to ${vId}`;
+        if (i < idx) li.classList.add('done');
+        else if (i === idx) li.classList.add('current');
+        else if (isReveal) li.classList.add('done');
+        li.addEventListener('click', () => goTo(vId));
+        progressInnerEl.appendChild(li);
+      });
+    }
   };
 
   // ── real stars: glowing star-glyphs, multiplied across stages 2→5 ──

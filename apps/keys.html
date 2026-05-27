@@ -510,11 +510,12 @@
       linear-gradient(170deg,#2c241c,#241c14);
     border:1px dashed rgba(170,120,70,.45);
     box-shadow:0 1px 3px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03);
-    color:#b89070;
-    font-weight:500;
-    font-size:.76rem;
-    opacity:.78;
-    letter-spacing:.1px;
+    color:#ffd9b3;
+    font-weight:600;
+    font-size:.82rem;
+    opacity:1;
+    letter-spacing:.2px;
+    text-shadow:0 1px 1px rgba(0,0,0,.45);
   }
 
   .deck-done .pq-saved{
@@ -743,9 +744,6 @@
      30% wider than the standard summary block, with a 10px gap between
      the two pairs and a centered title + helper line. */
   .analyze-bars{
-    /* Perspective panel suppressed by request — kept in the DOM so existing
-       wiring still works, but never visible. */
-    display:none !important;
     margin-top:.8rem;padding:16px 18px 12px;
     border:1px solid var(--stroke);border-radius:14px;
     background:linear-gradient(180deg,rgba(168,228,255,.05),rgba(255,255,255,.015)),var(--fx);
@@ -844,24 +842,37 @@
   }
   .ad-deck li .ad-arrows button:hover{color:var(--accent);border-color:var(--accent)}
   .ad-deck li .ad-arrows button:disabled{opacity:.3;cursor:not-allowed}
+  /* Gender markers sit pinned to the LEFT edge of each card (absolute) so the
+     word can keep centering normally in the remaining space. 50% larger than
+     the previous inline version. */
   .gender-icon{
-    font-size:1.4rem;line-height:1;
-    display:inline-block;vertical-align:middle;
-    margin-right:3px;
+    position:absolute;left:6px;top:50%;
+    transform:translateY(-50%);
+    font-size:2.1rem;line-height:1;
     pointer-events:none;
     filter:drop-shadow(0 0 4px rgba(255,255,255,.3));
+    z-index:2;
   }
   .gender-icon.female{color:#ed8aa6}
   .gender-icon.male{color:#7ea0ff}
+  /* Cards containing an icon get extra left padding so the centered word
+     doesn't slide underneath it. */
+  .deck-done li:has(.gender-icon),
+  .ad-deck li:has(.gender-icon){padding-left:2.4rem}
   /* In the compact triad row leave room for the word — shrink the icon. */
   .summary-triads .gender-icon,
   .triad-pair .gender-icon{
-    font-size:1rem;margin-right:2px;
+    font-size:1.5rem;left:4px;
   }
+  .summary-triads .deck-done li:has(.gender-icon),
+  .triad-pair .deck-done li:has(.gender-icon),
+  .triad-pair .ad-deck li:has(.gender-icon){padding-left:1.8rem}
 
-  /* Analyze arrows overlay (3 horizontal arrows across the rows of ordinals) —
-     suppressed by request: keep the structure, just never paint them. */
-  .analyze-arrows{display:none !important}
+  /* Analyze arrows overlay (3 horizontal arrows across the rows of ordinals) */
+  .analyze-arrows{
+    position:absolute;inset:0;pointer-events:none;z-index:2;
+    opacity:0;transition:opacity .3s ease;
+  }
   .analyze-arrows.is-on{opacity:1}
   .analyze-arrows .arrow{
     position:absolute;left:8px;right:8px;height:0;
@@ -1270,23 +1281,15 @@
     .pc-label{font-size:.48rem}
   }
 
-  /* Helper texts: surfaced by 2nd "more" and "See more" respectively. */
-  .keyword-help,
+  /* Helper text surfaced by "See more". */
   .see-more-help{
-    margin:1rem auto .2rem;max-width:560px;
-    padding:.7rem .9rem;border-radius:12px;
-    background:linear-gradient(180deg,rgba(168,228,255,.07),rgba(255,255,255,.02));
-    border:1px solid rgba(168,228,255,.28);
+    margin:.6rem auto 0;max-width:560px;
+    padding:.7rem .9rem;
+    border:0;background:transparent;
     color:var(--ink);font-size:.9rem;line-height:1.5;text-align:center;
     animation:fadein .25s ease;
   }
-  .keyword-help[hidden],
   .see-more-help[hidden]{display:none}
-  .see-more-help{
-    margin:.6rem auto 0;
-    border:0;background:transparent;
-    text-align:center;color:var(--ink);
-  }
 
   /* Detailed time-stats panel (souls-style).
      Total time + Analyze hint sit at the top; "More details" reveals
@@ -1476,13 +1479,11 @@
   </section>
 
   <section class="prelude" id="prelude">
-    <h2>Step 0 <span class="sub">· optional</span></h2>
-    <p>You have 15 shuffled cards. Form 5 groups of 3 that feel like they belong together and press <b>Check</b>: for each correct group, a star will show up (I won't tell you which one is correct). Once you get all 5, I'll ask you to order the groups from <b>most abstract to most concrete</b>.</p>
-
     <div class="phase-a-section">
       <div class="pool" id="prelude-pool" aria-label="Card pool"></div>
       <div class="groups" id="prelude-groups"></div>
       <div class="prelude-actions">
+        <button class="btn btn-ghost btn-back" id="prelude-back" type="button">← Back</button>
         <button class="btn btn-primary" id="prelude-check" type="button" disabled>Check</button>
         <button class="btn btn-ghost" id="prelude-skip" type="button">Skip step 0 →</button>
       </div>
@@ -1500,7 +1501,7 @@
       <div class="prelude-status" id="prelude-status">drag them or use ← → to order from most abstract (left) to most concrete (right)</div>
       <div class="prelude-actions">
         <button class="btn btn-primary" id="prelude-check-order" type="button">Check order</button>
-        <button class="btn btn-soft" id="prelude-continue" type="button" hidden>Continue to stage 1 →</button>
+        <button class="btn btn-soft" id="prelude-continue" type="button">Continue to stage 1 →</button>
         <button class="btn btn-ghost" id="prelude-skip-b" type="button">Skip step 0 →</button>
       </div>
     </div>
@@ -1533,9 +1534,6 @@
   <div class="stage-cta stage-cta-below" id="stage-cta-below"></div>
 
   <div class="summary" id="summary">
-    <h2>Summary</h2>
-    <p>Here is the final order of your keys and their whys. Tap any tile to reopen and reorder, or tap a saved why to expand it.</p>
-
     <div class="summary-actions">
       <button class="btn btn-ghost btn-back" id="btn-summary-back" type="button">← Go back</button>
       <button class="btn btn-soft" id="btn-analyze" type="button">Analyze →</button>
@@ -1560,10 +1558,6 @@
       <p>Map these pentads into the simplex view.</p>
       <a class="btn btn-soft" href="simplex.html">Open simplex →</a>
     </div>
-
-    <p class="keyword-help" id="keyword-help" hidden>
-      Choose your favourite keywords from the lists (at least two) and check the timer section below.
-    </p>
 
     <div class="time-stats" id="time-stats" hidden></div>
 
@@ -2320,10 +2314,12 @@
       el.textContent = cfg.text;
       el.hidden = cfg.hidden;
     });
-    ['keyword-help','see-more-help','analyze-bars'].forEach(id => {
+    ['see-more-help','analyze-bars','time-stats'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
+    _timeStatsOn = false;
+    removeFinishIcons();
     const $arrowsOverlay = document.getElementById('analyze-arrows');
     if ($arrowsOverlay) $arrowsOverlay.classList.remove('is-on');
     const $rel = document.getElementById('related-apps');
@@ -3021,13 +3017,17 @@
       state.preludeAxisChecked = 'ok';
       $status.textContent = 'exact! abstract → concrete. you can continue now.';
       $status.className = 'prelude-status ok';
-      $cont.hidden = false;
+      // Full-colour primary CTA only when the abstract→concrete order is correct.
+      $cont.classList.remove('btn-soft');
+      $cont.classList.add('btn-primary');
     } else {
       state.preludeAxisChecked = 'wrong';
       const hits = current.filter((d, i) => d === expected[i]).length;
       $status.textContent = `almost · ${hits}/5 in place · keep moving`;
       $status.className = 'prelude-status almost';
-      $cont.hidden = true;
+      // Muted state while the answer isn't right yet — still clickable to skip.
+      $cont.classList.remove('btn-primary');
+      $cont.classList.add('btn-soft');
     }
     renderAxis();
   }
@@ -3047,6 +3047,10 @@
   document.getElementById('prelude-skip-b').addEventListener('click', () => finishPrelude());
   document.getElementById('prelude-check-order').addEventListener('click', () => comprobarB());
   document.getElementById('prelude-continue').addEventListener('click', () => finishPrelude());
+  // Back button (phase A): step 0 has no prior step, so back returns to chooser.
+  document.getElementById('prelude-back').addEventListener('click', () => {
+    setUIMode('chooser');
+  });
 
   // ============== Analyze: 3 arrows across the rows ==============
   // Positions 3 horizontal dashed arrows over the summary-triads-wrap, aligned with
@@ -3083,7 +3087,7 @@
     const btn     = document.getElementById('btn-analyze');
     overlay.classList.toggle('is-on', _analyzeOn);
     more1.hidden = !_analyzeOn;
-    btn.textContent = _analyzeOn ? 'Hide' : 'Analyze →';
+    btn.textContent = _analyzeOn ? 'Hide arrows' : 'Analyze →';
     renderSummaryGrid();
     renderStageLabel();
     if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
@@ -3178,7 +3182,7 @@
       bumpAnalyzeLevel(2);
       renderBarsPanel();
       $panel.hidden = false;
-      $btn.textContent = 'Hide';
+      $btn.textContent = 'Hide perspectives';
       $btn2.hidden = false;
     } else {
       $panel.hidden = true;
@@ -3258,6 +3262,11 @@
     });
   }
 
+  function removeFinishIcons(){
+    _finishApplied = false;
+    document.querySelectorAll('.gender-icon').forEach(n => n.remove());
+  }
+
   function applyFinishIcons(){
     _finishApplied = true;
     // Wipe any previous icons across summary decks + extra decks
@@ -3310,19 +3319,18 @@
     stamp(yangPos, 'female');
   }
 
-  // 2nd "More" surfaces the keyword-picking instructions only — the time
-  // stats panel stays collapsed (default) and is revealed by the LAST More.
+  // 2nd "More" toggles the Yin/Yang gender icons across every key. Replaces
+  // the old keyword-help cascade now that the "Choose your favourite…" copy
+  // has been removed.
   function toggleAnalyzeMore2(){
-    const $help = document.getElementById('keyword-help');
     const $btn  = document.getElementById('btn-analyze-more-2');
-    const showing = $help && !$help.hidden;
-    if (showing){
-      if ($help) $help.hidden = true;
+    if (_finishApplied){
+      removeFinishIcons();
       $btn.textContent = 'More';
     } else {
       bumpAnalyzeLevel(3);
-      if ($help) $help.hidden = false;
-      $btn.textContent = 'Hide';
+      applyFinishIcons();
+      $btn.textContent = 'Hide genders';
       const $btn3 = document.getElementById('btn-analyze-more-3');
       if ($btn3) $btn3.hidden = false;
     }
@@ -3334,18 +3342,23 @@
   // information" (total time + slow-deck hint) — and scrolls it into view.
   // The inner "More details" (per-step/stage/deck) stays collapsed until the
   // user clicks the toggle inside the panel.
+  let _timeStatsOn = false;
   document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
     const $time = document.getElementById('time-stats');
-    if ($time && $time.dataset.populated === '1'){
-      $time.hidden = false;
-    }
-    // Yin/Yang stamping still applies so the user sees a richer summary.
-    applyFinishIcons();
-    if ($time && !$time.hidden){
-      $time.scrollIntoView({ behavior:'smooth', block:'start' });
+    const $btn  = document.getElementById('btn-analyze-more-3');
+    if (_timeStatsOn){
+      if ($time) $time.hidden = true;
+      $btn.textContent = 'More';
+      _timeStatsOn = false;
     } else {
-      const cards = document.getElementById('summary-triads');
-      if (cards) cards.scrollIntoView({ behavior:'smooth', block:'start' });
+      if ($time && $time.dataset.populated === '1'){
+        $time.hidden = false;
+        _timeStatsOn = true;
+        $btn.textContent = 'Hide stats';
+        $time.scrollIntoView({ behavior:'smooth', block:'start' });
+      } else {
+        // Nothing measurable to show — keep button as-is.
+      }
     }
   });
 

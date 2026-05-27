@@ -10,10 +10,10 @@
     --fx:#3a3a52; --stroke:#4a4a66; --brand:#00f7a7; --accent:#ff5fdc;
     --gold:#fadc92; --silver:#dde2ec; --bronze:#dba066;
     --sky:#a8e4ff; --plum:#c7a4ff;
-    --slot-w: 150px;
-    --slot-h: 200px;
-    --card-w: 110px;
-    --card-h: 158px;
+    --slot-w: 120px;
+    --slot-h: 160px;
+    --card-w: 88px;
+    --card-h: 126px;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -40,12 +40,30 @@
   header .hint{font-size:.92rem;color:var(--muted)}
   @media (max-width:520px){header h1{font-size:1.7rem}header p{font-size:.94rem}}
 
-  .stage-label{
-    display:inline-flex;align-items:center;gap:.5rem;align-self:start;
-    padding:.32rem .7rem;border-radius:999px;border:1px solid var(--stroke);
-    background:var(--fx);color:var(--muted);font-size:.82rem;letter-spacing:.5px;
+  /* 5-segment progress bar (replaces "Stage X · …" label) */
+  .stage-progress{
+    display:flex;align-self:center;justify-content:center;
+    gap:6px;padding:7px 12px;border-radius:999px;
+    border:1px solid var(--stroke);background:var(--fx);
+    margin:0 auto;
   }
-  .stage-label b{color:var(--ink);font-weight:600}
+  .stage-progress .seg{
+    width:46px;height:6px;border-radius:999px;
+    background:rgba(255,255,255,.1);
+    transition:background .35s ease, transform .25s ease, box-shadow .25s ease;
+  }
+  .stage-progress .seg.done{
+    background:linear-gradient(90deg,var(--gold),var(--brand));
+  }
+  .stage-progress .seg.current{
+    background:linear-gradient(90deg,var(--brand),var(--accent));
+    box-shadow:0 0 12px rgba(255,95,220,.4);
+    transform:scaleY(1.5);
+  }
+  @media (max-width:460px){
+    .stage-progress{padding:5px 8px;gap:4px}
+    .stage-progress .seg{width:32px;height:5px}
+  }
 
   .onboard{
     display:flex;gap:.6rem;align-items:flex-start;
@@ -63,7 +81,7 @@
       linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02)),
       var(--panel);
     border:1px solid var(--stroke);border-radius:20px;
-    padding:18px 18px 16px;
+    padding:6px 18px 12px;
     box-shadow:0 30px 80px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04) inset,
                0 0 80px rgba(255,95,220,.1);
     animation:pop .25s ease;
@@ -78,7 +96,7 @@
 
   .hand{
     display:flex;gap:0;flex-wrap:wrap;justify-content:center;
-    padding:18px 4px 6px;perspective:900px;
+    padding:4px 4px 4px;perspective:900px;
   }
   .hand .pcard + .pcard{margin-left:-22px}
   @media (max-width:680px){ .hand .pcard + .pcard{margin-left:-18px} }
@@ -304,6 +322,12 @@
   }
   .deck-done:hover{transform:translateY(-2px);border-color:#6a6a86;box-shadow:0 10px 24px rgba(0,0,0,.3)}
   .deck-done:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+  .deck-done .deck-title{
+    font:600 .72rem/1 ui-serif,Georgia,serif;
+    color:var(--gold);letter-spacing:.4px;
+    text-align:center;margin-bottom:5px;text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
   .deck-done ol{
     margin:0;padding:0;list-style:none;
     display:flex;flex-direction:column;
@@ -389,8 +413,133 @@
     font:600 1.3rem/1.1 ui-serif,Georgia,serif;color:var(--gold);margin:0 0 .6rem;
   }
   .summary p{color:var(--muted);margin:0 0 1rem}
-  .summary-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:start}
-  .summary-actions{display:flex;gap:.7rem;justify-content:center;margin-top:1.2rem}
+  .summary-grid-wrap{position:relative;margin-top:.4rem}
+  .summary-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:start;position:relative;z-index:1}
+  .summary-actions{display:flex;gap:.7rem;justify-content:center;align-items:center;margin-top:1.2rem;flex-wrap:wrap}
+
+  /* Analyze "more": 1-100 bars (Subj/Obj, Mom/Gen) */
+  .analyze-bars{
+    margin-top:1.2rem;display:grid;gap:14px;
+    padding:14px 16px;border:1px solid var(--stroke);border-radius:14px;
+    background:linear-gradient(180deg,rgba(168,228,255,.05),rgba(255,255,255,.015)),var(--fx);
+    animation:fadein .25s ease;
+  }
+  .analyze-bars[hidden]{display:none}
+  .ab-row{display:grid;gap:.5rem}
+  .ab-poles{
+    display:flex;justify-content:space-between;
+    font:700 .72rem/1 system-ui,sans-serif;
+    color:var(--muted);letter-spacing:.18em;text-transform:uppercase;
+  }
+  .ab-poles b{color:var(--ink);font-weight:700}
+  .ab-track{
+    position:relative;height:24px;border-radius:999px;
+    background:linear-gradient(90deg,rgba(0,247,167,.16),rgba(168,228,255,.16),rgba(255,95,220,.16));
+    border:1px solid var(--stroke);cursor:pointer;
+    user-select:none;
+  }
+  .ab-track .ab-fill{
+    position:absolute;top:0;bottom:0;
+    background:linear-gradient(90deg,var(--brand),var(--accent));
+    opacity:.55;border-radius:999px;
+    transition:left .15s ease, width .15s ease, opacity .15s ease;
+  }
+  .ab-track .ab-node{
+    position:absolute;top:50%;width:20px;height:20px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#ffe082 60%,#caa256);
+    border:2px solid var(--gold);
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 14px rgba(250,220,146,.5);
+    transition:left .15s ease;
+  }
+  .ab-track .ab-node.hidden{display:none}
+  .ab-readout{
+    font:600 .82rem/1 system-ui,sans-serif;color:var(--muted);letter-spacing:.4px;
+    min-height:1.1rem;
+  }
+  .ab-readout b{color:var(--ink)}
+  .ab-hint{
+    font:500 .72rem/1.3 system-ui,sans-serif;color:var(--muted);
+    text-align:center;opacity:.7;
+  }
+
+  /* Analyze "more more": 3 new decks (Future/Tao/Confluence) section */
+  .analyze-decks{
+    margin-top:1.2rem;padding:14px 16px;
+    border:1px solid var(--stroke);border-radius:14px;
+    background:linear-gradient(180deg,rgba(255,95,220,.05),rgba(255,255,255,.015)),var(--fx);
+    animation:fadein .25s ease;
+  }
+  .analyze-decks[hidden]{display:none}
+  .analyze-decks h3{
+    margin:0 0 .8rem;font:600 1rem/1 ui-serif,Georgia,serif;color:var(--gold);letter-spacing:.4px;
+  }
+  .analyze-decks-grid{
+    display:grid;gap:14px;align-items:start;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  }
+  .ad-deck{
+    background:linear-gradient(180deg,#363650,#2e2e44);
+    border:1px solid var(--stroke);border-radius:14px;
+    padding:8px 7px;display:flex;flex-direction:column;gap:5px;
+    min-height:200px;
+  }
+  .ad-deck.ad-readonly{opacity:.7;background:linear-gradient(180deg,#2e2e44,#262638)}
+  .ad-title{
+    font:600 .72rem/1 ui-serif,Georgia,serif;
+    color:var(--gold);letter-spacing:.4px;
+    text-align:center;margin-bottom:4px;text-transform:uppercase;
+  }
+  .ad-deck ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;flex:1}
+  .ad-deck li{
+    flex:1;display:flex;align-items:center;justify-content:space-between;gap:.3rem;
+    padding:.4rem .5rem;border-radius:8px;
+    border:1px solid #50506a;
+    background:linear-gradient(170deg,#3c3c54 0%,#2f2f44 100%);
+    font:600 .82rem/1.15 ui-serif,Georgia,serif;letter-spacing:.25px;color:var(--ink);
+    margin-top:-4px;position:relative;
+    box-shadow:0 2px 5px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .ad-deck li:first-child{margin-top:0}
+  .ad-deck li:nth-child(1){z-index:10}
+  .ad-deck li:nth-child(2){z-index:9}
+  .ad-deck li:nth-child(3){z-index:8}
+  .ad-deck li .nm{flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ad-deck li .ad-arrows{display:flex;gap:3px}
+  .ad-deck li .ad-arrows button{
+    width:1.5rem;height:1.5rem;border-radius:6px;
+    background:#3a3a52;border:1px solid #5a5a76;color:var(--ink);
+    font:700 .8rem/1 system-ui,sans-serif;cursor:pointer;padding:0;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .ad-deck li .ad-arrows button:hover{color:var(--accent);border-color:var(--accent)}
+  .ad-deck li .ad-arrows button:disabled{opacity:.3;cursor:not-allowed}
+  .ad-deck li .gender-icon{
+    font-size:1rem;line-height:1;margin-left:.25rem;
+    filter:drop-shadow(0 0 4px rgba(255,255,255,.3));
+  }
+  .ad-deck li .gender-icon.female{color:#ed8aa6}
+  .ad-deck li .gender-icon.male{color:#7ea0ff}
+  .analyze-decks-actions{
+    display:flex;gap:.6rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;
+  }
+
+  /* Analyze arrows overlay (3 horizontal arrows across the rows of ordinals) */
+  .analyze-arrows{
+    position:absolute;inset:0;pointer-events:none;z-index:2;
+    opacity:0;transition:opacity .3s ease;
+  }
+  .analyze-arrows.is-on{opacity:1}
+  .analyze-arrows .arrow{
+    position:absolute;left:8px;right:8px;height:0;
+    border-top:2px dashed var(--accent);
+    filter:drop-shadow(0 0 8px rgba(255,95,220,.4));
+  }
+  .analyze-arrows .arrow::after{
+    content:"";position:absolute;right:-2px;top:-7px;
+    width:0;height:0;border-left:12px solid var(--accent);
+    border-top:7px solid transparent;border-bottom:7px solid transparent;
+  }
 
   /* ============== About panel (toggled from intro) ============== */
   .about-panel{
@@ -798,10 +947,22 @@
   }
   .time-stats[hidden]{display:none}
   .time-stats h3{
-    margin:0 0 .7rem;font:600 1rem/1 ui-serif,Georgia,serif;color:var(--gold);
+    margin:0;font:600 1rem/1 ui-serif,Georgia,serif;color:var(--gold);
     letter-spacing:.4px;
+    text-align:center;cursor:pointer;user-select:none;
+    padding:.2rem .4rem;border-radius:8px;
+    transition:background .15s ease, color .15s ease;
   }
+  .time-stats h3:hover{background:rgba(250,220,146,.08)}
   .time-stats h3::before{content:"⏱ ";opacity:.8}
+  .time-stats h3::after{
+    content:"▾";display:inline-block;margin-left:.4rem;
+    font-size:.8rem;opacity:.7;transition:transform .2s ease;
+  }
+  .time-stats.collapsed h3{margin-bottom:0}
+  .time-stats.collapsed h3::after{transform:rotate(-90deg)}
+  .time-stats:not(.collapsed) h3{margin-bottom:.7rem}
+  .time-stats.collapsed .ts-group{display:none}
   .ts-group{margin-bottom:.7rem}
   .ts-group:last-child{margin-bottom:0}
   .ts-cap{
@@ -847,7 +1008,6 @@
     .spotlight.active{padding:14px 12px 12px;border-radius:16px}
     .spot-head{margin-bottom:.6rem}
     .spot-sub{font-size:.74rem}
-    .stage-label{font-size:.74rem;padding:.25rem .55rem}
   }
   @media (max-width:360px){
     :root{--slot-w:62px;--slot-h:90px;--card-w:54px;--card-h:80px}
@@ -858,11 +1018,6 @@
 </head>
 <body>
 <div class="wrap">
-
-  <header>
-    <h1>keys</h1>
-    <p>Ten keys face down.</p>
-  </header>
 
   <section class="about-panel" id="about-panel" aria-label="About keys" hidden>
     <h3>About keys</h3>
@@ -934,23 +1089,46 @@
     </div>
   </section>
 
-  <div class="stage-label" id="stage-label">Stage <b>1</b> · <span id="stage-name">triads · center</span></div>
-
   <div class="spotlight" id="spotlight" aria-live="polite"></div>
 
   <div class="board" id="board"></div>
 
   <div class="stage-cta" id="stage-cta"></div>
 
+  <div class="stage-progress" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+  </div>
+
   <div class="summary" id="summary">
     <h2>Keys closed</h2>
     <p>Here is the final order of your keys and their whys. Tap any tile to reopen and reorder, or tap a saved why to expand it.</p>
     <div class="summary-time" id="summary-time" hidden>Time · <b id="summary-time-val">—</b></div>
-    <div class="summary-grid" id="summary-grid"></div>
-    <div class="time-stats" id="time-stats" hidden></div>
-    <div class="summary-actions">
-      <a class="btn btn-primary" href="http://flove.org/demos/keys/analysis">Analyze →</a>
+    <div class="summary-grid-wrap">
+      <div class="summary-grid" id="summary-grid"></div>
+      <div class="analyze-arrows" id="analyze-arrows" aria-hidden="true">
+        <div class="arrow" data-kind="triad" data-row="0"></div>
+        <div class="arrow" data-kind="triad" data-row="1"></div>
+        <div class="arrow" data-kind="triad" data-row="2"></div>
+        <div class="arrow" data-kind="pentad" data-row="0"></div>
+        <div class="arrow" data-kind="pentad" data-row="2"></div>
+        <div class="arrow" data-kind="pentad" data-row="4"></div>
+      </div>
     </div>
+
+    <div class="summary-actions">
+      <button class="btn btn-primary" id="btn-analyze" type="button">Analyze →</button>
+      <button class="btn btn-soft" id="btn-analyze-more-1" type="button" hidden>Analyze more</button>
+      <button class="btn btn-soft" id="btn-analyze-more-2" type="button" hidden>Analyze more</button>
+    </div>
+
+    <div class="time-stats" id="time-stats" hidden></div>
+
+    <div class="analyze-bars" id="analyze-bars" hidden></div>
+    <div class="analyze-decks" id="analyze-decks" hidden></div>
   </div>
 
 </div>
@@ -981,11 +1159,11 @@
 <script>
 (() => {
   const DECKS = [
-    { id:'t1', title:'Heart',     items:['Joy','Love','Wisdom'] },
-    { id:'t2', title:'Scale',     items:['Local','Personal','Social'] },
-    { id:'t3', title:'Gift',      items:['Gift','Lend','Exchange'] },
-    { id:'t4', title:'Craft',     items:['Artisan','Ecological','Offer'] },
-    { id:'t5', title:'Question',  items:['Why','What','How'] },
+    { id:'t1', title:'PsicoSocial', items:['Joy','Love','Wisdom'] },
+    { id:'t2', title:'Philosophy',  items:['Local','Personal','Social'] },
+    { id:'t3', title:'Journalism',  items:['Gift','Lend','Exchange'] },
+    { id:'t4', title:'Economy',     items:['Artisan','Ecological','Offer'] },
+    { id:'t5', title:'Service',     items:['Why','What','How'] },
     { id:'p1', title:'Senses',    items:['Taste','Smell','Hearing','Touch','Sight'] },
     { id:'p2', title:'Flavors',   items:['Acid','Sour','Sweet','Umami','Salty'] },
     { id:'p3', title:'Powers',    items:['Economy','Judicial','Media','Military','Political'] },
@@ -1056,8 +1234,7 @@
   const $board     = document.getElementById('board');
   const $spotlight = document.getElementById('spotlight');
   const $cta       = document.getElementById('stage-cta');
-  const $stageName = document.getElementById('stage-name');
-  const $stageLabel= document.getElementById('stage-label');
+  const $progress  = document.getElementById('stage-progress');
   const $summary   = document.getElementById('summary');
   const $sumGrid   = document.getElementById('summary-grid');
 
@@ -1259,9 +1436,14 @@
   }
 
   function renderStageLabel(){
-    $stageLabel.firstChild.textContent = 'Stage ';
-    $stageLabel.querySelector('b').textContent = String(state.stageIdx + 1);
-    $stageName.textContent = STAGES[state.stageIdx].name;
+    // 5-segment progress bar: 4 stages + "keys closed" (summary) = 5 segments
+    const isSummary = $summary.classList.contains('active');
+    const cur = isSummary ? 4 : state.stageIdx;  // 0..4
+    $progress.querySelectorAll('.seg').forEach((s, i) => {
+      s.classList.toggle('done',    i < cur);
+      s.classList.toggle('current', i === cur);
+    });
+    $progress.setAttribute('aria-valuenow', String(cur + 1));
   }
 
   function renderBoard(){
@@ -1315,11 +1497,14 @@
     return pq;
   }
 
-  function renderDoneDeck(deckIdx){
+  function renderDoneDeck(deckIdx, opts){
+    opts = opts || {};
     const deck = DECKS[deckIdx];
     const order = state.orders[deck.id];
     const el = document.createElement('div');
     el.className = 'deck-done';
+    if (opts.inSummary) el.classList.add('in-summary');
+    el.dataset.deckId = deck.id;
     // The whole tile is the reopen affordance now that titles are gone
     el.setAttribute('role','button');
     el.setAttribute('tabindex','0');
@@ -1330,6 +1515,14 @@
       openDeck(deckIdx);
     });
     el.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); openDeck(deckIdx); } });
+
+    // Title is only shown in the Keys-closed summary, not on the live board
+    if (opts.inSummary){
+      const t = document.createElement('div');
+      t.className = 'deck-title';
+      t.textContent = deck.title;
+      el.appendChild(t);
+    }
 
     // items as stacked card-like rows (gold/silver/bronze on positions 1-3 via CSS)
     const list = document.createElement('ol');
@@ -1366,9 +1559,6 @@
 
     $spotlight.classList.add('active');
     $spotlight.innerHTML = `
-      <div class="spot-head">
-        <span class="spot-sub">${order.length} cards · drag or use ← → · then press Done</span>
-      </div>
       <div class="hand" id="hand"></div>
 
       <div class="pq-panel" id="pq-panel">
@@ -1530,10 +1720,11 @@
     $sumGrid.innerHTML = '';
     decksActiveSoFar(state.stageIdx).forEach(deckIdx => {
       if (state.done[DECKS[deckIdx].id]){
-        $sumGrid.appendChild(renderDoneDeck(deckIdx));
+        $sumGrid.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
       }
     });
     renderTimeStats();
+    renderStageLabel(); // light the 5th segment
     setTimeout(() => $summary.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
 
@@ -1573,12 +1764,24 @@
       }).join('');
 
     $panel.innerHTML = `
-      <h3>Time stats</h3>
+      <h3 role="button" tabindex="0" aria-expanded="false" title="tap to expand">Time stats</h3>
       ${stepRows ? `<div class="ts-group"><div class="ts-cap">Steps</div>${stepRows}</div>` : ''}
       ${stageRows ? `<div class="ts-group"><div class="ts-cap">Stages</div>${stageRows}</div>` : ''}
       ${deckRows ? `<div class="ts-group"><div class="ts-cap">Decks · why</div>${deckRows}</div>` : ''}
     `;
     $panel.hidden = !(stepRows || stageRows || deckRows);
+    $panel.classList.add('collapsed');
+    const $h3 = $panel.querySelector('h3');
+    if ($h3){
+      const toggle = () => {
+        const open = $panel.classList.toggle('collapsed');
+        $h3.setAttribute('aria-expanded', open ? 'false' : 'true');
+      };
+      $h3.addEventListener('click', toggle);
+      $h3.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
+      });
+    }
   }
 
   // ============== Actions ==============
@@ -1764,9 +1967,9 @@
     Array.from($dots.children).forEach((d, i) => d.classList.toggle('active', i === introSlide));
     document.getElementById('intro-prev').disabled = introSlide === 0;
     document.getElementById('intro-next').disabled = introSlide === INTRO_SLIDES.length - 1;
-    // CTA buttons (More info + Start) only appear once the user has reached the third slide
-    const reachedThird = introSlide >= 2;
-    document.getElementById('intro-cta').classList.toggle('gated', !reachedThird);
+    // CTA buttons (More info + Start) only appear once the user has reached the last slide
+    const reachedLast = introSlide >= INTRO_SLIDES.length - 1;
+    document.getElementById('intro-cta').classList.toggle('gated', !reachedLast);
   }
 
   function dismissIntro(){
@@ -1838,7 +2041,7 @@
     $chooser.classList.toggle('active', mode === 'chooser');
     $prelude.classList.toggle('active', mode === 'prelude');
     const showMain = mode === 'main';
-    ['stage-label','board','stage-cta'].forEach(id => {
+    ['stage-progress','board','stage-cta'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = showMain ? '' : 'none';
     });
@@ -2104,6 +2307,274 @@
   document.getElementById('prelude-skip-b').addEventListener('click', () => finishPrelude());
   document.getElementById('prelude-check-order').addEventListener('click', () => comprobarB());
   document.getElementById('prelude-continue').addEventListener('click', () => finishPrelude());
+
+  // ============== Analyze: 3 arrows across the rows ==============
+  // Positions 3 horizontal dashed arrows over the summary-grid, aligned with
+  // the 3 ordinal rows of the leftmost triad deck. Re-runs on resize.
+  function positionAnalyzeArrows(){
+    const wrap = document.querySelector('.summary-grid-wrap');
+    const overlay = document.getElementById('analyze-arrows');
+    if (!wrap || !overlay) return;
+    // Locate the first triad (3 rows) and first pentad (5 rows) in the grid
+    let firstTriad = null, firstPentad = null;
+    $sumGrid.querySelectorAll('.deck-done').forEach(d => {
+      const n = d.querySelectorAll('ol > li').length;
+      if (n === 3 && !firstTriad)  firstTriad  = d;
+      if (n === 5 && !firstPentad) firstPentad = d;
+    });
+    if (!firstTriad && !firstPentad){ overlay.style.display = 'none'; return; }
+    overlay.style.display = '';
+    const wrapRect = wrap.getBoundingClientRect();
+    overlay.querySelectorAll('.arrow').forEach(arr => {
+      const ref = arr.dataset.kind === 'pentad' ? firstPentad : firstTriad;
+      const row = parseInt(arr.dataset.row, 10);
+      if (!ref){ arr.style.display = 'none'; return; }
+      const li = ref.querySelectorAll('ol > li')[row];
+      if (!li){ arr.style.display = 'none'; return; }
+      arr.style.display = '';
+      const liRect = li.getBoundingClientRect();
+      const top = (liRect.top + liRect.height/2) - wrapRect.top + 3;
+      arr.style.top = top + 'px';
+    });
+  }
+  let _analyzeOn = false;
+  function toggleAnalyze(){
+    _analyzeOn = !_analyzeOn;
+    const overlay = document.getElementById('analyze-arrows');
+    const more1   = document.getElementById('btn-analyze-more-1');
+    const btn     = document.getElementById('btn-analyze');
+    overlay.classList.toggle('is-on', _analyzeOn);
+    more1.hidden = !_analyzeOn;
+    btn.textContent = _analyzeOn ? 'Hide arrows' : 'Analyze →';
+    if (_analyzeOn) positionAnalyzeArrows();
+  }
+  document.getElementById('btn-analyze').addEventListener('click', toggleAnalyze);
+  window.addEventListener('resize', () => {
+    if (_analyzeOn) positionAnalyzeArrows();
+  });
+
+  // ============== Analyze more #1: two 1-100 bars ==============
+  // Each bar tracks 3 click-states:
+  //   1st click → single node at position P1
+  //   2nd click → highlighted range from P1 to P2
+  //   3rd click → reset to single node at P3
+  const BARS = [
+    { id:'bar-subjobj', leftLabel:'Subjective', rightLabel:'Objective' },
+    { id:'bar-momgen',  leftLabel:'Momentual',  rightLabel:'General'   },
+  ];
+  const barState = {}; // id -> { phase:0|1|2, p1, p2 }
+  BARS.forEach(b => { barState[b.id] = { phase:0, p1:null, p2:null }; });
+
+  function renderBarsPanel(){
+    const $panel = document.getElementById('analyze-bars');
+    $panel.innerHTML = BARS.map(b => `
+      <div class="ab-row" data-bar="${b.id}">
+        <div class="ab-poles"><b>${b.leftLabel}</b><span>1</span><span>50</span><span>100</span><b>${b.rightLabel}</b></div>
+        <div class="ab-track" id="${b.id}" role="slider" tabindex="0" aria-label="${b.leftLabel} to ${b.rightLabel}" aria-valuemin="1" aria-valuemax="100">
+          <div class="ab-fill" style="display:none"></div>
+          <div class="ab-node hidden"></div>
+        </div>
+        <div class="ab-readout" id="${b.id}-out">click anywhere — 1st: node · 2nd: range · 3rd: reset to single node</div>
+      </div>
+    `).join('') + `<div class="ab-hint">two clicks make a range · the third click resets to a single node</div>`;
+    BARS.forEach(b => wireBar(b));
+  }
+
+  function wireBar(b){
+    const $track = document.getElementById(b.id);
+    const handle = (e) => {
+      const rect = $track.getBoundingClientRect();
+      const x = (e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0) - rect.left;
+      const pct = Math.max(1, Math.min(100, Math.round((x / rect.width) * 100)));
+      const s = barState[b.id];
+      if (s.phase === 0){
+        s.phase = 1; s.p1 = pct; s.p2 = null;
+      } else if (s.phase === 1){
+        s.phase = 2; s.p2 = pct;
+      } else { // phase 2 → reset to single node at this click
+        s.phase = 1; s.p1 = pct; s.p2 = null;
+      }
+      paintBar(b);
+    };
+    $track.addEventListener('click', handle);
+  }
+
+  function paintBar(b){
+    const $track = document.getElementById(b.id);
+    const $node  = $track.querySelector('.ab-node');
+    const $fill  = $track.querySelector('.ab-fill');
+    const $out   = document.getElementById(b.id + '-out');
+    const s = barState[b.id];
+    if (s.phase === 0){
+      $node.classList.add('hidden');
+      $fill.style.display = 'none';
+      $out.innerHTML = 'click anywhere — 1st: node · 2nd: range · 3rd: reset to single node';
+      return;
+    }
+    if (s.phase === 1){
+      $node.classList.remove('hidden');
+      $node.style.left = s.p1 + '%';
+      $fill.style.display = 'none';
+      $out.innerHTML = `node at <b>${s.p1}</b> — click again to mark a range`;
+      return;
+    }
+    // phase 2 — range
+    const lo = Math.min(s.p1, s.p2);
+    const hi = Math.max(s.p1, s.p2);
+    $node.classList.add('hidden');
+    $fill.style.display = '';
+    $fill.style.left = lo + '%';
+    $fill.style.width = (hi - lo) + '%';
+    $out.innerHTML = `range <b>${lo}</b> → <b>${hi}</b> — click again to reset`;
+  }
+
+  let _barsOn = false;
+  function toggleAnalyzeMore1(){
+    _barsOn = !_barsOn;
+    const $panel = document.getElementById('analyze-bars');
+    const $btn   = document.getElementById('btn-analyze-more-1');
+    const $btn2  = document.getElementById('btn-analyze-more-2');
+    if (_barsOn){
+      renderBarsPanel();
+      $panel.hidden = false;
+      $btn.textContent = 'Hide bars';
+      $btn2.hidden = false;
+    } else {
+      $panel.hidden = true;
+      $btn.textContent = 'Analyze more';
+      // Keep the second "Analyze more" visible once revealed; do not re-hide
+    }
+  }
+  document.getElementById('btn-analyze-more-1').addEventListener('click', toggleAnalyzeMore1);
+
+  // ============== Analyze more #2: 3 new decks + Back/Finish ==============
+  const EXTRA_DECKS = [
+    { id:'x1', title:'Future',     items:['Future','Past','Present'] },
+    { id:'x2', title:'Tao',        items:['Tao','Yang','Yin'] },
+    { id:'x3', title:'Confluence', items:['Confluence','Macro','Micro'] },
+  ];
+  const extraOrders = {};
+  EXTRA_DECKS.forEach(d => { extraOrders[d.id] = d.items.map((_,i)=>i); });
+  let _decksRevealed = false;
+  let _finishApplied = false;
+
+  function renderExtraDecks(){
+    const $section = document.getElementById('analyze-decks');
+    $section.innerHTML = `
+      <h3>Place these — Finish to mirror Yin/Yang to the other decks</h3>
+      <div class="analyze-decks-grid" id="ad-grid"></div>
+      <div class="analyze-decks-actions">
+        <button class="btn btn-ghost" id="ad-back" type="button">← Back</button>
+        <button class="btn btn-primary" id="ad-finish" type="button">Finish</button>
+      </div>
+    `;
+    const $grid = document.getElementById('ad-grid');
+    EXTRA_DECKS.forEach(d => $grid.appendChild(makeExtraDeck(d)));
+    // The Service deck (formerly Why/What — t5) is shown on the right as the
+    // alignment reference. The 3 new decks render to the left of it.
+    const serviceIdx = DECKS.findIndex(d => d.id === 't5');
+    if (serviceIdx >= 0 && state.done[DECKS[serviceIdx].id]){
+      const ref = renderDoneDeck(serviceIdx, { inSummary:true });
+      ref.classList.add('ad-readonly');
+      $grid.appendChild(ref);
+    }
+    document.getElementById('ad-back').addEventListener('click', () => {
+      _decksRevealed = false;
+      document.getElementById('analyze-decks').hidden = true;
+      document.getElementById('btn-analyze-more-2').textContent = 'Analyze more';
+    });
+    document.getElementById('ad-finish').addEventListener('click', applyFinishIcons);
+  }
+
+  function makeExtraDeck(d){
+    const el = document.createElement('div');
+    el.className = 'ad-deck';
+    el.dataset.deckId = d.id;
+    const t = document.createElement('div');
+    t.className = 'ad-title';
+    t.textContent = d.title;
+    el.appendChild(t);
+    const list = document.createElement('ol');
+    el.appendChild(list);
+    paintExtraDeck(d, el);
+    return el;
+  }
+
+  function paintExtraDeck(d, el){
+    const list = el.querySelector('ol');
+    list.innerHTML = '';
+    const order = extraOrders[d.id];
+    order.forEach((itemIdx, pos) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="nm">${escapeHTML(d.items[itemIdx])}</span>
+        <span class="ad-arrows">
+          <button data-act="up"   ${pos===0 ? 'disabled':''} aria-label="up">↑</button>
+          <button data-act="down" ${pos===order.length-1 ? 'disabled':''} aria-label="down">↓</button>
+        </span>
+      `;
+      li.querySelector('[data-act="up"]').addEventListener('click', () => {
+        if (pos === 0) return;
+        [order[pos-1], order[pos]] = [order[pos], order[pos-1]];
+        paintExtraDeck(d, el);
+        if (_finishApplied) applyFinishIcons(); // refresh gender icons live
+      });
+      li.querySelector('[data-act="down"]').addEventListener('click', () => {
+        if (pos === order.length-1) return;
+        [order[pos+1], order[pos]] = [order[pos], order[pos+1]];
+        paintExtraDeck(d, el);
+        if (_finishApplied) applyFinishIcons();
+      });
+      list.appendChild(li);
+    });
+  }
+
+  function applyFinishIcons(){
+    _finishApplied = true;
+    // Wipe any previous icons across summary decks + extra decks
+    document.querySelectorAll('.gender-icon').forEach(n => n.remove());
+    // Find Yin/Yang positions in the Tao deck
+    const tao = EXTRA_DECKS.find(d => d.title === 'Tao');
+    if (!tao) return;
+    const ord = extraOrders[tao.id];
+    let yinPos = -1, yangPos = -1;
+    ord.forEach((itemIdx, pos) => {
+      if (tao.items[itemIdx] === 'Yin')  yinPos  = pos;
+      if (tao.items[itemIdx] === 'Yang') yangPos = pos;
+    });
+    const stamp = (pos, kind) => {
+      if (pos < 0) return;
+      // Stamp the same ordinal position in every other deck (summary + extras)
+      document.querySelectorAll('.deck-done.in-summary ol, .ad-deck ol').forEach(ol => {
+        if (ol.closest('.ad-deck[data-deck-id="' + tao.id + '"]')) return; // skip Tao itself
+        const li = ol.children[pos];
+        if (!li) return;
+        if (li.querySelector('.gender-icon.' + kind)) return;
+        const ic = document.createElement('span');
+        ic.className = 'gender-icon ' + kind;
+        ic.textContent = kind === 'female' ? '♀' : '♂';
+        ic.title = kind === 'female' ? 'Yin (this ordinal)' : 'Yang (this ordinal)';
+        li.appendChild(ic);
+      });
+    };
+    stamp(yinPos,  'female');
+    stamp(yangPos, 'male');
+  }
+
+  function toggleAnalyzeMore2(){
+    _decksRevealed = !_decksRevealed;
+    const $section = document.getElementById('analyze-decks');
+    const $btn = document.getElementById('btn-analyze-more-2');
+    if (_decksRevealed){
+      renderExtraDecks();
+      $section.hidden = false;
+      $btn.textContent = 'Hide decks';
+    } else {
+      $section.hidden = true;
+      $btn.textContent = 'Analyze more';
+    }
+  }
+  document.getElementById('btn-analyze-more-2').addEventListener('click', toggleAnalyzeMore2);
 
   // ============== Boot ==============
   initPrelude();

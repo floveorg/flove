@@ -475,8 +475,17 @@
   }
   .pick-btn.is-on .pick-label{ color:var(--ink); font-weight:600 }
   .pick-btn.is-on .pick-icon{ filter:none }
-  .pick-btn.is-locked{ opacity:.4; cursor:not-allowed; }
+  .pick-btn.is-locked{ opacity:.3; cursor:not-allowed; }
   .pick-btn.is-locked:hover{ background:var(--panel); }
+  /* previous-tier pick: stays highlighted but is not clickable */
+  .pick-btn.is-prev-tier{
+    background:linear-gradient(135deg, rgba(245,180,99,.22), rgba(237,138,166,.22));
+    border-color:var(--app-accent);
+    cursor:default;
+  }
+  .pick-btn.is-prev-tier .pick-label{ color:var(--ink); font-weight:600 }
+  .pick-btn.is-prev-tier .pick-icon{ filter:none }
+  .pick-btn.is-prev-tier:hover{ background:linear-gradient(135deg, rgba(245,180,99,.22), rgba(237,138,166,.22)); }
   /* "Integumentary" is the longest system label — shrink it 30% so it fits */
   .pick-btn[data-value="integumentary"] .pick-label{ font-size: .595rem; }
 
@@ -721,31 +730,48 @@
     grid-template-columns: 1fr; /* stack: animal card top, chips below */
     margin: .2rem 0 1rem;
   }
-  .s2-animal-card{
+  /* big animal headline (replaces s2-animal-card) — 3x bigger, no chrome */
+  .s2-animal-headline{
     text-align: center;
-    padding: 1rem .85rem;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--app-accent);
-    border-radius: 14px;
-    max-width: 320px;
-    margin: 0 auto; /* center horizontally */
-  }
-  .s2-animal-card .label{
-    font-size: .62rem; letter-spacing: .2em; text-transform: uppercase;
-    color: var(--ink-dim); margin-bottom: .35rem;
-  }
-  .s2-animal-card .name{
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 1.45rem; color: var(--app-accent); line-height: 1.15;
+    font-size: 4.35rem;
+    line-height: 1.05;
+    color: var(--app-accent);
     word-break: break-word;
+    margin: .4rem auto 1rem;
   }
-  .s2-animal-card .sub{
-    margin-top: .65rem; padding-top: .55rem;
-    border-top: 1px solid var(--line);
+  @media (max-width: 559px){
+    .s2-animal-headline{ font-size: 2.6rem; }
   }
-  .s2-animal-card .sub .name{
-    font-size: 1.05rem; color: var(--ink-soft);
+
+  /* tier preview rows — dim chips, not clickable; show in each stage to map
+     the species → matter → particle ladder. Highlighted chips stay full opacity. */
+  .tier-preview{
+    display:flex; flex-wrap:wrap; gap:.35rem;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .tier-preview .tier-label{
+    width:100%;
+    font-size:.62rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-dim);
+    margin: .5rem 0 .15rem; text-align:center;
+  }
+  .tier-preview .tier-chip{
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.4rem .75rem;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    border-radius:999px;
+    font:inherit; font-size:.85rem;
+    opacity:.3;
+  }
+  .tier-preview .tier-chip.is-on{
+    opacity:1;
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    color:var(--app-ink-on-accent);
+    border-color:transparent; font-weight:600;
   }
   .s2-cat-list{
     display: flex; flex-wrap: wrap; gap: .4rem;
@@ -756,9 +782,11 @@
     padding: .55rem .9rem; font-size: .92rem;
     transition: background .15s, color .15s, border-color .15s, opacity .25s;
   }
-  .s2-cat-list .chip.is-dim{
-    opacity: .4; pointer-events: none; cursor: not-allowed;
+  .s2-cat-list .chip.is-dim,
+  .s2-cat-list .chip.is-locked-perm{
+    opacity: .3; pointer-events: none; cursor: not-allowed;
   }
+  .s2-cat-list .chip.is-on{ opacity: 1 }
   .s2-anopt-inline{
     margin: .8rem auto 0;
     max-width: 480px;
@@ -1136,12 +1164,11 @@
     <span class="step-tag">Stage 2 · Species</span>
     <h1>Pick the species my animal belongs to.</h1>
     <p class="hint">Where does <em><span class="mirror" data-mirror="animal-or">my animal</span></em> sit? Choose the closest group.</p>
+    <div class="s2-animal-headline" id="s2AnimalName">—</div>
     <div class="s2-intro-grid">
-      <div class="s2-animal-card">
-        <div class="label">My animal</div>
-        <div class="name" id="s2AnimalName">—</div>
-      </div>
       <div class="s2-cat-list" id="s2CatList1"></div>
+      <div class="tier-preview" id="s2MatterPreview" aria-hidden="true"></div>
+      <div class="tier-preview" id="s2ParticlePreview" aria-hidden="true"></div>
     </div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-reveal">← Back</button>
@@ -1152,16 +1179,11 @@
     <span class="step-tag">Stage 2 · Narrower</span>
     <h1>Pick yet another specie.</h1>
     <p class="hint">Choose one below my first. Optionally name an animal of that group.</p>
+    <div class="s2-animal-headline" id="s2AnimalName2">—</div>
     <div class="s2-intro-grid">
-      <div class="s2-animal-card">
-        <div class="label">My animal</div>
-        <div class="name" id="s2AnimalName2">—</div>
-        <div class="sub">
-          <div class="label">First pick</div>
-          <div class="name" id="s2Cat1Name">—</div>
-        </div>
-      </div>
       <div class="s2-cat-list" id="s2CatList2"></div>
+      <div class="tier-preview" id="s2cMatterPreview" aria-hidden="true"></div>
+      <div class="tier-preview" id="s2cParticlePreview" aria-hidden="true"></div>
     </div>
     <div class="s2-anopt-inline" id="s2AnoptWrap" hidden>
       <form class="field" onsubmit="return false">
@@ -1236,6 +1258,8 @@
     <p class="hint">Below my stage 2 pick. Choose a category — and optionally name an animal of it.</p>
     <div class="s2-intro-grid">
       <div class="s2-cat-list" id="s3CatList"></div>
+      <div class="tier-preview" id="s3MatterPreview" aria-hidden="true"></div>
+      <div class="tier-preview" id="s3ParticlePreview" aria-hidden="true"></div>
     </div>
     <div class="s2-anopt-inline" id="s3AnoptWrap" hidden>
       <form class="field" onsubmit="return false">
@@ -1315,7 +1339,9 @@
       <summary>My speciation so far</summary>
       <div class="breadcrumb__body" id="s4BreadcrumbBody"></div>
     </details>
+    <div class="tier-preview" id="s4SpeciesPreview" aria-hidden="true"></div>
     <div class="pick-grid" id="matterPick"></div>
+    <div class="tier-preview" id="s4ParticlePreview" aria-hidden="true"></div>
     <div class="s2-anopt-inline" id="s4MatterAnoptWrap" hidden>
       <form class="field" onsubmit="return false">
         <input id="s4MatterSpecific" type="text" autocomplete="off" />
@@ -1387,6 +1413,8 @@
     <span class="step-tag">Stage 5 · Fundamental particle</span>
     <h1>Pick a particle.</h1>
     <p class="hint">A building block of everything you've named so far.</p>
+    <div class="tier-preview" id="s5SpeciesPreview" aria-hidden="true"></div>
+    <div class="tier-preview" id="s5MatterPreview" aria-hidden="true"></div>
     <div class="pick-grid" id="particlePick"></div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s4-reveal">← Back</button>
@@ -1552,19 +1580,20 @@
     { id:'taste',   label:'Taste',   icon:'👅', verb:'tasting'  },
     { id:'touch',   label:'Touch',   icon:'✋', verb:'touching' }
   ];
-  // bio systems — ordered. "nervous" first, "reproductive" last; index defines the "below" filter.
+  // bio systems — reordered per Marc's spec. "nervous" first, "immune" last;
+  // index defines the "below" filter.
   const BIO_SYSTEMS = [
     { id:'nervous',       label:'Nervous',       icon:'🧠', verb:'sensing'     },
     { id:'endocrine',     label:'Endocrine',     icon:'🧪', verb:'signalling'  },
-    { id:'circulatory',   label:'Circulatory',   icon:'🩸', verb:'pumping'     },
-    { id:'respiratory',   label:'Respiratory',   icon:'🌬️', verb:'breathing'   },
-    { id:'digestive',     label:'Digestive',     icon:'🍃', verb:'digesting'   },
-    { id:'urinary',       label:'Urinary',       icon:'💧', verb:'filtering'   },
     { id:'muscular',      label:'Muscular',      icon:'💪', verb:'moving'      },
     { id:'skeletal',      label:'Skeletal',      icon:'🦴', verb:'holding'     },
+    { id:'respiratory',   label:'Respiratory',   icon:'🌬️', verb:'breathing'   },
+    { id:'reproductive',  label:'Reproductive',  icon:'🌱', verb:'reproducing' },
+    { id:'circulatory',   label:'Circulatory',   icon:'🩸', verb:'pumping'     },
+    { id:'excretory',     label:'Excretory',     icon:'💧', verb:'filtering'   },
+    { id:'digestive',     label:'Digestive',     icon:'🍃', verb:'digesting'   },
     { id:'integumentary', label:'Integumentary', icon:'🤝', verb:'touching'    },
-    { id:'immune',        label:'Immune',        icon:'🛡', verb:'defending'   },
-    { id:'reproductive',  label:'Reproductive',  icon:'🌱', verb:'reproducing' }
+    { id:'immune',        label:'Immune',        icon:'🛡', verb:'defending'   }
   ];
   // species categories (popular naming)
   const SPECIES_TREE = {
@@ -1655,7 +1684,10 @@
         if (state.s3Channel.startsWith('sense:') || state.s3Channel === 'bio:nervous'){
           state.s3Channel = '';
         }
+        // rename urinary → excretory (id changed)
+        if (state.s3Channel === 'bio:urinary') state.s3Channel = 'bio:excretory';
       }
+      if (state.s4Bio === 'urinary') state.s4Bio = 'excretory';
     }
   } catch(_){}
 
@@ -1750,6 +1782,7 @@
       b.setAttribute('aria-pressed','false');
       b.innerHTML = `<span class="pick-icon" aria-hidden="true">${it.icon || '·'}</span><span class="pick-label">${it.label}</span>`;
       b.addEventListener('click', () => {
+        if (b.classList.contains('is-locked') || b.classList.contains('is-prev-tier')) return;
         setValue(it.id);
         logEvent('pick', it.id);
         persist();
@@ -1837,10 +1870,11 @@
   };
   const syncMatter    = renderPicker('#matterPick',   MATTER_SCALE, () => state.s4Matter,   v => state.s4Matter = v,
                           (id) => { const m = MATTER_SCALE.find(x => x.id === id); showMatterAnopt(m ? m.label : 'matter'); });
-  // s4 bio picker is rebuilt dynamically based on stage 3 choice
+  // s4 bio picker — shows ALL 11 systems (ladder pattern). Items <= the s3
+  // channel index are locked + dimmed, the s3 pick itself stays highlighted as
+  // "previous tier", and the rest are clickable.
   let syncS4Bio = () => {};
   const buildS4Bio = () => {
-    const list = s4AvailableBio();
     const hintEl = $('#s4BioHint');
     if (hintEl){
       const idx = s3BioIndex();
@@ -1848,16 +1882,36 @@
       else if (idx >= BIO_SYSTEMS.length - 1) hintEl.textContent = 'You\'re already at the bottom of the list — pick again, even the same one.';
       else               hintEl.textContent = `Below ${BIO_SYSTEMS[idx].label.toLowerCase()} — pick any from the rest.`;
     }
-    syncS4Bio = renderPicker('#s4BioPick', list.length ? list : BIO_SYSTEMS,
+    syncS4Bio = renderPicker('#s4BioPick', BIO_SYSTEMS,
                           () => state.s4Bio,
                           v => state.s4Bio = v);
+    applyS4BioLocks();
   };
+  // mark prev-tier highlight + dim/lock for systems already passed
+  function applyS4BioLocks(){
+    const refIdx = s3BioIndex();
+    const refId  = s3ChannelId();
+    $$('#s4BioPick .pick-btn').forEach(btn => {
+      const v = btn.dataset.value;
+      const idx = BIO_SYSTEMS.findIndex(x => x.id === v);
+      const isPrev = refId && v === refId;
+      const isLocked = refIdx >= 0 && idx <= refIdx;
+      btn.classList.toggle('is-prev-tier', isPrev);
+      btn.classList.toggle('is-locked', isLocked && !isPrev);
+      if (isLocked || isPrev){
+        btn.setAttribute('aria-disabled', 'true');
+      } else {
+        btn.removeAttribute('aria-disabled');
+      }
+    });
+  }
   buildS4Bio();
   const syncParticle  = renderPicker('#particlePick', PARTICLES,    () => state.s5Particle, v => state.s5Particle = v);
   const syncImmune    = renderPicker('#immunePick',   IMMUNE,       () => state.s5Immune,   v => state.s5Immune = v);
 
   // species-category picker (no animal examples) — optional dim of ref-idx + above
   const S2_CATS = Object.keys(SPECIES_TREE);
+  const SPECIES_LOCK_FROM = S2_CATS.length - 3; // last 3 (Tree, Flower, Fungus) never clickable
   function buildCatPicker(containerSel, stateKey, dimRefFn, onPick){
     const el = $(containerSel);
     if (!el) return () => {};
@@ -1870,8 +1924,10 @@
       b.dataset.cat = cat;
       b.dataset.idx = idx;
       b.textContent = cat;
+      const isLocked = idx >= SPECIES_LOCK_FROM;
+      if (isLocked) b.classList.add('is-locked-perm');
       b.addEventListener('click', () => {
-        if (b.classList.contains('is-dim')) return;
+        if (b.classList.contains('is-dim') || isLocked) return;
         state[stateKey] = cat;
         logEvent('pick', stateKey + ':' + cat);
         persist();
@@ -1888,11 +1944,14 @@
     function sync(){
       const cur = state[stateKey] || '';
       const refIdx = dimRefFn ? dimRefFn() : -1;
+      const allPicks = new Set([state.s2Cat1, state.s2Cat2, state.s3Cat].filter(Boolean));
       chips.forEach((b, cat) => {
-        b.classList.toggle('is-on', cat === cur);
+        const idx = +b.dataset.idx;
+        const isHighlight = allPicks.has(cat) || cat === cur;
+        b.classList.toggle('is-on', isHighlight);
         if (dimRefFn){
-          const idx = +b.dataset.idx;
-          b.classList.toggle('is-dim', refIdx >= 0 && idx <= refIdx);
+          // dim items already passed (idx <= refIdx) unless they're a tracked pick
+          b.classList.toggle('is-dim', refIdx >= 0 && idx <= refIdx && !isHighlight);
         }
       });
     }
@@ -1922,13 +1981,57 @@
                         () => S2_CATS.indexOf(state.s2Cat2),
                         (cat) => showAnoptInline('#s3AnoptWrap', '#s3Species', cat));
 
+  // ── tier preview (species → matter → particle ladder) ──
+  // each stage shows the full ladder; previous picks highlighted, future tiers dim.
+  function renderTierPreview(containerSel, type, highlights){
+    const el = $(containerSel);
+    if (!el) return;
+    el.innerHTML = '';
+    const labelMap = { species:'Species', matter:'Matter', particle:'Particle' };
+    const labelEl = document.createElement('div');
+    labelEl.className = 'tier-label';
+    labelEl.textContent = labelMap[type] || '';
+    el.appendChild(labelEl);
+    let items = [];
+    if (type === 'species')  items = S2_CATS.map((cat, idx) => ({ id: cat, label: cat, icon: '', idx }));
+    if (type === 'matter')   items = MATTER_SCALE.slice();
+    if (type === 'particle') items = PARTICLES.slice();
+    const hl = new Set((highlights || []).filter(Boolean));
+    items.forEach(it => {
+      const b = document.createElement('span');
+      b.className = 'tier-chip';
+      if (hl.has(it.id) || hl.has(it.label)) b.classList.add('is-on');
+      b.textContent = (it.icon ? it.icon + ' ' : '') + it.label;
+      el.appendChild(b);
+    });
+  }
+  const speciesHighlights = () =>
+    [state.s2Cat1, state.s2Cat2, state.s3Cat].filter(Boolean);
+  const matterHighlights = () =>
+    state.s4Matter ? [state.s4Matter] : [];
+  const refreshTierPreviews = () => {
+    // s2-species: matter + particle preview (none highlighted yet)
+    renderTierPreview('#s2MatterPreview',   'matter',   []);
+    renderTierPreview('#s2ParticlePreview', 'particle', []);
+    // s2-cat2: same, plus s2Cat1 already chosen highlights the species picker chip (handled there)
+    renderTierPreview('#s2cMatterPreview',   'matter',   []);
+    renderTierPreview('#s2cParticlePreview', 'particle', []);
+    // s3-species
+    renderTierPreview('#s3MatterPreview',   'matter',   []);
+    renderTierPreview('#s3ParticlePreview', 'particle', []);
+    // s4-matter: species preview with previous picks highlighted; particle still dim
+    renderTierPreview('#s4SpeciesPreview',  'species',  speciesHighlights());
+    renderTierPreview('#s4ParticlePreview', 'particle', []);
+    // s5-particle: species + matter both with highlights
+    renderTierPreview('#s5SpeciesPreview',  'species',  speciesHighlights());
+    renderTierPreview('#s5MatterPreview',   'matter',   matterHighlights());
+  };
+
   // stage 2 + 3 display mirrors
   const refreshS2Display = () => {
     const a = (state.animal || '').trim() || '—';
-    const cat1 = state.s2Cat1 || '—';
     const cat2 = state.s2Cat2 || 'that species';
     $$('#s2AnimalName, #s2AnimalName2').forEach(el => el.textContent = a);
-    $$('#s2Cat1Name').forEach(el => el.textContent = cat1);
     $$('#s2Cat2Mirror').forEach(el => el.textContent = cat2);
   };
   const refreshS3Display = () => {
@@ -2359,6 +2462,10 @@
     if (viewId === 's3-channel') refreshRecapS3Channel();
     if (viewId === 's4-matter')  { renderBreadcrumb(); toggleMatterAnopt(); }
     if (viewId === 's4-bio')     buildS4Bio();
+    if (viewId === 's2-species' || viewId === 's2-cat2' || viewId === 's3-species'
+        || viewId === 's4-matter' || viewId === 's5-particle'){
+      refreshTierPreviews();
+    }
     if (viewId === 'save-form')  { renderPortrait(); renderTimeStats(); renderRelatedApps(); }
     if (/^s\d-reveal$/.test(viewId)){
       const sNum = +viewId.match(/s(\d)-reveal/)[1];

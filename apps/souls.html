@@ -1170,13 +1170,10 @@
   <!-- ═══════════════ STAGE 2 ═══════════════ -->
   <section class="view" data-view="s2-species" data-stage="2">
     <span class="step-tag">Stage 2 · Species</span>
-    <h1>Pick the species my animal belongs to.</h1>
-    <p class="hint">Where does <em><span class="mirror" data-mirror="animal-or">my animal</span></em> sit? Choose the closest group.</p>
+    <h1>Pick the specie that <em><span class="mirror" data-mirror="animal-or">my animal</span></em> belongs to.</h1>
     <div class="s2-animal-headline" id="s2AnimalName">—</div>
     <div class="s2-intro-grid">
       <div class="s2-cat-list" id="s2CatList1"></div>
-      <div class="tier-preview" id="s2MatterPreview" aria-hidden="true"></div>
-      <div class="tier-preview" id="s2ParticlePreview" aria-hidden="true"></div>
     </div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-reveal">← Back</button>
@@ -1618,7 +1615,7 @@
     'Fungus':        ['mushroom','mycelium','truffle']
   };
   const MATTER_SCALE = [
-    { id:'bacteria-virus', label:'Bacteria / virus', icon:'🦠' },
+    { id:'microbe',         label:'Microbe',         icon:'🦠' },
     { id:'crystal',         label:'Crystal',         icon:'💎' },
     { id:'macromolecule',   label:'Macromolecule',   icon:'🧬' },
     { id:'molecule',        label:'Molecule',        icon:'⚗️' },
@@ -1903,8 +1900,10 @@
 
   // species-category picker (no animal examples) — optional dim of ref-idx + above
   const S2_CATS = Object.keys(SPECIES_TREE);
-  const SPECIES_LOCK_FROM = S2_CATS.length - 3; // last 3 (Tree, Flower, Fungus) never clickable
-  function buildCatPicker(containerSel, stateKey, dimRefFn, onPick){
+  const SPECIES_LOCK_FROM = S2_CATS.length - 3; // last 3 (Tree, Flower, Fungus) — used in s2-species
+  // lockMode: 'last3' = lock last three (s2-species), 'lastOnly' = lock only the last (s2-cat2/s3-species)
+  function buildCatPicker(containerSel, stateKey, dimRefFn, onPick, lockMode){
+    lockMode = lockMode || 'last3';
     const el = $(containerSel);
     if (!el) return () => {};
     el.innerHTML = '';
@@ -1916,7 +1915,9 @@
       b.dataset.cat = cat;
       b.dataset.idx = idx;
       b.textContent = cat;
-      const isLocked = idx >= SPECIES_LOCK_FROM;
+      const isLocked = lockMode === 'lastOnly'
+        ? idx === S2_CATS.length - 1
+        : idx >= SPECIES_LOCK_FROM;
       if (isLocked) b.classList.add('is-locked-perm');
       b.addEventListener('click', () => {
         if (b.classList.contains('is-dim') || isLocked) return;
@@ -1967,13 +1968,15 @@
     wrap.hidden = !catName;
   };
 
-  const syncS2Cat1 = buildCatPicker('#s2CatList1', 's2Cat1', null);
+  const syncS2Cat1 = buildCatPicker('#s2CatList1', 's2Cat1', null, null, 'last3');
   const syncS2Cat2 = buildCatPicker('#s2CatList2', 's2Cat2',
                         () => S2_CATS.indexOf(state.s2Cat1),
-                        (cat) => showAnoptInline('#s2AnoptWrap', '#species', cat));
+                        (cat) => showAnoptInline('#s2AnoptWrap', '#species', cat),
+                        'lastOnly');
   const syncS3Cat  = buildCatPicker('#s3CatList',  's3Cat',
                         () => S2_CATS.indexOf(state.s2Cat2),
-                        (cat) => showAnoptInline('#s3AnoptWrap', '#s3Species', cat));
+                        (cat) => showAnoptInline('#s3AnoptWrap', '#s3Species', cat),
+                        'lastOnly');
 
   // ── tier preview (species → matter → particle ladder) ──
   // each stage shows the full ladder; previous picks highlighted, future tiers dim.

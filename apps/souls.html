@@ -736,15 +736,36 @@
     margin-top: .6rem;
   }
 
-  /* cq-nest — after "three qualities of <colour>", clickable to nest a parent word */
-  .cq-nest{ margin: 1rem 0 0; }
+  /* cq-nest — clickable words to nest a parent above each one */
+  .cq-nest{ margin: .6rem 0 0; }
   .cq-nest__list{
-    display:flex; flex-wrap:wrap; gap:.55rem;
+    display:grid; gap:.55rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 560px){
+    .cq-nest__list{ grid-template-columns: 1fr 1fr 1fr; }
   }
   .cq-nest-item{
     display:flex; flex-direction:column; gap:.35rem;
-    min-width:140px;
+    min-width:0;
   }
+
+  /* refine page (combined aq + cq nest at the end of stage 1) */
+  .refine-note{
+    color: var(--ink-soft);
+    margin: 0 0 1.1rem;
+    font-size: .95rem;
+    line-height: 1.55;
+  }
+  .refine-h{
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.35rem;
+    color: var(--ink);
+    line-height: 1.2;
+    margin: 1.1rem 0 .5rem;
+  }
+  .refine-h:first-of-type{ margin-top: .2rem }
   .cq-nest-input{
     padding:.5rem .85rem;
     background:var(--field);
@@ -1018,19 +1039,7 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-animal">← Back</button>
-      <button class="btn primary" type="button" data-next="s1-aq-nest" disabled>Next →</button>
-    </div>
-  </section>
-  <section class="view" data-view="s1-aq-nest" data-stage="1">
-    <span class="step-tag">Stage 1 · Nest the words</span>
-    <h1>Your three things about <span class="mirror" data-mirror="animal-name">that animal</span>.</h1>
-    <p class="hint">Click any word to add a parent above it.</p>
-    <div class="cq-nest">
-      <div class="cq-nest__list" id="aqNestList"></div>
-    </div>
-    <div class="nav">
-      <button class="btn ghost" type="button" data-go="s1-aq">← Back</button>
-      <button class="btn primary" type="button" data-next="s1-color">Next →</button>
+      <button class="btn primary" type="button" data-next="s1-color" disabled>Next →</button>
     </div>
   </section>
   <section class="view" data-view="s1-color" data-stage="1">
@@ -1056,16 +1065,23 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-color">← Back</button>
-      <button class="btn primary" type="button" data-next="s1-cq-nest" disabled>Next →</button>
+      <button class="btn primary" type="button" data-next="s1-refine" disabled>Next →</button>
     </div>
   </section>
-  <section class="view" data-view="s1-cq-nest" data-stage="1">
-    <span class="step-tag">Stage 1 · Nest the words</span>
-    <h1>Your three qualities of <span class="mirror" data-mirror="color-name">that colour</span>.</h1>
-    <p class="hint">Click any word to add a parent above it.</p>
+  <section class="view" data-view="s1-refine" data-stage="1">
+    <span class="step-tag">Stage 1 · Refine</span>
+    <p class="refine-note">Refine (if needed and wanted) to more qualificative adjectives.</p>
+
+    <h2 class="refine-h">Your three things about <span class="mirror" data-mirror="animal-name">that animal</span>.</h2>
+    <div class="cq-nest">
+      <div class="cq-nest__list" id="aqNestList"></div>
+    </div>
+
+    <h2 class="refine-h">Your three qualities of <span class="mirror" data-mirror="color-name">that colour</span>.</h2>
     <div class="cq-nest">
       <div class="cq-nest__list" id="cqNestList"></div>
     </div>
+
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-cq">← Back</button>
       <button class="btn primary" type="button" data-next="s2-species" data-advance-stage="1">Next Stage: Species &amp; Sense →</button>
@@ -1086,7 +1102,7 @@
         <button class="btn ghost" type="button" data-action="finish" data-from="s1-reveal">Save &amp; close for now</button>
       </div>
     </div>
-    <div class="nav"><button class="btn ghost" type="button" data-go="s1-cq-nest">← Back</button><span></span></div>
+    <div class="nav"><button class="btn ghost" type="button" data-go="s1-refine">← Back</button><span></span></div>
   </section>
 
   <!-- ═══════════════ STAGE 2 ═══════════════ -->
@@ -1176,7 +1192,7 @@
   <!-- ═══════════════ STAGE 3 ═══════════════ -->
   <section class="view" data-view="s3-species" data-stage="3">
     <span class="step-tag">Stage 3 · A species, deeper</span>
-    <h1>Narrower still.</h1>
+    <h1>Pick yet another specie.</h1>
     <p class="hint">Below your stage 2 pick. Choose a category — and optionally name an animal of it.</p>
     <div class="s2-intro-grid">
       <div class="s2-cat-list" id="s3CatList"></div>
@@ -1711,16 +1727,27 @@
   refreshS3Channel = () => { syncS3Bio(); };
 
   // lock the "nervous" bio button — its senses were already picked in stage 2.
+  // Click toggles the info box; it also auto-hides 10s after being opened.
   (function lockNervousInS3(){
     const btn = $('#s3BioPick .pick-btn[data-value="nervous"]');
     const msg = $('#s3NervousMsg');
     if (!btn) return;
     btn.classList.add('is-locked');
     btn.setAttribute('aria-disabled', 'true');
+    let dismissT = null;
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       e.preventDefault();
-      if (msg) msg.hidden = false;
+      if (!msg) return;
+      if (msg.hidden){
+        msg.hidden = false;
+        clearTimeout(dismissT);
+        dismissT = setTimeout(() => { msg.hidden = true; dismissT = null; }, 10000);
+      } else {
+        msg.hidden = true;
+        clearTimeout(dismissT);
+        dismissT = null;
+      }
     }, true);
   })();
   // matter anopt — inline text field for specific matter (e.g. "quartz" if matter=crystal)
@@ -2078,10 +2105,9 @@
     switch (view) {
       case 's1-animal': return !!state.animal.trim();
       case 's1-aq':     return triplet('aq1','aq2','aq3');
-      case 's1-aq-nest':return true;
       case 's1-color':  return !!state.color.trim();
       case 's1-cq':     return triplet('cq1','cq2','cq3');
-      case 's1-cq-nest':return true;
+      case 's1-refine': return true;
       case 's2-species':return !!state.s2Cat1;
       case 's2-cat2':   return !!state.s2Cat2 && !!(state.species||'').trim();
       case 's2-sense':  return !!state.sense;
@@ -2115,7 +2141,7 @@
   const stageLabelEl = $('#stageLabel');
   const progressEl = $('#progress');
   const STAGE_VIEWS = {
-    1: ['s1-animal','s1-aq','s1-aq-nest','s1-color','s1-cq','s1-cq-nest'],
+    1: ['s1-animal','s1-aq','s1-color','s1-cq','s1-refine'],
     2: ['s2-species','s2-cat2','s2-sense','s2-snq'],
     3: ['s3-species','s3-sq','s3-channel','s3-cq'],
     4: ['s4-matter','s4-mq','s4-bio','s4-bq'],
@@ -2225,8 +2251,7 @@
     $$('.view').forEach(v => v.classList.toggle('is-on', v.dataset.view === viewId));
 
     // hooks per view
-    if (viewId === 's1-aq-nest') renderAqNest();
-    if (viewId === 's1-cq-nest') renderCqNest();
+    if (viewId === 's1-refine'){ renderAqNest(); renderCqNest(); }
     if (viewId === 's2-species') { syncS2Cat1(); refreshS2Display(); }
     if (viewId === 's2-cat2')    {
       syncS2Cat2(); refreshS2Display();

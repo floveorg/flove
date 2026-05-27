@@ -91,6 +91,15 @@
   .wrap{max-width:1100px;margin:auto;padding:28px 18px 80px;display:grid;gap:22px}
   @media (max-width:520px){.wrap{padding:18px 12px 60px;gap:16px}}
 
+  /* Play-nav: "Go back" anchor at the top of the play area in stages 0/1.
+     Sits inside the sticky play-area so it stays visible while playing. */
+  .play-nav{display:flex;justify-content:flex-start;padding:0 2px}
+  .play-nav[hidden]{display:none}
+  .btn-back{
+    padding:.4rem .8rem;font-size:.84rem;
+    border-radius:999px;
+  }
+
   /* Sticky play area: reordering view (when active) above the board, with
      just a small gap between them. */
   .play-area{
@@ -494,27 +503,45 @@
   .summary-triads-wrap{position:relative;margin-top:.4rem}
   .summary-triads,
   .summary-pentads{
-    --summary-block-w: 248px;     /* width of an Economy-style pair group */
-    display:flex;flex-wrap:wrap;gap:14px;
+    /* Triad block: sized so "Ecological" (longest triad word) fits with
+       only 2px of padding on each side — that becomes the width for all
+       triad blocks. Pentad block stays wider because its longest word
+       (Hybristophilia) is longer.  */
+    --triad-block-w: 80px;
+    --pentad-block-w: 132px;
+    display:flex;flex-wrap:nowrap;gap:6px;
     justify-content:center;align-items:flex-start;
     position:relative;z-index:1;
   }
-  .summary-pentads{margin-top:.6rem}
+  .summary-pentads{margin-top:.6rem;flex-wrap:wrap}
   /* When Analyze more is on, pairs lay out in 2 columns */
   .summary-triads.with-extras{
     display:grid;
-    grid-template-columns:repeat(2,minmax(0,var(--summary-block-w)));
-    gap:14px;
+    grid-template-columns:repeat(2,minmax(0,calc(var(--triad-block-w) * 2 + 4px)));
+    gap:8px;
     justify-content:center;justify-items:center;align-items:start;
   }
   @media (max-width:560px){
-    .summary-triads.with-extras{grid-template-columns:minmax(0,var(--summary-block-w))}
+    .summary-triads.with-extras{grid-template-columns:minmax(0,calc(var(--triad-block-w) * 2 + 4px))}
   }
-  /* Equalize all summary blocks to the Economy-pair width */
-  .summary-triads .deck-done.in-summary,
-  .summary-pentads .deck-done.in-summary{
-    width:var(--summary-block-w);
+  /* All triads share the Ecological-fit width; pentads use their own width. */
+  .summary-triads .deck-done.in-summary{
+    width:var(--triad-block-w);
     min-width:0;
+    padding:6px 3px;
+  }
+  .summary-pentads .deck-done.in-summary{
+    width:var(--pentad-block-w);
+    min-width:0;
+  }
+  /* Tight 2-px item padding for triad words */
+  .summary-triads .deck-done.in-summary li,
+  .triad-pair .ad-deck li{
+    padding:.35rem 2px;
+  }
+  /* On narrow viewports allow the triads row to wrap so it still fits */
+  @media (max-width:520px){
+    .summary-triads{flex-wrap:wrap;gap:6px}
   }
   .summary-actions{display:flex;gap:.7rem;justify-content:center;align-items:center;margin-top:1.2rem;flex-wrap:wrap}
   .summary-bottom-actions{
@@ -560,14 +587,17 @@
   .wrap.summary-mode .embedded-triads-collapse{display:none !important}
 
   /* Triad pair: an extra-deck (Metaphysics / Space / Time / Sectors) sitting
-     to the left of its corresponding triad inside the summary grid. */
+     to the left of its corresponding triad inside the summary grid. The pair
+     width is exactly two triad blocks plus the inner gap, so a pair looks the
+     same width as two stand-alone triads side-by-side. */
   .triad-pair{
-    display:flex;gap:8px;align-items:stretch;
-    width:var(--summary-block-w);
+    display:flex;gap:4px;align-items:stretch;
+    width:calc(var(--triad-block-w) * 2 + 4px);
   }
   .triad-pair > .ad-deck,
   .triad-pair > .deck-done{
     flex:1 1 0;min-width:0;width:auto;
+    padding:6px 3px;
   }
 
   /* Simplex CTA — invitation below the pentads results, horizontally centered */
@@ -615,6 +645,20 @@
     transition:transform .15s ease, border-color .15s ease, color .15s ease;
   }
   .btn-related-plus:hover{transform:translateY(-1px);border-color:var(--accent);color:var(--accent)}
+
+  /* Analyze hint: surfaces which decks took the longest to fill,
+     with a gentle interpretation (didn't know much / cared more). */
+  .analyze-hint{
+    margin:.8rem auto 0;max-width:640px;padding:12px 16px;
+    border:1px solid var(--stroke);border-radius:14px;
+    background:linear-gradient(180deg,rgba(255,95,220,.06),rgba(255,255,255,.02)),var(--fx);
+    color:var(--ink);font-size:.92rem;line-height:1.5;
+    text-align:center;
+    animation:fadein .25s ease;
+  }
+  .analyze-hint[hidden]{display:none}
+  .analyze-hint b{color:var(--gold);font-weight:600}
+  .analyze-hint .muted{color:var(--muted);font-size:.86rem;display:block;margin-top:.35rem}
 
   /* Analyze "more": two 1-100 bars side by side (Subj/Obj, Mom/Gen) */
   .analyze-bars{
@@ -704,14 +748,19 @@
   .ad-deck li .ad-arrows button:hover{color:var(--accent);border-color:var(--accent)}
   .ad-deck li .ad-arrows button:disabled{opacity:.3;cursor:not-allowed}
   .gender-icon{
-    font-size:2rem;line-height:1;
+    font-size:1.4rem;line-height:1;
     display:inline-block;vertical-align:middle;
-    margin-right:5px;
+    margin-right:3px;
     pointer-events:none;
     filter:drop-shadow(0 0 4px rgba(255,255,255,.3));
   }
   .gender-icon.female{color:#ed8aa6}
   .gender-icon.male{color:#7ea0ff}
+  /* In the compact triad row leave room for the word — shrink the icon. */
+  .summary-triads .gender-icon,
+  .triad-pair .gender-icon{
+    font-size:1rem;margin-right:2px;
+  }
 
   /* Analyze arrows overlay (3 horizontal arrows across the rows of ordinals) */
   .analyze-arrows{
@@ -1217,7 +1266,7 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a href="index.html" class="brand-link" id="brandLink" aria-label="flove home">
+    <a href="keys.html" class="brand-link" id="brandLink" aria-label="Reload keys">
       <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
         <defs>
           <linearGradient id="g-keys" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
@@ -1308,7 +1357,7 @@
 
   <section class="prelude" id="prelude">
     <h2>Step 0 <span class="sub">· optional</span></h2>
-    <p>You have 15 shuffled cards. Form 5 groups of 3 that feel like they belong together and press <b>Check</b>: for each correct group, a star (I won't tell you which). Once you get all 5, I'll ask you to order the groups from <b>most abstract to most concrete</b>.</p>
+    <p>You have 15 shuffled cards. Form 5 groups of 3 that feel like they belong together and press <b>Check</b>: for each correct group, a star will show up (I won't tell you which one is correct). Once you get all 5, I'll ask you to order the groups from <b>most abstract to most concrete</b>.</p>
 
     <div class="phase-a-section">
       <div class="pool" id="prelude-pool" aria-label="Card pool"></div>
@@ -1346,6 +1395,9 @@
   </section>
 
   <div class="play-area" id="play-area">
+    <div class="play-nav" id="play-nav" hidden>
+      <button class="btn btn-ghost btn-back" id="btn-back" type="button">← Go back</button>
+    </div>
     <div class="spotlight" id="spotlight" aria-live="polite"></div>
     <div class="board" id="board"></div>
   </div>
@@ -1372,6 +1424,7 @@
       <button class="btn btn-soft" id="btn-analyze-more-3" type="button" hidden>Analyze more</button>
     </div>
 
+    <div class="analyze-hint" id="analyze-hint" hidden></div>
     <div class="analyze-bars" id="analyze-bars" hidden></div>
 
     <div class="summary-triads-wrap">
@@ -1389,6 +1442,8 @@
       <a class="btn btn-soft" href="simplex.html">Open simplex →</a>
     </div>
 
+    <div class="time-stats" id="time-stats" hidden></div>
+
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button">See more</button>
     </div>
@@ -1398,8 +1453,6 @@
       <button class="btn-related-plus" id="btn-related-plus" type="button" aria-label="show more apps">+</button>
       <div class="related-row" id="related-row-6" hidden></div>
     </div>
-
-    <div class="time-stats" id="time-stats" hidden></div>
   </div>
 
 </div>
@@ -1711,10 +1764,36 @@
   // ============== Render ==============
   function render(){
     renderStageLabel();
+    renderPlayNav();
     renderBoard();
     renderSpotlight();
     renderCTA();
   }
+
+  // "Go back" sits at the top of the play area during stages 0 and 1.
+  //   • stage 0 → return to the chooser (pick step 0/1 again)
+  //   • stage 1 → back to stage 0 (triads · center)
+  function renderPlayNav(){
+    const $nav = document.getElementById('play-nav');
+    if (!$nav) return;
+    const show = !state.embeddedPentadsMode && (state.stageIdx === 0 || state.stageIdx === 1);
+    $nav.hidden = !show;
+  }
+  function handleGoBack(){
+    if (state.embeddedPentadsMode) return;
+    state.openDeckIdx = null;
+    if (state.stageIdx === 1){
+      state.stageIdx = 0;
+      startStage(0);
+      render();
+    } else if (state.stageIdx === 0){
+      setUIMode('chooser');
+    }
+  }
+  (function wireBack(){
+    const btn = document.getElementById('btn-back');
+    if (btn) btn.addEventListener('click', handleGoBack);
+  })();
 
   function renderStageLabel(){
     // 5-segment progress bar: 4 stages + "keys closed" (summary) = 5 segments
@@ -1871,7 +1950,7 @@
       </div>
 
       <div class="spot-actions">
-        <button class="btn btn-soft" id="pq-toggle">${match ? '? Why (edit)' : '? Why'}</button>
+        <button class="btn btn-soft" id="pq-toggle">${match ? 'Why (edit)' : 'Why'}</button>
         <button class="btn btn-primary" id="done-btn">Done</button>
       </div>
     `;
@@ -1930,15 +2009,21 @@
       card.setAttribute('data-pos', String(pos));
       card.setAttribute('role','listitem');
       card.setAttribute('aria-label', `${deck.items[itemIdx]} · position ${pos+1}`);
+      // Arrows only on the end cards (first → right, last → left). Middle
+      // cards have no arrows; the user reorders them by drag-and-drop.
+      const isFirst = pos === 0;
+      const isLast  = pos === order.length - 1;
+      const arrowHTML =
+        isFirst ? `<button data-action="right" aria-label="Move right" title="one position →">→</button>` :
+        isLast  ? `<button data-action="left"  aria-label="Move left"  title="← one position">←</button>` : '';
       card.innerHTML = `
         <div class="name">${escapeHTML(deck.items[itemIdx])}</div>
-        <div class="arrows">
-          <button data-action="left"  ${pos===0 ? 'disabled':''} aria-label="Move left" title="← one position">←</button>
-          <button data-action="right" ${pos===order.length-1 ? 'disabled':''} aria-label="Move right" title="one position →">→</button>
-        </div>
+        <div class="arrows">${arrowHTML}</div>
       `;
-      card.querySelector('[data-action="left"]').addEventListener('click', e => { e.stopPropagation(); moveByDelta(deck.id, pos, -1); });
-      card.querySelector('[data-action="right"]').addEventListener('click', e => { e.stopPropagation(); moveByDelta(deck.id, pos, +1); });
+      const leftBtn  = card.querySelector('[data-action="left"]');
+      const rightBtn = card.querySelector('[data-action="right"]');
+      if (leftBtn)  leftBtn .addEventListener('click', e => { e.stopPropagation(); moveByDelta(deck.id, pos, -1); });
+      if (rightBtn) rightBtn.addEventListener('click', e => { e.stopPropagation(); moveByDelta(deck.id, pos, +1); });
 
       // DnD
       card.addEventListener('dragstart', e => {
@@ -1980,7 +2065,7 @@
   function updateSpotlightStatus(deck){
     const match = matchingPorQue(deck.id);
     const toggle = $spotlight.querySelector('#pq-toggle');
-    if (toggle) toggle.firstChild.nodeValue = match ? '? Why (edit)' : '? Why';
+    if (toggle) toggle.firstChild.nodeValue = match ? 'Why (edit)' : 'Why';
   }
 
   function renderCTA(){
@@ -2260,7 +2345,7 @@
     { n:'01', t:'Ten keys face down',      b:'Five triads and five pentads. Your job: order each key by your own criteria.' },
     { n:'02', t:'Tap a deck',              b:'Its cards rise to the center of the table, like a hand of cards opening into a fan.' },
     { n:'03', t:'Order the cards',         b:'Drag and drop them or use the <b>← →</b> arrows on each card. The one on the left comes first.' },
-    { n:'04', t:'? Why',                   b:'Press the button and record (voice or text) the reason for that order. It stays attached to the triad.' },
+    { n:'04', t:'Why',                     b:'Press the button and record (voice or text) the reason for that order. It stays attached to the triad.' },
     { n:'05', t:'Done · refine · why',     b:'Close with <b>Done</b>. In the slot, fine-tune with <b>↑ ↓</b>; if the order changes from the saved why, a <b>+ why</b> button appears so you can note a new one.' },
   ];
   let introSlide = 0;
@@ -2344,6 +2429,16 @@
   document.getElementById('intro-start').addEventListener('click', () => dismissIntro());
   document.getElementById('intro-more').addEventListener('click', () => setAboutOpen(true));
   document.getElementById('about-close').addEventListener('click', () => setAboutOpen(false));
+
+  // Topbar: title/logo click reloads the page
+  (function initBrandLink(){
+    const link = document.getElementById('brandLink');
+    if (!link) return;
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      location.reload();
+    });
+  })();
 
   // Topbar menu
   (function initTopMenu(){
@@ -2480,12 +2575,41 @@
     }
   }
 
+  // First empty slot across all 5 groups, scanned in row-major order.
+  // Returns {gi, si} or null if every group has all 3 slots filled.
+  function findFirstEmptySlot(){
+    for (let gi = 0; gi < 5; gi++){
+      for (let si = 0; si < 3; si++){
+        if (!state.preludeGroups[gi][si]) return { gi, si };
+      }
+    }
+    return null;
+  }
+
   function makeMiniCard(name, srcInfo){
     const card = document.createElement('div');
     card.className = 'minicard';
     card.textContent = name;
     card.setAttribute('draggable','true');
     card.dataset.name = name;
+    // Click-to-place: clicking a pool card sends it to the first empty slot;
+    // clicking an already-placed card sends it back to the pool.
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (srcInfo.from === 'pool' || srcInfo.from === undefined){
+        const slot = findFirstEmptySlot();
+        if (!slot) return;
+        moveMiniTo(
+          { kind:'mini', from:'pool', name },
+          { to: slot.gi, slotIdx: slot.si }
+        );
+      } else {
+        moveMiniTo(
+          { kind:'mini', from: srcInfo.from, slotIdx: srcInfo.slotIdx, name },
+          { to:'pool' }
+        );
+      }
+    });
     card.ondragstart = (e) => {
       state.preludeDrag = { kind:'mini', from: srcInfo.from !== undefined ? srcInfo.from : 'pool', slotIdx: srcInfo.slotIdx, name };
       e.dataTransfer.effectAllowed = 'move';
@@ -2594,14 +2718,17 @@
       card.setAttribute('draggable','true');
       card.dataset.pos = pos;
       const items = state.preludeGroups[groupIdx].filter(x=>x).map(n => `<div class="item">${escapeHTML(n)}</div>`).join('');
-      card.innerHTML = items + `
-        <div class="gcard-arrows">
-          <button data-action="left"  ${pos===0 ? 'disabled':''} aria-label="left"  title="← one">←</button>
-          <button data-action="right" ${pos===4 ? 'disabled':''} aria-label="right" title="one →">→</button>
-        </div>
-      `;
-      card.querySelector('[data-action="left"]').addEventListener('click', (e) => { e.stopPropagation(); axisMove(pos, -1); });
-      card.querySelector('[data-action="right"]').addEventListener('click', (e) => { e.stopPropagation(); axisMove(pos, +1); });
+      // Only the two end cards carry an arrow; middle cards are drag-only.
+      const isFirst = pos === 0;
+      const isLast  = pos === 4;
+      const arrowHTML =
+        isFirst ? `<button data-action="right" aria-label="right" title="one →">→</button>` :
+        isLast  ? `<button data-action="left"  aria-label="left"  title="← one">←</button>` : '';
+      card.innerHTML = items + `<div class="gcard-arrows">${arrowHTML}</div>`;
+      const leftBtn  = card.querySelector('[data-action="left"]');
+      const rightBtn = card.querySelector('[data-action="right"]');
+      if (leftBtn)  leftBtn .addEventListener('click', (e) => { e.stopPropagation(); axisMove(pos, -1); });
+      if (rightBtn) rightBtn.addEventListener('click', (e) => { e.stopPropagation(); axisMove(pos, +1); });
       card.ondragstart = (e) => {
         state.preludeDrag = { kind:'gcard', from: pos };
         e.dataTransfer.effectAllowed = 'move';
@@ -2710,16 +2837,50 @@
       arr.style.top = top + 'px';
     });
   }
+  // Build a short hint about which decks took the longest to fill.
+  // Pulls from the per-deck timing buckets accumulated by startDeck/endDeck.
+  function renderAnalyzeHint(){
+    const $hint = document.getElementById('analyze-hint');
+    if (!$hint) return;
+    const perDeck = state.timing.perDeck || {};
+    const entries = Object.entries(perDeck)
+      .filter(([id, ms]) => ms > 0 && DECKS.find(d => d.id === id && state.done[id]));
+    if (entries.length === 0){
+      $hint.hidden = true;
+      $hint.innerHTML = '';
+      return;
+    }
+    entries.sort((a, b) => b[1] - a[1]);
+    const topN = entries.slice(0, Math.min(2, entries.length));
+    const names = topN.map(([id]) => {
+      const d = DECKS.find(dk => dk.id === id);
+      return d ? escapeHTML(d.title) : id;
+    });
+    const list = names.length > 1
+      ? '<b>' + names.slice(0, -1).join('</b>, <b>') + '</b> and <b>' + names[names.length - 1] + '</b>'
+      : '<b>' + names[0] + '</b>';
+    $hint.innerHTML = `
+      You spent the most time on ${list}.
+      <span class="muted">That can mean you didn't know much about that section, and/or that you cared more about it.</span>
+    `;
+    $hint.hidden = false;
+  }
   let _analyzeOn = false;
   function toggleAnalyze(){
     _analyzeOn = !_analyzeOn;
     const overlay = document.getElementById('analyze-arrows');
     const more1   = document.getElementById('btn-analyze-more-1');
     const btn     = document.getElementById('btn-analyze');
+    const hint    = document.getElementById('analyze-hint');
     overlay.classList.toggle('is-on', _analyzeOn);
     more1.hidden = !_analyzeOn;
     btn.textContent = _analyzeOn ? 'Hide arrows' : 'Analyze →';
-    if (_analyzeOn) positionAnalyzeArrows();
+    if (_analyzeOn){
+      renderAnalyzeHint();
+      positionAnalyzeArrows();
+    } else {
+      if (hint){ hint.hidden = true; }
+    }
   }
   document.getElementById('btn-analyze').addEventListener('click', toggleAnalyze);
   window.addEventListener('resize', () => {
@@ -2856,20 +3017,25 @@
     const order = extraOrders[d.id];
     order.forEach((itemIdx, pos) => {
       const li = document.createElement('li');
+      // First item only shows ↓, last only shows ↑. Middle items have neither.
+      const isFirst = pos === 0;
+      const isLast  = pos === order.length - 1;
+      const arrowHTML =
+        isFirst ? `<button data-act="down" aria-label="down">↓</button>` :
+        isLast  ? `<button data-act="up"   aria-label="up">↑</button>` : '';
       li.innerHTML = `
         <span class="nm">${escapeHTML(d.items[itemIdx])}</span>
-        <span class="ad-arrows">
-          <button data-act="up"   ${pos===0 ? 'disabled':''} aria-label="up">↑</button>
-          <button data-act="down" ${pos===order.length-1 ? 'disabled':''} aria-label="down">↓</button>
-        </span>
+        <span class="ad-arrows">${arrowHTML}</span>
       `;
-      li.querySelector('[data-act="up"]').addEventListener('click', () => {
+      const upBtn   = li.querySelector('[data-act="up"]');
+      const downBtn = li.querySelector('[data-act="down"]');
+      if (upBtn) upBtn.addEventListener('click', () => {
         if (pos === 0) return;
         [order[pos-1], order[pos]] = [order[pos], order[pos-1]];
         paintExtraDeck(d, el);
         if (_finishApplied) applyFinishIcons(); // refresh gender icons live
       });
-      li.querySelector('[data-act="down"]').addEventListener('click', () => {
+      if (downBtn) downBtn.addEventListener('click', () => {
         if (pos === order.length-1) return;
         [order[pos+1], order[pos]] = [order[pos], order[pos+1]];
         paintExtraDeck(d, el);

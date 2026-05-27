@@ -478,18 +478,38 @@
   .simplex-cta p{margin:0;color:var(--muted);font-size:.92rem}
   .simplex-cta a{text-decoration:none}
 
-  /* Finish + info block, appears after the Analyze more buttons */
-  .analyze-finish-wrap{
+  /* Related apps — revealed by See more (3 first, then + reveals 6 more) */
+  .related-apps{
     margin-top:1rem;
-    display:flex;flex-direction:column;align-items:center;gap:.8rem;
+    display:flex;flex-direction:column;align-items:center;gap:10px;
     padding:14px 16px;border:1px dashed var(--stroke);border-radius:14px;
-    background:linear-gradient(180deg,rgba(250,220,146,.05),rgba(255,255,255,.015)),var(--panel);
-    text-align:center;
+    background:linear-gradient(180deg,rgba(168,228,255,.05),transparent);
   }
-  .analyze-finish-wrap[hidden]{display:none}
-  .analyze-finish-wrap .analyze-info{
-    margin:0;color:var(--muted);font-size:.9rem;max-width:55ch;line-height:1.5;
+  .related-apps[hidden]{display:none}
+  .related-row{
+    display:grid;gap:8px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    width:100%;max-width:480px;
   }
+  .related-row[hidden]{display:none}
+  .related-app{
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:.55rem .7rem;border-radius:10px;
+    background:var(--fx);border:1px solid var(--stroke);color:var(--ink);
+    text-decoration:none;
+    font:600 .85rem/1 ui-serif,Georgia,serif;letter-spacing:.3px;
+    transition:transform .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .related-app:hover{transform:translateY(-1px);border-color:var(--accent);color:var(--accent)}
+  .btn-related-plus{
+    appearance:none;cursor:pointer;
+    width:2.2rem;height:2.2rem;border-radius:50%;
+    background:var(--fx);border:1px solid var(--stroke);color:var(--ink);
+    font:700 1.2rem/1 system-ui,sans-serif;
+    display:grid;place-items:center;padding:0;
+    transition:transform .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn-related-plus:hover{transform:translateY(-1px);border-color:var(--accent);color:var(--accent)}
 
   /* Analyze "more": two 1-100 bars side by side (Subj/Obj, Mom/Gen) */
   .analyze-bars{
@@ -1173,6 +1193,14 @@
     <p>Here is the final order of your keys and their whys. Tap any tile to reopen and reorder, or tap a saved why to expand it.</p>
     <div class="summary-time" id="summary-time" hidden>Time · <b id="summary-time-val">—</b></div>
 
+    <div class="summary-actions">
+      <button class="btn btn-primary" id="btn-analyze" type="button">Analyze →</button>
+      <button class="btn btn-soft" id="btn-analyze-more-1" type="button" hidden>Analyze more</button>
+      <button class="btn btn-soft" id="btn-analyze-more-2" type="button" hidden>Analyze more</button>
+      <button class="btn btn-soft" id="btn-analyze-more-3" type="button" hidden>Analyze more</button>
+      <button class="btn btn-soft" id="btn-see-more" type="button">See more</button>
+    </div>
+
     <div class="analyze-bars" id="analyze-bars" hidden></div>
 
     <div class="summary-triads-wrap">
@@ -1184,21 +1212,16 @@
       </div>
     </div>
 
-    <div class="summary-actions">
-      <button class="btn btn-primary" id="btn-analyze" type="button">Analyze →</button>
-      <button class="btn btn-soft" id="btn-analyze-more-1" type="button" hidden>Analyze more</button>
-      <button class="btn btn-soft" id="btn-analyze-more-2" type="button" hidden>Analyze more</button>
-    </div>
-
     <div class="summary-pentads" id="summary-pentads"></div>
     <div class="simplex-cta" id="simplex-cta" hidden>
       <p>Map these pentads into the simplex view.</p>
       <a class="btn btn-soft" href="simplex.html">Open simplex →</a>
     </div>
 
-    <div class="analyze-finish-wrap" id="analyze-finish-wrap">
-      <p class="analyze-info">When you're done exploring, Finish marks each key with Yin (♀) and Yang (♂) according to where you placed them in Metaphysics.</p>
-      <button class="btn btn-primary" id="btn-finish-final" type="button">Finish</button>
+    <div class="related-apps" id="related-apps" hidden>
+      <div class="related-row" id="related-row-3"></div>
+      <button class="btn-related-plus" id="btn-related-plus" type="button" aria-label="show more apps">+</button>
+      <div class="related-row" id="related-row-6" hidden></div>
     </div>
 
     <div class="time-stats" id="time-stats" hidden></div>
@@ -1807,27 +1830,44 @@
     $cta.appendChild(finish);
   }
 
+  // Display order for the triads — Service (t3, idx 2) sits next to
+  // Economy (t4, idx 3); pentads keep their natural append order.
+  const TRIAD_DISPLAY_ORDER = [0, 1, 3, 2, 4];
+
   function renderSummaryGrid(){
     $triads.innerHTML = '';
     $pentads.innerHTML = '';
     $triads.classList.toggle('with-extras', !!state.showExtras);
-    decksActiveSoFar(state.stageIdx).forEach(deckIdx => {
+    const active = new Set(decksActiveSoFar(state.stageIdx));
+
+    const placeTriad = (deckIdx) => {
       const deck = DECKS[deckIdx];
-      if (!state.done[deck.id]) return;
-      const isPentad = deck.items.length === 5;
-      const host = isPentad ? $pentads : $triads;
-      const extraId = (!isPentad && state.showExtras) ? EXTRA_PAIR[deck.id] : null;
+      const extraId = state.showExtras ? EXTRA_PAIR[deck.id] : null;
       if (extraId){
         const pair = document.createElement('div');
         pair.className = 'triad-pair';
         const extra = EXTRA_DECKS.find(d => d.id === extraId);
         if (extra) pair.appendChild(makeExtraDeck(extra));
         pair.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
-        host.appendChild(pair);
+        $triads.appendChild(pair);
       } else {
-        host.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
+        $triads.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
       }
+    };
+
+    TRIAD_DISPLAY_ORDER.forEach(deckIdx => {
+      if (!active.has(deckIdx)) return;
+      if (!state.done[DECKS[deckIdx].id]) return;
+      placeTriad(deckIdx);
     });
+
+    decksActiveSoFar(state.stageIdx).forEach(deckIdx => {
+      const deck = DECKS[deckIdx];
+      if (deck.items.length !== 5) return;
+      if (!state.done[deck.id]) return;
+      $pentads.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
+    });
+
     if (_finishApplied) applyFinishIcons();
   }
 
@@ -2657,17 +2697,66 @@
     state.showExtras = !state.showExtras;
     const $btn = document.getElementById('btn-analyze-more-2');
     $btn.textContent = state.showExtras ? 'Hide lists' : 'Analyze more';
+    // Reveal the 3rd Analyze more (was Finish) once extras have shown up
+    if (state.showExtras){
+      const $btn3 = document.getElementById('btn-analyze-more-3');
+      if ($btn3) $btn3.hidden = false;
+    }
     renderSummaryGrid();
     if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
   document.getElementById('btn-analyze-more-2').addEventListener('click', toggleAnalyzeMore2);
 
-  // Summary-level Finish: applies Yin/Yang to every key, then scrolls back to
-  // the cards so the user sees the result.
-  document.getElementById('btn-finish-final').addEventListener('click', () => {
+  // 3rd Analyze more: applies Yin/Yang marks across every key (was Finish).
+  document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
     applyFinishIcons();
     const cards = document.getElementById('summary-triads');
     if (cards) cards.scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+
+  // ============== See more · related flove apps ==============
+  // First batch: 3 apps shown when "See more" is clicked.
+  // Plus reveals 6 more in two rows of 3.
+  const RELATED_FIRST = [
+    { label:'souls',    href:'souls.html' },
+    { label:'sensy',    href:'sensy.html' },
+    { label:'worthing', href:'worthing.html' },
+  ];
+  const RELATED_MORE = [
+    { label:'realy',    href:'realy.html' },
+    { label:'crafty',   href:'crafty.html' },
+    { label:'hoty',     href:'hoty.html' },
+    { label:'lovy',     href:'lovy.html' },
+    { label:'daty',     href:'daty.html' },
+    { label:'freedoms', href:'freedoms.html' },
+  ];
+  let _seeMoreInit = false;
+  function ensureRelatedAppsRendered(){
+    if (_seeMoreInit) return;
+    _seeMoreInit = true;
+    const render = (id, list) => {
+      document.getElementById(id).innerHTML = list
+        .map(a => `<a class="related-app" href="${a.href}">${a.label}</a>`)
+        .join('');
+    };
+    render('related-row-3', RELATED_FIRST);
+    render('related-row-6', RELATED_MORE);
+  }
+  document.getElementById('btn-see-more').addEventListener('click', () => {
+    const $panel = document.getElementById('related-apps');
+    const $btn   = document.getElementById('btn-see-more');
+    const open = $panel.hidden;
+    if (open) ensureRelatedAppsRendered();
+    $panel.hidden = !open;
+    $btn.textContent = open ? 'Hide apps' : 'See more';
+  });
+  document.getElementById('btn-related-plus').addEventListener('click', () => {
+    const $row6 = document.getElementById('related-row-6');
+    const $btn  = document.getElementById('btn-related-plus');
+    const open  = $row6.hidden;
+    $row6.hidden = !open;
+    $btn.textContent = open ? '−' : '+';
+    $btn.setAttribute('aria-label', open ? 'show fewer apps' : 'show more apps');
   });
 
   // ============== Boot ==============

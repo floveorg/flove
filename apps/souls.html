@@ -1016,47 +1016,82 @@
   .timestats__t-row b{ color:var(--ink); font-weight:600 }
   .timestats__t-row .t-delta{ color:var(--app-accent-soft); font-weight:600 }
 
-  /* ─── Rainbow colour picker + rotating colour ball ────── */
-  body{ --current-color: #f5b463 }
+  /* ─── Colour: live var lives on :root so JS setProperty on
+         documentElement actually cascades to every descendant
+         (a body{} rule would otherwise win for body's children). */
+  :root{ --current-color: #f5b463 }
 
-  .color-picker-wrap{
-    flex:0 0 auto;
-    position:relative;
-    display:inline-flex; align-items:center; justify-content:center;
-    width:2.8rem; min-height:2.8rem;
+  /* Big chosen-colour banner — block, 2× the inline swatch.
+     Acts as the wheel trigger: rainbow when nothing's picked, the
+     chosen colour when something is. No text, no hex on it. */
+  .color-banner{
+    display: block;
+    width: 100%;
+    height: 5.6rem;
+    margin: .8rem 0 .2rem;
+    border: 0;
+    border-radius: 18px;
+    cursor: pointer;
+    appearance: none;
+    background: var(--current-color);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.22),
+      inset 0 -10px 16px rgba(0,0,0,.22),
+      0 3px 10px rgba(0,0,0,.32);
+    transition: transform .2s ease, box-shadow .2s ease, outline-color .2s ease;
+    outline: 2px solid transparent;
+    outline-offset: 3px;
   }
-  .color-pick-btn{
-    appearance:none; background:transparent; border:0; padding:0; margin:0;
-    cursor:pointer;
-    display:inline-flex; align-items:center; justify-content:center;
-    width:100%; height:100%;
-    border-radius:50%;
+  .color-banner:hover{
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.32),
+      inset 0 -10px 16px rgba(0,0,0,.22),
+      0 5px 14px rgba(0,0,0,.40);
   }
-  .color-pick-btn:focus-visible{ outline:2px solid var(--app-accent); outline-offset:2px }
-  .color-pick-icon{
-    position:relative;
-    width:2.15rem; height:2.15rem;
-    border-radius:50%;
+  body:not(.has-color) .color-banner{
     background:
-      radial-gradient(circle at 32% 26%, rgba(255,255,255,.65) 0, rgba(255,255,255,.10) 22%, transparent 50%),
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.55) 0, rgba(255,255,255,.10) 22%, transparent 50%),
       conic-gradient(from 0deg,
         #ff5e62, #ff9a3c, #ffd56b, #fff36b, #c5f56b,
         #6bf5a8, #6bd5f5, #6b8df5, #b66bf5, #f56bd5, #ff5e62);
-    box-shadow:
-      inset 0 0 0 1.5px rgba(255,255,255,.45),
-      inset 0 -3px 6px rgba(0,0,0,.20),
-      0 2px 6px rgba(0,0,0,.25);
-    transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
-    pointer-events:none;
   }
-  .color-pick-btn:hover .color-pick-icon,
-  .color-pick-btn:focus-visible .color-pick-icon,
-  .color-pick-btn[aria-expanded="true"] .color-pick-icon{
-    transform: rotate(20deg) scale(1.08);
-    box-shadow:
-      inset 0 0 0 1.5px rgba(255,255,255,.55),
-      inset 0 -3px 6px rgba(0,0,0,.20),
-      0 4px 14px rgba(255,255,255,.22);
+  .color-banner[aria-expanded="true"]{
+    outline-color: var(--app-accent);
+  }
+
+  /* Small additional field for entering a hex code.
+     Swatch sits flush on its right as a "continuation". */
+  .field-code{
+    display: flex;
+    gap: .4rem;
+    align-items: stretch;
+    margin: .8rem 0 .2rem;
+  }
+  .field-code input{
+    flex: 0 0 auto;
+    width: 12rem;
+    max-width: 60%;
+    padding: .55rem .8rem;
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--ink);
+    font: inherit; font-size: .92rem;
+    transition: border-color .2s, background .2s;
+  }
+  .field-code input:focus{
+    outline: none;
+    background: var(--field-focus);
+    border-color: var(--app-accent);
+  }
+  .field-code input::placeholder{ color: var(--ink-dim) }
+  .field-code .color-ball{
+    width: 2.4rem;
+    align-self: stretch;
+    height: auto;
+    border-radius: 10px;
+    margin: 0;
   }
 
   /* Custom rainbow wheel picker — sits inline below the field.
@@ -1126,14 +1161,6 @@
   }
   body.has-color .color-ball{ display: inline-block }
 
-  /* Field swatch — stretches to the input's height */
-  .field .color-ball{
-    width: 2.6rem;
-    align-self: stretch;
-    height: auto;
-    border-radius: 14px;
-    margin: 0 .25rem;
-  }
   .portrait-cell .color-ball{
     width: 1.1rem; height: 1.1rem;
     border-radius: 4px;
@@ -1428,13 +1455,12 @@
     <h1>Now a colour.</h1>
     <p class="hint">Any colour you want — write it freely.</p>
     <form class="field" onsubmit="return false">
-      <input id="color" type="text" autocomplete="off" placeholder="e.g. coral, #4fc3f7, hsl(200 80% 60%)…" />
-      <span class="color-ball" id="colorBallField" aria-hidden="true"></span>
-      <span class="color-picker-wrap">
-        <button type="button" class="color-pick-btn" id="colorPickBtn" title="Pick a colour" aria-haspopup="true" aria-expanded="false" aria-controls="colorPopup">
-          <span class="color-pick-icon" aria-hidden="true"></span>
-        </button>
-      </span>
+      <input id="color" type="text" autocomplete="off" placeholder="any colour — name or expression" />
+    </form>
+    <button type="button" class="color-banner" id="colorBanner" aria-label="Chosen colour — click to open the wheel" aria-haspopup="true" aria-expanded="false" aria-controls="colorPopup"></button>
+    <form class="field-code" onsubmit="return false">
+      <input id="colorCode" type="text" autocomplete="off" placeholder="hex code, e.g. #4fc3f7" />
+      <span class="color-ball" id="colorCodeSwatch" aria-hidden="true"></span>
     </form>
     <div class="color-popup" id="colorPopup" hidden role="region" aria-label="Colour wheel">
       <div class="color-wheel" id="colorWheel">
@@ -3648,9 +3674,9 @@
     });
   })();
 
-  // ── Custom rainbow colour wheel (inline, opens below the field) ──
+  // ── Custom rainbow colour wheel — opened by clicking the big banner ──
   (function wireColorWheel(){
-    const btn    = $('#colorPickBtn');
+    const btn    = $('#colorBanner');
     const pop    = $('#colorPopup');
     const wheel  = $('#colorWheel');
     const handle = $('#colorWheelHandle');
@@ -3760,6 +3786,20 @@
       wheel.addEventListener(ev, () => { dragging = false; });
     });
     window.addEventListener('resize', () => { if (!pop.hidden) syncHandle(); });
+  })();
+
+  // ── Small additional hex-code field → syncs into main #color ──
+  (function wireColorCode(){
+    const code = $('#colorCode');
+    const main = $('#color');
+    if (!code || !main) return;
+    code.addEventListener('input', () => {
+      const hex = parseColorToHex(code.value);
+      if (hex && main.value.trim().toLowerCase() !== hex.toLowerCase()){
+        main.value = hex;
+        main.dispatchEvent(new Event('input', { bubbles:true }));
+      }
+    });
   })();
 
   // ── + button → 5 visual "look" effects applied to the picked colour ──

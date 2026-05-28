@@ -1281,6 +1281,113 @@
     .color-swatch-plus, .color-tweak{ transition: none }
   }
 
+  /* ─── Per-field mic + attachment chip + file-upload icon ─── */
+  .field .mic-wrap{ flex: 1; min-width: 0 }
+  .mic-wrap{
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+  }
+  .mic-wrap > input{ flex: 1; width: 100%; min-width: 0 }
+  .mic-tools{
+    position: absolute;
+    bottom: -.8rem; left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: .35rem;
+    align-items: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .mic-tools > *{ pointer-events: auto }
+  .mic-btn{
+    appearance: none; cursor: pointer;
+    width: 1.6rem; height: 1.6rem;
+    border-radius: 50%;
+    padding: 0; margin: 0;
+    background: var(--field);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    display: inline-flex; align-items: center; justify-content: center;
+    font: inherit; font-size: .85rem; line-height: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,.30);
+    transition: transform .15s ease, background .2s ease, color .2s ease,
+                border-color .2s ease, box-shadow .2s ease;
+  }
+  .mic-btn:hover{
+    background: var(--field-focus);
+    border-color: var(--app-accent-soft);
+    color: var(--ink);
+    transform: scale(1.12);
+  }
+  .mic-btn.is-recording{
+    background: var(--rose);
+    border-color: var(--rose);
+    color: #fff;
+    animation: micPulse 1.3s ease-in-out infinite;
+  }
+  @keyframes micPulse{
+    0%, 100% { box-shadow: 0 0 0 0 rgba(237,138,166,.55) }
+    50%      { box-shadow: 0 0 0 7px rgba(237,138,166,0) }
+  }
+  .mic-chip{
+    display: inline-flex; align-items: center; gap: .25rem;
+    padding: 0 .35rem 0 .55rem;
+    height: 1.6rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font: 500 .68rem/1 'Inter', system-ui, sans-serif;
+    color: var(--ink-soft);
+    max-width: 12rem;
+    white-space: nowrap;
+  }
+  .mic-chip[hidden]{ display: none }
+  .mic-chip-name{
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mic-chip-x{
+    appearance: none; background: transparent; border: 0;
+    cursor: pointer; color: var(--ink-dim);
+    width: 1rem; height: 1rem;
+    padding: 0; margin: 0; flex-shrink: 0;
+    font: inherit; font-size: 1rem; line-height: 1;
+    border-radius: 50%;
+  }
+  .mic-chip-x:hover{ color: var(--rose) }
+
+  /* extra breathing room so the mic doesn't overlap stacked rows */
+  .triple{ row-gap: 1.1rem }
+
+  /* File upload icon — only on the animal field's right side */
+  .field-upload{
+    flex: 0 0 auto;
+    align-self: stretch;
+    cursor: pointer;
+    width: 2.6rem;
+    border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--field);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 1.2rem;
+    transition: background .2s, border-color .2s, color .2s;
+  }
+  .field-upload:hover{
+    background: var(--field-focus);
+    border-color: var(--app-accent-soft);
+    color: var(--ink);
+  }
+  .field-upload input[type="file"]{
+    position: absolute;
+    width: 1px; height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   /* ─── Magic cloud trigger + bubble cloud ──────────────── */
   .magic-row{
     display:flex; align-items:center; justify-content:center; gap:.8rem;
@@ -1473,6 +1580,10 @@
     <p class="hint">The first that comes to mind. Don't second-guess it.</p>
     <form class="field" onsubmit="return false">
       <input id="animal" type="text" autocomplete="off" />
+      <label class="field-upload" title="Attach a file">
+        <span aria-hidden="true">📎</span>
+        <input type="file" id="animalFile" />
+      </label>
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="welcome">← Back</button>
@@ -3667,6 +3778,163 @@
     paintChip('chipStars', 'numStars', countStars(),       5);
   }
 
+  // ── Mic recording + file attachments (per text input) ──────
+  const attachments = new Map(); // fieldId → File
+  let _recCurrent = null;        // { recorder, recognizer, fieldId, stream, micBtn }
+
+  function refreshChip(fieldId){
+    const chip = document.querySelector(`.mic-chip[data-field-id="${CSS.escape(fieldId)}"]`);
+    if (!chip) return;
+    const file = attachments.get(fieldId);
+    const nameEl = chip.querySelector('.mic-chip-name');
+    if (file){
+      if (nameEl){
+        const n = file.name;
+        nameEl.textContent = n.length > 22 ? n.slice(0, 20) + '…' : n;
+        nameEl.title = n;
+      }
+      chip.hidden = false;
+    } else {
+      chip.hidden = true;
+    }
+  }
+  function attachFile(fieldId, file){
+    attachments.set(fieldId, file);
+    refreshChip(fieldId);
+  }
+  function removeAttachment(fieldId){
+    attachments.delete(fieldId);
+    const fi = document.getElementById(fieldId + 'File');
+    if (fi) fi.value = '';
+    refreshChip(fieldId);
+  }
+
+  function stopRecording(){
+    if (!_recCurrent) return;
+    const { recorder, recognizer, micBtn } = _recCurrent;
+    try { recorder.stop(); } catch(_){}
+    try { recognizer && recognizer.stop(); } catch(_){}
+    if (micBtn){
+      micBtn.classList.remove('is-recording');
+      micBtn.setAttribute('aria-pressed', 'false');
+    }
+  }
+  async function startRecording(fieldId, micBtn){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      alert('Microphone not supported in this browser.');
+      return;
+    }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch(err){ console.warn('Mic permission denied:', err); return; }
+    let recorder;
+    try { recorder = new MediaRecorder(stream); }
+    catch(err){
+      console.warn('MediaRecorder unavailable:', err);
+      stream.getTracks().forEach(t => t.stop());
+      return;
+    }
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const mime = recorder.mimeType || 'audio/webm';
+      const ext  = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm';
+      const blob = new Blob(chunks, { type: mime });
+      const file = new File([blob], `voice-${fieldId}-${Date.now()}.${ext}`, { type: mime });
+      attachFile(fieldId, file);
+      stream.getTracks().forEach(t => t.stop());
+      if (_recCurrent && _recCurrent.fieldId === fieldId) _recCurrent = null;
+    };
+    recorder.start();
+    micBtn.classList.add('is-recording');
+    micBtn.setAttribute('aria-pressed', 'true');
+
+    let recognizer = null;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR){
+      try {
+        recognizer = new SR();
+        recognizer.continuous = true;
+        recognizer.interimResults = false;
+        recognizer.lang = document.documentElement.lang || navigator.language || 'en-US';
+        recognizer.onresult = (event) => {
+          const input = document.getElementById(fieldId);
+          if (!input) return;
+          const transcript = [...event.results]
+            .filter(r => r.isFinal)
+            .map(r => r[0].transcript)
+            .join(' ')
+            .trim();
+          if (transcript){
+            input.value = transcript;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        };
+        recognizer.onerror = () => {};
+        recognizer.start();
+      } catch(_){ recognizer = null; }
+    }
+    _recCurrent = { recorder, recognizer, fieldId, stream, micBtn };
+  }
+  async function toggleMic(fieldId, micBtn){
+    if (_recCurrent){
+      const same = _recCurrent.fieldId === fieldId;
+      stopRecording();
+      if (same){ _recCurrent = null; return; }
+      _recCurrent = null;
+    }
+    await startRecording(fieldId, micBtn);
+  }
+
+  function wireMicAndAttachments(){
+    const SKIP_IDS = new Set(['color', 'colorCode']); // picker-adjacent fields
+    $$('.view input[type="text"]').forEach(input => {
+      if (input.dataset.micReady) return;
+      if (input.id && SKIP_IDS.has(input.id)) return;
+      if (input.closest('.cq-nest-row')) return; // tiny nested parent-word inputs
+      input.dataset.micReady = '1';
+      const wrap = document.createElement('span');
+      wrap.className = 'mic-wrap';
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+
+      const tools = document.createElement('span');
+      tools.className = 'mic-tools';
+      tools.innerHTML =
+        `<button type="button" class="mic-btn" data-field-id="${input.id}" aria-pressed="false" aria-label="Record voice" title="Record voice">🎤</button>` +
+        `<span class="mic-chip" data-field-id="${input.id}" hidden>` +
+          `<span class="mic-chip-name"></span>` +
+          `<button type="button" class="mic-chip-x" aria-label="Remove attachment">×</button>` +
+        `</span>`;
+      wrap.appendChild(tools);
+    });
+
+    // delegated clicks for mic + chip-remove
+    document.addEventListener('click', (e) => {
+      const mic = e.target.closest('.mic-btn');
+      if (mic){
+        e.preventDefault();
+        toggleMic(mic.dataset.fieldId, mic);
+        return;
+      }
+      const x = e.target.closest('.mic-chip-x');
+      if (x){
+        e.preventDefault();
+        const chip = x.closest('.mic-chip');
+        if (chip) removeAttachment(chip.dataset.fieldId);
+      }
+    });
+
+    // file upload (animal field)
+    const animalFile = $('#animalFile');
+    if (animalFile){
+      animalFile.addEventListener('change', () => {
+        const file = animalFile.files && animalFile.files[0];
+        if (file) attachFile('animal', file);
+      });
+    }
+  }
+
   // ── colour: text↔picker sync, free-form parsing, ball updates ──
   const _colorProbeCtx = (() => {
     const cv = document.createElement('canvas');
@@ -4266,6 +4534,7 @@
   renderAqNest();
   renderCqNest();
   refreshColorBalls();
+  wireMicAndAttachments();
   goTo(state.view);
   updateNightStage();
 })();

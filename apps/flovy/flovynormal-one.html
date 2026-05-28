@@ -10892,6 +10892,55 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     0%, 100%{ box-shadow: 0 0 0 0 rgba(217, 70, 70, .25); }
     50%    { box-shadow: 0 0 0 6px rgba(217, 70, 70, 0); }
   }
+  /* ── Collapse / timer toggles ────────────────────────────
+     40%-smaller round chips above & below the counters.
+     · pc-collapse (top) hides the counter stack, leaves the expand chip.
+     · pc-timer-toggle (bottom) reveals/hides the souls-style timer panel.
+     · pc-expand is the lone "+" shown when collapsed. */
+  .pc-toggle{
+    pointer-events: auto;
+    display: grid; place-items: center;
+    width: 26px; height: 26px;
+    border: 0; border-radius: 50%;
+    background: #dcd5d5;
+    color: var(--accent-deep, #b3261e);
+    font: 800 1rem/1 Georgia, 'Times New Roman', serif;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+    transition: background .2s ease, transform .15s ease;
+  }
+  .pc-toggle:hover{ background: #eadcdc; transform: scale(1.08); }
+  .pc-toggle:focus-visible{ outline: 2px solid var(--accent-deep, #b3261e); outline-offset: 2px; }
+  .pc-expand{ display: none; }
+  .float-counters.is-collapsed .pc,
+  .float-counters.is-collapsed .pc-collapse,
+  .float-counters.is-collapsed .pc-timer-toggle,
+  .float-counters.is-collapsed .pc-advance-text,
+  .float-counters.is-collapsed .pc-timer{ display: none; }
+  .float-counters.is-collapsed .pc-expand{ display: grid; }
+
+  .pc-timer{
+    pointer-events: auto;
+    display: none;
+    flex-direction: column; gap: 2px;
+    padding: .5rem .7rem;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(178, 34, 34, .25);
+    border-radius: 10px;
+    min-width: 130px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .08);
+  }
+  .pc-timer.is-on{ display: flex; }
+  .pc-timer__row{ display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+  .pc-timer__row span{
+    font: 800 .56rem/1 'Inter', system-ui, sans-serif;
+    text-transform: uppercase; letter-spacing: .11em;
+    color: var(--ink-soft, #5a5a5a);
+  }
+  .pc-timer__row b{
+    font: 800 .85rem/1 Georgia, 'Times New Roman', serif;
+    color: #2e1b12;
+  }
 </style>
 <div id="tierIframeOverlay" class="tier-iframe-overlay" hidden>
   <div class="tier-iframe-backdrop"></div>
@@ -10901,6 +10950,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 <div id="unlockToast" class="flove-unlock-toast" role="status" aria-live="polite"></div>
 <div class="float-counters" aria-live="polite">
   <div class="pc-advance-text" id="advanceText" hidden>You can now switch to <strong>Advanced</strong> navigation</div>
+  <button type="button" class="pc-toggle pc-collapse" id="countersCollapse" aria-label="Collapse counters" title="Collapse counters">−</button>
   <div class="pc pc-clicks is-empty" id="chipClicks" title="Total clicks">
     <div class="pc-badge"><span class="pc-num" id="pointsClicks">0</span></div>
     <span class="pc-label">Clicks</span>
@@ -10913,6 +10963,14 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     <div class="pc-badge"><span class="pc-num" id="pointsStars">0</span></div>
     <span class="pc-label">Stars</span>
   </div>
+  <button type="button" class="pc-toggle pc-timer-toggle" id="timerToggle" aria-label="Show timer" title="Show timer" aria-pressed="false">+</button>
+  <div class="pc-timer" id="pcTimer" aria-live="polite">
+    <div class="pc-timer__row"><span>Total</span><b id="timerTotal">0s</b></div>
+    <div class="pc-timer__row"><span>Clicks</span><b id="timerClicks">0</b></div>
+    <div class="pc-timer__row"><span>Avg gap</span><b id="timerAvg">—</b></div>
+    <div class="pc-timer__row"><span>Last</span><b id="timerLast">—</b></div>
+  </div>
+  <button type="button" class="pc-toggle pc-expand" id="countersExpand" aria-label="Show counters" title="Show counters">+</button>
 </div>
 
 <script>
@@ -11378,7 +11436,80 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     checkUnlocks();
     syncPickerToResume();
   }
-  document.addEventListener('click',  () => { clicks++; pulse('chipClicks'); refresh(); });
+  /* ── souls-style timer ───────────────────────────────────
+     Hidden event log + computed stats (total / avg gap / since-last).
+     Mirrors the lightweight timer in apps/souls.html: any click logs a
+     timestamp; the panel under the counters renders the rollup when the
+     "+" toggle is on, and ticks once a second so "Total" / "Last" stay
+     live. */
+  const timerState = { events: [], on: false, tick: null };
+  function fmtDuration(ms){
+    if (!isFinite(ms) || ms < 0) return '—';
+    if (ms < 10000) return (ms / 1000).toFixed(1) + 's';
+    const s = Math.round(ms / 1000);
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60), r = s % 60;
+    if (m < 60) return m + 'm ' + r + 's';
+    const h = Math.floor(m / 60); return h + 'h ' + (m % 60) + 'm';
+  }
+  function timerStats(){
+    const evs = timerState.events;
+    if (!evs.length) return { total: 0, count: 0, avg: 0, last: 0 };
+    const now = Date.now();
+    const first = evs[0], last = evs[evs.length - 1];
+    let avg = 0;
+    if (evs.length >= 2){
+      let sum = 0;
+      for (let i = 1; i < evs.length; i++) sum += evs[i] - evs[i - 1];
+      avg = sum / (evs.length - 1);
+    }
+    return { total: now - first, count: evs.length, avg, last: now - last };
+  }
+  function renderTimer(){
+    if (!timerState.on) return;
+    const s = timerStats();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('timerTotal',  fmtDuration(s.total));
+    set('timerClicks', String(s.count));
+    set('timerAvg',    s.count >= 2 ? fmtDuration(s.avg) : '—');
+    set('timerLast',   s.count ? fmtDuration(s.last) : '—');
+  }
+  function setTimerOn(on){
+    timerState.on = !!on;
+    const panel = document.getElementById('pcTimer');
+    const btn   = document.getElementById('timerToggle');
+    if (panel) panel.classList.toggle('is-on', timerState.on);
+    if (btn){
+      btn.setAttribute('aria-pressed', String(timerState.on));
+      btn.textContent = timerState.on ? '−' : '+';
+      btn.setAttribute('aria-label', timerState.on ? 'Hide timer' : 'Show timer');
+      btn.setAttribute('title',      timerState.on ? 'Hide timer' : 'Show timer');
+    }
+    if (timerState.on){
+      renderTimer();
+      if (!timerState.tick) timerState.tick = setInterval(renderTimer, 1000);
+    } else if (timerState.tick){
+      clearInterval(timerState.tick);
+      timerState.tick = null;
+    }
+  }
+  function setCollapsed(collapsed){
+    const wrap = document.querySelector('.float-counters');
+    if (!wrap) return;
+    wrap.classList.toggle('is-collapsed', !!collapsed);
+    if (collapsed) setTimerOn(false);
+  }
+  document.getElementById('timerToggle')?.addEventListener('click', () => setTimerOn(!timerState.on));
+  document.getElementById('countersCollapse')?.addEventListener('click', () => setCollapsed(true));
+  document.getElementById('countersExpand')?.addEventListener('click', () => setCollapsed(false));
+
+  document.addEventListener('click',  () => {
+    clicks++; pulse('chipClicks');
+    timerState.events.push(Date.now());
+    if (timerState.events.length > 500) timerState.events.splice(0, timerState.events.length - 500);
+    renderTimer();
+    refresh();
+  });
   document.addEventListener('change', refresh);
   document.addEventListener('input',  ev => { if (ev.target && ev.target.tagName === 'TEXTAREA') refresh(); });
   /* Explicit hooks on the ⋯-more picker cells AND their inputs — in

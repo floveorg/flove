@@ -1104,60 +1104,94 @@
     transition: background .15s ease;
   }
 
-  @property --ball-rot { syntax: '<angle>'; inherits: false; initial-value: 0deg }
-  @keyframes ballSpin { to { --ball-rot: 360deg } }
-
+  /* Output colour shown as a rectangular banner — hex only on hover */
   .color-ball{
-    position:relative;
-    display:none;
-    width:1.4rem; height:1.4rem;
-    border-radius:50%;
-    cursor:help;
-    vertical-align:middle;
-    background:
-      radial-gradient(circle at 32% 26%, rgba(255,255,255,.78) 0, rgba(255,255,255,.16) 24%, transparent 55%),
-      conic-gradient(from var(--ball-rot, 0deg),
-        var(--current-color),
-        color-mix(in srgb, var(--current-color) 75%, white),
-        var(--current-color),
-        color-mix(in srgb, var(--current-color) 68%, black),
-        var(--current-color)
-      );
+    position: relative;
+    display: none;
+    width: 1.1rem; height: 1.1rem;
+    border-radius: 4px;
+    cursor: help;
+    vertical-align: middle;
+    background: var(--current-color);
     box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--current-color) 90%, white),
-      inset 0 0 0 2px color-mix(in srgb, var(--current-color) 78%, white),
-      inset 0 0 0 3px color-mix(in srgb, var(--current-color) 66%, white),
-      inset 0 0 0 4px color-mix(in srgb, var(--current-color) 55%, transparent),
-      inset 0 0 0 5px color-mix(in srgb, var(--current-color) 60%, black),
-      0 1px 4px rgba(0,0,0,.30),
-      0 0 9px color-mix(in srgb, var(--current-color) 60%, transparent);
-    animation: ballSpin 6s linear infinite;
+      inset 0 0 0 1px rgba(255,255,255,.22),
+      inset 0 -3px 5px rgba(0,0,0,.22),
+      0 1px 3px rgba(0,0,0,.28);
   }
-  .color-ball::before{
-    content:'';
-    position:absolute; inset:22%;
-    border-radius:50%;
-    background:
-      conic-gradient(from calc(var(--ball-rot, 0deg) * -1.6),
-        transparent 0deg,
-        color-mix(in srgb, var(--current-color) 85%, white) 80deg,
-        transparent 160deg,
-        color-mix(in srgb, var(--current-color) 60%, black) 250deg,
-        transparent 340deg);
-    filter: blur(.9px);
-    pointer-events:none;
-  }
-  body.has-color .color-ball{ display:inline-block }
+  body.has-color .color-ball{ display: inline-block }
 
-  /* size tweaks per context */
-  .field .color-ball{ width:1.5rem; height:1.5rem; align-self:center; margin: 0 .25rem }
-  .portrait-cell .color-ball{ width:1.05rem; height:1.05rem; margin-right:.25rem }
+  /* Field swatch — stretches to the input's height */
+  .field .color-ball{
+    width: 2.6rem;
+    align-self: stretch;
+    height: auto;
+    border-radius: 14px;
+    margin: 0 .25rem;
+  }
+  .portrait-cell .color-ball{
+    width: 1.1rem; height: 1.1rem;
+    border-radius: 4px;
+    margin-right: .25rem;
+  }
   .mirror + .color-ball,
-  .color-ball + .mirror{ margin: 0 .15rem }
+  .color-ball + .mirror{ margin: 0 .2rem }
+
+  /* + button at top-right of the field swatch */
+  .color-swatch-plus{
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 16px; height: 16px;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 0; margin: 0;
+    background: rgba(255,255,255,.88);
+    color: rgba(0,0,0,.75);
+    border: 0; border-radius: 50%;
+    font: 700 .8rem/1 'Inter', system-ui, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,.35);
+    transition: transform .2s ease, background .2s ease;
+  }
+  .field .color-ball > .color-swatch-plus{ display: inline-flex }
+  .color-swatch-plus:hover{ background: #fff; transform: scale(1.15) }
+  .color-swatch-plus[aria-expanded="true"]{
+    transform: rotate(45deg);
+    background: var(--app-accent);
+    color: #1a1024;
+  }
+
+  /* Tweaks panel — 5 variant swatches shown below the field */
+  .color-tweaks{
+    display: flex;
+    gap: .55rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: .7rem 0 0;
+  }
+  .color-tweaks[hidden]{ display: none }
+  .color-tweak{
+    appearance: none; cursor: pointer;
+    background: var(--tweak-color, var(--current-color));
+    border: 0;
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 10px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.25),
+      inset 0 -3px 6px rgba(0,0,0,.20),
+      0 1px 3px rgba(0,0,0,.30);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .color-tweak:hover{
+    transform: translateY(-2px) scale(1.06);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.40),
+      inset 0 -3px 6px rgba(0,0,0,.20),
+      0 5px 10px rgba(0,0,0,.40);
+  }
 
   @media (prefers-reduced-motion: reduce){
-    .color-ball{ animation:none }
-    .color-pick-icon{ transition:none }
+    .color-pick-icon{ transition: none }
+    .color-swatch-plus, .color-tweak{ transition: none }
   }
 
   /* ─── Magic cloud trigger + bubble cloud ──────────────── */
@@ -1337,13 +1371,16 @@
     <p class="hint">Any colour you want — write it freely.</p>
     <form class="field" onsubmit="return false">
       <input id="color" type="text" autocomplete="off" placeholder="e.g. coral, #4fc3f7, hsl(200 80% 60%)…" />
-      <span class="color-ball" id="colorBallField" aria-hidden="true"></span>
+      <span class="color-ball" id="colorBallField">
+        <button type="button" class="color-swatch-plus" id="colorTweaksBtn" aria-label="Show colour effects" aria-expanded="false" aria-controls="colorTweaks">+</button>
+      </span>
       <span class="color-picker-wrap">
         <button type="button" class="color-pick-btn" id="colorPickBtn" title="Pick a colour" aria-haspopup="true" aria-expanded="false" aria-controls="colorPopup">
           <span class="color-pick-icon" aria-hidden="true"></span>
         </button>
       </span>
     </form>
+    <div class="color-tweaks" id="colorTweaks" hidden role="region" aria-label="Colour effects"></div>
     <div class="color-popup" id="colorPopup" hidden role="region" aria-label="Colour wheel">
       <div class="color-wheel" id="colorWheel">
         <span class="color-wheel-handle" id="colorWheelHandle"></span>
@@ -3521,16 +3558,72 @@
     const r = Math.round(+m[1]), g = Math.round(+m[2]), b = Math.round(+m[3]);
     return '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
   }
+  function hexToRgb(hex){
+    const m = String(hex||'').replace('#','').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return null;
+    return { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) };
+  }
+  function rgbToHsl(r, g, b){
+    r/=255; g/=255; b/=255;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn;
+    let h = 0, s = 0;
+    const l = (mx + mn) / 2;
+    if (d){
+      s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r)      h = ((g - b) / d + (g < b ? 6 : 0));
+      else if (mx === g) h = (b - r) / d + 2;
+      else               h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return [h, s*100, l*100];
+  }
+  function hslToHex(h, s, l){
+    h = ((h % 360) + 360) % 360;
+    s = Math.max(0, Math.min(100, s)) / 100;
+    l = Math.max(0, Math.min(100, l)) / 100;
+    const c = (1 - Math.abs(2*l - 1)) * s;
+    const hp = h / 60;
+    const x = c * (1 - Math.abs(hp % 2 - 1));
+    let r=0, g=0, b=0;
+    if      (hp < 1){ r=c; g=x; }
+    else if (hp < 2){ r=x; g=c; }
+    else if (hp < 3){ g=c; b=x; }
+    else if (hp < 4){ g=x; b=c; }
+    else if (hp < 5){ r=x; b=c; }
+    else            { r=c; b=x; }
+    const m = l - c/2;
+    const R = Math.round((r+m)*255), G = Math.round((g+m)*255), B = Math.round((b+m)*255);
+    return '#' + [R,G,B].map(n => n.toString(16).padStart(2,'0')).join('');
+  }
+  function tweakVariants(hex){
+    const rgb = hexToRgb(hex);
+    if (!rgb) return [];
+    const [h, s, l] = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    return [
+      { name:'Lighter',  hex: hslToHex(h, s,                          Math.min(95, l + 18)) },
+      { name:'Darker',   hex: hslToHex(h, s,                          Math.max(8,  l - 18)) },
+      { name:'Softer',   hex: hslToHex(h, Math.max(0,   s - 35),      Math.min(92, l + 8 )) },
+      { name:'Vivid',    hex: hslToHex(h, Math.min(100, s + 35),      Math.max(38, Math.min(58, l))) },
+      { name:'Opposite', hex: hslToHex((h + 180) % 360, s,            l) }
+    ];
+  }
+
   let _syncWheelHandle = () => {};
+  let _refreshTweaks   = () => {};
   function applyColorHex(hex){
     document.documentElement.style.setProperty('--current-color', hex);
     document.body.classList.add('has-color');
     $$('.color-ball').forEach(el => el.setAttribute('title', hex));
     _syncWheelHandle();
+    _refreshTweaks();
   }
   function clearColorBall(){
     document.body.classList.remove('has-color');
     $$('.color-ball').forEach(el => el.removeAttribute('title'));
+    const pane = $('#colorTweaks');
+    const plus = $('#colorTweaksBtn');
+    if (pane && !pane.hidden){ pane.hidden = true; pane.innerHTML=''; }
+    if (plus) plus.setAttribute('aria-expanded','false');
   }
   function refreshColorBalls(){
     const hex = parseColorToHex(state.color);
@@ -3660,6 +3753,46 @@
       wheel.addEventListener(ev, () => { dragging = false; });
     });
     window.addEventListener('resize', () => { if (!pop.hidden) syncHandle(); });
+  })();
+
+  // ── + tweaks: 5 colour-effects derived from the picked colour ──
+  (function wireColorTweaks(){
+    const plus  = $('#colorTweaksBtn');
+    const pane  = $('#colorTweaks');
+    const input = $('#color');
+    if (!plus || !pane || !input) return;
+
+    function render(){
+      const hex = parseColorToHex(input.value);
+      if (!hex){ pane.innerHTML = ''; return; }
+      const variants = tweakVariants(hex);
+      pane.innerHTML = variants.map(v =>
+        `<button type="button" class="color-tweak" data-hex="${v.hex}"
+                 style="--tweak-color:${v.hex}"
+                 title="${v.name} — ${v.hex}"
+                 aria-label="${v.name} ${v.hex}"></button>`
+      ).join('');
+    }
+    _refreshTweaks = () => { if (!pane.hidden) render(); };
+
+    plus.addEventListener('click', () => {
+      if (pane.hidden){
+        render();
+        pane.hidden = false;
+        plus.setAttribute('aria-expanded', 'true');
+      } else {
+        pane.hidden = true;
+        plus.setAttribute('aria-expanded', 'false');
+      }
+    });
+    pane.addEventListener('click', (e) => {
+      const btn = e.target.closest('.color-tweak');
+      if (!btn) return;
+      const hex = btn.dataset.hex;
+      if (!hex) return;
+      input.value = hex;
+      input.dispatchEvent(new Event('input', { bubbles:true }));
+    });
   })();
 
   // ── magic bubble clouds (s3-species, s4-matter, s5-particle) ──

@@ -874,6 +874,36 @@
     opacity:0;transition:opacity .3s ease;
   }
   .analyze-arrows.is-on{opacity:1}
+
+  /* Silver convergent arrows — surfaced only when Confluence is currently in
+     the silver/middle position of the Space extra deck, and only while
+     Analyze is on (so "Hide arrows" collapses them along with the main
+     dashed arrows). Two small triangles per list: one above the silver row
+     pointing down into it, one below the silver row pointing up into it.
+     Far more subtle than the analyze-arrows: small, low-opacity silver tint. */
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::before,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(2)::before,
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::after,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(2)::after{
+    content:"";position:absolute;left:50%;
+    transform:translateX(-50%);
+    width:0;height:0;pointer-events:none;
+    border-left:5px solid transparent;
+    border-right:5px solid transparent;
+    z-index:50;opacity:0;
+    transition:opacity .35s ease;
+    filter:drop-shadow(0 0 3px rgba(221,226,236,.4));
+  }
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::before,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(2)::before{
+    top:-8px;border-top:6px solid rgba(221,226,236,.55);
+    opacity:1;
+  }
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::after,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(2)::after{
+    bottom:-8px;border-bottom:6px solid rgba(221,226,236,.55);
+    opacity:1;
+  }
   .analyze-arrows .arrow{
     position:absolute;left:8px;right:8px;height:0;
     border-top:2px dashed var(--accent);
@@ -2288,6 +2318,7 @@
     });
 
     if (_finishApplied) applyFinishIcons();
+    updateSilverArrows();
   }
 
   function showSummary(){
@@ -3089,6 +3120,7 @@
     more1.hidden = !_analyzeOn;
     btn.textContent = _analyzeOn ? 'Hide arrows' : 'Analyze →';
     renderSummaryGrid();
+    updateSilverArrows();
     renderStageLabel();
     if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
@@ -3214,6 +3246,20 @@
   EXTRA_DECKS.forEach(d => { extraOrders[d.id] = d.items.map((_,i)=>i); });
   let _finishApplied = false;
 
+  // Confluence in silver/middle of the Space (x3) extra deck → surface the
+  // subtle convergent arrows across every list, but only while Analyze is on.
+  function isConfluenceInSilver(){
+    const space = EXTRA_DECKS.find(d => d.id === 'x3');
+    if (!space) return false;
+    const order = extraOrders[space.id];
+    if (!order || order.length < 2) return false;
+    return space.items[order[1]] === 'Confluence';
+  }
+  function updateSilverArrows(){
+    const on = _analyzeOn && isConfluenceInSilver();
+    $summary.classList.toggle('show-silver-arrows', on);
+  }
+
   function makeExtraDeck(d){
     const el = document.createElement('div');
     el.className = 'ad-deck';
@@ -3251,12 +3297,14 @@
         [order[pos-1], order[pos]] = [order[pos], order[pos-1]];
         paintExtraDeck(d, el);
         if (_finishApplied) applyFinishIcons(); // refresh gender icons live
+        if (d.id === 'x3') updateSilverArrows();
       });
       if (downBtn) downBtn.addEventListener('click', () => {
         if (pos === order.length-1) return;
         [order[pos+1], order[pos]] = [order[pos], order[pos+1]];
         paintExtraDeck(d, el);
         if (_finishApplied) applyFinishIcons();
+        if (d.id === 'x3') updateSilverArrows();
       });
       list.appendChild(li);
     });

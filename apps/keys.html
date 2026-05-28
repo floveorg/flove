@@ -476,11 +476,10 @@
   .deck-done li .nm{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .deck-done li a.nm{
     color:inherit;text-decoration:none;
-    border-bottom:1px solid currentColor;
-    padding-bottom:1px;opacity:.92;
-    transition:opacity .15s ease, border-color .15s ease;
+    opacity:.92;
+    transition:opacity .15s ease, color .15s ease;
   }
-  .deck-done li a.nm:hover{opacity:1;border-color:var(--accent);color:var(--accent)}
+  .deck-done li a.nm:hover{opacity:1;color:var(--accent)}
   /* z-stacking so the higher-ranked card sits on top */
   .deck-done li:nth-child(1){z-index:10}
   .deck-done li:nth-child(2){z-index:9}
@@ -1028,8 +1027,50 @@
     color:var(--muted);font-size:.86rem;
   }
   .sp-decks{
-    display:flex;flex-wrap:wrap;gap:14px;justify-content:center;
-    padding:8px 0;
+    display:flex;flex-wrap:nowrap;gap:10px;justify-content:flex-start;
+    padding:8px 2px;overflow-x:auto;
+    scrollbar-width:thin;
+  }
+  .sp-decks::-webkit-scrollbar{height:8px}
+  .sp-decks::-webkit-scrollbar-thumb{background:rgba(168,228,255,.18);border-radius:8px}
+
+  /* Mini summary of the parallel-perspective bars pinned to the top of the
+     second play. Shows the user which perspective they're applying. */
+  .sp-bars-summary{
+    margin:0 0 .9rem;padding:.6rem .8rem;
+    border-radius:10px;
+    background:linear-gradient(180deg,rgba(168,228,255,.07),rgba(255,255,255,.02));
+    border:1px solid rgba(168,228,255,.25);
+  }
+  .sp-bars-summary:empty{display:none}
+  .sp-bars-title{
+    font:700 .68rem/1 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.4rem;
+  }
+  .sp-bar-row{
+    display:flex;align-items:center;gap:.5rem;margin:.25rem 0;
+  }
+  .sp-bar-pole{
+    font:700 .68rem/1 system-ui,sans-serif;color:var(--ink);
+    letter-spacing:.1em;text-transform:uppercase;flex:none;min-width:80px;
+  }
+  .sp-bar-pole:last-child{text-align:right}
+  .sp-bar-track{
+    position:relative;flex:1;height:10px;border-radius:999px;
+    background:linear-gradient(90deg,rgba(0,247,167,.18),rgba(168,228,255,.18),rgba(255,95,220,.18));
+    border:1px solid var(--stroke);
+  }
+  .sp-bar-node{
+    position:absolute;top:50%;width:12px;height:12px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#ffe082 60%,#caa256);
+    border:1.5px solid var(--gold);
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 8px rgba(250,220,146,.5);
+  }
+  .sp-bar-fill{
+    position:absolute;top:0;bottom:0;
+    background:linear-gradient(90deg,var(--brand),var(--accent));
+    opacity:.5;border-radius:999px;
   }
   .sp-item{
     display:flex;flex-direction:column;align-items:center;gap:.4rem;
@@ -1128,6 +1169,47 @@
   .sp-actions{
     display:flex;justify-content:center;margin-top:1rem;
   }
+  /* Summary deck collapsed by a tap — rendered as a face-down deck with
+     its title centered. Tap (or Enter/Space) expands it back. */
+  .summary .deck-done.in-summary.summary-collapsed{
+    position:relative;
+    width:var(--triad-block-w);
+    min-height:200px;
+    padding:0;border:0;background:transparent;
+    cursor:pointer;
+    box-shadow:none;
+  }
+  .summary-pentads .deck-done.in-summary.summary-collapsed{
+    width:var(--pentad-block-w);
+  }
+  .summary .deck-done.in-summary.summary-collapsed:hover{
+    transform:translateY(-3px);
+  }
+  .summary .deck-done.in-summary.summary-collapsed .sc-back{
+    position:absolute;left:50%;top:50%;
+    width:calc(100% - 18px);height:calc(100% - 24px);
+    border-radius:14px;
+    background:
+      repeating-linear-gradient(45deg,
+        rgba(255,255,255,.06) 0 6px, transparent 6px 12px),
+      linear-gradient(160deg,#4a3a6e 0%,#3a2a52 55%,#46285c 100%);
+    border:1px solid #5a4a7a;
+    box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.06);
+  }
+  .summary .deck-done.in-summary.summary-collapsed .sc-back-1{transform:translate(-50%,-50%) rotate(-2deg) translateY(4px)}
+  .summary .deck-done.in-summary.summary-collapsed .sc-back-2{transform:translate(-50%,-50%) rotate(1deg) translateY(2px)}
+  .summary .deck-done.in-summary.summary-collapsed .sc-back-3{transform:translate(-50%,-50%) rotate(-.5deg)}
+  .summary .deck-done.in-summary.summary-collapsed .sc-title{
+    position:absolute;inset:0;display:grid;place-items:center;
+    text-align:center;padding:.6rem;
+    font:700 1rem/1.1 ui-serif,Georgia,serif;letter-spacing:.5px;
+    color:transparent;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;
+    text-shadow:0 4px 12px rgba(0,0,0,.4);
+    text-transform:uppercase;
+  }
+
   /* Highlight on a summary deck whose position changed between the original
      play and the second play. */
   .summary .deck-done.in-summary.is-moved{
@@ -2140,7 +2222,8 @@
 
     <section class="second-play" id="second-play" hidden>
       <h3 class="sp-title">Second play — reorder under the new perspective</h3>
-      <p class="sp-help">↑ ↓ re-rank items inside each group; ← → swap groups left or right. Drag a column to move it too.</p>
+      <p class="sp-help">Top ↓ and bottom ↑ re-rank inside each group; ← → swap whole columns. Drag a column to move it too.</p>
+      <div class="sp-bars-summary" id="sp-bars-summary"></div>
       <div class="sp-decks" id="sp-decks"></div>
       <div class="sp-actions">
         <button class="btn btn-primary" id="sp-finish-btn" type="button">Finish second play →</button>
@@ -2646,10 +2729,46 @@
     return pq;
   }
 
+  // Summary decks the user has chosen to collapse — clicking a deck-done
+  // in the summary collapses it into a face-down deck with its title
+  // centered; tapping the closed deck expands it again.
+  const _summaryCollapsed = new Set();
+
   function renderDoneDeck(deckIdx, opts){
     opts = opts || {};
     const deck = DECKS[deckIdx];
     const order = state.orders[deck.id];
+
+    if (opts.inSummary && _summaryCollapsed.has(deck.id)){
+      // Collapsed-in-summary: face-down deck with title written across its
+      // center. Tap (or Enter / Space) to expand back into the full deck.
+      const closed = document.createElement('div');
+      closed.className = 'deck-done in-summary summary-collapsed';
+      if (typeof movedDeckIds === 'function' && movedDeckIds().has(deck.id)){
+        closed.classList.add('is-moved');
+      }
+      closed.dataset.deckId = deck.id;
+      closed.setAttribute('role','button');
+      closed.setAttribute('tabindex','0');
+      closed.title = 'tap to expand';
+      closed.innerHTML = `
+        <div class="sc-back sc-back-1"></div>
+        <div class="sc-back sc-back-2"></div>
+        <div class="sc-back sc-back-3"></div>
+        <div class="sc-title">${escapeHTML(deck.title)}</div>
+      `;
+      const expand = (e) => {
+        e.stopPropagation();
+        _summaryCollapsed.delete(deck.id);
+        renderSummaryGrid();
+      };
+      closed.addEventListener('click', expand);
+      closed.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); expand(e); }
+      });
+      return closed;
+    }
+
     const el = document.createElement('div');
     el.className = 'deck-done';
     if (opts.inSummary) el.classList.add('in-summary');
@@ -2657,10 +2776,8 @@
       el.classList.add('is-moved');
     }
     el.dataset.deckId = deck.id;
-    // Main decks in the summary are read-only — only the live board reopens
-    // them. Anchor links inside (.nm a → flove.org) and saved-why blocks
-    // still receive clicks normally.
     if (!opts.inSummary){
+      // Live board: clicking re-opens the deck for editing.
       el.setAttribute('role','button');
       el.setAttribute('tabindex','0');
       el.title = 'tap to reopen';
@@ -2670,6 +2787,28 @@
         openDeck(deckIdx);
       });
       el.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); openDeck(deckIdx); } });
+    } else {
+      // Summary: clicking the deck collapses it (anchors + why blocks
+      // + free-play handlers still receive their own clicks first).
+      el.setAttribute('role','button');
+      el.setAttribute('tabindex','0');
+      el.title = 'tap to collapse';
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        if (e.target.closest('.pq-saved')) return;
+        // Don't collapse mid free-play multiselect — that flow owns clicks.
+        if ($summary.classList.contains('free-play')) return;
+        _summaryCollapsed.add(deck.id);
+        renderSummaryGrid();
+      });
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          if ($summary.classList.contains('free-play')) return;
+          _summaryCollapsed.add(deck.id);
+          renderSummaryGrid();
+        }
+      });
     }
 
     // Title is only shown in the Keys-closed summary, not on the live board
@@ -3043,6 +3182,8 @@
     const $secPlay = document.getElementById('second-play');
     if ($secPlay) $secPlay.hidden = true;
     updatePlusBtn();
+    // Collapsed summary decks reset too — every deck comes back expanded.
+    if (typeof _summaryCollapsed !== 'undefined') _summaryCollapsed.clear();
     removeFinishIcons();
     const $arrowsOverlay = document.getElementById('analyze-arrows');
     if ($arrowsOverlay) $arrowsOverlay.classList.remove('is-on');
@@ -4136,9 +4277,16 @@
       $panel.hidden = false;
       $btn.textContent = 'Hide perspectives';
       $btn2.hidden = false;
+      // Re-show the second play if the user already added a parallel row.
+      renderSecondPlay();
     } else {
       $panel.hidden = true;
       $btn.textContent = 'More';
+      // Hiding perspectives also collapses the second play — they live inside
+      // the same flow. The Insights button stays as-is if the user has data,
+      // but the second-play UI itself is dependent on the bars being open.
+      const $secPlay = document.getElementById('second-play');
+      if ($secPlay) $secPlay.hidden = true;
       // Keep the second "More" visible once revealed; do not re-hide
     }
     $btn.classList.toggle('btn-primary', !_barsOn);
@@ -4202,11 +4350,13 @@
       const orig = originalGroupOrder();
       const tag = 'Second play';
       const movedItems = [];
-      secondPlayOrder.forEach((deckIdx, pos) => {
-        const origPos = orig.indexOf(deckIdx);
+      secondPlayOrder.forEach((deckId, pos) => {
+        const origPos = orig.indexOf(deckId);
         if (origPos === -1 || origPos === pos) return;
+        const deck = spDeckById(deckId);
+        if (!deck) return;
         movedItems.push({
-          title: DECKS[deckIdx].title,
+          title: deck.title,
           from: origPos + 1,
           to: pos + 1,
           delta: pos - origPos,
@@ -4229,9 +4379,9 @@
       if (secondPlayItemOrders){
         Object.keys(secondPlayItemOrders).forEach(deckId => {
           const newOrd = secondPlayItemOrders[deckId];
-          const oldOrd = state.orders[deckId];
+          const oldOrd = spOriginalItemOrder(deckId);
           if (!newOrd || !oldOrd) return;
-          const deck = DECKS.find(d => d.id === deckId);
+          const deck = spDeckById(deckId);
           if (!deck) return;
           const shifts = [];
           newOrd.forEach((itemIdx, pos) => {
@@ -4314,9 +4464,28 @@
   function initSecondPlayItemOrders(){
     if (secondPlayItemOrders) return;
     secondPlayItemOrders = {};
-    DECKS.forEach(d => {
-      if (state.done[d.id]) secondPlayItemOrders[d.id] = state.orders[d.id].slice();
+    originalGroupOrder().forEach(id => {
+      secondPlayItemOrders[id] = spOriginalItemOrder(id);
     });
+  }
+
+  // Second play columns are addressed by deck ID so we can include both
+  // main decks (t1..t5, p1..p5) and EXTRA_DECKS (x1..x4) uniformly. x5
+  // (the user-editable "new group") is skipped — its content is custom and
+  // doesn't share the perspective-reorder model with the canonical decks.
+  function spDeckById(id){
+    if (id && id[0] === 'x') return EXTRA_DECKS.find(d => d.id === id);
+    return DECKS.find(d => d.id === id);
+  }
+  function spDeckIsExtra(id){ return id && id[0] === 'x'; }
+  function spDeckItems(id){
+    const d = spDeckById(id);
+    return d ? d.items : [];
+  }
+  function spOriginalItemOrder(id){
+    if (spDeckIsExtra(id) && extraOrders[id]) return extraOrders[id].slice();
+    if (state.orders[id]) return state.orders[id].slice();
+    return spDeckItems(id).map((_,i) => i);
   }
 
   function originalGroupOrder(){
@@ -4324,17 +4493,56 @@
     const out = [];
     // Triads in the original display order
     TRIAD_DISPLAY_ORDER.forEach(idx => {
-      if (state.done[DECKS[idx].id] && !seen.has(idx)){
-        seen.add(idx); out.push(idx);
+      const id = DECKS[idx].id;
+      if (state.done[id] && !seen.has(id)){
+        seen.add(id); out.push(id);
       }
     });
     // Pentads in deck index order (positions 5..9)
     [5,6,7,8,9].forEach(idx => {
-      if (state.done[DECKS[idx].id] && !seen.has(idx)){
-        seen.add(idx); out.push(idx);
+      const id = DECKS[idx].id;
+      if (state.done[id] && !seen.has(id)){
+        seen.add(id); out.push(id);
       }
     });
+    // Extras after — only the canonical four (x1..x4), and only when the
+    // user has revealed them via Analyze → Extras.
+    if (state.showExtras){
+      ['x1','x2','x3','x4'].forEach(id => {
+        if (!seen.has(id)){ seen.add(id); out.push(id); }
+      });
+    }
     return out;
+  }
+
+  function renderSecondPlaySummaryBars(){
+    // Mini visualisation of the parallel-perspective bars' current state,
+    // pinned to the top of the second-play section so the user has the
+    // perspective they're applying in view while they reorder.
+    const $sum = document.getElementById('sp-bars-summary');
+    if (!$sum) return;
+    if (parallelRows.length === 0){ $sum.innerHTML = ''; return; }
+    const row = parallelRows[0];
+    const rows = BARS.map(b => {
+      const s = row.states[b.id];
+      let trackHTML = '';
+      if (s && s.p1 != null){
+        if (s.phase === 2 && s.p2 != null){
+          const lo = Math.min(s.p1, s.p2), hi = Math.max(s.p1, s.p2);
+          trackHTML = `<div class="sp-bar-fill" style="left:${lo}%;width:${hi-lo}%"></div>`;
+        } else {
+          trackHTML = `<div class="sp-bar-node" style="left:${s.p1}%"></div>`;
+        }
+      }
+      return `
+        <div class="sp-bar-row">
+          <span class="sp-bar-pole">${escapeHTML(b.leftLabel)}</span>
+          <div class="sp-bar-track">${trackHTML}</div>
+          <span class="sp-bar-pole">${escapeHTML(b.rightLabel)}</span>
+        </div>
+      `;
+    }).join('');
+    $sum.innerHTML = `<div class="sp-bars-title">Perspective 2</div>${rows}`;
   }
 
   function renderSecondPlay(){
@@ -4345,47 +4553,55 @@
     if (!eligible) return;
     if (!secondPlayOrder) secondPlayOrder = originalGroupOrder();
     initSecondPlayItemOrders();
+    renderSecondPlaySummaryBars();
     const $decks = document.getElementById('sp-decks');
     $decks.innerHTML = '';
-    secondPlayOrder.forEach((deckIdx, pos) => {
-      const deck = DECKS[deckIdx];
+    secondPlayOrder.forEach((deckId, pos) => {
+      const deck = spDeckById(deckId);
+      if (!deck) return;
       const title = escapeHTML(deck.title);
       const item = document.createElement('div');
       item.className = 'sp-item sp-item-expanded';
       item.dataset.pos = String(pos);
       item.setAttribute('draggable', 'true');
-      // Per-item rows with ↑ / ↓ to reorder the items within this deck under
-      // the new perspective. Underneath: ← / → to move this whole deck-column
-      // left or right vs the others.
-      const itemsOrder = secondPlayItemOrders[deck.id] || deck.items.map((_,i)=>i);
-      const itemsHTML = itemsOrder.map((iIdx, iPos) => `
-        <li data-item-pos="${iPos}">
-          <span class="sp-nm">${escapeHTML(deck.items[iIdx] || '—')}</span>
-          <span class="sp-item-arrows">
-            <button data-iact="up"   ${iPos === 0 ? 'disabled' : ''} aria-label="Move item up"   title="up">↑</button>
-            <button data-iact="down" ${iPos === itemsOrder.length - 1 ? 'disabled' : ''} aria-label="Move item down" title="down">↓</button>
-          </span>
-        </li>
-      `).join('');
+      // Per-item rows: only the first gets ↓, only the last gets ↑.
+      // Middle rows have NO arrows (the user reorders ends; middles fall
+      // into place by virtue of the end swaps).
+      const itemsOrder = secondPlayItemOrders[deckId] || spOriginalItemOrder(deckId);
+      const items = spDeckItems(deckId);
+      const itemsHTML = itemsOrder.map((iIdx, iPos) => {
+        const isFirst = iPos === 0;
+        const isLast  = iPos === itemsOrder.length - 1;
+        const arrowHTML = isFirst
+          ? `<button data-iact="down" aria-label="Move item down" title="down">↓</button>`
+          : isLast
+          ? `<button data-iact="up"   aria-label="Move item up"   title="up">↑</button>`
+          : '';
+        return `
+          <li data-item-pos="${iPos}">
+            <span class="sp-nm">${escapeHTML(items[iIdx] || '—')}</span>
+            ${arrowHTML ? `<span class="sp-item-arrows">${arrowHTML}</span>` : ''}
+          </li>
+        `;
+      }).join('');
       item.innerHTML = `
         <div class="sp-deck-open" aria-label="${title}">
           <div class="sp-deck-title">${title}</div>
           <ol class="sp-items">${itemsHTML}</ol>
         </div>
-        <span class="sp-pos">#${pos + 1}</span>
         <div class="sp-arrows">
           <button data-act="left"  ${pos === 0 ? 'disabled' : ''} aria-label="Move column left"  title="left">←</button>
           <button data-act="right" ${pos === secondPlayOrder.length - 1 ? 'disabled' : ''} aria-label="Move column right" title="right">→</button>
         </div>
       `;
-      // Item-level ↑ / ↓ — reorder items within the deck.
+      // Item-level arrows — only present on first (↓) and last (↑) rows.
       item.querySelectorAll('[data-iact]').forEach(btn => {
         btn.addEventListener('click', e => {
           e.stopPropagation();
           const li = btn.closest('li');
           const iPos = parseInt(li.dataset.itemPos, 10);
           const delta = btn.dataset.iact === 'up' ? -1 : +1;
-          spMoveItem(deck.id, iPos, delta);
+          spMoveItem(deckId, iPos, delta);
         });
       });
       // Column-level ← / → — reorder the decks themselves.
@@ -4459,8 +4675,8 @@
     if (!secondPlayFinished || !secondPlayOrder) return new Set();
     const orig = originalGroupOrder();
     const moved = new Set();
-    secondPlayOrder.forEach((deckIdx, pos) => {
-      if (orig[pos] !== deckIdx) moved.add(DECKS[deckIdx].id);
+    secondPlayOrder.forEach((deckId, pos) => {
+      if (orig[pos] !== deckId) moved.add(deckId);
     });
     return moved;
   }

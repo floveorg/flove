@@ -6841,26 +6841,89 @@ body:has(#rater-addrow-1:checked) .rater-emoji-picker{ display: grid; }
   transition: background var(--fast), color var(--fast), border-color var(--fast);
 }
 .picker-close:hover{ background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+/* ⋯-more picker — cloud of bubbles.
+   Each cell is a round bubble; opening the picker (#rater-addrow-1
+   checked) triggers a staggered "rise from below" so the cloud drifts
+   up into view, then breathes gently. Pure CSS, no JS. */
 .picker-cell{
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px;
+  width: 30px; height: 30px;
   font-size: 1rem;
   cursor: pointer;
-  border-radius: 4px;
-  background: transparent;
-  border: 1px solid transparent;
-  transition: background var(--fast), transform var(--fast), border-color var(--fast), box-shadow var(--fast);
+  position: relative;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--accent-rgb), .12);
+  background:
+    radial-gradient(circle at 32% 28%,
+      rgba(255, 255, 255, .96) 0%,
+      rgba(255, 255, 255, .82) 35%,
+      var(--fill-soft) 100%);
+  box-shadow:
+    inset 1px 1px 2px rgba(255, 255, 255, .9),
+    inset 0 -2px 4px rgba(var(--accent-rgb), .08),
+    0 2px 5px rgba(0, 0, 0, .08);
+  opacity: 0;
+  transform: translateY(60px) scale(.5);
+  transition: background var(--fast), border-color var(--fast), box-shadow var(--fast);
 }
-.picker-cell:hover{ background: var(--fill-soft); transform: scale(1.08); }
-.picker-cell:active{ animation: picker-cell-pop .25s var(--bounce); }
-@keyframes picker-cell-pop{
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.35); }
-  70%  { transform: scale(.92); }
-  100% { transform: scale(1.08); }
+.picker-cell:hover{ border-color: var(--accent); transform: scale(1.08); }
+body:has(#rater-addrow-1:checked) .picker-cell{
+  animation:
+    bubble-rise  .8s cubic-bezier(.22, .9, .35, 1.05) both,
+    bubble-float 4s ease-in-out infinite;
+  animation-delay: calc(var(--bi, 0) * .055s),
+                   calc(var(--bi, 0) * .055s + .9s);
 }
-/* Selected cells get a filled background + ring so multi-select state is
-   obvious. Pure-CSS via :has() on the matching ctl checkbox. */
+@keyframes bubble-rise{
+  0%  { opacity: 0; transform: translateY(60px) scale(.4) rotate(-6deg); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.08) rotate(2deg); }
+  100%{ opacity: 1; transform: translateY(0)    scale(1)    rotate(0);   }
+}
+@keyframes bubble-float{
+  0%, 100% { transform: translateY(0)    scale(1);    }
+  50%      { transform: translateY(-3px) scale(1.02); }
+}
+/* Pseudo-random index per cell — spreads the rise so it reads as a
+   cloud, not a left-to-right sweep. 21 picker cells, indices 0..20. */
+.rater-emoji-picker > .picker-cell:nth-child(1)  { --bi: 5;  }
+.rater-emoji-picker > .picker-cell:nth-child(2)  { --bi: 2;  }
+.rater-emoji-picker > .picker-cell:nth-child(3)  { --bi: 9;  }
+.rater-emoji-picker > .picker-cell:nth-child(4)  { --bi: 0;  }
+.rater-emoji-picker > .picker-cell:nth-child(5)  { --bi: 13; }
+.rater-emoji-picker > .picker-cell:nth-child(6)  { --bi: 4;  }
+.rater-emoji-picker > .picker-cell:nth-child(7)  { --bi: 17; }
+.rater-emoji-picker > .picker-cell:nth-child(8)  { --bi: 7;  }
+.rater-emoji-picker > .picker-cell:nth-child(9)  { --bi: 11; }
+.rater-emoji-picker > .picker-cell:nth-child(10) { --bi: 1;  }
+.rater-emoji-picker > .picker-cell:nth-child(11) { --bi: 15; }
+.rater-emoji-picker > .picker-cell:nth-child(12) { --bi: 6;  }
+.rater-emoji-picker > .picker-cell:nth-child(13) { --bi: 19; }
+.rater-emoji-picker > .picker-cell:nth-child(14) { --bi: 3;  }
+.rater-emoji-picker > .picker-cell:nth-child(15) { --bi: 12; }
+.rater-emoji-picker > .picker-cell:nth-child(16) { --bi: 8;  }
+.rater-emoji-picker > .picker-cell:nth-child(17) { --bi: 18; }
+.rater-emoji-picker > .picker-cell:nth-child(18) { --bi: 10; }
+.rater-emoji-picker > .picker-cell:nth-child(19) { --bi: 14; }
+.rater-emoji-picker > .picker-cell:nth-child(20) { --bi: 20; }
+.rater-emoji-picker > .picker-cell:nth-child(21) { --bi: 16; }
+
+/* Splash ring — pseudo-element grows outward + fades when a bubble
+   flips to :checked. Re-fires on toggle (animation goes none → set). */
+.picker-cell::after{
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--accent-rgb), .55);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(.7);
+}
+@keyframes bubble-splash{
+  0%  { opacity: .9; transform: scale(.55); border-width: 3px; }
+  100%{ opacity: 0;  transform: scale(2.6); border-width: 1px; }
+}
+/* Selected bubbles: deeper accent-tinted gradient + persistent ring,
+   plus the one-shot splash on the ::after. Pure-CSS via :has(). */
 body:has(#pkr-1:checked)  .picker-cell[for="pkr-1"],
 body:has(#pkr-2:checked)  .picker-cell[for="pkr-2"],
 body:has(#pkr-3:checked)  .picker-cell[for="pkr-3"],
@@ -6882,9 +6945,45 @@ body:has(#pkr-22:checked) .picker-cell[for="pkr-22"],
 body:has(#pkr-23:checked) .picker-cell[for="pkr-23"],
 body:has(#pkr-24:checked) .picker-cell[for="pkr-24"],
 body:has(#pkr-25:checked) .picker-cell[for="pkr-25"]{
-  background: var(--fill-mid);
+  background:
+    radial-gradient(circle at 32% 28%,
+      #fff 0%, var(--fill-mid) 55%, var(--accent) 100%);
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-glow);
+  box-shadow:
+    inset 1px 1px 2px rgba(255, 255, 255, .85),
+    inset 0 -2px 5px rgba(var(--accent-rgb), .35),
+    0 0 0 2px var(--accent-glow);
+}
+body:has(#pkr-1:checked)  .picker-cell[for="pkr-1"]::after,
+body:has(#pkr-2:checked)  .picker-cell[for="pkr-2"]::after,
+body:has(#pkr-3:checked)  .picker-cell[for="pkr-3"]::after,
+body:has(#pkr-4:checked)  .picker-cell[for="pkr-4"]::after,
+body:has(#pkr-5:checked)  .picker-cell[for="pkr-5"]::after,
+body:has(#pkr-8:checked)  .picker-cell[for="pkr-8"]::after,
+body:has(#pkr-9:checked)  .picker-cell[for="pkr-9"]::after,
+body:has(#pkr-10:checked) .picker-cell[for="pkr-10"]::after,
+body:has(#pkr-12:checked) .picker-cell[for="pkr-12"]::after,
+body:has(#pkr-13:checked) .picker-cell[for="pkr-13"]::after,
+body:has(#pkr-14:checked) .picker-cell[for="pkr-14"]::after,
+body:has(#pkr-15:checked) .picker-cell[for="pkr-15"]::after,
+body:has(#pkr-16:checked) .picker-cell[for="pkr-16"]::after,
+body:has(#pkr-17:checked) .picker-cell[for="pkr-17"]::after,
+body:has(#pkr-18:checked) .picker-cell[for="pkr-18"]::after,
+body:has(#pkr-19:checked) .picker-cell[for="pkr-19"]::after,
+body:has(#pkr-20:checked) .picker-cell[for="pkr-20"]::after,
+body:has(#pkr-22:checked) .picker-cell[for="pkr-22"]::after,
+body:has(#pkr-23:checked) .picker-cell[for="pkr-23"]::after,
+body:has(#pkr-24:checked) .picker-cell[for="pkr-24"]::after,
+body:has(#pkr-25:checked) .picker-cell[for="pkr-25"]::after{
+  animation: bubble-splash .55s ease-out;
+}
+@media (prefers-reduced-motion: reduce){
+  body:has(#rater-addrow-1:checked) .picker-cell{
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .picker-cell::after{ animation: none; }
 }
 
 /* Rater open: Heart, magic ✦ and the "+" entry-more all stay visible.

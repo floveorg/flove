@@ -1044,6 +1044,47 @@
   .sp-item .sp-deck:active{cursor:grabbing}
   .sp-item:hover .sp-deck{transform:translateY(-3px)}
   .sp-item .sp-deck.drag-over{outline:2px solid var(--accent);outline-offset:6px;border-radius:14px}
+  .sp-item.drag-over{outline:2px solid var(--accent);outline-offset:6px;border-radius:14px}
+  /* Expanded variant: open deck with title + items, ↑/↓ per item, ←/→ below
+     to move the whole column horizontally. */
+  .sp-item-expanded{width:140px;cursor:grab}
+  .sp-item-expanded:active{cursor:grabbing}
+  .sp-deck-open{
+    width:100%;padding:8px 7px;border-radius:14px;
+    background:linear-gradient(180deg,#363650,#2e2e44);
+    border:1px solid var(--stroke);
+    box-shadow:0 8px 20px rgba(0,0,0,.25);
+  }
+  .sp-deck-title{
+    font:600 .78rem/1 ui-serif,Georgia,serif;color:var(--gold);
+    letter-spacing:.4px;text-align:center;margin-bottom:6px;text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .sp-items{
+    margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;
+  }
+  .sp-items li{
+    display:flex;align-items:center;justify-content:space-between;gap:.3rem;
+    padding:.32rem .4rem;border-radius:8px;
+    border:1px solid #50506a;
+    background:linear-gradient(170deg,#3c3c54 0%,#2f2f44 100%);
+    font:600 .82rem/1.15 ui-serif,Georgia,serif;letter-spacing:.2px;color:var(--ink);
+    box-shadow:0 2px 5px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .sp-items .sp-nm{
+    flex:1;min-width:0;text-align:center;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .sp-item-arrows{display:flex;gap:3px;flex:none}
+  .sp-item-arrows button{
+    width:1.35rem;height:1.35rem;border-radius:6px;
+    background:#3a3a52;border:1px solid #5a5a76;color:var(--ink);
+    font:700 .75rem/1 system-ui,sans-serif;cursor:pointer;padding:0;
+    display:grid;place-items:center;
+    transition:color .15s ease, border-color .15s ease, transform .12s ease;
+  }
+  .sp-item-arrows button:hover{transform:translateY(-1px);border-color:var(--accent);color:var(--accent)}
+  .sp-item-arrows button:disabled{opacity:.25;cursor:not-allowed;transform:none}
   .sp-deck .sp-back{
     position:absolute;left:50%;top:50%;
     width:calc(100% - 22px);height:calc(100% - 30px);
@@ -2098,8 +2139,8 @@
     <div class="insights-panel" id="insights-panel" hidden></div>
 
     <section class="second-play" id="second-play" hidden>
-      <h3 class="sp-title">Second play — reorder the groups</h3>
-      <p class="sp-help">Re-rank every group from this new perspective. Use ↑ ↓ or drag the closed decks.</p>
+      <h3 class="sp-title">Second play — reorder under the new perspective</h3>
+      <p class="sp-help">↑ ↓ re-rank items inside each group; ← → swap groups left or right. Drag a column to move it too.</p>
       <div class="sp-decks" id="sp-decks"></div>
       <div class="sp-actions">
         <button class="btn btn-primary" id="sp-finish-btn" type="button">Finish second play →</button>
@@ -2997,6 +3038,7 @@
     updateInsightsBtn();
     // Reset second-play state too — comes back fresh every summary entry.
     secondPlayOrder = null;
+    secondPlayItemOrders = null;
     secondPlayFinished = false;
     const $secPlay = document.getElementById('second-play');
     if ($secPlay) $secPlay.hidden = true;
@@ -4171,17 +4213,43 @@
         });
       });
       if (movedItems.length === 0){
-        items.push({ tag, text:`Same ranking under the new perspective — the order of your groups held up.` });
+        items.push({ tag, text:`Same group ranking under the new perspective.` });
       } else {
         movedItems.forEach(m => {
-          const dir = m.delta > 0 ? 'down' : 'up';
-          items.push({ tag, text:`<b>${escapeHTML(m.title)}</b> moved ${dir} from position ${m.from} to ${m.to} under the new perspective.` });
+          const dir = m.delta > 0 ? 'right' : 'left';
+          items.push({ tag, text:`<b>${escapeHTML(m.title)}</b> moved ${dir} from column ${m.from} to ${m.to} under the new perspective.` });
         });
-        // Highlight the biggest shift as a top-level read.
         const top = movedItems.slice().sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
         if (Math.abs(top.delta) >= 2){
-          items.push({ tag, text:`Biggest shift: <b>${escapeHTML(top.title)}</b> — ${Math.abs(top.delta)} spots. Worth asking why this perspective reshapes that one most.` });
+          items.push({ tag, text:`Biggest column shift: <b>${escapeHTML(top.title)}</b> — ${Math.abs(top.delta)} columns. Worth asking why this perspective reshapes that one most.` });
         }
+      }
+      // Item-level contrasts: highlight every key whose internal ranking
+      // changed between the original orders and secondPlayItemOrders.
+      if (secondPlayItemOrders){
+        Object.keys(secondPlayItemOrders).forEach(deckId => {
+          const newOrd = secondPlayItemOrders[deckId];
+          const oldOrd = state.orders[deckId];
+          if (!newOrd || !oldOrd) return;
+          const deck = DECKS.find(d => d.id === deckId);
+          if (!deck) return;
+          const shifts = [];
+          newOrd.forEach((itemIdx, pos) => {
+            const origPos = oldOrd.indexOf(itemIdx);
+            if (origPos === -1 || origPos === pos) return;
+            shifts.push({
+              word: deck.items[itemIdx] || '—',
+              delta: pos - origPos,
+            });
+          });
+          if (shifts.length === 0) return;
+          const top = shifts.slice().sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
+          const dir = top.delta > 0 ? 'down' : 'up';
+          items.push({
+            tag,
+            text:`Inside <b>${escapeHTML(deck.title)}</b>: <b>${escapeHTML(top.word)}</b> moved ${dir} ${Math.abs(top.delta)} ${Math.abs(top.delta) === 1 ? 'rank' : 'ranks'}.`,
+          });
+        });
       }
     }
     return items;
@@ -4239,8 +4307,17 @@
   // secondPlayOrder and the summary highlights any deck whose position
   // shifted vs the original.
   let secondPlayOrder = null;       // [deckIdx, …] in user-reordered order
+  let secondPlayItemOrders = null;  // { deckId: [itemIdx, …] } per-deck item order under the new perspective
   let secondPlayFinished = false;
   let _spDrag = null;
+
+  function initSecondPlayItemOrders(){
+    if (secondPlayItemOrders) return;
+    secondPlayItemOrders = {};
+    DECKS.forEach(d => {
+      if (state.done[d.id]) secondPlayItemOrders[d.id] = state.orders[d.id].slice();
+    });
+  }
 
   function originalGroupOrder(){
     const seen = new Set();
@@ -4267,31 +4344,57 @@
     $sec.hidden = !eligible;
     if (!eligible) return;
     if (!secondPlayOrder) secondPlayOrder = originalGroupOrder();
+    initSecondPlayItemOrders();
     const $decks = document.getElementById('sp-decks');
     $decks.innerHTML = '';
     secondPlayOrder.forEach((deckIdx, pos) => {
-      const item = document.createElement('div');
-      item.className = 'sp-item';
-      item.dataset.pos = String(pos);
-      item.setAttribute('draggable', 'true');
       const deck = DECKS[deckIdx];
       const title = escapeHTML(deck.title);
+      const item = document.createElement('div');
+      item.className = 'sp-item sp-item-expanded';
+      item.dataset.pos = String(pos);
+      item.setAttribute('draggable', 'true');
+      // Per-item rows with ↑ / ↓ to reorder the items within this deck under
+      // the new perspective. Underneath: ← / → to move this whole deck-column
+      // left or right vs the others.
+      const itemsOrder = secondPlayItemOrders[deck.id] || deck.items.map((_,i)=>i);
+      const itemsHTML = itemsOrder.map((iIdx, iPos) => `
+        <li data-item-pos="${iPos}">
+          <span class="sp-nm">${escapeHTML(deck.items[iIdx] || '—')}</span>
+          <span class="sp-item-arrows">
+            <button data-iact="up"   ${iPos === 0 ? 'disabled' : ''} aria-label="Move item up"   title="up">↑</button>
+            <button data-iact="down" ${iPos === itemsOrder.length - 1 ? 'disabled' : ''} aria-label="Move item down" title="down">↓</button>
+          </span>
+        </li>
+      `).join('');
       item.innerHTML = `
-        <div class="sp-deck" aria-label="${title} (closed)">
-          <div class="sp-back sp-back-1"></div>
-          <div class="sp-back sp-back-2"></div>
-          <div class="sp-back sp-back-3"></div>
-          <div class="sp-mark">${title}</div>
+        <div class="sp-deck-open" aria-label="${title}">
+          <div class="sp-deck-title">${title}</div>
+          <ol class="sp-items">${itemsHTML}</ol>
         </div>
         <span class="sp-pos">#${pos + 1}</span>
         <div class="sp-arrows">
-          <button data-act="up"   ${pos === 0 ? 'disabled' : ''} aria-label="Move up"   title="up">↑</button>
-          <button data-act="down" ${pos === secondPlayOrder.length - 1 ? 'disabled' : ''} aria-label="Move down" title="down">↓</button>
+          <button data-act="left"  ${pos === 0 ? 'disabled' : ''} aria-label="Move column left"  title="left">←</button>
+          <button data-act="right" ${pos === secondPlayOrder.length - 1 ? 'disabled' : ''} aria-label="Move column right" title="right">→</button>
         </div>
       `;
-      item.querySelector('[data-act="up"]').addEventListener('click', () => spMove(pos, -1));
-      item.querySelector('[data-act="down"]').addEventListener('click', () => spMove(pos, +1));
+      // Item-level ↑ / ↓ — reorder items within the deck.
+      item.querySelectorAll('[data-iact]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const li = btn.closest('li');
+          const iPos = parseInt(li.dataset.itemPos, 10);
+          const delta = btn.dataset.iact === 'up' ? -1 : +1;
+          spMoveItem(deck.id, iPos, delta);
+        });
+      });
+      // Column-level ← / → — reorder the decks themselves.
+      item.querySelector('[data-act="left"]') .addEventListener('click', () => spMove(pos, -1));
+      item.querySelector('[data-act="right"]').addEventListener('click', () => spMove(pos, +1));
+      // Drag the whole open deck to a new column position.
       item.addEventListener('dragstart', e => {
+        // Don't start a deck-level drag if the user grabbed an item arrow.
+        if (e.target.closest('.sp-item-arrows')){ e.preventDefault(); return; }
         _spDrag = { pos };
         e.dataTransfer.effectAllowed = 'move';
         try { e.dataTransfer.setData('text/plain', String(pos)); } catch(_){}
@@ -4327,6 +4430,15 @@
     const to = pos + delta;
     if (to < 0 || to >= secondPlayOrder.length) return;
     [secondPlayOrder[pos], secondPlayOrder[to]] = [secondPlayOrder[to], secondPlayOrder[pos]];
+    renderSecondPlay();
+  }
+
+  function spMoveItem(deckId, iPos, delta){
+    const arr = secondPlayItemOrders[deckId];
+    if (!arr) return;
+    const to = iPos + delta;
+    if (to < 0 || to >= arr.length) return;
+    [arr[iPos], arr[to]] = [arr[to], arr[iPos]];
     renderSecondPlay();
   }
 

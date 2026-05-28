@@ -1016,26 +1016,103 @@
   .timestats__t-row b{ color:var(--ink); font-weight:600 }
   .timestats__t-row .t-delta{ color:var(--app-accent-soft); font-weight:600 }
 
-  /* ─── Colour picker swatch (s1-color) ─────────────────── */
+  /* ─── Rainbow colour picker + rotating colour ball ────── */
+  body{ --current-color: #f5b463 }
+
   .color-picker-wrap{
     flex:0 0 auto;
-    display:inline-flex; align-items:stretch;
+    position:relative;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:2.8rem; min-height:2.8rem;
+    cursor:pointer;
   }
   .color-picker-wrap input[type="color"]{
-    appearance:none; -webkit-appearance:none; -moz-appearance:none;
-    width:3rem; min-height:100%;
-    padding:0; margin:0;
-    border:1px solid var(--line);
-    background:var(--field);
-    border-radius:14px;
-    cursor:pointer; overflow:hidden;
-    transition: border-color .2s ease, background .2s ease;
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    opacity:0; cursor:pointer;
+    border:0; padding:0; margin:0;
+    background:transparent;
   }
-  .color-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper{ padding:.35rem }
-  .color-picker-wrap input[type="color"]::-webkit-color-swatch{ border:0; border-radius:10px }
-  .color-picker-wrap input[type="color"]::-moz-color-swatch{ border:0; border-radius:10px }
-  .color-picker-wrap input[type="color"]:hover{ border-color:var(--app-accent-soft) }
-  .color-picker-wrap input[type="color"]:focus{ outline:none; border-color:var(--app-accent); background:var(--field-focus) }
+  .color-pick-icon{
+    position:relative;
+    width:2.15rem; height:2.15rem;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.65) 0, rgba(255,255,255,.10) 22%, transparent 50%),
+      conic-gradient(from 0deg,
+        #ff5e62, #ff9a3c, #ffd56b, #fff36b, #c5f56b,
+        #6bf5a8, #6bd5f5, #6b8df5, #b66bf5, #f56bd5, #ff5e62);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,.45),
+      inset 0 -3px 6px rgba(0,0,0,.20),
+      0 2px 6px rgba(0,0,0,.25);
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+    pointer-events:none;
+  }
+  .color-picker-wrap:hover .color-pick-icon,
+  .color-picker-wrap:focus-within .color-pick-icon{
+    transform: rotate(20deg) scale(1.08);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,.55),
+      inset 0 -3px 6px rgba(0,0,0,.20),
+      0 4px 14px rgba(255,255,255,.22);
+  }
+
+  @property --ball-rot { syntax: '<angle>'; inherits: false; initial-value: 0deg }
+  @keyframes ballSpin { to { --ball-rot: 360deg } }
+
+  .color-ball{
+    position:relative;
+    display:none;
+    width:1.4rem; height:1.4rem;
+    border-radius:50%;
+    cursor:help;
+    vertical-align:middle;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.78) 0, rgba(255,255,255,.16) 24%, transparent 55%),
+      conic-gradient(from var(--ball-rot, 0deg),
+        var(--current-color),
+        color-mix(in srgb, var(--current-color) 75%, white),
+        var(--current-color),
+        color-mix(in srgb, var(--current-color) 68%, black),
+        var(--current-color)
+      );
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--current-color) 90%, white),
+      inset 0 0 0 2px color-mix(in srgb, var(--current-color) 78%, white),
+      inset 0 0 0 3px color-mix(in srgb, var(--current-color) 66%, white),
+      inset 0 0 0 4px color-mix(in srgb, var(--current-color) 55%, transparent),
+      inset 0 0 0 5px color-mix(in srgb, var(--current-color) 60%, black),
+      0 1px 4px rgba(0,0,0,.30),
+      0 0 9px color-mix(in srgb, var(--current-color) 60%, transparent);
+    animation: ballSpin 6s linear infinite;
+  }
+  .color-ball::before{
+    content:'';
+    position:absolute; inset:22%;
+    border-radius:50%;
+    background:
+      conic-gradient(from calc(var(--ball-rot, 0deg) * -1.6),
+        transparent 0deg,
+        color-mix(in srgb, var(--current-color) 85%, white) 80deg,
+        transparent 160deg,
+        color-mix(in srgb, var(--current-color) 60%, black) 250deg,
+        transparent 340deg);
+    filter: blur(.9px);
+    pointer-events:none;
+  }
+  body.has-color .color-ball{ display:inline-block }
+
+  /* size tweaks per context */
+  .field .color-ball{ width:1.5rem; height:1.5rem; align-self:center; margin: 0 .25rem }
+  .portrait-cell .color-ball{ width:1.05rem; height:1.05rem; margin-right:.25rem }
+  .mirror + .color-ball,
+  .color-ball + .mirror{ margin: 0 .15rem }
+
+  @media (prefers-reduced-motion: reduce){
+    .color-ball{ animation:none }
+    .color-pick-icon{ transition:none }
+  }
 
   /* ─── Magic cloud trigger + bubble cloud ──────────────── */
   .magic-row{
@@ -1213,10 +1290,12 @@
     <h1>Now a colour.</h1>
     <p class="hint">Any colour you want — write it freely.</p>
     <form class="field" onsubmit="return false">
-      <input id="color" type="text" autocomplete="off" />
-      <span class="color-picker-wrap" title="Pick a colour">
+      <input id="color" type="text" autocomplete="off" placeholder="e.g. coral, #4fc3f7, hsl(200 80% 60%)…" />
+      <span class="color-ball" id="colorBallField" aria-hidden="true"></span>
+      <label class="color-picker-wrap" title="Pick a colour">
+        <span class="color-pick-icon" aria-hidden="true"></span>
         <input id="colorPicker" type="color" aria-label="Pick a colour" value="#f5b463" />
-      </span>
+      </label>
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-aq">← Back</button>
@@ -1225,7 +1304,7 @@
   </section>
   <section class="view" data-view="s1-cq" data-stage="1">
     <span class="step-tag">Stage 1 · What you seek</span>
-    <h1>Three qualities of <span class="mirror" data-mirror="color-name">that colour</span>.</h1>
+    <h1>Three qualities of <span class="mirror" data-mirror="color-name">that colour</span><span class="color-ball" aria-hidden="true"></span>.</h1>
     <p class="hint">These describe what you'd like to find in others.</p>
     <form class="triple" onsubmit="return false">
       <input id="cq1" type="text" autocomplete="off" />
@@ -1246,7 +1325,7 @@
       <div class="cq-nest__list" id="aqNestList"></div>
     </div>
 
-    <h2 class="refine-h">My three qualities of <span class="mirror" data-mirror="color-name">that colour</span>.</h2>
+    <h2 class="refine-h">My three qualities of <span class="mirror" data-mirror="color-name">that colour</span><span class="color-ball" aria-hidden="true"></span>.</h2>
     <div class="cq-nest">
       <div class="cq-nest__list" id="cqNestList"></div>
     </div>
@@ -3008,15 +3087,18 @@
           const parent = (nKey && state[r.nest] && state[r.nest][nKey] || '').trim();
           return renderItem(t, parent);
         }).join('');
+        const t = (r.title||'').trim();
+        const ball = (r.kind === 'Colour' && t) ? `<span class="color-ball" aria-hidden="true"></span> ` : '';
         cell.innerHTML = `
           <div class="cell-kind">${r.kind}</div>
-          <h3 class="cell-title">${escapeHtml((r.title||'').trim()) || '— not chosen —'}</h3>
+          <h3 class="cell-title">${ball}${escapeHtml(t) || '— not chosen —'}</h3>
           <ul>${items}</ul>`;
         c.appendChild(cell);
       });
     };
     paint('#portraitRow1', row1);
     paint('#portraitRow2', row2);
+    if (typeof refreshColorBalls === 'function') refreshColorBalls();
 
     // wire the + toggles after render
     $$('#portraitRow1 .nest-plus, #portraitRow2 .nest-plus').forEach(btn => {
@@ -3364,7 +3446,45 @@
     paintChip('chipStars', 'numStars', countStars(),       5);
   }
 
-  // ── colour picker swatch → #color text field ────────────
+  // ── colour: text↔picker sync, free-form parsing, ball updates ──
+  const _colorProbeCtx = (() => {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 1;
+    return cv.getContext('2d');
+  })();
+  function parseColorToHex(input){
+    if (!input || typeof input !== 'string') return null;
+    const v = input.trim();
+    if (!v) return null;
+    const sentinel = '#abc123';
+    try {
+      _colorProbeCtx.fillStyle = sentinel;
+      _colorProbeCtx.fillStyle = v;
+    } catch(_) { return null; }
+    const result = _colorProbeCtx.fillStyle;
+    if (!result || result === sentinel) return null;
+    if (typeof result === 'string' && result.startsWith('#')) return result.toLowerCase();
+    const m = String(result).match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
+    if (!m) return null;
+    const r = Math.round(+m[1]), g = Math.round(+m[2]), b = Math.round(+m[3]);
+    return '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
+  }
+  function applyColorHex(hex){
+    document.documentElement.style.setProperty('--current-color', hex);
+    document.body.classList.add('has-color');
+    $$('.color-ball').forEach(el => el.setAttribute('title', hex));
+    const picker = $('#colorPicker');
+    if (picker && picker.value.toLowerCase() !== hex.toLowerCase()) picker.value = hex;
+  }
+  function clearColorBall(){
+    document.body.classList.remove('has-color');
+    $$('.color-ball').forEach(el => el.removeAttribute('title'));
+  }
+  function refreshColorBalls(){
+    const hex = parseColorToHex(state.color);
+    if (hex) applyColorHex(hex);
+    else     clearColorBall();
+  }
   (function wireColorPicker(){
     const picker = $('#colorPicker');
     const input  = $('#color');
@@ -3372,6 +3492,12 @@
     picker.addEventListener('input', () => {
       input.value = picker.value;
       input.dispatchEvent(new Event('input', { bubbles:true }));
+    });
+    // Parse whatever the user types ("coral", "#4fc3f7", "rgb(…)", "hsl(…)")
+    input.addEventListener('input', () => {
+      const hex = parseColorToHex(input.value);
+      if (hex) applyColorHex(hex);
+      else if (!input.value.trim()) clearColorBall();
     });
   })();
 
@@ -3595,6 +3721,7 @@
   refreshCounters();
   renderAqNest();
   renderCqNest();
+  refreshColorBalls();
   goTo(state.view);
   updateNightStage();
 })();

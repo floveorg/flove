@@ -114,20 +114,16 @@
     flex:0 0 300px; scroll-snap-align:start;
     display:flex; flex-direction:column; gap:11px;
   }
-  /* bio-cell — prepended at the slider start when "+" is clicked; double-wide */
-  .pcell.bio-cell{ flex:0 0 614px; }
-  .bio-card{
-    background:#fff; border:1px solid var(--line-strong);
-    border-top:4px solid var(--card-accent); border-radius:var(--radius);
-    padding:16px 18px; box-shadow:var(--shadow-xs);
+  /* bio-info — inline additional info INSIDE the card, revealed by "+" */
+  .bio-info{
+    margin-top:14px; padding-top:12px;
+    border-top:1px dashed var(--line);
+    color:var(--ink-soft); font-size:.88rem;
   }
-  .bio-card .bio-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px }
-  .bio-card .bio-head .emoji{ font-size:1.8rem; line-height:1 }
-  .bio-card .bio-head h3{ margin:0; font-family:var(--font-display); font-weight:600; font-size:1.15rem; color:var(--ink) }
-  .bio-card .bio-text{ color:var(--ink); font-size:.95rem; margin:0 0 12px }
-  .bio-card p{ margin:5px 0; font-size:.88rem; color:var(--ink-soft) }
-  .bio-card p strong{ color:var(--card-accent); margin-right:6px; font-weight:600 }
-  .bio-card .bio-motto{ margin-top:14px; padding-top:10px; border-top:1px dashed var(--line); font-style:italic; color:var(--card-accent); text-align:center }
+  .bio-info .bio-text{ color:var(--ink); font-size:.92rem; margin:0 0 10px }
+  .bio-info p{ margin:4px 0 }
+  .bio-info p strong{ color:var(--card-accent); margin-right:6px; font-weight:600 }
+  .bio-info .bio-motto{ margin-top:12px; padding-top:8px; border-top:1px dotted var(--line); font-style:italic; color:var(--card-accent); text-align:center }
 
   .person-card{
     position:relative; flex:1 1 auto; cursor:pointer;
@@ -939,16 +935,36 @@
 
   /* offer data — id keyed; s/t/d are the three ratings */
   var PEOPLE = {
-    bob:    { name:'Bob',     role:'Labour help',   s:42, t:60, d:65 },
+    bob:    { name:'Bob',     role:'Labour help',   s:42, t:60, d:65,
+              bio:'Construction worker, lives in a small flat with his brother. Strong arms, fewer words.',
+              loc:'Madrid · Vallecas', langs:'Español, English (basic)', since:'2022-11',
+              interests:'football, sci-fi paperbacks, weekend hikes',
+              motto:'Show up and lift' },
     alice:  { name:'Alice',   role:'Home sitting',  s:60, t:80, d:25,
-              bio:'Vecina del barrio desde 2019, vive sola con dos gatos. Le gusta echar una mano cuando puede.',
+              bio:'A neighbour since 2019, lives alone with two cats. Likes to lend a hand when she can.',
               loc:'Madrid · Centro', langs:'Español, English', since:'2023-04',
-              interests:'plantas, novelas históricas, café de cafetería',
-              motto:'Ayudar es estar' },
-    charlie:{ name:'Charlie', role:'Fix & errands', s:55, t:35, d:70 },
-    dana:   { name:'Dana',    role:'Garden care',   s:70, t:55, d:48 },
-    erin:   { name:'Erin',    role:'Tutoring',      s:38, t:72, d:58 },
-    frank:  { name:'Frank',   role:'Delivery runs', s:50, t:44, d:82 }
+              interests:'plants, historical novels, café coffee',
+              motto:'To help is to be there' },
+    charlie:{ name:'Charlie', role:'Fix & errands', s:55, t:35, d:70,
+              bio:'Handyman and dog dad. Fixes things on the side, runs errands when he is on the move.',
+              loc:'Madrid · Tetuán', langs:'Español', since:'2024-01',
+              interests:'tinkering, vintage tools, his rescue mutt',
+              motto:'If it can be fixed, it should be' },
+    dana:   { name:'Dana',    role:'Garden care',   s:70, t:55, d:48,
+              bio:'Has a balcony jungle and an obsession with composting. Studies landscape design.',
+              loc:'Madrid · Lavapiés', langs:'Español, English, Português', since:'2023-09',
+              interests:'native plants, ceramics, slow cooking',
+              motto:'Grow what you eat' },
+    erin:   { name:'Erin',    role:'Tutoring',      s:38, t:72, d:58,
+              bio:'Maths teacher by day, board-game host by night. Patient with kids and grown-ups alike.',
+              loc:'Madrid · Chamberí', langs:'English, Español, Français', since:'2022-06',
+              interests:'logic puzzles, jazz piano, oolong tea',
+              motto:'Understand before you solve' },
+    frank:  { name:'Frank',   role:'Delivery runs', s:50, t:44, d:82,
+              bio:'Cargo-bike rider, knows every shortcut in the city. Fast hands, faster legs.',
+              loc:'Madrid · Carabanchel', langs:'Español, English', since:'2024-03',
+              interests:'cycling, urban photography, bouldering',
+              motto:'Move now, breathe later' }
   };
   /* per-person palette — high-contrast rainbow from red (selection order) */
   var RAINBOW = ['#b91c1c','#f97316','#a16207','#16a34a','#1e3a8a','#a855f7'];
@@ -1122,29 +1138,19 @@
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
     });
   }
-  function buildBioCell(card){
+  function buildBioInfo(card){
     var id = card.dataset.id;
     var person = PEOPLE[id] || {};
-    var emoji = (card.querySelector('.emoji') || {}).textContent || '👤';
-    var cell = document.createElement('div');
-    cell.className = 'pcell bio-cell';
-    cell.dataset.bioFor = id;
-    var bio = document.createElement('article');
-    bio.className = 'bio-card';
-    var html =
-      '<div class="bio-head">' +
-        '<span class="emoji">' + escAttr(emoji) + '</span>' +
-        '<h3>' + escAttr(person.name || '') + '</h3>' +
-      '</div>' +
-      (person.bio ? '<p class="bio-text">' + escAttr(person.bio) + '</p>' : '<p class="bio-text">Bio en construcción.</p>') +
-      (person.loc       ? '<p><strong>Vive en</strong> '       + escAttr(person.loc)       + '</p>' : '') +
-      (person.langs     ? '<p><strong>Idiomas</strong> '       + escAttr(person.langs)     + '</p>' : '') +
-      (person.since     ? '<p><strong>En flove desde</strong> '+ escAttr(person.since)     + '</p>' : '') +
-      (person.interests ? '<p><strong>Le gusta</strong> '      + escAttr(person.interests) + '</p>' : '') +
+    var info = document.createElement('section');
+    info.className = 'bio-info';
+    info.innerHTML =
+      (person.bio ? '<p class="bio-text">' + escAttr(person.bio) + '</p>' : '<p class="bio-text">Bio coming soon.</p>') +
+      (person.loc       ? '<p><strong>Lives in</strong> '       + escAttr(person.loc)       + '</p>' : '') +
+      (person.langs     ? '<p><strong>Languages</strong> '      + escAttr(person.langs)     + '</p>' : '') +
+      (person.since     ? '<p><strong>On flove since</strong> ' + escAttr(person.since)     + '</p>' : '') +
+      (person.interests ? '<p><strong>Into</strong> '           + escAttr(person.interests) + '</p>' : '') +
       (person.motto     ? '<p class="bio-motto">«' + escAttr(person.motto) + '»</p>' : '');
-    bio.innerHTML = html;
-    cell.appendChild(bio);
-    return cell;
+    return info;
   }
 
   function buildDetailsMenu(card){
@@ -1219,18 +1225,15 @@
     wrap.className = 'fwd-wrap';
     var dbtn = document.createElement('button');
     dbtn.type = 'button'; dbtn.className = 'details-btn'; dbtn.title = 'Show profile bio'; dbtn.textContent = '+';
-    var id = card.dataset.id;
     dbtn.addEventListener('click', function(e){
       e.stopPropagation();
-      var existing = slider.querySelector('.bio-cell[data-bio-for="' + id + '"]');
+      var existing = card.querySelector('.bio-info');
       if (existing){
         existing.remove();
         dbtn.classList.remove('is-open');
         dbtn.textContent = '+';
       } else {
-        var cell = buildBioCell(card);
-        slider.insertBefore(cell, slider.firstChild);
-        cell.scrollIntoView({ behavior:'smooth', inline:'start', block:'nearest' });
+        card.appendChild(buildBioInfo(card));
         dbtn.classList.add('is-open');
         dbtn.textContent = '×';
       }
@@ -1257,12 +1260,12 @@
     cardOf[id] = card; cellOf[id] = cell; allIds.push(id);
 
     card.addEventListener('click', function(e){
-      if(e.target.closest('details') || e.target.closest('.card-tools')) return;
+      if(e.target.closest('details') || e.target.closest('.card-tools') || e.target.closest('.bio-info')) return;
       toggleCard(card);
     });
     card.addEventListener('keydown', function(e){
       if((e.key === 'Enter' || e.key === ' ') &&
-         !e.target.closest('details') && !e.target.closest('.card-tools')){
+         !e.target.closest('details') && !e.target.closest('.card-tools') && !e.target.closest('.bio-info')){
         e.preventDefault();
         toggleCard(card);
       }

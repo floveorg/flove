@@ -1075,14 +1075,12 @@
       color: #fff;
     }
     /* ── 8 ascending Worthy bars ─────────────────────────────────── */
-    /* inline preference 1–5 bar — revealed beside the title on click */
-    .sel-name--pref { cursor: pointer; }
-    .sel-name--pref:hover { color: #2b7a4b; }
+    /* inline preference 1–5 bar — sits right after the Shareable button and
+       never compresses when the shareable sub-pills expand */
     .pref-bars {
-      display: none; align-items: flex-end; gap: 3px; margin: 0 4px 0 8px;
+      display: inline-flex; align-items: flex-end; gap: 3px; margin: 0 4px;
       flex-shrink: 0;
     }
-    .sel-item.is-pref-open .pref-bars { display: inline-flex; }
     .pref-bar {
       width: 7px; padding: 0; cursor: pointer;
       border: 1px solid #b2d6b8; border-radius: 2px 2px 0 0;
@@ -2698,7 +2696,7 @@
     const itemState = {};
     function stateKey(name, type) { return `${type}::${name}`; }
     function ensureItemState(key) {
-      if (!itemState[key]) itemState[key] = { shareable: false, much: false, maybe: false, unlikely: false, very: false, notes: [], worthy: null, worthyOpen: false, offerOpen: false, pref: null, prefOpen: false };
+      if (!itemState[key]) itemState[key] = { shareable: false, much: false, maybe: false, unlikely: false, very: false, notes: [], worthy: null, worthyOpen: false, offerOpen: false, pref: null };
       return itemState[key];
     }
 
@@ -2742,6 +2740,9 @@
         ).join('');
         pillsHtml = `
           <button type="button" class="extra-toggle" data-key="${keyAttr}" data-extra="shareable" aria-pressed="${st.shareable}">Shareable</button>
+          <span class="pref-bars" role="group" aria-label="Preference 1 to 5" title="Preference 1–5">
+            ${[1,2,3,4,5].map(n => `<button type="button" class="pref-bar${st.pref === n ? ' is-selected' : ''}" data-key="${keyAttr}" data-p="${n}" aria-label="Preference ${n}/5" title="${n}/5"></button>`).join('')}
+          </span>
           <button type="button" class="sub-pill" data-key="${keyAttr}" data-value="maybe" aria-pressed="${st.maybe}" ${subHidden}>maybe</button>
           <button type="button" class="sub-pill" data-key="${keyAttr}" data-value="unlikely" aria-pressed="${st.unlikely}" ${subHidden}>unlikely</button>
           ${customs}
@@ -2756,13 +2757,10 @@
       }
 
       return `
-        <div class="sel-item${type === 'have' && st.worthyOpen ? ' is-worthy-open' : ''}${type === 'have' && st.prefOpen ? ' is-pref-open' : ''}">
+        <div class="sel-item${type === 'have' && st.worthyOpen ? ' is-worthy-open' : ''}">
           <div class="sel-row">
             ${iconHtml(name)}
-            <span class="sel-name${type === 'have' ? ' sel-name--pref' : ''}"${type === 'have' ? ` data-key="${keyAttr}" title="Click to set preference 1–5"` : ''}>${escapeHtml(name)}</span>
-            ${type === 'have' ? `<span class="pref-bars" role="group" aria-label="Preference 1 to 5">
-              ${[1,2,3,4,5].map(n => `<button type="button" class="pref-bar${st.pref === n ? ' is-selected' : ''}" data-key="${keyAttr}" data-p="${n}" aria-label="Preference ${n}/5" title="${n}/5"></button>`).join('')}
-            </span>` : ''}
+            <span class="sel-name">${escapeHtml(name)}</span>
             ${pillsHtml}
           </div>
           <div class="sel-notes">${notesHtml}</div>
@@ -2821,8 +2819,8 @@
       line.querySelector('.pl-head').addEventListener('click', (e) => {
         if (e.target.closest('.extra-toggle')) return; // pill handles its own click
         const willOpen = !line.classList.contains('open');
-        if (willOpen) renderAllCategories(); // ensure freshness
-        line.classList.toggle('open', willOpen);
+        line.classList.toggle('open', willOpen);     // expand first, always
+        if (willOpen) renderAllCategories();          // then (re)render its items
       });
     });
 
@@ -2920,17 +2918,6 @@
           st[val] = !st[val];
           sp.setAttribute('aria-pressed', String(st[val]));
         }
-        return;
-      }
-      // Preference: clicking a HAVE item's title toggles its inline 1–5 bar
-      const pname = e.target.closest('.sel-name--pref');
-      if (pname) {
-        e.stopPropagation();
-        const key = pname.dataset.key;
-        const st = ensureItemState(key);
-        st.prefOpen = !st.prefOpen;
-        const card = pname.closest('.sel-item');
-        if (card) card.classList.toggle('is-pref-open', st.prefOpen);
         return;
       }
       // Preference bar — set the level (or clear if pressing the same one)

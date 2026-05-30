@@ -287,51 +287,45 @@
       width: 100%; text-align: center;
       color: #6a8aa3; font-size: 0.85rem; padding: 1rem 0;
     }
-    /* The cloud grows with its content (flex-wrap) so the area expands as
-       more bubbles are revealed — it is never crammed. Bubbles are loaded
-       in batches as you scroll (see #bubbleSentinel) and each one rises up
-       from below with a staggered delay. */
+    /* The cloud is a relative box whose height is set by JS from the bubble
+       count, so the area expands as more items are revealed (never crammed).
+       Bubbles are absolutely positioned and drift / bounce via a JS physics
+       loop — exactly like shareful's reasons cloud. Each rises up from below
+       on first appearance (staggered), then base styles take over so hover
+       still works. */
     .bubble-cloud {
-      display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
-      align-content: flex-start;
-      transition: min-height 0.3s ease;
+      position: relative;
+      width: 100%;
+      min-height: 200px;
+      transition: height 0.35s ease;
     }
-    .bubble-sentinel { height: 1px; width: 100%; }
     .inv-bubble {
+      position: absolute;
       width: 50px; height: 50px; border-radius: 50%;
       display: inline-flex; align-items: center; justify-content: center;
       border: 1px solid rgba(30, 74, 107, 0.15);
       background: radial-gradient(circle at 32% 28%, #fff 0%, #f0f6fc 70%, #e3eef7 100%);
-      color: #1e4a6b; font-size: 1.25rem; cursor: pointer; position: relative;
+      color: #1e4a6b; font-size: 1.25rem; cursor: pointer;
       box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.9), 0 2px 5px rgba(0, 0, 0, 0.08);
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
-      opacity: 0;
-      animation:
-        inv-bubble-in 0.7s cubic-bezier(0.22, 0.9, 0.35, 1.05) both,
-        inv-bubble-float 4s ease-in-out infinite;
-      animation-delay:
-        calc(var(--ri, 0) * 0.06s),
-        calc(var(--ri, 0) * 0.06s + 0.7s);
+      /* no transition on left/top — those are driven by the physics loop */
+      transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.12s;
+      animation: inv-bubble-in 0.6s cubic-bezier(0.22, 0.9, 0.35, 1.05) backwards;
+      animation-delay: calc(var(--ri, 0) * 0.045s);
     }
     .inv-bubble:hover {
-      transform: scale(1.1); border-color: var(--app-accent);
-      animation-play-state: paused;   /* pause the float so hover scale shows */
+      transform: scale(1.12); border-color: var(--app-accent); z-index: 2;
     }
     @keyframes inv-bubble-in {
-      0%   { opacity: 0; transform: translateY(46px) scale(0.5); }
+      0%   { opacity: 0; transform: translateY(44px) scale(0.5); }
       60%  { opacity: 1; transform: translateY(-5px) scale(1.06); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes inv-bubble-float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-4px); }
     }
     .inv-bubble[data-state="have"] { background: #2b7a4b; color: #fff; border-color: #2b7a4b; }
     .inv-bubble[data-state="wish"] { background: #2f6eb0; color: #fff; border-color: #2f6eb0; }
     .inv-bubble[data-state="want"] { background: #d18e1a; color: #fff; border-color: #d18e1a; }
     .inv-bubble[data-state="need"] { background: #c7362b; color: #fff; border-color: #c7362b; }
     @media (prefers-reduced-motion: reduce) {
-      .inv-bubble { animation: none; opacity: 1; }
+      .inv-bubble { animation-duration: 0.01s; }
     }
 
     /* table */
@@ -2125,7 +2119,8 @@
       if (multiMode) {
         const allSel = categories.every(c => selectedCats.has(c.id));
         selectedCats.clear();
-        if (!allSel) categories.forEach(c => selectedCats.add(c.id));
+        catLevel.clear();
+        if (!allSel) categories.forEach(c => { selectedCats.add(c.id); catLevel.set(c.id, 1); });
         syncTabActive();
         renderBubbles();
         return;
@@ -2174,13 +2169,26 @@
       return 'fas ' + (cat ? cat.icon : 'fa-shapes');
     }
 
-    // Bubbles load in batches: an initial set fills the area, then scrolling
-    // down (the sentinel entering view) reveals the next batch — so the cloud
-    // is never crammed and grows only as far as you scroll.
-    const BUBBLE_BATCH = 14;
-    let bubbleRows = [];   // rows for the current category selection
-    let bubbleShown = 0;   // how many bubbles rendered so far
-    let bubbleObserver = null;
+    // Each selected category has a reveal level (1, 2, 3 …): clicking its
+    // icon again steps the level up — showing CAT_BATCH more of its items
+    // each time, exactly like shareful's "+" gradually revealing chips —
+    // and once everything's shown, the next click collapses the category.
+    const CAT_BATCH = 8;
+    const catLevel = new Map();   // catId → reveal level (absent = not selected)
+
+    function catRows(catId) {
+      const cat = categories.find(c => c.id === catId);
+      if (!cat) return [];
+      return getRows().filter(r => r.classList.contains(cat.class));
+    }
+    // step the reveal for a category icon (shareful-"+"-style)
+    function stepCategory(catId) {
+      const total = catRows(catId).length;
+      const cur = catLevel.get(catId) || 0;
+      if (cur === 0) { selectedCats.add(catId); catLevel.set(catId, 1); }
+      else if (cur * CAT_BATCH < total) { catLevel.set(catId, cur + 1); }
+      else { selectedCats.delete(catId); catLevel.delete(catId); }
+    }
 
     function makeBubble(row, riseIndex) {
       const name = row.querySelector('.col-item')?.textContent.trim() || '';
@@ -2202,59 +2210,152 @@
       return b;
     }
 
-    function appendBubbleBatch() {
-      const cloud = bubbleView.querySelector('.bubble-cloud');
-      if (!cloud) return;
-      const start = bubbleShown;
-      const end = Math.min(bubbleRows.length, start + BUBBLE_BATCH);
-      for (let i = start; i < end; i++) {
-        cloud.appendChild(makeBubble(bubbleRows[i], i - start));  // stagger per batch
-      }
-      bubbleShown = end;
-      // keep the sentinel at the very bottom so it re-triggers as we scroll
-      const sentinel = bubbleView.querySelector('.bubble-sentinel');
-      if (sentinel) bubbleView.appendChild(sentinel);
-      if (bubbleShown >= bubbleRows.length && bubbleObserver) bubbleObserver.disconnect();
+    // rows to show = each selected category's items sliced to its reveal level
+    function bubbleVisibleRows() {
+      const rows = [];
+      categories.forEach(cat => {
+        if (!selectedCats.has(cat.id)) return;
+        const lvl = catLevel.get(cat.id) || 1;
+        rows.push(...catRows(cat.id).slice(0, lvl * CAT_BATCH));
+      });
+      return rows;
     }
 
+    // ── Physics cloud (ported from shareful's reasons section) — bubbles
+    //    drift, bounce off the walls and off each other. ──
+    const bubblePhysics = new Map(); // el → {x, y, w, h, vx, vy}  (% of cloud)
+    let bubbleRaf = null;
+    const bRandVel = () => (Math.random() - 0.5) * 0.22;
+    function stopBubblePhysics() {
+      if (bubbleRaf) { cancelAnimationFrame(bubbleRaf); bubbleRaf = null; }
+      bubblePhysics.clear();
+    }
+    function measureBubble(el, rect) {
+      const r = el.getBoundingClientRect();
+      return {
+        w: r.width && rect.width ? (r.width / rect.width) * 100 : 10,
+        h: r.height && rect.height ? (r.height / rect.height) * 100 : 10,
+      };
+    }
+    function stepBubbles() {
+      const cloud = bubbleView.querySelector('.bubble-cloud');
+      if (!cloud) { bubbleRaf = null; return; }
+      const rect = cloud.getBoundingClientRect();
+      if (!rect.width || !rect.height) { bubbleRaf = requestAnimationFrame(stepBubbles); return; }
+      const items = [];
+      Array.from(bubblePhysics.keys()).forEach(el => {
+        if (el.parentNode !== cloud) { bubblePhysics.delete(el); return; }
+        const it = bubblePhysics.get(el);
+        const m = measureBubble(el, rect); it.w = m.w; it.h = m.h;
+        items.push({ el, it });
+      });
+      for (const { it } of items) {
+        it.x += it.vx; it.y += it.vy;
+        if (it.x < 0)          { it.x = 0;          it.vx =  Math.abs(it.vx); }
+        if (it.x + it.w > 100) { it.x = 100 - it.w; it.vx = -Math.abs(it.vx); }
+        if (it.y < 0)          { it.y = 0;          it.vy =  Math.abs(it.vy); }
+        if (it.y + it.h > 100) { it.y = 100 - it.h; it.vy = -Math.abs(it.vy); }
+      }
+      // pairwise bounce — skip for big clouds to keep it smooth
+      if (items.length <= 80) {
+        for (let i = 0; i < items.length; i++) {
+          const a = items[i].it;
+          for (let j = i + 1; j < items.length; j++) {
+            const b = items[j].it;
+            if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
+              const dx = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
+              const dy = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
+              if (dx < dy) {
+                const p = dx / 2;
+                if (a.x < b.x) { a.x -= p; b.x += p; } else { a.x += p; b.x -= p; }
+                const t = a.vx; a.vx = b.vx; b.vx = t;
+              } else {
+                const p = dy / 2;
+                if (a.y < b.y) { a.y -= p; b.y += p; } else { a.y += p; b.y -= p; }
+                const t = a.vy; a.vy = b.vy; b.vy = t;
+              }
+            }
+          }
+        }
+      }
+      for (const { el, it } of items) {
+        el.style.left = it.x.toFixed(2) + '%';
+        el.style.top  = it.y.toFixed(2) + '%';
+      }
+      bubbleRaf = requestAnimationFrame(stepBubbles);
+    }
+    // newly added bubbles enter from the bottom edge (rising up) with a slight
+    // upward velocity; reduced-motion users get a static scatter instead.
+    function seedOneBubble(el, rect) {
+      const m = measureBubble(el, rect);
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const x = +(Math.random() * Math.max(1, 100 - m.w)).toFixed(2);
+      const y = reduce ? +(Math.random() * Math.max(1, 100 - m.h)).toFixed(2)
+                       : +(100 - m.h).toFixed(2);   // start at the bottom, drift up
+      el.style.left = x + '%'; el.style.top = y + '%';
+      bubblePhysics.set(el, {
+        x, y, w: m.w, h: m.h,
+        vx: bRandVel(),
+        vy: reduce ? 0 : (-Math.abs(bRandVel()) - 0.04),
+      });
+    }
+    function ensureBubbleRaf() {
+      if (!bubbleRaf && bubblePhysics.size && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        bubbleRaf = requestAnimationFrame(stepBubbles);
+      }
+    }
+    function setCloudHeight(cloud, n) {
+      const cw = cloud.getBoundingClientRect().width || 440;
+      const perRow = Math.max(2, Math.floor(cw / 66));
+      const gridRows = Math.ceil(n / perRow);
+      cloud.style.height = Math.max(220, gridRows * 66 + 30) + 'px';
+    }
+
+    const bubbleByRow = new Map(); // row el → bubble el (so reveals are incremental)
+
+    // Incremental: keep already-drifting bubbles in place, only add the newly
+    // revealed ones (rising from below) and drop ones whose category collapsed.
     function renderBubbles() {
       if (!bubbleView) return;
-      if (bubbleObserver) { bubbleObserver.disconnect(); }
-      bubbleRows = getRows().filter(r => {
-        const catClass = Array.from(r.classList).find(c => c.startsWith('cat-'));
-        const cat = categories.find(c => c.class === catClass);
-        return cat && selectedCats.has(cat.id);
-      });
-      bubbleShown = 0;
-      if (!bubbleRows.length) {
-        bubbleView.innerHTML = '<p class="bubble-hint">Pick one or more categories above to see their things as bubbles. Tap a bubble: 1× Have · 2× Wish · 3× Want · 4× Need.</p>';
+      const desired = bubbleVisibleRows();
+      const desiredSet = new Set(desired);
+      if (!desired.length) {
+        stopBubblePhysics();
+        bubbleByRow.clear();
+        bubbleView.innerHTML = '<p class="bubble-hint">Pick one or more categories above to see their things as bubbles. Click a category again to reveal more of it. Tap a bubble: 1× Have · 2× Wish · 3× Want · 4× Need.</p>';
         return;
       }
-      const legend =
-        '<div class="bubble-legend">' +
-        '<span><i class="dot have"></i>1× Have</span>' +
-        '<span><i class="dot wish"></i>2× Wish</span>' +
-        '<span><i class="dot want"></i>3× Want</span>' +
-        '<span><i class="dot need"></i>4× Need</span>' +
-        '</div>';
-      bubbleView.innerHTML = legend + '<div class="bubble-cloud"></div><div class="bubble-sentinel" id="bubbleSentinel"></div>';
-      appendBubbleBatch();
-      // Reveal more whenever the bottom sentinel scrolls into view. rootMargin
-      // pre-loads slightly early; it loads just enough to fill the viewport,
-      // then waits for the next scroll.
-      const sentinel = bubbleView.querySelector('#bubbleSentinel');
-      if (sentinel && 'IntersectionObserver' in window) {
-        bubbleObserver = new IntersectionObserver((entries) => {
-          if (!multiMode) return;
-          if (entries.some(en => en.isIntersecting) && bubbleShown < bubbleRows.length) {
-            appendBubbleBatch();
-          }
-        }, { root: null, rootMargin: '160px 0px' });
-        bubbleObserver.observe(sentinel);
-      } else {
-        // no IO support → just render everything
-        while (bubbleShown < bubbleRows.length) appendBubbleBatch();
+      let cloud = bubbleView.querySelector('.bubble-cloud');
+      if (!cloud) {
+        const legend =
+          '<div class="bubble-legend">' +
+          '<span><i class="dot have"></i>1× Have</span>' +
+          '<span><i class="dot wish"></i>2× Wish</span>' +
+          '<span><i class="dot want"></i>3× Want</span>' +
+          '<span><i class="dot need"></i>4× Need</span>' +
+          '</div>';
+        bubbleView.innerHTML = legend + '<div class="bubble-cloud"></div>';
+        cloud = bubbleView.querySelector('.bubble-cloud');
+        bubbleByRow.clear();
+        bubblePhysics.clear();
       }
+      // drop bubbles whose category was collapsed/deselected
+      bubbleByRow.forEach((el, row) => {
+        if (!desiredSet.has(row)) { el.remove(); bubblePhysics.delete(el); bubbleByRow.delete(row); }
+      });
+      // grow the area first so new bubbles seed against the final height
+      setCloudHeight(cloud, desired.length);
+      const rect = cloud.getBoundingClientRect();
+      // add the newly revealed ones, rising from the bottom (staggered)
+      let rise = 0;
+      desired.forEach(row => {
+        if (bubbleByRow.has(row)) return;
+        const b = makeBubble(row, rise++);
+        cloud.appendChild(b);
+        bubbleByRow.set(row, b);
+        seedOneBubble(b, rect);
+      });
+      ensureBubbleRaf();
     }
 
     function setMultiMode(on) {
@@ -2262,13 +2363,16 @@
       document.body.classList.toggle('magic-mode', on);
       catMagicBtn?.setAttribute('aria-pressed', String(on));
       selectedCats.clear();
+      catLevel.clear();
+      stopBubblePhysics();
+      bubbleByRow.clear();
+      if (bubbleView) bubbleView.innerHTML = '';
       if (on) {
         // carry over the current single-select category, if any
-        if (activeCat && activeCat !== 'all') selectedCats.add(activeCat);
+        if (activeCat && activeCat !== 'all') { selectedCats.add(activeCat); catLevel.set(activeCat, 1); }
         syncTabActive();
         renderBubbles();
       } else {
-        if (bubbleObserver) bubbleObserver.disconnect();
         filterByCategory(activeCat);  // restore the normal filtered table
       }
     }
@@ -2312,8 +2416,7 @@
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         if (multiMode) {
-          const id = tab.dataset.cat;
-          if (selectedCats.has(id)) selectedCats.delete(id); else selectedCats.add(id);
+          stepCategory(tab.dataset.cat);   // 1st click selects · re-clicks reveal more · then collapse
           syncTabActive();
           renderBubbles();
         } else {

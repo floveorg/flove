@@ -643,11 +643,20 @@
       pointer-events: none;
     }
     .mode-buttons.is-open {
-      max-width: 260px;
+      max-width: 320px;
       opacity: 1;
       transform: translateX(0);
       pointer-events: auto;
     }
+    /* Separates the layout radios (Cloud/Bubbles) from the modifier checks. */
+    .mode-sep {
+      flex: 0 0 1px; width: 1px; height: 24px;
+      align-self: center;
+      background: rgba(31, 99, 144, 0.28);
+      border-radius: 1px;
+    }
+    /* Radios read as a connected pair; checks stay round. */
+    .mode-btn.mode-radio[aria-checked="true"] { box-shadow: 0 0 0 2px rgba(31, 99, 144, 0.18); }
     .mode-btn {
       background: rgba(255, 255, 255, 0.75);
       border: 1.5px solid rgba(31, 99, 144, 0.3);
@@ -1488,7 +1497,26 @@
       </svg>
     </button>
     <div class="mode-buttons" id="modeButtons" role="group" aria-label="Display modes">
-      <button type="button" class="mode-btn" data-mode="scope" aria-pressed="false" title="Scope: small → large" aria-label="Scope ascending" data-tip="Scope: arrange from smaller to larger">
+      <!-- Layout (radio: pick one) — Cloud or Bubbles -->
+      <button type="button" class="mode-btn mode-radio" data-mode="cloud" role="radio" aria-checked="true" aria-pressed="true" title="Cloud" aria-label="Cloud layout" data-tip="Cloud: free-form scattered layout">
+        <i class="fas fa-cloud" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="mode-btn mode-radio" data-mode="bubbles" role="radio" aria-checked="false" aria-pressed="false" title="Bubbles" aria-label="Bubbles layout" data-tip="Bubbles: items drift and bounce like floating bubbles">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="9" cy="14.4" r="4.6"/>
+            <circle cx="16.4" cy="9.4" r="3"/>
+            <circle cx="16.8" cy="17" r="1.9"/>
+          </g>
+          <g fill="currentColor">
+            <circle cx="7.2" cy="12.6" r="0.95"/>
+            <circle cx="15.4" cy="8.3" r="0.55"/>
+          </g>
+        </svg>
+      </button>
+      <span class="mode-sep" aria-hidden="true"></span>
+      <!-- Modifiers (checkbox: combine with the chosen layout) — Size & Random -->
+      <button type="button" class="mode-btn mode-check" data-mode="sized" aria-pressed="false" title="Size" aria-label="Size grading" data-tip="Size: grade items from small to large — combines with Cloud or Bubbles">
         <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
           <rect x="2"  y="15" width="3" height="5"/>
           <rect x="7"  y="12" width="3" height="8"/>
@@ -1497,18 +1525,8 @@
           <path d="M21.5 11 L24 13 L21.5 15 Z"/>
         </g></svg>
       </button>
-      <button type="button" class="mode-btn" data-mode="cloud" aria-pressed="false" title="Cloud" aria-label="Cloud" data-tip="Cloud: free-form arrangement">
-        <i class="fas fa-cloud" aria-hidden="true"></i>
-      </button>
-      <button type="button" class="mode-btn" data-mode="random" aria-pressed="true" title="Random" aria-label="Random" data-tip="Random: scattered cloud with shuffling positions">
+      <button type="button" class="mode-btn mode-check" data-mode="random" aria-pressed="true" title="Random" aria-label="Random sizes" data-tip="Random: scatter sizes and shuffle — combines with Cloud or Bubbles">
         <i class="fas fa-dice" aria-hidden="true"></i>
-      </button>
-      <button type="button" class="mode-btn" data-mode="bubbles" aria-pressed="false" title="Bubbles" aria-label="Bubbles" data-tip="Bubbles: items drift and bounce like floating bubbles">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6">
-          <circle cx="8.5" cy="14" r="5"/>
-          <circle cx="16.5" cy="9" r="3.5"/>
-          <circle cx="17" cy="17.5" r="2.2"/>
-        </g></svg>
       </button>
       <button type="button" class="addmenu-btn" id="addmenuBtn" aria-haspopup="true" aria-expanded="false" title="Add" aria-label="Add a subtab" data-tip="Add your own wants into the tree">
         <i class="fas fa-plus" aria-hidden="true"></i>
@@ -1676,11 +1694,13 @@
     // Display-mode state — random is the default. Modes now drive the
     // arrangement of the SUBTABS revealed under each checked parent.
     const displayState = {
-      scope: false,
-      cloud: false,
-      drag: false,
-      random: true,
+      // Layout (radio — exactly one): cloud or bubbles.
+      cloud: true,
       bubbles: false,      // physics cloud (parents + subs drift like inventary)
+      // Modifiers (checkbox — combine with either layout).
+      sized: false,        // grade item sizes small → large
+      random: true,        // random sizes + shuffle
+      drag: false,
       customOrder: null,   // { parentName: [subtab, …] }
       randomCache: null,
       shuffleTimer: null
@@ -1734,7 +1754,7 @@
         if (!displayState.randomCache) buildRandomCache();
         return displayState.randomCache.sizes[name] || randomSize();
       }
-      if (displayState.scope) {
+      if (displayState.sized) {
         const t = total > 1 ? idx / (total - 1) : 0;
         return (0.7 + t * 0.75).toFixed(2) + 'rem'; // 0.70 → 1.45rem
       }
@@ -1840,7 +1860,7 @@
     function renderFields() {
       if (displayState.bubbles) { renderBubbleParents(); renderBubbleSubs(); return; }
       fieldsList.innerHTML = '';
-      if (displayState.random || displayState.cloud) {
+      if (displayState.cloud) {
         fieldsList.className = 'fields-list parents-row';
         fields.forEach((name, i) => fieldsList.appendChild(makeParentBtn(name, i, 'dancing')));
       } else {
@@ -1869,7 +1889,7 @@
       const sz = subSize(name, idx, total);
       if (sz) btn.style.setProperty('--btn-size', sz);
 
-      if (displayState.random || displayState.cloud) {
+      if (displayState.cloud) {
         const off = displayState.randomCache && displayState.randomCache.offsets[name];
         if (off) {
           btn.style.setProperty('--cx', off.cx);
@@ -1897,7 +1917,7 @@
       if (displayState.bubbles) { renderBubbleSubs(); return; }
       box.innerHTML = '';
 
-      if (displayState.random || displayState.cloud) {
+      if (displayState.cloud) {
         box.className = 'subtabs-list';
         box.classList.toggle('is-open', openParents.length > 0);
         if (openParents.length === 0) return;
@@ -2128,6 +2148,9 @@
         } else {
           el.classList.toggle('active', isSelected(s));
           el.classList.toggle('has-content', fieldHasContent(s));
+          // Re-apply Size / Random sizing to bubbles that are already drifting.
+          const sz = subSize(s, idx, desired.length);
+          if (sz) el.style.setProperty('--btn-size', sz); else el.style.removeProperty('--btn-size');
         }
       });
       ensureCloudRaf(subsCloud);
@@ -2608,20 +2631,18 @@
       // Closing the compass also closes the Add menu nested inside it.
       if (!open && typeof setAddmenuOpen === 'function') setAddmenuOpen(false);
     }
+    // The compass is a manual toggle: once expanded it stays open until the
+    // compass button itself is clicked again. (No outside-click collapse.)
     compassBtn?.addEventListener('click', e => {
       e.stopPropagation();
       setCompassOpen(compassBtn.getAttribute('aria-expanded') !== 'true');
-    });
-    document.addEventListener('click', e => {
-      if (!compassBtn) return;
-      const wrap = compassBtn.parentElement;
-      if (wrap && !wrap.contains(e.target)) setCompassOpen(false);
     });
 
     function applyModeButtons() {
       document.querySelectorAll('.mode-btn').forEach(b => {
         const on = !!displayState[b.dataset.mode];
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (b.getAttribute('role') === 'radio') b.setAttribute('aria-checked', on ? 'true' : 'false');
       });
     }
     function startRandomShuffle() {
@@ -2649,24 +2670,17 @@
       renderFields();
     }
     function toggleMode(mode) {
-      if (mode === 'random') {
-        if (!displayState.random) {
-          displayState.scope = displayState.cloud = displayState.drag = displayState.bubbles = false;
-          displayState.random = true;
-          displayState.customOrder = null;
-          buildRandomCache();
-        }
-      } else if (mode === 'bubbles') {
-        displayState.bubbles = !displayState.bubbles;
-        if (displayState.bubbles) displayState.scope = displayState.cloud = displayState.drag = false;
-        displayState.random = !(displayState.scope || displayState.cloud || displayState.drag || displayState.bubbles);
-        displayState.customOrder = null;
-      } else {
-        displayState[mode] = !displayState[mode];
-        if (displayState[mode]) displayState.bubbles = false;
-        displayState.random = !(displayState.scope || displayState.cloud || displayState.drag || displayState.bubbles);
+      if (mode === 'cloud' || mode === 'bubbles') {
+        // Layout is a radio — exactly one of cloud / bubbles is selected.
+        displayState.cloud   = (mode === 'cloud');
+        displayState.bubbles = (mode === 'bubbles');
+      } else if (mode === 'sized') {
+        // Size is a checkbox modifier on top of the chosen layout.
+        displayState.sized = !displayState.sized;
+      } else if (mode === 'random') {
+        // Random is a checkbox modifier (random sizes + shuffle).
+        displayState.random = !displayState.random;
         if (displayState.random) buildRandomCache();
-        if (!displayState.drag) displayState.customOrder = null;
       }
       applyModeButtons();
       applyMode();

@@ -902,6 +902,29 @@
       border-color: var(--app-accent);
       color: #fff;
     }
+    /* per-item flag toggle — Urgent (Want/Need) · Fully (Wish) */
+    .sel-row .flag-toggle {
+      flex: 0 0 auto;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(30, 74, 107, 0.25);
+      color: #2c4d68;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .sel-row .flag-toggle:hover { border-color: var(--app-accent); }
+    .sel-row .flag-toggle[aria-pressed="true"] {
+      background: var(--app-accent); border-color: var(--app-accent); color: #fff;
+    }
+    .sel-row .flag-toggle[data-flag="urgent"][aria-pressed="true"] {
+      background: #c7362b; border-color: #c7362b;
+    }
+
     /* sub-pills (maybe/unlikely for Shareable · very for Much) — 20% smaller */
     .sel-row .sub-pill {
       flex: 0 0 auto;
@@ -2696,7 +2719,7 @@
     const itemState = {};
     function stateKey(name, type) { return `${type}::${name}`; }
     function ensureItemState(key) {
-      if (!itemState[key]) itemState[key] = { shareable: false, much: false, maybe: false, unlikely: false, very: false, notes: [], worthy: null, worthyOpen: false, offerOpen: false, pref: null };
+      if (!itemState[key]) itemState[key] = { shareable: false, much: false, maybe: false, unlikely: false, very: false, notes: [], worthy: null, worthyOpen: false, offerOpen: false, pref: null, urgent: false, fully: false };
       return itemState[key];
     }
 
@@ -2750,7 +2773,12 @@
         `;
       } else {
         const subHidden = st.much ? '' : 'hidden';
+        // Wishes get a "Fully" flag; Wants & Needs get an "Urgent" flag
+        const flag = type === 'wish'
+          ? `<button type="button" class="flag-toggle" data-key="${keyAttr}" data-flag="fully" aria-pressed="${!!st.fully}">Fully</button>`
+          : `<button type="button" class="flag-toggle" data-key="${keyAttr}" data-flag="urgent" aria-pressed="${!!st.urgent}">Urgent</button>`;
         pillsHtml = `
+          ${flag}
           <button type="button" class="sub-pill" data-key="${keyAttr}" data-value="very" aria-pressed="${st.very}" ${subHidden}>very</button>
           <button type="button" class="extra-toggle" data-key="${keyAttr}" data-extra="much" aria-pressed="${st.much}">Much</button>
         `;
@@ -2918,6 +2946,17 @@
           st[val] = !st[val];
           sp.setAttribute('aria-pressed', String(st[val]));
         }
+        return;
+      }
+      // Flag toggle — Urgent (Want/Need) · Fully (Wish)
+      const flag = e.target.closest('.sel-row .flag-toggle');
+      if (flag) {
+        e.stopPropagation();
+        const key = flag.dataset.key;
+        const f = flag.dataset.flag; // 'urgent' or 'fully'
+        const st = ensureItemState(key);
+        st[f] = !st[f];
+        flag.setAttribute('aria-pressed', String(st[f]));
         return;
       }
       // Preference bar — set the level (or clear if pressing the same one)

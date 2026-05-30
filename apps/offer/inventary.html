@@ -326,12 +326,16 @@
     .inv-bubble[data-state="wish"] { background: #2f6eb0; color: #fff; border-color: #2f6eb0; }
     .inv-bubble[data-state="want"] { background: #d18e1a; color: #fff; border-color: #d18e1a; }
     .inv-bubble[data-state="need"] { background: #c7362b; color: #fff; border-color: #c7362b; }
-    /* item title — shown inside the bubble, under the icon, ~3× smaller */
+    /* item title — hidden by default; once the bubble is checked it replaces
+       the icon and shows the (abbreviated) title, larger so it fits within. */
     .inv-bubble-label {
-      max-width: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      font: 600 0.33rem/1 var(--font-ui, inherit);
-      color: inherit; pointer-events: none;
+      display: none;
+      max-width: 46px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font: 700 0.58rem/1 var(--font-ui, inherit);
+      color: inherit; pointer-events: none; padding: 0 2px;
     }
+    .inv-bubble[data-state] > i { display: none; }
+    .inv-bubble[data-state] .inv-bubble-label { display: block; }
     @media (prefers-reduced-motion: reduce) {
       .inv-bubble { animation-duration: 0.01s; }
     }
@@ -2316,13 +2320,14 @@
         bubbleRaf = requestAnimationFrame(stepBubbles);
       }
     }
-    function setCloudHeight(cloud, n) {
+    function setCloudHeight(cloud, n, big) {
       const cw = cloud.getBoundingClientRect().width || 440;
       const perRow = Math.max(2, Math.floor(cw / 74));
       const gridRows = Math.ceil(n / perRow);
-      // ~4× the vertical room per row (was 104) so every category re-click
-      // expands the area much further downward — a tall, sparse drifting field.
-      cloud.style.height = Math.max(320, gridRows * 416 + 60) + 'px';
+      // First reveal (every selected category still at level 1) stays compact;
+      // once any category is clicked again the area expands ~4× per row.
+      const rowH = big ? 416 : 110;
+      cloud.style.height = Math.max(big ? 320 : 230, gridRows * rowH + (big ? 60 : 36)) + 'px';
     }
 
     const bubbleByRow = new Map(); // row el → bubble el (so reveals are incremental)
@@ -2358,8 +2363,11 @@
       bubbleByRow.forEach((el, row) => {
         if (!desiredSet.has(row)) { el.remove(); bubblePhysics.delete(el); bubbleByRow.delete(row); }
       });
-      // grow the area first so new bubbles seed against the final height
-      setCloudHeight(cloud, desired.length);
+      // grow the area first so new bubbles seed against the final height.
+      // Only expand big once some category has been re-clicked (level ≥ 2);
+      // the first reveal stays compact (no empty space up top).
+      const big = Array.from(catLevel.values()).some(l => l >= 2);
+      setCloudHeight(cloud, desired.length, big);
       const rect = cloud.getBoundingClientRect();
       // add the newly revealed ones, rising from the bottom (staggered)
       let rise = 0;

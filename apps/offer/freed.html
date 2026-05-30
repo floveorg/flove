@@ -638,34 +638,125 @@
   #decl:has(#sec-4:checked) > .card[data-sec="4"],
   #decl:has(#sec-all:checked) > .card{ display:block }
 
-  /* ===== Reasons section (data-sec="for") — Because / For chip columns ===== */
+  /* ===== Reasons section (data-sec="for") — drifting Because / For clouds
+     ported from shareful: chips float in a physics cloud, the "+" beside
+     each title reveals them gradually (2 parents → all parents → +children),
+     and clicking a chip docks it into the grid below. ===== */
+  .card[data-sec="for"]{ position:relative }
   .for-grid{
-    display:grid; gap:16px;
+    display:grid; gap:14px;
     grid-template-columns:1fr 1fr; align-items:start;
   }
-  @media (max-width:600px){ .for-grid{ grid-template-columns:1fr } }
+  @media (max-width:640px){ .for-grid{ grid-template-columns:1fr } }
+  .for-col{ position:relative }
+  .for-col-head{ display:flex; align-items:center; gap:8px; margin:0 0 10px }
   .for-col-title{
-    text-align:left; margin:0 0 12px;
+    text-align:left; margin:0;
     font-family:var(--font-display); font-weight:600;
-    font-size:1.6rem; color:var(--accent-deep);
+    font-size:2.1rem; color:var(--accent-deep);
   }
-  .reasons-cloud{ display:flex; flex-wrap:wrap; gap:8px; align-content:flex-start }
+
   .reason-chip{
     display:inline-flex; align-items:center; gap:7px;
-    padding: 7px 13px;
+    padding: 6px 10px;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-pill);
     background:#fff; color: var(--ink);
-    font: 600 .82rem/1.2 var(--font-ui);
+    font: 500 .68rem/1.2 var(--font-ui);
     cursor:pointer;
     transition: all var(--fast);
   }
-  .reason-chip:hover{ border-color: var(--accent); color: var(--accent-deep) }
-  .reason-chip input{ position:absolute; opacity:0; pointer-events:none; width:0; height:0 }
+  .reason-chip:hover{ border-color: var(--accent) }
   .reason-chip:has(:checked){
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep);
   }
-  .reasons-cloud:has(:checked) .reason-chip:not(:has(:checked)){ opacity:.5 }
+  /* hidden checkbox — selection shown via chip styling */
+  .reason-chip input[type=checkbox]{
+    position:absolute; opacity:0; pointer-events:none; width:1px; height:1px;
+  }
+
+  /* cloud container — chips are absolutely positioned by the JS physics loop */
+  .for-reasons{ position:relative; width:100%; height:320px; transition: height .35s ease }
+  .for-col[data-expand="0"] .for-reasons{ height:200px }
+  .for-col[data-expand="1"] .for-reasons{ height:750px }    /* first click */
+  .for-col[data-expand="2"] .for-reasons{ height:1500px }   /* second click */
+  .for-reasons > .reason-chip{
+    position:absolute;
+    white-space:nowrap;
+    transition: background var(--fast), border-color var(--fast), color var(--fast);
+  }
+  /* parent / sub chips — parents are 2× the size of subs */
+  .reason-chip.parent-chip{ font: 600 1.12rem/1.15 var(--font-ui); padding: 9px 14px }
+  .reason-chip.child-chip{ font: 500 .56rem/1.2 var(--font-ui); padding: 4px 7px }
+  .reason-chip.child-chip:hover,
+  .reason-chip.child-chip:has(:checked){ border-color: var(--line-strong) }
+  /* cloud tabs start hidden — JS reveals them per expand step */
+  .reasons-cloud > .reason-chip{ display:none }
+
+  /* "+" beside each title — 3-step reveal of cloud tabs */
+  .expand-plus{
+    width:34px; height:34px; flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    background:#fff; border:1px solid var(--line-strong);
+    color:var(--accent); cursor:pointer;
+    font:700 1.43rem/1 var(--font-ui);
+    box-shadow:var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .expand-plus:hover{ border-color:var(--accent); background:var(--accent-soft) }
+  .for-col[data-expand="1"] .expand-plus{ background:var(--accent-soft); border-color:var(--accent) }
+  .for-col[data-expand="2"] .expand-plus{
+    background:linear-gradient(180deg, var(--accent), var(--accent-deep));
+    color:#fff; border-color:transparent;
+  }
+
+  /* new-reason input — sits right after the column title, in flow */
+  .new-reason-input{
+    display:none;
+    width:200px; max-width:45%;
+    padding:9px 12px;
+    border:1px solid var(--accent);
+    border-radius:var(--radius-sm);
+    background:#fff; color:var(--ink);
+    font:500 .85rem/1.2 var(--font-ui);
+    box-shadow:0 4px 14px -4px var(--accent-glow);
+  }
+  .new-reason-input.is-open{ display:inline-block }
+  .new-reason-input:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-glow) }
+
+  /* "+" add-reason button — floats in the cloud with the chips */
+  .extra-plus{
+    width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px dashed var(--line-strong);
+    color: var(--accent);
+    font: 700 1.2rem/1 var(--font-ui);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: all var(--fast);
+  }
+  .extra-plus:hover{
+    border-style: solid; border-color: var(--accent);
+    background: var(--accent-soft); color: var(--accent-deep);
+    transform: translateY(-1px);
+  }
+  .for-reasons .add-reason{
+    position:absolute; z-index:3;
+    width:47px; height:47px;
+    font-size:1.56rem;
+    /* Position is driven by the same JS physics loop as the chips. */
+  }
+
+  /* docked reasons — a clicked tab drops into a 2-column grid below the cloud */
+  .for-docked{
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:6px; align-content:start; margin-top:14px;
+  }
+  .for-docked:empty{ margin:0 }
+  .for-docked .reason-chip{ white-space:normal }
 
   /* ===== Tag area below the title (3 tiers, nested + reveals) ===== */
   .tag-toggle{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
@@ -1338,31 +1429,69 @@
 
     <section class="card" data-sec="for">
       <div class="for-grid">
-        <div class="for-col">
-          <h3 class="for-col-title">Because</h3>
-          <div class="reasons-cloud">
-            <label class="reason-chip"><input type="checkbox" name="reason"> I have plenty</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> it's just sitting there</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> I won't miss it</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> someone helped me once</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> it's fair</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> kindness should circulate</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> I'm passing it on</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> it'd go unused otherwise</label>
+
+        <div class="for-col" data-expand="0">
+          <div class="for-col-head">
+            <button type="button" class="expand-plus" aria-label="Show more reasons" title="Show more reasons">＋</button>
+            <h3 class="for-col-title">Because</h3>
+            <input type="text" class="new-reason-input" placeholder="New reason…" aria-label="New reason">
           </div>
+          <fieldset>
+            <div class="for-reasons reasons-cloud">
+              <label class="reason-chip parent-chip" data-pid="0"><input type="checkbox" name="reason"> I have plenty</label>
+              <label class="reason-chip parent-chip" data-pid="1"><input type="checkbox" name="reason"> it's just sitting there</label>
+              <label class="reason-chip parent-chip" data-pid="2"><input type="checkbox" name="reason"> I won't miss it</label>
+              <label class="reason-chip parent-chip" data-pid="3"><input type="checkbox" name="reason"> someone helped me once</label>
+              <label class="reason-chip parent-chip" data-pid="4"><input type="checkbox" name="reason"> it's fair</label>
+
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> I have more than I need</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> it'd go unused otherwise</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> giving it away loses me nothing</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> it only gathers dust</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> I'm not using it anyway</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> I've outgrown it</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> letting go feels right</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> I'm passing it on</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> kindness should circulate</label>
+              <label class="reason-chip child-chip" data-parent="4"><input type="checkbox" name="reason"> no one should buy what they'll use once</label>
+              <label class="reason-chip child-chip" data-parent="4"><input type="checkbox" name="reason"> access shouldn't depend on money</label>
+
+              <button type="button" class="extra-plus add-reason" aria-label="Add a reason" title="Add a reason">＋</button>
+            </div>
+          </fieldset>
+          <div class="for-docked"></div>
         </div>
-        <div class="for-col">
-          <h3 class="for-col-title">For</h3>
-          <div class="reasons-cloud">
-            <label class="reason-chip"><input type="checkbox" name="reason"> giving better</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> connecting</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> less waste</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> better for the planet</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> building community</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> to free is to multiply</label>
-            <label class="reason-chip"><input type="checkbox" name="reason"> things gain stories when shared</label>
+
+        <div class="for-col" data-expand="0">
+          <div class="for-col-head">
+            <button type="button" class="expand-plus" aria-label="Show more reasons" title="Show more reasons">＋</button>
+            <h3 class="for-col-title">For</h3>
+            <input type="text" class="new-reason-input" placeholder="New reason…" aria-label="New reason">
           </div>
+          <fieldset>
+            <div class="for-reasons reasons-cloud">
+              <label class="reason-chip parent-chip" data-pid="0"><input type="checkbox" name="reason"> giving better</label>
+              <label class="reason-chip parent-chip" data-pid="1"><input type="checkbox" name="reason"> connecting</label>
+              <label class="reason-chip parent-chip" data-pid="2"><input type="checkbox" name="reason"> the planet</label>
+              <label class="reason-chip parent-chip" data-pid="3"><input type="checkbox" name="reason"> building community</label>
+
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> happy to help</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> pay it forward</label>
+              <label class="reason-chip child-chip" data-parent="0"><input type="checkbox" name="reason"> care is contagious</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> letting it travel</label>
+              <label class="reason-chip child-chip" data-parent="1"><input type="checkbox" name="reason"> it finds new hands</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> less waste</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> better for the planet</label>
+              <label class="reason-chip child-chip" data-parent="2"><input type="checkbox" name="reason"> objects want to circulate</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> to free is to multiply</label>
+              <label class="reason-chip child-chip" data-parent="3"><input type="checkbox" name="reason"> things gain stories when shared</label>
+
+              <button type="button" class="extra-plus add-reason" aria-label="Add a reason" title="Add a reason">＋</button>
+            </div>
+          </fieldset>
+          <div class="for-docked"></div>
         </div>
+
       </div>
     </section>
 
@@ -1370,7 +1499,7 @@
       <div class="row-2">
         <div class="sec1-left">
           <div class="inline-decl">
-            <input id="thing-name" type="text" placeholder="e.g., bicycle, photo album, old loom">
+            <input id="thing-name" type="text" placeholder=" ">
             <div class="title-tools">
               <button type="button" class="ta-tool ta-mic" data-mic-for="thing-name" title="Voice input" aria-label="Voice input"><i class="fas fa-microphone"></i></button>
               <button type="button" class="ta-tool opt-magic" data-magic-for="thing-name" title="Magic" aria-label="Magic">✦</button>
@@ -1439,10 +1568,10 @@
       <fieldset>
         <div class="row-2">
           <div class="btn-col">
-            <label class="pill"><input id="no-rules" type="checkbox"><span><em>No ruled</em></span></label>
-            <label class="pill"><input id="no-law"   type="checkbox"><span><em>Lawless</em></span></label>
-            <label class="pill"><input type="checkbox" name="own" id="own-none"><span><em>Has no ownership</em></span></label>
-            <label class="pill"><input type="checkbox" name="own" id="own-noone"><span><em>Owned by no one</em></span></label>
+            <label class="pill"><input id="no-rules" type="checkbox"><span>No ruled</span></label>
+            <label class="pill"><input id="no-law"   type="checkbox"><span>Lawless</span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-none"><span>Has no ownership</span></label>
+            <label class="pill"><input type="checkbox" name="own" id="own-noone"><span>Owned by no one</span></label>
             <label class="pill"><input type="checkbox" name="own" id="own-notme"><span>I'm no longer the owner</span></label>
             <label class="pill"><input type="checkbox" name="own" id="own-ours"><span>It's common, <strong>it's Ours</strong></span></label>
             <label class="pill"><input type="checkbox" name="own" id="own-ours-strong"><span>Globally owned, <strong>from everyone!</strong></span></label>
@@ -2464,6 +2593,192 @@ em{color:#14503e}</style></head>
     mirror(); save();
     mapDialog.close();
     toast("Location set");
+  });
+
+  // ── Reasons clouds — drifting cloud · 3-step "+" reveal · click a tab to dock it
+  //    (ported from shareful) ──
+  $$(".reasons-cloud").forEach(cloud => {
+    const col = cloud.closest(".for-col");
+    const newInput = col ? col.querySelector(".new-reason-input") : null;
+    const addBtn = cloud.querySelector(".add-reason");
+    const expandBtn = col ? col.querySelector(".expand-plus") : null;
+    const dock = col ? col.querySelector(".for-docked") : null;
+
+    // Chips are positioned by a JS physics loop: each chip has a small
+    // velocity, bounces off the cloud walls and off other chips on contact.
+    const visibleChips = () =>
+      $$(":scope > .reason-chip, :scope > .add-reason", cloud)
+        .filter(c => c.style.display !== "none");
+
+    const physics = new Map(); // chip → {x, y, w, h, vx, vy}  (% of cloud)
+    let rafId = null;
+    const randVel = () => (Math.random() - 0.5) * 0.30;
+
+    function measureChip(el, cloudRect){
+      const r = el.getBoundingClientRect();
+      return {
+        w: r.width  && cloudRect.width  ? (r.width  / cloudRect.width)  * 100 : 10,
+        h: r.height && cloudRect.height ? (r.height / cloudRect.height) * 100 : 10,
+      };
+    }
+
+    function syncPhysicsList(){
+      const chips = visibleChips();
+      const cloudRect = cloud.getBoundingClientRect();
+      if (!cloudRect.width || !cloudRect.height) return;
+      Array.from(physics.keys()).forEach(el => {
+        if (el.parentNode !== cloud || el.style.display === "none") physics.delete(el);
+      });
+      chips.forEach(c => {
+        if (physics.has(c)) return;
+        const m = measureChip(c, cloudRect);
+        physics.set(c, {
+          x: parseFloat(c.dataset.homeX) || 0,
+          y: parseFloat(c.dataset.homeY) || 0,
+          w: m.w, h: m.h,
+          vx: randVel(), vy: randVel(),
+        });
+      });
+    }
+
+    function stepPhysics(){
+      const cloudRect = cloud.getBoundingClientRect();
+      if (!cloudRect.width || !cloudRect.height){ rafId = requestAnimationFrame(stepPhysics); return; }
+      const items = [];
+      Array.from(physics.keys()).forEach(el => {
+        if (el.parentNode !== cloud || el.style.display === "none"){ physics.delete(el); return; }
+        const it = physics.get(el);
+        const m = measureChip(el, cloudRect);
+        it.w = m.w; it.h = m.h;
+        items.push({ el, it });
+      });
+      for (const { it } of items){
+        it.x += it.vx; it.y += it.vy;
+        if (it.x < 0)          { it.x = 0;          it.vx =  Math.abs(it.vx); }
+        if (it.x + it.w > 100) { it.x = 100 - it.w; it.vx = -Math.abs(it.vx); }
+        if (it.y < 0)          { it.y = 0;          it.vy =  Math.abs(it.vy); }
+        if (it.y + it.h > 100) { it.y = 100 - it.h; it.vy = -Math.abs(it.vy); }
+      }
+      for (let i = 0; i < items.length; i++){
+        const a = items[i].it;
+        for (let j = i + 1; j < items.length; j++){
+          const b = items[j].it;
+          if (a.x < b.x + b.w && a.x + a.w > b.x &&
+              a.y < b.y + b.h && a.y + a.h > b.y){
+            const dx = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
+            const dy = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
+            if (dx < dy){
+              const push = dx / 2;
+              if (a.x < b.x){ a.x -= push; b.x += push; } else { a.x += push; b.x -= push; }
+              const t = a.vx; a.vx = b.vx; b.vx = t;
+            } else {
+              const push = dy / 2;
+              if (a.y < b.y){ a.y -= push; b.y += push; } else { a.y += push; b.y -= push; }
+              const t = a.vy; a.vy = b.vy; b.vy = t;
+            }
+          }
+        }
+      }
+      for (const { el, it } of items){
+        el.style.left = it.x.toFixed(2) + "%";
+        el.style.top  = it.y.toFixed(2) + "%";
+      }
+      rafId = requestAnimationFrame(stepPhysics);
+    }
+
+    const layout = () => {
+      const chips = visibleChips();
+      for (let i = chips.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [chips[i], chips[j]] = [chips[j], chips[i]];
+      }
+      const cols = Math.max(1, Math.ceil(Math.sqrt(chips.length)));
+      const rows = Math.max(1, Math.ceil(chips.length / cols));
+      const colDen = Math.max(1, cols - 1);
+      const rowDen = Math.max(1, rows - 1);
+      chips.forEach((c, i) => {
+        const hx = +(4 + (i % cols)         / colDen * 80).toFixed(2);
+        const hy = +(4 + Math.floor(i/cols) / rowDen * 88).toFixed(2);
+        c.dataset.homeX = hx; c.dataset.homeY = hy;
+        c.style.left = hx + "%"; c.style.top = hy + "%";
+        const ex = physics.get(c);
+        if (ex){ ex.x = hx; ex.y = hy; ex.vx = randVel(); ex.vy = randVel(); }
+      });
+      syncPhysicsList();
+      if (!rafId && physics.size && !matchMedia("(prefers-reduced-motion: reduce)").matches){
+        rafId = requestAnimationFrame(stepPhysics);
+      }
+    };
+
+    // 3 steps: 0 = two parents · 1 = all parents · 2 = all parents + children
+    function applyExpand(){
+      const state = +(col.dataset.expand || 0);
+      const parents = $$(":scope > .parent-chip", cloud);
+      const kids    = $$(":scope > .child-chip", cloud);
+      parents.forEach((p,i) => { p.style.display = (state >= 1 || i < 2) ? "inline-flex" : "none"; });
+      if (state >= 2){
+        kids.forEach(k => {
+          if (k.style.display !== "inline-flex"){
+            const p = cloud.querySelector('.parent-chip[data-pid="' + k.dataset.parent + '"]');
+            if (p && p.style.left){ k.style.left = p.style.left; k.style.top = p.style.top; }
+            k.style.display = "inline-flex";
+          }
+        });
+        setTimeout(layout, 40);
+      } else {
+        kids.forEach(k => { k.style.display = "none"; });
+        layout();
+      }
+    }
+    expandBtn?.addEventListener("click", () => {
+      col.dataset.expand = String(((+(col.dataset.expand || 0)) + 1) % 3);
+      applyExpand();
+    });
+
+    // click a tab → it docks into the grid below; click again → back to the cloud
+    cloud.addEventListener("change", e => {
+      const chip = e.target.closest(".reason-chip");
+      if (!chip || !dock || !cloud.contains(chip)) return;
+      if (e.target.checked){ chip.style.display = ""; dock.appendChild(chip); }
+    });
+    dock?.addEventListener("change", e => {
+      const chip = e.target.closest(".reason-chip");
+      if (!chip || e.target.checked) return;
+      chip.style.display = "inline-flex";
+      cloud.insertBefore(chip, addBtn || null);
+      layout();
+    });
+
+    applyExpand();
+
+    // "+" in the cloud — type a custom reason; Enter adds it as a parent tab
+    const addChip = txt => {
+      const lbl = document.createElement("label");
+      lbl.className = "reason-chip parent-chip";
+      lbl.style.display = "inline-flex";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.name = "reason";
+      lbl.append(cb, document.createTextNode(" " + txt));
+      cloud.insertBefore(lbl, addBtn || null);
+      layout();
+    };
+    addBtn?.addEventListener("click", () => {
+      if (!newInput) return;
+      newInput.classList.toggle("is-open");
+      if (newInput.classList.contains("is-open")) newInput.focus();
+    });
+    newInput?.addEventListener("keydown", e => {
+      if (e.key === "Enter"){
+        e.preventDefault();
+        const txt = newInput.value.trim();
+        if (txt) addChip(txt);
+        newInput.value = "";
+        newInput.classList.remove("is-open");
+      } else if (e.key === "Escape"){
+        newInput.value = "";
+        newInput.classList.remove("is-open");
+      }
+    });
   });
 
   // Each visit starts fresh — drop any previously saved snapshot so a

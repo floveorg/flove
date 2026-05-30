@@ -845,7 +845,7 @@
 
     .field-btn.intro-rise {
       opacity: 0;
-      animation: btn-rise 1s cubic-bezier(0.2, 0.85, 0.3, 1.05) forwards;
+      animation: btn-rise 2s cubic-bezier(0.2, 0.85, 0.3, 1.05) forwards;
     }
     @keyframes btn-rise {
       from { opacity: 0; transform: translateY(32px) scale(0.96); }
@@ -1250,6 +1250,33 @@
       50%      { transform: translate(calc(var(--cx) + 8px), calc(var(--cy) - 10px)) rotate(calc(var(--cr) + 5deg)); }
     }
 
+    /* ───── Bubbles mode · physics clouds (ported from inventary) ─────
+       Parents and subtabs each drift/bounce inside their own relative
+       cloud; the subtabs cloud grows its area as more parents open. */
+    .fields-list.bubbles-parents { display: block; }
+    .subtabs-list.bubbles-subs { display: block; }
+    .bubble-cloud {
+      position: relative;
+      width: 100%;
+      transition: height 0.4s cubic-bezier(0.2, 0.85, 0.3, 1.05);
+    }
+    .field-btn.bubble-item,
+    .subtab-btn.bubble-item {
+      position: absolute;
+      left: 0; top: 0;
+      will-change: left, top;
+      animation: bubble-pop 0.5s cubic-bezier(0.22, 0.9, 0.35, 1.05) backwards;
+    }
+    .field-btn.bubble-item { font-size: 1.25rem; padding: 0.5rem 1.1rem; font-weight: 600; }
+    @keyframes bubble-pop {
+      from { opacity: 0; transform: scale(0.4); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .field-btn.bubble-item, .subtab-btn.bubble-item { animation: none; }
+      .bubble-cloud { transition: none; }
+    }
+
     /* Drag-to-reorder within a subtab row. */
     .subtab-row.drag-on .subtab-btn { cursor: grab; }
     .subtab-row.drag-on .subtab-btn.dragging { cursor: grabbing; opacity: 0.55; }
@@ -1476,6 +1503,13 @@
       <button type="button" class="mode-btn" data-mode="random" aria-pressed="true" title="Random" aria-label="Random" data-tip="Random: scattered cloud with shuffling positions">
         <i class="fas fa-dice" aria-hidden="true"></i>
       </button>
+      <button type="button" class="mode-btn" data-mode="bubbles" aria-pressed="false" title="Bubbles" aria-label="Bubbles" data-tip="Bubbles: items drift and bounce like floating bubbles">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="8.5" cy="14" r="5"/>
+          <circle cx="16.5" cy="9" r="3.5"/>
+          <circle cx="17" cy="17.5" r="2.2"/>
+        </g></svg>
+      </button>
       <button type="button" class="addmenu-btn" id="addmenuBtn" aria-haspopup="true" aria-expanded="false" title="Add" aria-label="Add a subtab" data-tip="Add your own wants into the tree">
         <i class="fas fa-plus" aria-hidden="true"></i>
       </button>
@@ -1597,7 +1631,7 @@
       'Interest': ['Preference', 'Curiosity', 'Inspiration', 'Idea', 'Willing', 'Hobby', 'Habit'],
       'Purpose':  ['Calling', 'Aspiration', 'Vision', 'Vocation', 'Path', 'Mission', 'Destiny'],
       'Project':  ['Projection', 'Pledge', 'Plan', 'Legacy'],
-      'Want':     ['Request', 'Demand', 'Need']
+      'Want':     ['Request', 'Demand', 'Need', 'Require']
     };
     // Parents = the top-level pills shown in the cloud / row / scope views.
     const fields = ['Like', 'Wish', 'Interest', 'Purpose', 'Project', 'Want'];
@@ -1646,6 +1680,7 @@
       cloud: false,
       drag: false,
       random: true,
+      bubbles: false,      // physics cloud (parents + subs drift like inventary)
       customOrder: null,   // { parentName: [subtab, …] }
       randomCache: null,
       shuffleTimer: null
@@ -1774,9 +1809,10 @@
     function makeParentBtn(name, i, mode) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'field-btn ' + (mode === 'dancing' ? 'dancing' : 'parent-heading');
+      btn.className = 'field-btn ' + (mode === 'dancing' ? 'dancing' : mode === 'bubble' ? 'bubble-item' : 'parent-heading');
       btn.dataset.name = name;
       if (mode === 'dancing') btn.style.animationDelay = (i * 0.7).toFixed(2) + 's';
+      if (mode === 'bubble')  btn.style.animationDelay = (i * 0.08).toFixed(2) + 's';
       if (isOpen(name) || isSelected(name)) btn.classList.add('active');
       if (fieldHasContent(name) || (tree[name] || []).some(fieldHasContent)) btn.classList.add('has-content');
       btn.textContent = name;
@@ -1802,6 +1838,7 @@
     // Scope / drag: the parents move down to head their own categories
     // (rendered by renderSubtabRows), so the top row stays empty.
     function renderFields() {
+      if (displayState.bubbles) { renderBubbleParents(); renderBubbleSubs(); return; }
       fieldsList.innerHTML = '';
       if (displayState.random || displayState.cloud) {
         fieldsList.className = 'fields-list parents-row';
@@ -1857,6 +1894,7 @@
     function renderSubtabRows() {
       const box = document.getElementById('subtabsList');
       if (!box) return;
+      if (displayState.bubbles) { renderBubbleSubs(); return; }
       box.innerHTML = '';
 
       if (displayState.random || displayState.cloud) {
@@ -1906,6 +1944,193 @@
         }
         box.appendChild(group);
       });
+    }
+
+    // ── Bubbles mode · two independent physics clouds (parents + subs) ──
+    //    Ported from inventary.html: bubbles drift, bounce off the walls
+    //    and off each other. Each cloud is its own physics system so the
+    //    parent categories and their subtabs move separately.
+    const parentsCloud = { physics: new Map(), raf: null, el: null };
+    const subsCloud    = { physics: new Map(), raf: null, el: null };
+    const parentBubbleByName = new Map();   // name → button
+    const subBubbleByName    = new Map();   // "parent::sub" → button
+    const bRandVel  = () => (Math.random() - 0.5) * 0.22;
+    const prefersReduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function measureBubble(el, rect) {
+      const r = el.getBoundingClientRect();
+      return {
+        w: r.width  && rect.width  ? (r.width  / rect.width)  * 100 : 12,
+        h: r.height && rect.height ? (r.height / rect.height) * 100 : 12,
+      };
+    }
+    function seedBubble(el, rect, state) {
+      const m = measureBubble(el, rect);
+      const reduce = prefersReduce();
+      const x = +(Math.random() * Math.max(1, 100 - m.w)).toFixed(2);
+      const y = reduce ? +(Math.random() * Math.max(1, 100 - m.h)).toFixed(2)
+                       : +(100 - m.h).toFixed(2);   // rise from the bottom
+      el.style.left = x + '%'; el.style.top = y + '%';
+      state.physics.set(el, {
+        x, y, w: m.w, h: m.h,
+        vx: bRandVel(),
+        vy: reduce ? 0 : (-Math.abs(bRandVel()) - 0.04),
+      });
+    }
+    function stepCloud(state) {
+      const cloud = state.el;
+      if (!cloud || !cloud.isConnected) { state.raf = null; return; }
+      const rect = cloud.getBoundingClientRect();
+      if (!rect.width || !rect.height) { state.raf = requestAnimationFrame(() => stepCloud(state)); return; }
+      const items = [];
+      Array.from(state.physics.keys()).forEach(el => {
+        if (el.parentNode !== cloud) { state.physics.delete(el); return; }
+        const it = state.physics.get(el);
+        const m = measureBubble(el, rect); it.w = m.w; it.h = m.h;
+        items.push({ el, it });
+      });
+      // Step is in % of cloud; scale by a reference size so on-screen drift
+      // speed stays constant no matter how far the area has grown.
+      const sx = 440 / rect.width, sy = 300 / rect.height;
+      for (const { it } of items) {
+        it.x += it.vx * sx; it.y += it.vy * sy;
+        if (it.x < 0)          { it.x = 0;          it.vx =  Math.abs(it.vx); }
+        if (it.x + it.w > 100) { it.x = 100 - it.w; it.vx = -Math.abs(it.vx); }
+        if (it.y < 0)          { it.y = 0;          it.vy =  Math.abs(it.vy); }
+        if (it.y + it.h > 100) { it.y = 100 - it.h; it.vy = -Math.abs(it.vy); }
+      }
+      if (items.length <= 80) {
+        for (let i = 0; i < items.length; i++) {
+          const a = items[i].it;
+          for (let j = i + 1; j < items.length; j++) {
+            const b = items[j].it;
+            if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
+              const dx = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
+              const dy = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
+              if (dx < dy) {
+                const p = dx / 2;
+                if (a.x < b.x) { a.x -= p; b.x += p; } else { a.x += p; b.x -= p; }
+                const t = a.vx; a.vx = b.vx; b.vx = t;
+              } else {
+                const p = dy / 2;
+                if (a.y < b.y) { a.y -= p; b.y += p; } else { a.y += p; b.y -= p; }
+                const t = a.vy; a.vy = b.vy; b.vy = t;
+              }
+            }
+          }
+        }
+      }
+      for (const { el, it } of items) {
+        el.style.left = it.x.toFixed(2) + '%';
+        el.style.top  = it.y.toFixed(2) + '%';
+      }
+      state.raf = requestAnimationFrame(() => stepCloud(state));
+    }
+    function ensureCloudRaf(state) {
+      if (!state.raf && state.physics.size && !prefersReduce()) {
+        state.raf = requestAnimationFrame(() => stepCloud(state));
+      }
+    }
+    function stopCloud(state) {
+      if (state.raf) { cancelAnimationFrame(state.raf); state.raf = null; }
+      state.physics.clear();
+      state.el = null;
+    }
+    function stopBubbles() {
+      stopCloud(parentsCloud); stopCloud(subsCloud);
+      parentBubbleByName.clear(); subBubbleByName.clear();
+    }
+    function setParentsCloudHeight(cloud, n) {
+      const cw = cloud.getBoundingClientRect().width || 440;
+      const perRow = Math.max(2, Math.floor(cw / 130));
+      const rows = Math.max(1, Math.ceil(n / perRow));
+      cloud.style.height = Math.max(190, rows * 120 + 40) + 'px';
+    }
+    // Subtabs area grows with EACH selected main category — the "increasing
+    // area below" effect: every open parent adds breathing room below.
+    function setSubsCloudHeight(cloud, n, openCount) {
+      const cw = cloud.getBoundingClientRect().width || 440;
+      const perRow = Math.max(2, Math.floor(cw / 96));
+      const rows = Math.max(1, Math.ceil(n / perRow));
+      const base = 200 + Math.max(0, openCount - 1) * 130;   // +130px per extra parent
+      cloud.style.height = Math.max(base, rows * 74 + openCount * 50) + 'px';
+    }
+
+    // Parents as a drifting cloud (built once, then kept in place across
+    // re-renders so opening a parent doesn't reshuffle the others).
+    function renderBubbleParents() {
+      let cloud = fieldsList.querySelector('.bubble-cloud');
+      if (!fieldsList.classList.contains('bubbles-parents') || !cloud) {
+        fieldsList.className = 'fields-list bubbles-parents';
+        fieldsList.innerHTML = '';
+        cloud = document.createElement('div');
+        cloud.className = 'bubble-cloud';
+        fieldsList.appendChild(cloud);
+        stopCloud(parentsCloud);
+        parentBubbleByName.clear();
+      }
+      parentsCloud.el = cloud;
+      setParentsCloudHeight(cloud, fields.length);
+      const rect = cloud.getBoundingClientRect();
+      fields.forEach((name, i) => {
+        let b = parentBubbleByName.get(name);
+        if (!b) {
+          b = makeParentBtn(name, i, 'bubble');
+          cloud.appendChild(b);
+          parentBubbleByName.set(name, b);
+          seedBubble(b, rect, parentsCloud);
+        } else {
+          b.classList.toggle('active', isOpen(name) || isSelected(name));
+          b.classList.toggle('has-content', fieldHasContent(name) || (tree[name] || []).some(fieldHasContent));
+        }
+      });
+      ensureCloudRaf(parentsCloud);
+    }
+
+    // Subtabs of the open parents as a second drifting cloud. Incremental:
+    // newly revealed subtabs rise from below; collapsed parents drop theirs.
+    function renderBubbleSubs() {
+      const box = document.getElementById('subtabsList');
+      if (!box) return;
+      let cloud = box.querySelector('.bubble-cloud');
+      if (!box.classList.contains('bubbles-subs') || !cloud) {
+        box.className = 'subtabs-list bubbles-subs';
+        box.innerHTML = '';
+        cloud = document.createElement('div');
+        cloud.className = 'bubble-cloud';
+        box.appendChild(cloud);
+        stopCloud(subsCloud);
+        subBubbleByName.clear();
+      }
+      subsCloud.el = cloud;
+      box.classList.toggle('is-open', openParents.length > 0);
+      const openSet = new Set(openParents);
+      const desired = [];
+      fields.forEach(p => { if (openSet.has(p)) (tree[p] || []).forEach(s => desired.push(p + '::' + s)); });
+      const desiredSet = new Set(desired);
+      // drop subtabs whose parent collapsed
+      subBubbleByName.forEach((el, key) => {
+        if (!desiredSet.has(key)) { el.remove(); subsCloud.physics.delete(el); subBubbleByName.delete(key); }
+      });
+      // grow the area first so new bubbles seed against the final height
+      setSubsCloudHeight(cloud, desired.length, openParents.length);
+      const rect = cloud.getBoundingClientRect();
+      desired.forEach((key, idx) => {
+        const sep = key.indexOf('::');
+        const p = key.slice(0, sep), s = key.slice(sep + 2);
+        let el = subBubbleByName.get(key);
+        if (!el) {
+          el = makeSubBtn(s, p, idx, desired.length);
+          el.classList.add('bubble-item');
+          cloud.appendChild(el);
+          subBubbleByName.set(key, el);
+          seedBubble(el, rect, subsCloud);
+        } else {
+          el.classList.toggle('active', isSelected(s));
+          el.classList.toggle('has-content', fieldHasContent(s));
+        }
+      });
+      ensureCloudRaf(subsCloud);
     }
 
     // ── "Add" dropdown — a collapsible tree builder ──
@@ -2414,6 +2639,7 @@
       }
     }
     function applyMode() {
+      if (!displayState.bubbles) stopBubbles();
       if (displayState.random) {
         if (!displayState.randomCache) buildRandomCache();
         startRandomShuffle();
@@ -2425,14 +2651,20 @@
     function toggleMode(mode) {
       if (mode === 'random') {
         if (!displayState.random) {
-          displayState.scope = displayState.cloud = displayState.drag = false;
+          displayState.scope = displayState.cloud = displayState.drag = displayState.bubbles = false;
           displayState.random = true;
           displayState.customOrder = null;
           buildRandomCache();
         }
+      } else if (mode === 'bubbles') {
+        displayState.bubbles = !displayState.bubbles;
+        if (displayState.bubbles) displayState.scope = displayState.cloud = displayState.drag = false;
+        displayState.random = !(displayState.scope || displayState.cloud || displayState.drag || displayState.bubbles);
+        displayState.customOrder = null;
       } else {
         displayState[mode] = !displayState[mode];
-        displayState.random = !(displayState.scope || displayState.cloud || displayState.drag);
+        if (displayState[mode]) displayState.bubbles = false;
+        displayState.random = !(displayState.scope || displayState.cloud || displayState.drag || displayState.bubbles);
         if (displayState.random) buildRandomCache();
         if (!displayState.drag) displayState.customOrder = null;
       }
@@ -2474,7 +2706,7 @@
       [...fieldsList.children].forEach((b, i) => {
         b.classList.remove('dancing');
         b.classList.add('intro-rise');
-        b.style.animationDelay = (i * 0.45).toFixed(2) + 's';
+        b.style.animationDelay = (i * 0.9).toFixed(2) + 's';
       });
       setTimeout(() => {
         [...fieldsList.children].forEach((b, i) => {
@@ -2484,7 +2716,7 @@
         });
         buildRandomCache();
         startRandomShuffle();
-      }, 5000);
+      }, 10000);
     }
 
     function startIntroSequence() {

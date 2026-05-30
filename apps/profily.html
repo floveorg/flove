@@ -84,7 +84,7 @@
   .tabs > input { position: absolute; opacity: 0; pointer-events: none; }
   .tabbar {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 6px;
     margin-bottom: 22px;
     padding: 6px;
@@ -106,6 +106,7 @@
     opacity: .55;
   }
   .tabbar label:hover { opacity: 1; color: var(--ink); }
+  #t-home:checked    ~ .tabbar label[for=t-home],
   #t-souls:checked   ~ .tabbar label[for=t-souls],
   #t-trusts:checked  ~ .tabbar label[for=t-trusts],
   #t-contrib:checked ~ .tabbar label[for=t-contrib],
@@ -118,6 +119,7 @@
   }
 
   .panel { display: none; animation: fade .3s var(--fast); }
+  #t-home:checked    ~ #p-home,
   #t-souls:checked   ~ #p-souls,
   #t-trusts:checked  ~ #p-trusts,
   #t-contrib:checked ~ #p-contrib,
@@ -706,7 +708,7 @@
     .card { padding: 16px; border-radius: var(--radius); }
     .presentation { grid-template-columns: 1fr; text-align: left; }
     .avatar { width: 96px; height: 96px; font-size: 40px; border-radius: 22px; }
-    .tabbar { grid-template-columns: repeat(5, 1fr); }
+    .tabbar { grid-template-columns: repeat(6, 1fr); }
     .tabbar label { padding: 9px 4px; font-size: 11px; letter-spacing: .2px; }
     .gallery { grid-template-columns: repeat(2, 1fr); }
     .apps-grid { grid-template-columns: repeat(3, 1fr); }
@@ -717,7 +719,27 @@
 
   /* ── Sub-avatars ────────────────────────────────────────── */
   .avatar-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  .avatar-actions { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+  .avatar-actions { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+  /* SuperUser badge (below the picture) — pure-CSS reveal */
+  .su-toggle { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+  .superuser-btn {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 5px 12px; border-radius: var(--pill);
+    border: 1px solid #d8b24a; background: linear-gradient(180deg, #fff7e0, #ffeec0);
+    color: #7a5a12; font: 700 12px/1 var(--font-ui, 'Inter', sans-serif);
+    box-shadow: 0 6px 16px -10px rgba(180, 130, 20, .6); transition: all .15s; white-space: nowrap;
+  }
+  .superuser-btn .su-ico { font-size: 14px; }
+  .superuser-btn:hover { filter: brightness(1.03); transform: translateY(-1px); }
+  .su-toggle:checked ~ .superuser-btn { background: linear-gradient(180deg, #ffe9a8, #ffd877); border-color: #c79a2e; }
+  .superuser-msg {
+    display: none; max-width: 200px; text-align: center;
+    font-size: 12px; line-height: 1.45; color: #2f6e3b;
+    background: #eef8f0; border: 1px solid #cfe9d4; border-radius: 12px;
+    padding: 8px 10px;
+  }
+  .su-toggle:checked ~ .superuser-msg { display: block; animation: fade .3s var(--fast); }
   .mini-btn {
     appearance: none; cursor: pointer;
     border: 1px solid var(--line); background: #fff; color: var(--ink-soft);
@@ -754,16 +776,33 @@
   .subav-nick .nick { outline: none; border-bottom: 1px dashed transparent; min-width: 2ch; }
   .subav-nick .nick:focus { border-bottom-color: var(--app-accent); }
 
-  .subav-body { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-  .subav-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+  .subav-body { display: flex; align-items: center; gap: 18px; }
+  .subav-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 0 1 auto; }
   .subav-info .info-row { color: var(--ink-soft); font-size: 14px; outline: none; border-bottom: 1px dashed transparent; min-height: 1.3em; }
   .subav-info .info-row:empty::before { content: attr(data-ph); color: var(--muted); opacity: .6; }
   .subav-info .info-row:focus { border-bottom-color: var(--app-accent); }
-  .subav-stats { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; text-align: right; flex: 0 0 auto; }
+  .subav-stats { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left; flex: 0 0 auto; }
   .subav-stats .stat-row { display: inline-flex; gap: 8px; align-items: baseline; }
   .subav-stats .stat-row .k { text-transform: uppercase; letter-spacing: .5px; font-size: 10px; font-weight: 700; color: var(--muted); }
   .subav-stats .stat-row b { color: var(--ink); font-size: 14px; outline: none; border-bottom: 1px dashed transparent; }
   .subav-stats .stat-row b:focus { border-bottom-color: var(--app-accent); }
+
+  /* right-end "+" that expands an extra detail row (historic / live) */
+  .subav-expand {
+    appearance: none; cursor: pointer; margin-left: auto; flex: 0 0 auto;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px dashed var(--line); background: #fff; color: var(--app-ink-on-accent);
+    display: grid; place-items: center; font: 700 16px/1 var(--font-ui, 'Inter', sans-serif);
+    transition: all .15s;
+  }
+  .subav-expand:hover { border-style: solid; border-color: var(--app-accent); background: var(--app-accent-soft); }
+  .subav.detail-open .subav-expand { background: var(--app-accent); color: var(--app-ink-on-accent); border-color: var(--app-accent); transform: rotate(45deg); }
+  .subav-detail { display: none; gap: 24px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .subav.detail-open .subav-detail { display: flex; flex-wrap: wrap; }
+  .subav-detail .stat-row { display: inline-flex; gap: 8px; align-items: baseline; }
+  .subav-detail .stat-row .k { text-transform: uppercase; letter-spacing: .5px; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .subav-detail .stat-row b { color: var(--ink); font-size: 14px; outline: none; border-bottom: 1px dashed transparent; }
+  .subav-detail .stat-row b:focus { border-bottom-color: var(--app-accent); }
 
   .subav-tools { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
   .subav:not(.tools-open) .subav-tools { display: none; }
@@ -843,13 +882,15 @@
 
     <!-- Single card holds the tabs + all panels (Souls panel contains the user presentation) -->
     <section class="card tabs">
-      <input type="radio" name="tab" id="t-souls" checked>
+      <input type="radio" name="tab" id="t-home" checked>
+      <input type="radio" name="tab" id="t-souls">
       <input type="radio" name="tab" id="t-trusts">
       <input type="radio" name="tab" id="t-contrib">
       <input type="radio" name="tab" id="t-offers">
       <input type="radio" name="tab" id="t-contact">
 
-      <nav class="tabbar" aria-label="Avatar sections">
+      <nav class="tabbar" aria-label="Profily sections">
+        <label for="t-home">Home</label>
         <label for="t-souls">Souls</label>
         <label for="t-trusts">Trusts</label>
         <label for="t-contrib">Contribs</label>
@@ -857,8 +898,39 @@
         <label for="t-contact">Contact</label>
       </nav>
 
-      <!-- SOULS: presentation + wanty (replaces interests/preferences) -->
+      <!-- SOULS results: live + historic stats -->
       <div class="panel" id="p-souls">
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-head"><span>Live souls</span><b>128</b></div>
+            <div class="bar" style="--v:64%"></div>
+          </div>
+          <div class="stat">
+            <div class="stat-head"><span>Historic souls</span><b>1,940</b></div>
+            <div class="bar" style="--v:82%"></div>
+          </div>
+        </div>
+        <ul class="trusts">
+          <li>
+            <span class="face">✦</span>
+            <div><div class="name">This week</div><div class="meta">12 new souls · 3 returning</div></div>
+            <span class="level">Live</span>
+          </li>
+          <li>
+            <span class="face">↺</span>
+            <div><div class="name">This month</div><div class="meta">48 souls reached · +18%</div></div>
+            <span class="level">Up</span>
+          </li>
+          <li>
+            <span class="face">∞</span>
+            <div><div class="name">All time</div><div class="meta">1,940 souls reached across your apps</div></div>
+            <span class="level">Hist</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- HOME: presentation + sub-avatars + wanty -->
+      <div class="panel" id="p-home">
         <div class="presentation">
           <div class="avatar-col">
             <div class="avatar" aria-label="avatar">M</div>
@@ -866,6 +938,9 @@
               <button type="button" class="mini-btn" id="saToggle" aria-expanded="false" aria-controls="subavatars"><span class="pl">＋</span><span id="saCount">3</span> Avatars</button>
               <button type="button" class="mini-btn" id="saNew"><span class="pl">＋</span> New</button>
             </div>
+            <input type="checkbox" id="superToggle" class="su-toggle">
+            <label for="superToggle" class="superuser-btn" title="SuperUser status"><span class="su-ico" aria-hidden="true">🛡</span> SuperUser</label>
+            <div class="superuser-msg">✓ Verified SuperUser — this profile has passed biometric authentications (face &amp; fingerprint).</div>
           </div>
           <div class="who">
             <h1 class="name">Marc</h1>
@@ -1007,7 +1082,7 @@
 
     <!-- APPS PLAYED (always visible) -->
     <section class="card apps-section">
-      <h2>Apps you've played</h2>
+      <h2>Apps i played</h2>
       <div class="apps-grid" id="appsGrid"></div>
     </section>
 
@@ -1369,9 +1444,9 @@
   const parentName = (document.querySelector('.who .name')?.textContent || 'Me').trim();
   const saUid = () => 's' + Math.random().toString(36).slice(2, 9);
   const saDefaults = () => ([
-    { id: saUid(), nick: 'cyclist', info: ['Rides the city daily', 'Lends the urban bike'], souls: '72%', trust: 'High', tools: [] },
-    { id: saUid(), nick: 'maker',   info: ['3D-print Saturdays', 'Shares building tools'],   souls: '58%', trust: 'Med',  tools: [] },
-    { id: saUid(), nick: 'coder',   info: ['Frontend code reviews', 'CSS & vanilla JS'],      souls: '64%', trust: 'High', tools: [] }
+    { id: saUid(), nick: 'cyclist', info: ['Rides the city daily', 'Lends the urban bike'], souls: '72%', trust: 'High', historic: '1.2k', live: '34', tools: [] },
+    { id: saUid(), nick: 'maker',   info: ['3D-print Saturdays', 'Shares building tools'],   souls: '58%', trust: 'Med',  historic: '840', live: '12', tools: [] },
+    { id: saUid(), nick: 'coder',   info: ['Frontend code reviews', 'CSS & vanilla JS'],      souls: '64%', trust: 'High', historic: '2.0k', live: '57', tools: [] }
   ]);
   let subavatars;
   try { const r = JSON.parse(localStorage.getItem(SA_KEY)); subavatars = (Array.isArray(r) && r.length) ? r : saDefaults(); }
@@ -1433,7 +1508,13 @@
     const stats = document.createElement('div'); stats.className = 'subav-stats';
     stats.appendChild(saStatRow('Souls', av.souls, v => { av.souls = v; saSave(); }));
     stats.appendChild(saStatRow('Trust', av.trust, v => { av.trust = v; saSave(); }));
-    body.appendChild(info); body.appendChild(stats);
+    const expand = document.createElement('button'); expand.type = 'button'; expand.className = 'subav-expand'; expand.title = 'More stats'; expand.setAttribute('aria-label', 'Expand stats'); expand.textContent = '＋';
+    expand.addEventListener('click', () => el.classList.toggle('detail-open'));
+    body.appendChild(info); body.appendChild(stats); body.appendChild(expand);
+
+    const detail = document.createElement('div'); detail.className = 'subav-detail';
+    detail.appendChild(saStatRow('Historic', av.historic || '—', v => { av.historic = v; saSave(); }));
+    detail.appendChild(saStatRow('Live', av.live || '—', v => { av.live = v; saSave(); }));
 
     const tools = document.createElement('div'); tools.className = 'subav-tools';
     const chips = document.createElement('div'); chips.className = 'subav-chiprow';
@@ -1446,7 +1527,7 @@
     tools.appendChild(chips); tools.appendChild(added);
     saRenderAddedTools(av, added);
 
-    el.appendChild(head); el.appendChild(body); el.appendChild(tools);
+    el.appendChild(head); el.appendChild(body); el.appendChild(detail); el.appendChild(tools);
     return el;
   }
   function saNewForm() {
@@ -1455,7 +1536,7 @@
     const create = document.createElement('button'); create.type = 'button'; create.className = 'mini-btn create'; create.textContent = 'Create';
     const doCreate = () => {
       const v = inp.value.trim(); if (!v) { inp.focus(); return; }
-      subavatars.push({ id: saUid(), nick: v, info: ['', ''], souls: '—', trust: 'New', tools: [] });
+      subavatars.push({ id: saUid(), nick: v, info: ['', ''], souls: '—', trust: 'New', historic: '—', live: '0', tools: [] });
       saSave(); inp.value = ''; saRender();
     };
     create.addEventListener('click', doCreate);

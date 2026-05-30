@@ -326,15 +326,14 @@
     .inv-bubble[data-state="wish"] { background: #2f6eb0; color: #fff; border-color: #2f6eb0; }
     .inv-bubble[data-state="want"] { background: #d18e1a; color: #fff; border-color: #d18e1a; }
     .inv-bubble[data-state="need"] { background: #c7362b; color: #fff; border-color: #c7362b; }
-    /* item title — hidden by default; once the bubble is checked it replaces
-       the icon and shows the (abbreviated) title, larger so it fits within. */
+    /* item title — hidden by default; once the bubble is checked the icon
+       stays and the (abbreviated) title shows below it, ~3× smaller. */
     .inv-bubble-label {
       display: none;
       max-width: 46px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      font: 700 0.58rem/1 var(--font-ui, inherit);
-      color: inherit; pointer-events: none; padding: 0 2px;
+      font: 600 0.33rem/1 var(--font-ui, inherit);
+      color: inherit; pointer-events: none;
     }
-    .inv-bubble[data-state] > i { display: none; }
     .inv-bubble[data-state] .inv-bubble-label { display: block; }
     @media (prefers-reduced-motion: reduce) {
       .inv-bubble { animation-duration: 0.01s; }
@@ -2215,8 +2214,9 @@
       lab.className = 'inv-bubble-label';
       lab.textContent = name;   // title shown below the icon when checked
       b.appendChild(lab);
-      const st = currentRowState(row);
-      if (st) b.dataset.state = st;
+      let st = currentRowState(row);
+      if (!st) { setRowState(row, 'have'); st = 'have'; }  // newly revealed → Have-green by default
+      b.dataset.state = st;
       b.addEventListener('click', () => {
         const idx = STATE_CYCLE.indexOf(currentRowState(row));
         const next = STATE_CYCLE[(idx + 1) % STATE_CYCLE.length];
@@ -2265,8 +2265,14 @@
         const m = measureBubble(el, rect); it.w = m.w; it.h = m.h;
         items.push({ el, it });
       });
+      // Velocities are in % of the cloud, so a taller cloud would make the
+      // same % step cover more pixels — i.e. look faster after each expand.
+      // Scale the step by a reference size so the on-screen drift speed stays
+      // constant no matter how far the area has grown.
+      const sx = 440 / rect.width;
+      const sy = 300 / rect.height;
       for (const { it } of items) {
-        it.x += it.vx; it.y += it.vy;
+        it.x += it.vx * sx; it.y += it.vy * sy;
         if (it.x < 0)          { it.x = 0;          it.vx =  Math.abs(it.vx); }
         if (it.x + it.w > 100) { it.x = 100 - it.w; it.vx = -Math.abs(it.vx); }
         if (it.y < 0)          { it.y = 0;          it.vy =  Math.abs(it.vy); }

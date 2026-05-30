@@ -856,7 +856,19 @@ body:has(#tier-pop-open:checked) .magic-wrap{ display: none; }
   align-items: start;
   z-index: var(--z-dropdown);
 }
-body:has(#magic-open:checked):has(#d-armmore:checked) .labeler-list{ display: grid; }
+/* When open, the "more bots" list becomes a doubled drifting cloud: the
+   sub-emoji cells float like shareful's reasons (JS physics) in the tall top
+   area, and the +/separator/wizardry footer flows below it. */
+body:has(#magic-open:checked):has(#d-armmore:checked) .labeler-list{
+  display: block;
+  width: 252px;
+  padding: 224px .6rem .6rem;   /* tall cloud area on top; footer below */
+}
+.labeler-list .labeler-sub-cell:not(.is-more){
+  position: absolute; margin: 0; z-index: 1;
+  opacity: 0; transition: opacity .35s ease;   /* JS reveals them gradually */
+}
+.labeler-list .labeler-sub-cell:not(.is-more).is-in{ opacity: 1; }
 
 .labeler-sub-cell{ display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .labeler-sub-cell.is-more{ grid-column: 1 / -1; justify-self: center; }
@@ -8994,6 +9006,114 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       nodes.forEach(o => o.classList.remove('is-on'));
       if (fill) fill.style.width = '0';
       if (track) track.setAttribute('aria-valuenow', '0');
+    }
+  });
+})();
+</script>
+
+<script>
+/* Sub-emoji cloud — when the "more bots" list opens, its sub-emoji cells
+   drift and bounce like shareful's reasons in the doubled top area and
+   populate gradually. Pure-physics rAF loop; selection still works because
+   we only move left/top. */
+(function(){
+  const list = document.querySelector('.labeler-list');
+  if (!list) return;
+  const cells = Array.from(list.querySelectorAll('.labeler-sub-cell:not(.is-more)'));
+  if (!cells.length) return;
+
+  const phys = new Map();           // cell → {x,y,w,h,vx,vy} in px
+  let raf = null, revealTimer = null;
+  const rand = () => (Math.random() - 0.5) * 2.2;   // px/frame
+
+  function isOpen(){
+    const m = document.getElementById('magic-open');
+    const a = document.getElementById('d-armmore');
+    return !!(m && m.checked && a && a.checked);
+  }
+  function area(){
+    const r = list.getBoundingClientRect();
+    const padTop = parseFloat(getComputedStyle(list).paddingTop) || 200;
+    return { w: Math.max(40, r.width - 12), h: Math.max(40, padTop - 6) };
+  }
+  function seed(){
+    const a = area();
+    phys.clear();
+    cells.forEach(c => {
+      const r = c.getBoundingClientRect();
+      const w = r.width || 38, h = r.height || 40;
+      phys.set(c, {
+        x: Math.random() * Math.max(1, a.w - w),
+        y: a.h - h,                       // start at the bottom → drift up
+        w, h, vx: rand(), vy: -Math.abs(rand()) - 0.4,
+      });
+    });
+  }
+  function step(){
+    const a = area();
+    const items = [];
+    phys.forEach((it, el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width) { it.w = r.width; it.h = r.height; }
+      items.push({ el, it });
+    });
+    for (const { it } of items){
+      it.x += it.vx; it.y += it.vy;
+      if (it.x < 0)            { it.x = 0;          it.vx =  Math.abs(it.vx); }
+      if (it.x + it.w > a.w)   { it.x = a.w - it.w; it.vx = -Math.abs(it.vx); }
+      if (it.y < 0)            { it.y = 0;          it.vy =  Math.abs(it.vy); }
+      if (it.y + it.h > a.h)   { it.y = a.h - it.h; it.vy = -Math.abs(it.vy); }
+    }
+    for (let i = 0; i < items.length; i++){
+      const A = items[i].it;
+      for (let j = i + 1; j < items.length; j++){
+        const B = items[j].it;
+        if (A.x < B.x + B.w && A.x + A.w > B.x && A.y < B.y + B.h && A.y + A.h > B.y){
+          const dx = Math.min(A.x + A.w - B.x, B.x + B.w - A.x);
+          const dy = Math.min(A.y + A.h - B.y, B.y + B.h - A.y);
+          if (dx < dy){ const p = dx/2; if (A.x < B.x){ A.x -= p; B.x += p; } else { A.x += p; B.x -= p; } const t = A.vx; A.vx = B.vx; B.vx = t; }
+          else        { const p = dy/2; if (A.y < B.y){ A.y -= p; B.y += p; } else { A.y += p; B.y -= p; } const t = A.vy; A.vy = B.vy; B.vy = t; }
+        }
+      }
+    }
+    for (const { el, it } of items){
+      el.style.left = it.x.toFixed(1) + 'px';
+      el.style.top  = it.y.toFixed(1) + 'px';
+    }
+    raf = requestAnimationFrame(step);
+  }
+  function start(){
+    if (raf) return;
+    seed();
+    cells.forEach(c => c.classList.remove('is-in'));
+    let i = 0;
+    clearInterval(revealTimer);
+    revealTimer = setInterval(() => {              // populate gradually
+      if (i >= cells.length){ clearInterval(revealTimer); return; }
+      cells[i++].classList.add('is-in');
+    }, 130);
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      raf = requestAnimationFrame(step);
+    } else {
+      // reduced motion: lay them out in a static grid, no drifting
+      const a = area();
+      const cols = Math.max(1, Math.floor(a.w / 60));
+      cells.forEach((c, k) => {
+        c.style.left = ((k % cols) * 60 + 4) + 'px';
+        c.style.top  = (Math.floor(k / cols) * 52 + 4) + 'px';
+        c.classList.add('is-in');
+      });
+    }
+  }
+  function stop(){
+    if (raf){ cancelAnimationFrame(raf); raf = null; }
+    clearInterval(revealTimer);
+  }
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t) return;
+    if (t.id === 'magic-open' || t.id === 'd-armmore' || t.id === 'd-none' || t.name === 'topdrop'){
+      setTimeout(() => { isOpen() ? start() : stop(); }, 0);
     }
   });
 })();

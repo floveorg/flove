@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Create</title>
+  <link rel="stylesheet" href="../../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* layout */
+    .wrapper{ max-width:1300px; margin:1.4rem auto 4rem; padding:0 1.25rem }
+    .head{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1rem }
+    .head h1{
+      margin:0; font-size:1.6rem; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .head .lede{ color:var(--muted); margin:.2rem 0 0; font-size:.9rem }
+
+    .controls{ display:flex; gap:.5rem; flex-wrap:wrap }
+    .btn{
+      appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink);
+      padding:.6rem .85rem; border-radius:var(--flove-radius-sm); cursor:pointer; font:inherit;
+      transition:border-color var(--flove-fast), box-shadow var(--flove-fast);
+    }
+    .btn:hover{ border-color:var(--app-accent) }
+    .btn.primary{
+      background:linear-gradient(135deg,var(--app-accent),var(--app-accent-soft));
+      color:var(--app-ink-on-accent); font-weight:700; border-color:var(--app-accent);
+    }
+
+    .layout{ display:grid; grid-template-columns:320px 1fr; gap:1rem }
+    @media (max-width:980px){ .layout{ grid-template-columns:1fr } }
+
+    .left{ display:grid; gap:1rem; align-content:start }
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border:1px solid var(--line); border-radius:var(--flove-radius); padding:.9rem 1rem;
+    }
+    .card h3{ margin:0 0 .6rem; font-size:1rem; letter-spacing:.6px; color:var(--accent2) }
+    .card h4{ margin:0 0 .4rem; font-size:.95rem; letter-spacing:.4px; color:var(--app-accent) }
+
+    .field{ display:flex; flex-direction:column; gap:.35rem; margin:.5rem 0 }
+    .field label{ font-weight:600; font-size:.85rem; color:var(--muted) }
+    input[type=text], input[type=number], textarea, select{
+      width:100%; background:var(--field); color:var(--ink);
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      padding:.6rem .7rem; font:inherit;
+    }
+    input[type=text]:focus, input[type=number]:focus, textarea:focus, select:focus{
+      outline:none; border-color:var(--app-accent);
+      box-shadow:0 0 0 3px rgba(141,137,255,.18);
+    }
+
+    .grid{ display:grid; gap:.75rem }
+    .grid.cols-3{ grid-template-columns:repeat(3,1fr) }
+    .grid.cols-2{ grid-template-columns:repeat(2,1fr) }
+    @media (max-width:980px){ .grid.cols-3{ grid-template-columns:1fr } }
+
+    /* point-router buckets */
+    .bucket{
+      min-height:220px;
+      background:linear-gradient(180deg,rgba(255,255,255,.03),transparent), #121421;
+      border:1px dashed var(--line); border-radius:var(--flove-radius);
+      padding:.7rem; display:flex; flex-direction:column; gap:.6rem;
+    }
+    .bucket h4{ margin:0 0 .35rem; font-size:.9rem; color:var(--muted) }
+    .bucket .items{ display:flex; flex-direction:column; gap:.5rem }
+
+    .item{
+      display:grid; grid-template-columns:1fr auto; gap:.6rem; align-items:center;
+      background:#151824; border:1px solid var(--line); border-radius:var(--flove-radius-sm); padding:.6rem;
+      transition:transform .25s var(--flove-ease), box-shadow .25s var(--flove-ease), opacity .25s var(--flove-ease);
+    }
+    .item:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.3) }
+    .item .title{ font-weight:600 }
+    .item .score{ display:flex; align-items:center; gap:.5rem }
+    .score input[type=range]{ width:160px; accent-color:var(--app-accent) }
+    .score output{ width:32px; text-align:center; font-variant-numeric:tabular-nums }
+
+    .tag{
+      font-size:.75rem; padding:.25rem .55rem; border-radius:var(--flove-radius-pill);
+      border:1px solid var(--line); color:var(--muted);
+    }
+
+    .kpi{
+      display:flex; align-items:center; justify-content:space-between;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);
+      border:1px dashed var(--line); padding:.6rem; border-radius:var(--flove-radius-sm);
+    }
+    .kpi span{ color:var(--muted); font-size:.85rem }
+    .kpi strong{ font-size:1.15rem }
+
+    canvas{
+      width:100%; height:260px; background:#10121a;
+      border-radius:var(--flove-radius-sm); border:1px solid var(--line);
+    }
+
+    footer.note{ color:var(--muted); text-align:center; margin-top:1rem; font-size:.85rem }
+  </style>
+</head>
+<body>
+  <!-- language radios (drive the pure-CSS i18n) -->
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">Create</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <div class="wrapper">
+    <header class="head">
+      <div>
+        <h1>Create Rater</h1>
+        <p class="lede"><span class="t-en">Add elements, slide their points, watch them route into buckets.</span><span class="t-es">Añade elementos, desliza sus puntos y míralos enrutarse en cubos.</span></p>
+      </div>
+      <div class="controls">
+        <button id="addRandom" class="btn"><span class="t-en">Add 5 demo items</span><span class="t-es">Añadir 5 elementos demo</span></button>
+        <button id="resetAll" class="btn"><span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button>
+        <button id="export" class="btn primary"><span class="t-en">Export JSON</span><span class="t-es">Exportar JSON</span></button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="left">
+        <div class="card">
+          <h3><span class="t-en">Add element</span><span class="t-es">Añadir elemento</span></h3>
+          <div class="field">
+            <label><span class="t-en">Name</span><span class="t-es">Nombre</span></label>
+            <input id="newName" type="text" placeholder="e.g., Love">
+          </div>
+          <div class="field">
+            <label><span class="t-en">Initial points (−5 … +5)</span><span class="t-es">Puntos iniciales (−5 … +5)</span></label>
+            <input id="newScore" type="number" min="-5" max="5" value="0" step="1">
+          </div>
+          <div class="field">
+            <label><span class="t-en">Tag / Group (optional)</span><span class="t-es">Etiqueta / Grupo (opcional)</span></label>
+            <input id="newTag" type="text" placeholder="e.g., Emotion">
+          </div>
+          <button id="addItem" class="btn primary"><span class="t-en">Add</span><span class="t-es">Añadir</span></button>
+        </div>
+
+        <div class="card">
+          <h3><span class="t-en">Stats</span><span class="t-es">Estadísticas</span></h3>
+          <div class="grid cols-2">
+            <div class="kpi"><span><span class="t-en">Total</span><span class="t-es">Total</span></span><strong id="kTotal">0</strong></div>
+            <div class="kpi"><span><span class="t-en">Average</span><span class="t-es">Promedio</span></span><strong id="kAvg">0.0</strong></div>
+          </div>
+          <div style="margin-top:10px">
+            <canvas id="barChart" width="400" height="260" aria-label="Distribution bar"></canvas>
+          </div>
+          <div style="margin-top:10px">
+            <canvas id="donutChart" width="400" height="260" aria-label="Buckets donut"></canvas>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <div class="grid cols-3">
+          <section class="card bucket" data-range="-5:-1" id="negBucket">
+            <h4><span class="t-en">Negative (−5 … −1)</span><span class="t-es">Negativo (−5 … −1)</span></h4>
+            <div class="items"></div>
+          </section>
+          <section class="card bucket" data-range="0:0" id="zeroBucket">
+            <h4><span class="t-en">Neutral (0)</span><span class="t-es">Neutral (0)</span></h4>
+            <div class="items"></div>
+          </section>
+          <section class="card bucket" data-range="1:5" id="posBucket">
+            <h4><span class="t-en">Positive (+1 … +5)</span><span class="t-es">Positivo (+1 … +5)</span></h4>
+            <div class="items"></div>
+          </section>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h3><span class="t-en">Items (all)</span><span class="t-es">Elementos (todos)</span></h3>
+          <div id="allList" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px;"></div>
+        </div>
+      </main>
+    </div>
+
+    <footer class="note"><span class="t-en">Made with HTML, CSS, and a few lines of vanilla JS (no external chart libs).</span><span class="t-es">Hecho con HTML, CSS y unas líneas de JS puro (sin librerías de gráficos externas).</span></footer>
+  </div>
+
+<script>
+const state = {
+  items: []
+};
+
+const el = s => document.querySelector(s);
+const els = s => Array.from(document.querySelectorAll(s));
+
+function createItemCard(obj){
+  const card = document.createElement('div');
+  card.className = 'item';
+  card.dataset.id = obj.id;
+
+  const left = document.createElement('div');
+  left.className = 'title';
+  left.textContent = obj.name;
+
+  const right = document.createElement('div');
+  right.className = 'score';
+  const range = document.createElement('input');
+  range.type = 'range'; range.min = -5; range.max = 5; range.step = 1; range.value = obj.score;
+  const out = document.createElement('output');
+  out.textContent = obj.score;
+  const tag = document.createElement('span');
+  tag.className = 'tag'; tag.textContent = obj.tag || '—';
+
+  range.addEventListener('input', e => { out.textContent = e.target.value; });
+  range.addEventListener('change', e => {
+    obj.score = parseInt(e.target.value,10);
+    routeItem(card, obj.score);
+    update();
+  });
+
+  right.appendChild(range); right.appendChild(out); right.appendChild(tag);
+  card.appendChild(left); card.appendChild(right);
+  return card;
+}
+
+function addItem(name, score, tag){
+  const obj = { id: crypto.randomUUID(), name, score: parseInt(score,10)||0, tag: (tag||'').trim() };
+  state.items.push(obj);
+  const card = createItemCard(obj);
+  el('#allList').appendChild(card);
+  routeItem(card, obj.score);
+  update();
+}
+
+function bucketFor(score){
+  if (score < 0) return el('#negBucket .items');
+  if (score > 0) return el('#posBucket .items');
+  return el('#zeroBucket .items');
+}
+
+function routeItem(card, score){
+  const target = bucketFor(score);
+  // Smooth re-parenting with animation
+  card.style.opacity = '0';
+  setTimeout(()=>{
+    target.appendChild(card);
+    card.style.opacity = '1';
+  }, 120);
+}
+
+function update(){
+  // KPIs
+  el('#kTotal').textContent = state.items.length;
+  const avg = state.items.length ? (state.items.reduce((a,b)=>a+b.score,0)/state.items.length) : 0;
+  el('#kAvg').textContent = avg.toFixed(2);
+
+  drawBar();
+  drawDonut();
+}
+
+// Simple bar chart (scores distribution -5..+5) — re-tinted to Puzzy palette
+function drawBar(){
+  const canvas = el('#barChart'); const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const w = canvas.width, h = canvas.height, pad = 32;
+  // axis
+  ctx.strokeStyle = 'rgba(233,234,242,.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, h-pad); ctx.lineTo(w-pad, h-pad); ctx.moveTo(pad, pad); ctx.lineTo(pad, h-pad); ctx.stroke();
+  const counts = new Array(11).fill(0);
+  state.items.forEach(it=>{ counts[it.score+5]++; });
+  const max = Math.max(1, ...counts);
+  const bw = (w - pad*2) / counts.length;
+  counts.forEach((c,i)=>{
+    const bh = (h - pad*2) * (c / max);
+    const x = pad + i*bw;
+    const y = h - pad - bh;
+    ctx.fillStyle = 'rgba(141,137,255,.85)'; // negatives — violet accent
+    if (i===5) ctx.fillStyle = 'rgba(163,167,180,.9)'; // zero — muted
+    if (i>5) ctx.fillStyle = 'rgba(112,240,211,.85)'; // positives — teal accent2
+    ctx.fillRect(x+2, y, bw-4, bh);
+    // tick
+    ctx.fillStyle = 'rgba(233,234,242,.6)';
+    ctx.font = '12px ui-sans-serif, sans-serif';
+    const label = (i-5).toString();
+    ctx.fillText(label, x+bw/2-4, h-pad+14);
+  });
+}
+
+// Donut (bucket proportions) — re-tinted to Puzzy palette
+function drawDonut(){
+  const canvas = el('#donutChart'); const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const w = canvas.width, h = canvas.height;
+  const cx = w/2, cy = h/2, r = Math.min(w,h)/2 - 12, ir = r*0.6;
+  const neg = state.items.filter(i=>i.score<0).length;
+  const zer = state.items.filter(i=>i.score===0).length;
+  const pos = state.items.filter(i=>i.score>0).length;
+  const total = Math.max(1, neg+zer+pos);
+  const parts = [
+    {v:neg, color:'rgba(141,137,255,.9)'}, // negative — violet accent
+    {v:zer, color:'rgba(163,167,180,.95)'}, // neutral — muted
+    {v:pos, color:'rgba(112,240,211,.9)'}, // positive — teal accent2
+  ];
+  let start = -Math.PI/2;
+  parts.forEach(p=>{
+    const ang = (p.v/total) * Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,start+ang);
+    ctx.closePath();
+    ctx.fillStyle = p.color; ctx.fill();
+    start += ang;
+  });
+  // cut inner
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  // legend
+  ctx.fillStyle = 'rgba(233,234,242,.85)';
+  ctx.font = '14px ui-sans-serif, sans-serif';
+  ctx.fillText(`− : ${neg}`, 14, 22);
+  ctx.fillText(`0 : ${zer}`, 14, 40);
+  ctx.fillText(`+ : ${pos}`, 14, 58);
+}
+
+function seed(){
+  const demo = [
+    ['Love', 2, 'Emotion'],
+    ['Care', 1, 'Action'],
+    ['Enjoy', 3, 'Emotion'],
+    ['Reason', -2, 'Cognition'],
+    ['Treasure', 4, 'Value'],
+  ];
+  demo.forEach(d=> addItem(...d));
+}
+
+el('#addItem').addEventListener('click', ()=>{
+  const n = el('#newName').value.trim();
+  if(!n) return;
+  addItem(n, el('#newScore').value, el('#newTag').value);
+  el('#newName').value='';
+});
+
+el('#addRandom').addEventListener('click', ()=>{
+  const names = ['Blue','Yellow','Trust','Risk','Hope','Doubt','Focus','Flow','Skill','Luck'];
+  for(let i=0;i<5;i++){
+    const name = names[Math.floor(Math.random()*names.length)] + ' ' + Math.floor(Math.random()*100);
+    const score = Math.floor(Math.random()*11)-5;
+    const tag = ['Group A','Group B','Meta','—'][Math.floor(Math.random()*4)];
+    addItem(name, score, tag);
+  }
+});
+
+el('#resetAll').addEventListener('click', ()=>{
+  state.items = [];
+  el('#allList').innerHTML='';
+  els('.bucket .items').forEach(b => b.innerHTML='');
+  update();
+});
+
+el('#export').addEventListener('click', ()=>{
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state.items,null,2));
+  const a = document.createElement('a'); a.href = dataStr; a.download = 'point-router.json'; a.click();
+});
+
+// init
+seed(); update();
+</script>
+</body>
+</html>

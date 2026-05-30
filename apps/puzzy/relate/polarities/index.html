@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Polarities</title>
+  <link rel="stylesheet" href="../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink); min-height:100%;
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* header */
+    .wrap{ max-width:1100px; margin:0 auto; padding:1.4rem 1rem 4rem }
+    .top h1{
+      margin:.2rem 0; font-size:1.9rem; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .lede{ color:var(--muted); margin:.2rem 0 1.2rem }
+
+    /* layout */
+    .grid{ display:grid; gap:1rem; grid-template-columns:360px 1fr }
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr } }
+
+    .pane{
+      border:1px solid var(--line); border-radius:var(--flove-radius);
+      padding:1rem 1.1rem;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    }
+    .pane h2{ margin:.1rem 0 .8rem; font-size:1.05rem; letter-spacing:.6px; color:var(--accent2) }
+
+    /* prompt */
+    .prompt{ display:grid; gap:.7rem }
+    .input{ background:var(--field); border:1px solid var(--line); border-radius:var(--flove-radius-sm); overflow:hidden }
+    .input textarea{
+      width:100%; min-height:130px; padding:.8rem .7rem; color:var(--ink);
+      background:transparent; border:0; outline:none; resize:vertical;
+      caret-color:var(--app-accent); font:inherit; line-height:1.5;
+    }
+    .input:focus-within{ border-color:var(--app-accent); box-shadow:0 0 0 3px rgba(141,137,255,.18) }
+    .hint{ color:var(--muted); font-size:.85rem; display:flex; align-items:center; gap:8px }
+    .hint .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent2) }
+
+    /* collapsible help */
+    .pane details{
+      background:#111426; border:1px solid var(--line); border-radius:var(--flove-radius-sm); padding:.7rem .8rem;
+    }
+    .pane details + details{ margin-top:.6rem }
+    .pane details[open]{ border-color:var(--app-accent) }
+    .pane summary{
+      cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px;
+      color:var(--ink); font-weight:600; letter-spacing:.2px;
+    }
+    .pane summary::-webkit-details-marker{ display:none }
+    .pane summary .chev{
+      width:9px; height:9px; border-right:2px solid var(--app-accent); border-bottom:2px solid var(--app-accent);
+      transform:rotate(-45deg); transition:transform var(--flove-fast);
+    }
+    .pane details[open] summary .chev{ transform:rotate(45deg) }
+    .small{ color:var(--muted); font-size:.9rem; margin:.5rem .1rem .1rem }
+    .small a{ color:var(--accent2) }
+    .mono{
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background:#0f1120; padding:2px 6px; border-radius:6px; border:1px dashed var(--line);
+    }
+
+    /* legend */
+    .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:.6rem }
+    .legend .sw{ width:10px; height:10px; border-radius:3px; background:var(--app-accent) }
+    .legend .sw.b{ background:var(--accent2) }
+    .legend .sw.c{ background:var(--app-accent-soft) }
+    .pill{
+      padding:.3rem .6rem; border-radius:var(--flove-radius-pill); font-size:.82rem;
+      background:#0f1120; border:1px solid var(--line); color:var(--muted);
+    }
+
+    /* polarity cards */
+    .cards{ display:grid; gap:.9rem; grid-template-columns:repeat(2,minmax(260px,1fr)) }
+    @media (max-width:860px){ .cards{ grid-template-columns:1fr } }
+
+    .card{
+      background:linear-gradient(145deg, rgba(141,137,255,.06), rgba(112,240,211,.04)), #15182b;
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      padding:.9rem; position:relative; overflow:hidden;
+    }
+
+    /* sides — the two opposing poles */
+    .sides{ display:grid; gap:8px }
+    .side{
+      display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
+      padding:.5rem .65rem; border-radius:var(--flove-radius-sm);
+      border:1px solid var(--line); background:#0e1731; position:relative;
+      transition:border-color var(--flove-fast);
+    }
+    .side:hover{ border-color:var(--app-accent) }
+    .side strong{ color:var(--ink); font-size:.95rem }
+    .side input{
+      appearance:none; -webkit-appearance:none; width:18px; height:18px; border-radius:6px;
+      border:2px solid var(--app-accent); display:grid; place-items:center; cursor:pointer; margin:0;
+    }
+    .side input::after{
+      content:""; width:10px; height:10px; border-radius:3px; transform:scale(0);
+      background:linear-gradient(180deg,var(--app-accent),var(--app-accent-soft)); transition:transform .12s;
+    }
+    .side input:checked::after{ transform:scale(1) }
+    .side input:checked{ box-shadow:0 0 10px rgba(141,137,255,.45) }
+
+    /* tooltip */
+    [data-tip]{ position:relative; cursor:help; border-bottom:1px dotted rgba(141,137,255,.5) }
+    [data-tip]::after{
+      content:attr(data-tip);
+      position:absolute; left:50%; bottom:calc(100% + 8px);
+      transform:translateX(-50%); pointer-events:none;
+      color:var(--app-ink-on-accent); background:var(--app-accent-soft);
+      padding:8px 10px; border-radius:10px; white-space:nowrap; font-size:.8rem;
+      opacity:0; transition:opacity .12s; box-shadow:0 8px 20px #0008; border:1px solid var(--app-accent); z-index:2;
+    }
+    [data-tip]:hover::after{ opacity:1 }
+
+    /* complementary suggestion (CSS-only, revealed on pick) */
+    .suggest{
+      display:none; margin-top:.6rem; padding:.7rem .8rem; border-radius:var(--flove-radius-sm);
+      border:1px dashed var(--line); background:#0f1120;
+    }
+    .suggest strong{ color:var(--accent2) }
+    .card:has(.side input:checked) .suggest{ display:block }
+
+    .suggest details{
+      background:transparent; border:0; padding:0; margin-top:.5rem;
+    }
+    .suggest summary{
+      cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px;
+      color:var(--app-accent); font-weight:600; font-size:.9rem;
+    }
+    .suggest summary::-webkit-details-marker{ display:none }
+    .suggest summary .chev{
+      width:8px; height:8px; border-right:2px solid var(--app-accent); border-bottom:2px solid var(--app-accent);
+      transform:rotate(-45deg); transition:transform var(--flove-fast);
+    }
+    .suggest details[open] summary .chev{ transform:rotate(45deg) }
+    .suggest details p{ color:var(--muted); font-size:.88rem; margin:.4rem 0 0 }
+
+    /* action bar */
+    .bar{ margin-top:1rem; display:flex; gap:10px; flex-wrap:wrap }
+    .btn{
+      border:1px solid var(--app-accent); color:var(--app-ink-on-accent);
+      background:linear-gradient(180deg,var(--app-accent-soft),var(--app-accent));
+      padding:.6rem .9rem; border-radius:var(--flove-radius-sm); font-weight:700;
+      letter-spacing:.2px; cursor:pointer; text-decoration:none;
+    }
+    .btn.alt{ background:linear-gradient(180deg,#9bf6e2,var(--accent2)); border-color:var(--accent2) }
+    .btn.ghost{ background:transparent; color:var(--ink); border-color:var(--line) }
+    .btn.ghost:hover{ border-color:var(--app-accent) }
+
+    footer{ margin-top:1.6rem; color:var(--muted); text-align:center; font-size:.9rem }
+    footer a{ color:var(--accent2) }
+  </style>
+</head>
+<body>
+  <!-- language radios (drive the pure-CSS i18n) -->
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">Polarities</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <div class="wrap">
+    <header class="top">
+      <h1>Polarities</h1>
+      <p class="lede">
+        <span class="t-en">Suggesting the <em>other side</em> you might be missing — gently, always.</span>
+        <span class="t-es">Sugiriendo el <em>otro lado</em> que podrías estar pasando por alto — con calma, siempre.</span>
+      </p>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: prompt & help -->
+      <section class="pane">
+        <h2><span class="t-en">1) Describe what you're adding</span><span class="t-es">1) Describe lo que estás añadiendo</span></h2>
+        <div class="prompt">
+          <div class="input">
+            <textarea placeholder="e.g., &quot;Write an abstract, formal note about the project scope.&quot;&#10;Polarities will help you balance it with its polarity twin."></textarea>
+          </div>
+          <div class="hint">
+            <span class="dot"></span>
+            <span class="t-en">Tip: You can be messy here; Polarities cares about balance, not grammar.</span>
+            <span class="t-es">Consejo: aquí puedes escribir sin orden; a Polarities le importa el equilibrio, no la gramática.</span>
+          </div>
+
+          <details>
+            <summary><span class="chev"></span> <span class="t-en">What is polarity balancing?</span><span class="t-es">¿Qué es equilibrar polaridades?</span></summary>
+            <p class="small">
+              <span class="t-en">Many ideas carry a <b>pair</b> (formal/informal, abstract/concrete, inner/outer…). When you pick one, Polarities invites you to also cover its <i>complement</i> so your note is more robust and fair. This is inspired by systemic thinking…and by <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.</span>
+              <span class="t-es">Muchas ideas llevan un <b>par</b> (formal/informal, abstracto/concreto, interior/exterior…). Cuando eliges uno, Polarities te invita a cubrir también su <i>complemento</i> para que tu nota sea más robusta y justa. Está inspirado en el pensamiento sistémico…y en <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.</span>
+            </p>
+          </details>
+
+          <details>
+            <summary><span class="chev"></span> <span class="t-en">How to use this panel effectively</span><span class="t-es">Cómo usar este panel con eficacia</span></summary>
+            <ul class="small" style="margin:.5rem 0 .1rem 1rem">
+              <li><span class="t-en">Select the side you naturally gravitate toward.</span><span class="t-es">Selecciona el lado hacia el que gravitas de forma natural.</span></li>
+              <li><span class="t-en">Read the <span class="mono">Complementary suggestion</span> and add one line addressing it.</span><span class="t-es">Lee la <span class="mono">Sugerencia complementaria</span> y añade una línea que la atienda.</span></li>
+              <li><span class="t-en">Repeat across 2–3 pairs you care about; that's usually enough.</span><span class="t-es">Repite con 2–3 pares que te importen; suele bastar.</span></li>
+            </ul>
+          </details>
+
+          <div class="legend">
+            <span class="sw"></span><span class="pill"><span class="t-en">Your natural choice</span><span class="t-es">Tu elección natural</span></span>
+            <span class="sw b"></span><span class="pill"><span class="t-en">Complementary hint</span><span class="t-es">Pista complementaria</span></span>
+            <span class="sw c"></span><span class="pill"><span class="t-en">Background info</span><span class="t-es">Información de fondo</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: polarity cards -->
+      <section class="pane">
+        <h2><span class="t-en">2) Pick the side you're using — Polarities will show you the other you're leaving aside</span><span class="t-es">2) Elige el lado que estás usando — Polarities te mostrará el otro que estás dejando de lado</span></h2>
+
+        <div class="cards">
+
+          <!-- Similar vs Different -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="simdiff">
+                <strong><span class="t-en">Similar</span><span class="t-es">Similar</span></strong>
+                <span class="pill"><span class="t-en">pattern, analogy</span><span class="t-es">patrón, analogía</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="simdiff">
+                <strong><span class="t-en">Different</span><span class="t-es">Distinto</span></strong>
+                <span class="pill"><span class="t-en">contrast, novelty</span><span class="t-es">contraste, novedad</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> If you argued similarity, add one concrete difference (or vice-versa). This prevents <span data-tip="Over-generalizing, blurring critical distinctions">category blur</span> and improves transfer learning for readers.</span>
+                <span class="t-es"> Si argumentaste similitud, añade una diferencia concreta (o viceversa). Esto evita el <span data-tip="Sobregeneralizar, difuminando distinciones críticas">borrón de categorías</span> y mejora la transferencia para quien lee.</span>
+              </div>
+              <details>
+                <summary><span class="chev"></span> <span class="t-en">Learn more</span><span class="t-es">Saber más</span></summary>
+                <p><span class="t-en">Similarity helps recognition; difference sharpens boundaries. Together they avoid both banal repetition and unjustified separation.</span><span class="t-es">La similitud ayuda al reconocimiento; la diferencia afina los límites. Juntas evitan tanto la repetición banal como la separación injustificada.</span></p>
+              </details>
+            </div>
+          </article>
+
+          <!-- Abstract vs Concrete -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="abscon">
+                <strong><span class="t-en">Abstract</span><span class="t-es">Abstracto</span></strong>
+                <span class="pill"><span class="t-en">principles</span><span class="t-es">principios</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="abscon">
+                <strong><span class="t-en">Concrete</span><span class="t-es">Concreto</span></strong>
+                <span class="pill"><span class="t-en">example</span><span class="t-es">ejemplo</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> Pair each principle with a <i>small, vivid example</i> (or lift examples into rules of thumb).</span>
+                <span class="t-es"> Empareja cada principio con un <i>ejemplo pequeño y vívido</i> (o eleva los ejemplos a reglas prácticas).</span>
+              </div>
+              <details>
+                <summary><span class="chev"></span> <span class="t-en">Why this matters</span><span class="t-es">Por qué importa</span></summary>
+                <p><span class="t-en">Abstraction transfers across cases; concreteness grounds truth and testability. Balance gives clarity <em>and</em> traction.</span><span class="t-es">La abstracción se transfiere entre casos; lo concreto ancla la verdad y la comprobabilidad. El equilibrio da claridad <em>y</em> tracción.</span></p>
+              </details>
+            </div>
+          </article>
+
+          <!-- Formal vs Informal -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="forinf">
+                <strong><span class="t-en">Formal</span><span class="t-es">Formal</span></strong>
+                <span class="pill"><span class="t-en">precise, structured</span><span class="t-es">preciso, estructurado</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="forinf">
+                <strong><span class="t-en">Informal</span><span class="t-es">Informal</span></strong>
+                <span class="pill"><span class="t-en">warm, human</span><span class="t-es">cercano, humano</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> Add one counter-tone line: a crisp definition inside an informal note, or a friendly aside inside formal writing.</span>
+                <span class="t-es"> Añade una línea de tono contrario: una definición nítida dentro de una nota informal, o un comentario cercano dentro de un texto formal.</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Important vs Trivial -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="imptri">
+                <strong><span class="t-en">Important</span><span class="t-es">Importante</span></strong>
+                <span class="pill"><span class="t-en">core</span><span class="t-es">núcleo</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="imptri">
+                <strong><span class="t-en">Trivial</span><span class="t-es">Trivial</span></strong>
+                <span class="pill"><span class="t-en">edge details</span><span class="t-es">detalles menores</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> If you highlighted the big rock, add one "small pebble" that often trips people (or vice-versa).</span>
+                <span class="t-es"> Si resaltaste la roca grande, añade un "guijarro" que suele hacer tropezar a la gente (o viceversa).</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Inner vs Outer -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="innout">
+                <strong><span class="t-en">Inner</span><span class="t-es">Interior</span></strong>
+                <span class="pill"><span class="t-en">motives, feelings</span><span class="t-es">motivos, sentimientos</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="innout">
+                <strong><span class="t-en">Outer</span><span class="t-es">Exterior</span></strong>
+                <span class="pill"><span class="t-en">behaviors, signals</span><span class="t-es">conductas, señales</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> Pair a felt reason with an observable action (or the other way around) to align intent and impact.</span>
+                <span class="t-es"> Empareja una razón sentida con una acción observable (o al revés) para alinear intención e impacto.</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Hard vs Soft -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="hardsoft">
+                <strong><span class="t-en">Hard</span><span class="t-es">Duro</span></strong>
+                <span class="pill"><span class="t-en">facts, constraints</span><span class="t-es">hechos, restricciones</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="hardsoft">
+                <strong><span class="t-en">Soft</span><span class="t-es">Blando</span></strong>
+                <span class="pill"><span class="t-en">values, nuance</span><span class="t-es">valores, matiz</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> Add a metric to a value claim, or name a value behind a metric.</span>
+                <span class="t-es"> Añade una métrica a una afirmación de valor, o nombra el valor detrás de una métrica.</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Past vs Future -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="pastfuture">
+                <strong><span class="t-en">Past</span><span class="t-es">Pasado</span></strong>
+                <span class="pill"><span class="t-en">precedent</span><span class="t-es">precedente</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="pastfuture">
+                <strong><span class="t-en">Future</span><span class="t-es">Futuro</span></strong>
+                <span class="pill"><span class="t-en">projection</span><span class="t-es">proyección</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> Tie one historical anchor to one next step, so momentum is visible.</span>
+                <span class="t-es"> Ata un ancla histórica a un próximo paso, para que el impulso sea visible.</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Feminine vs Masculine (qualities, not identities) -->
+          <article class="card">
+            <div class="sides">
+              <label class="side left">
+                <input type="radio" name="femm">
+                <strong><span class="t-en">Feminine</span><span class="t-es">Femenino</span></strong>
+                <span class="pill"><span class="t-en">care, receptivity</span><span class="t-es">cuidado, receptividad</span></span>
+              </label>
+              <label class="side right">
+                <input type="radio" name="femm">
+                <strong><span class="t-en">Masculine</span><span class="t-es">Masculino</span></strong>
+                <span class="pill"><span class="t-en">direction, agency</span><span class="t-es">dirección, agencia</span></span>
+              </label>
+            </div>
+            <div class="suggest">
+              <div class="small">
+                <strong><span class="t-en">Complementary suggestion:</span><span class="t-es">Sugerencia complementaria:</span></strong>
+                <span class="t-en"> Temper agency with care, or care with agency. These are archetypal <i>qualities</i>, not identities.</span>
+                <span class="t-es"> Templa la agencia con cuidado, o el cuidado con agencia. Son <i>cualidades</i> arquetípicas, no identidades.</span>
+              </div>
+              <details>
+                <summary><span class="chev"></span> <span class="t-en">Notes on language</span><span class="t-es">Notas sobre el lenguaje</span></summary>
+                <p><span class="t-en">We use "feminine/masculine-coded" to talk about traditional qualities — anyone can express either.</span><span class="t-es">Usamos "rasgos femeninos/masculinos" para hablar de cualidades tradicionales — cualquiera puede expresar ambas.</span></p>
+              </details>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="bar">
+          <a class="btn" href="#" aria-label="Mock action"><span class="t-en">Copy balanced note</span><span class="t-es">Copiar nota equilibrada</span></a>
+          <a class="btn alt" href="#" aria-label="Mock action"><span class="t-en">Create summary</span><span class="t-es">Crear resumen</span></a>
+          <a class="btn ghost" href="https://en.wikipedia.org/wiki/Polarity" target="_blank" rel="noopener"><span class="t-en">Read about polarity</span><span class="t-es">Leer sobre polaridad</span></a>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <span class="t-en">Made with balance — inspired by <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.</span>
+      <span class="t-es">Hecho con equilibrio — inspirado en <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.</span>
+    </footer>
+  </div>
+</body>
+</html>

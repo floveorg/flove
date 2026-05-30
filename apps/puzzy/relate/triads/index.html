@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Triads</title>
+  <link rel="stylesheet" href="../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* visually-hidden helper (ported) */
+    .vh{position:absolute;clip:rect(0 0 0 0);clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap;border:0;padding:0;margin:-1px}
+
+    /* secondary toolbar (was .bar in OldCSS) — re-tinted to Puzzy */
+    .tools{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:.7rem 1rem; border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      position:sticky; top:0; z-index:5;
+    }
+    .tools .brand{ display:flex; align-items:center; gap:.6rem }
+    .tools .brand strong{
+      font-size:1.05rem; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    /* buttons (was .btn) */
+    .btn{
+      cursor:pointer; padding:.45rem .7rem; border:1px solid var(--line);
+      border-radius:var(--flove-radius-sm); background:#151a25; color:var(--ink);
+      text-decoration:none; display:inline-grid; place-items:center; font:inherit;
+      transition:border-color var(--flove-fast), box-shadow var(--flove-fast);
+    }
+    .btn:hover{ border-color:var(--app-accent); box-shadow:0 0 12px rgba(141,137,255,.35) }
+    .full-btn{ margin-left:auto }
+
+    /* show/hide preview vs full table */
+    #show_full:not(:checked) ~ .nav{display:block}
+    #show_full:not(:checked) ~ .full{display:none}
+    #show_full:checked ~ .nav{display:none}
+    #show_full:checked ~ .full{display:block}
+
+    /* NAV / preview */
+    .nav{ padding:1rem; max-width:1200px; margin:0 auto }
+    .preview{
+      position:relative; display:grid;
+      grid-template-rows:repeat(3,70px);
+      grid-template-columns:repeat(7,minmax(110px,1fr)); gap:.5rem;
+    }
+    .g{
+      display:grid; grid-row:1/-1; grid-column:1/-1;
+      grid-template-rows:repeat(3,70px);
+      grid-template-columns:repeat(7,minmax(110px,1fr)); gap:.5rem;
+    }
+    .cell{
+      display:grid; place-items:center; border:1px solid var(--line);
+      border-radius:var(--flove-radius-sm); background:#121726; padding:.25rem .4rem;
+      transition:border-color var(--flove-fast);
+    }
+    .cell:hover{ border-color:var(--app-accent) }
+    .cell[contenteditable="true"]{ outline:1px dashed transparent }
+    .cell[contenteditable="true"]:focus{
+      outline:none; border-color:var(--accent2);
+      box-shadow:0 0 0 3px rgba(112,240,211,.22); background:#0f1522;
+    }
+    .cell details summary{ cursor:pointer }
+    .inner{ color:var(--muted); font-size:.85rem; margin-top:.25rem }
+    .highlight{
+      pointer-events:none; position:absolute; left:0; right:0;
+      top:calc(70px + .25rem); height:70px;
+      border:2px dashed var(--accent2); border-radius:var(--flove-radius-sm);
+    }
+
+    /* FULL TABLE */
+    .full{ padding:1rem }
+    .grid{
+      display:grid; grid-template-columns:repeat(7,minmax(170px,1fr));
+      gap:10px; max-width:1400px; margin:0 auto;
+    }
+    .col{ display:grid; gap:10px }
+
+    .col-header{
+      position:sticky; top:60px; z-index:4; display:flex;
+      justify-content:space-between; align-items:center;
+      padding:.5rem .65rem; border:1px solid var(--line);
+      border-radius:var(--flove-radius-sm);
+      background:linear-gradient(180deg,rgba(141,137,255,.10),rgba(255,255,255,.02));
+    }
+    .col-header .title{ font-weight:700; color:var(--app-accent) }
+    .col-header .btn{ padding:.35rem .55rem; border-radius:8px }
+
+    .grp{
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      background:#10151f; overflow:hidden;
+    }
+    .grp header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:.45rem .6rem; border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    }
+    .grp .title{ font-weight:600; color:var(--muted); cursor:pointer }
+    .grp .rows{
+      height:calc((var(--rowH) * 3) + (var(--gap) * 2) + .6rem);
+      padding:.3rem .45rem;
+      display:grid; grid-template-rows:repeat(3,var(--rowH)); gap:var(--gap);
+    }
+    .grp.collapsed .rows{ visibility:hidden; pointer-events:none }
+    .row{
+      display:grid; place-items:center; border:1px dashed #2a2f4a;
+      border-radius:var(--flove-radius-sm); min-height:var(--rowH);
+      background:#0f141f; padding:.25rem;
+    }
+    .row[contenteditable="true"]{ outline:1px dashed transparent }
+    .row[contenteditable="true"]:focus{
+      outline:none; border-color:var(--accent2);
+      box-shadow:0 0 0 3px rgba(112,240,211,.22); background:#0f1522;
+    }
+    .row details summary{ cursor:pointer }
+
+    :root{ --rowH:56px; --gap:.4rem }
+
+    /* column-wide toggle */
+    .col > input[type="checkbox"]:checked ~ .grp .rows{ visibility:visible; pointer-events:auto }
+    .col > input[type="checkbox"]:checked ~ .grp.collapsed .rows{ visibility:visible; pointer-events:auto }
+
+    /* individual group toggle */
+    .grp-toggle{ display:none }
+    .grp-toggle:not(:checked) ~ .grp .rows{ visibility:hidden; pointer-events:none }
+    .grp-toggle:checked ~ .grp .rows{ visibility:visible; pointer-events:auto }
+
+    /* center highlight */
+    #b4g6:checked ~ .grp header{ box-shadow:inset 0 0 0 2px var(--accent2) }
+
+    /* actions + modals */
+    .actions{ display:flex; gap:.6rem; justify-content:flex-end; max-width:1400px; margin:1rem auto 0 }
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; place-items:center; padding:1rem; z-index:10 }
+    .modal:target{ display:grid }
+    .modal .box{
+      max-width:560px; width:min(92vw,560px); background:#0f141f;
+      border:1px solid var(--line); border-radius:var(--flove-radius); padding:1.2rem;
+    }
+    .modal h3{ margin:.2rem 0 1rem; color:var(--accent2); letter-spacing:.5px }
+    .modal .btn.close{ margin-top:.8rem }
+    .modal .btn.ghost{ background:#0e131c }
+    .modal a{ color:var(--accent2) }
+
+    @media print{
+      .flove-bar,.tools,.actions,.modal{display:none!important}
+      body{background:#fff;color:#000}
+      .grid{gap:6px}
+      .grp .rows{height:auto}
+    }
+  </style>
+</head>
+<body>
+  <!-- language radios (drive the pure-CSS i18n) -->
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">Triads</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <header class="tools">
+    <div class="brand">
+      <strong><span class="t-en">Your Triads</span><span class="t-es">Tus Triadas</span></strong>
+      <label for="show_full" class="btn full-btn" title="Toggle full table">▦ <span class="t-en">Short / Long</span><span class="t-es">Corto / Largo</span></label>
+    </div>
+  </header>
+
+  <input type="checkbox" id="show_full" class="vh"/>
+
+  <section class="nav">
+
+    <div class="preview">
+<div class="g g1">
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 1">G1 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 2">G1 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 3">G1 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 4">G1 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 5">
+  <details><summary>G1 R1 C5</summary><div class="inner">More for Group 1 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 6">G1 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 1 · Col 7">
+  <details><summary>G1 R1 C7</summary><div class="inner">More for Group 1 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 1">G1 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 2">G1 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 3">G1 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 4">G1 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 5">
+  <details><summary>G1 R2 C5</summary><div class="inner">More for Group 1 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 6">G1 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 2 · Col 7">
+  <details><summary>G1 R2 C7</summary><div class="inner">More for Group 1 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 1">G1 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 2">G1 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 3">G1 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 4">G1 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 5">
+  <details><summary>G1 R3 C5</summary><div class="inner">More for Group 1 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 6">G1 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 1 · Row 3 · Col 7">
+  <details><summary>G1 R3 C7</summary><div class="inner">More for Group 1 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g2">
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 1">G2 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 2">G2 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 3">G2 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 4">G2 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 5">
+  <details><summary>G2 R1 C5</summary><div class="inner">More for Group 2 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 6">G2 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 1 · Col 7">
+  <details><summary>G2 R1 C7</summary><div class="inner">More for Group 2 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 1">G2 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 2">G2 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 3">G2 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 4">G2 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 5">
+  <details><summary>G2 R2 C5</summary><div class="inner">More for Group 2 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 6">G2 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 2 · Col 7">
+  <details><summary>G2 R2 C7</summary><div class="inner">More for Group 2 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 1">G2 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 2">G2 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 3">G2 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 4">G2 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 5">
+  <details><summary>G2 R3 C5</summary><div class="inner">More for Group 2 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 6">G2 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 2 · Row 3 · Col 7">
+  <details><summary>G2 R3 C7</summary><div class="inner">More for Group 2 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g3">
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 1">G3 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 2">G3 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 3">G3 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 4">G3 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 5">
+  <details><summary>G3 R1 C5</summary><div class="inner">More for Group 3 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 6">G3 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 1 · Col 7">
+  <details><summary>G3 R1 C7</summary><div class="inner">More for Group 3 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 1">G3 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 2">G3 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 3">G3 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 4">G3 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 5">
+  <details><summary>G3 R2 C5</summary><div class="inner">More for Group 3 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 6">G3 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 2 · Col 7">
+  <details><summary>G3 R2 C7</summary><div class="inner">More for Group 3 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 1">G3 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 2">G3 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 3">G3 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 4">G3 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 5">
+  <details><summary>G3 R3 C5</summary><div class="inner">More for Group 3 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 6">G3 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 3 · Row 3 · Col 7">
+  <details><summary>G3 R3 C7</summary><div class="inner">More for Group 3 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g4">
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 1">G4 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 2">G4 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 3">G4 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 4">G4 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 5">
+  <details><summary>G4 R1 C5</summary><div class="inner">More for Group 4 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 6">G4 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 1 · Col 7">
+  <details><summary>G4 R1 C7</summary><div class="inner">More for Group 4 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 1">G4 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 2">G4 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 3">G4 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 4">G4 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 5">
+  <details><summary>G4 R2 C5</summary><div class="inner">More for Group 4 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 6">G4 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 2 · Col 7">
+  <details><summary>G4 R2 C7</summary><div class="inner">More for Group 4 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 1">G4 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 2">G4 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 3">G4 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 4">G4 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 5">
+  <details><summary>G4 R3 C5</summary><div class="inner">More for Group 4 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 6">G4 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 4 · Row 3 · Col 7">
+  <details><summary>G4 R3 C7</summary><div class="inner">More for Group 4 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g5">
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 1">G5 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 2">G5 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 3">G5 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 4">G5 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 5">
+  <details><summary>G5 R1 C5</summary><div class="inner">More for Group 5 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 6">G5 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 1 · Col 7">
+  <details><summary>G5 R1 C7</summary><div class="inner">More for Group 5 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 1">G5 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 2">G5 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 3">G5 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 4">G5 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 5">
+  <details><summary>G5 R2 C5</summary><div class="inner">More for Group 5 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 6">G5 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 2 · Col 7">
+  <details><summary>G5 R2 C7</summary><div class="inner">More for Group 5 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 1">G5 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 2">G5 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 3">G5 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 4">G5 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 5">
+  <details><summary>G5 R3 C5</summary><div class="inner">More for Group 5 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 6">G5 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 5 · Row 3 · Col 7">
+  <details><summary>G5 R3 C7</summary><div class="inner">More for Group 5 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g6">
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 1">G6 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 2">G6 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 3">G6 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 4">G6 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 5">
+  <details><summary>G6 R1 C5</summary><div class="inner">More for Group 6 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 6">G6 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 1 · Col 7">
+  <details><summary>G6 R1 C7</summary><div class="inner">More for Group 6 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 1">G6 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 2">G6 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 3">G6 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 4">G6 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 5">
+  <details><summary>G6 R2 C5</summary><div class="inner">More for Group 6 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 6">G6 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 2 · Col 7">
+  <details><summary>G6 R2 C7</summary><div class="inner">More for Group 6 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 1">G6 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 2">G6 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 3">G6 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 4">G6 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 5">
+  <details><summary>G6 R3 C5</summary><div class="inner">More for Group 6 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 6">G6 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 6 · Row 3 · Col 7">
+  <details><summary>G6 R3 C7</summary><div class="inner">More for Group 6 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g7">
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 1">G7 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 2">G7 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 3">G7 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 4">G7 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 5">
+  <details><summary>G7 R1 C5</summary><div class="inner">More for Group 7 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 6">G7 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 1 · Col 7">
+  <details><summary>G7 R1 C7</summary><div class="inner">More for Group 7 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 1">G7 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 2">G7 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 3">G7 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 4">G7 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 5">
+  <details><summary>G7 R2 C5</summary><div class="inner">More for Group 7 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 6">G7 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 2 · Col 7">
+  <details><summary>G7 R2 C7</summary><div class="inner">More for Group 7 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 1">G7 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 2">G7 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 3">G7 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 4">G7 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 5">
+  <details><summary>G7 R3 C5</summary><div class="inner">More for Group 7 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 6">G7 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 7 · Row 3 · Col 7">
+  <details><summary>G7 R3 C7</summary><div class="inner">More for Group 7 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g8">
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 1">G8 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 2">G8 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 3">G8 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 4">G8 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 5">
+  <details><summary>G8 R1 C5</summary><div class="inner">More for Group 8 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 6">G8 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 1 · Col 7">
+  <details><summary>G8 R1 C7</summary><div class="inner">More for Group 8 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 1">G8 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 2">G8 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 3">G8 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 4">G8 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 5">
+  <details><summary>G8 R2 C5</summary><div class="inner">More for Group 8 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 6">G8 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 2 · Col 7">
+  <details><summary>G8 R2 C7</summary><div class="inner">More for Group 8 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 1">G8 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 2">G8 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 3">G8 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 4">G8 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 5">
+  <details><summary>G8 R3 C5</summary><div class="inner">More for Group 8 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 6">G8 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 8 · Row 3 · Col 7">
+  <details><summary>G8 R3 C7</summary><div class="inner">More for Group 8 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g9">
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 1">G9 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 2">G9 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 3">G9 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 4">G9 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 5">
+  <details><summary>G9 R1 C5</summary><div class="inner">More for Group 9 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 6">G9 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 1 · Col 7">
+  <details><summary>G9 R1 C7</summary><div class="inner">More for Group 9 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 1">G9 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 2">G9 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 3">G9 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 4">G9 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 5">
+  <details><summary>G9 R2 C5</summary><div class="inner">More for Group 9 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 6">G9 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 2 · Col 7">
+  <details><summary>G9 R2 C7</summary><div class="inner">More for Group 9 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 1">G9 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 2">G9 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 3">G9 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 4">G9 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 5">
+  <details><summary>G9 R3 C5</summary><div class="inner">More for Group 9 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 6">G9 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 9 · Row 3 · Col 7">
+  <details><summary>G9 R3 C7</summary><div class="inner">More for Group 9 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g10">
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 1">G10 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 2">G10 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 3">G10 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 4">G10 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 5">
+  <details><summary>G10 R1 C5</summary><div class="inner">More for Group 10 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 6">G10 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 1 · Col 7">
+  <details><summary>G10 R1 C7</summary><div class="inner">More for Group 10 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 1">G10 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 2">G10 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 3">G10 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 4">G10 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 5">
+  <details><summary>G10 R2 C5</summary><div class="inner">More for Group 10 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 6">G10 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 2 · Col 7">
+  <details><summary>G10 R2 C7</summary><div class="inner">More for Group 10 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 1">G10 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 2">G10 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 3">G10 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 4">G10 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 5">
+  <details><summary>G10 R3 C5</summary><div class="inner">More for Group 10 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 6">G10 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 10 · Row 3 · Col 7">
+  <details><summary>G10 R3 C7</summary><div class="inner">More for Group 10 · Row 3 · Col 7.</div></details>
+</div>
+</div><div class="g g11">
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 1">G11 R1 C1</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 2">G11 R1 C2</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 3">G11 R1 C3</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 4">G11 R1 C4</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 5">
+  <details><summary>G11 R1 C5</summary><div class="inner">More for Group 11 · Row 1 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 6">G11 R1 C6</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 1 · Col 7">
+  <details><summary>G11 R1 C7</summary><div class="inner">More for Group 11 · Row 1 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 1">G11 R2 C1</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 2">G11 R2 C2</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 3">G11 R2 C3</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 4">G11 R2 C4</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 5">
+  <details><summary>G11 R2 C5</summary><div class="inner">More for Group 11 · Row 2 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 6">G11 R2 C6</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 2 · Col 7">
+  <details><summary>G11 R2 C7</summary><div class="inner">More for Group 11 · Row 2 · Col 7.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 1">G11 R3 C1</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 2">G11 R3 C2</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 3">G11 R3 C3</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 4">G11 R3 C4</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 5">
+  <details><summary>G11 R3 C5</summary><div class="inner">More for Group 11 · Row 3 · Col 5.</div></details>
+</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 6">G11 R3 C6</div>
+<div class="cell" contenteditable="true" title="Group 11 · Row 3 · Col 7">
+  <details><summary>G11 R3 C7</summary><div class="inner">More for Group 11 · Row 3 · Col 7.</div></details>
+</div>
+</div>
+    <div class="highlight" aria-hidden="true"></div>
+  </div>
+</section>
+
+<section class="full">
+  <div class="grid">
+<div class="col col-1">
+<input class="vh" type="checkbox" id="col1"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 1</span><span class="t-es">Columna 1</span></span><label class="btn" for="col1" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b1g1"/>
+<section class="grp collapsed"><header><label class="title" for="b1g1" title="Toggle group rows"><span class="t-en">Col 1 · Group 1</span><span class="t-es">Col 1 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 1 · Row 1">Cell C1 G1 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 1 · Row 2">Cell C1 G1 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 1 · Row 3">Cell C1 G1 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g2"/>
+<section class="grp collapsed"><header><label class="title" for="b1g2" title="Toggle group rows"><span class="t-en">Col 1 · Group 2</span><span class="t-es">Col 1 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 2 · Row 1">Cell C1 G2 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 2 · Row 2">Cell C1 G2 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 2 · Row 3">Cell C1 G2 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g3"/>
+<section class="grp collapsed"><header><label class="title" for="b1g3" title="Toggle group rows"><span class="t-en">Col 1 · Group 3</span><span class="t-es">Col 1 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 3 · Row 1">Cell C1 G3 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 3 · Row 2">Cell C1 G3 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 3 · Row 3">Cell C1 G3 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g4"/>
+<section class="grp collapsed"><header><label class="title" for="b1g4" title="Toggle group rows"><span class="t-en">Col 1 · Group 4</span><span class="t-es">Col 1 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 4 · Row 1">Cell C1 G4 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 4 · Row 2">Cell C1 G4 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 4 · Row 3">Cell C1 G4 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g5"/>
+<section class="grp collapsed"><header><label class="title" for="b1g5" title="Toggle group rows"><span class="t-en">Col 1 · Group 5</span><span class="t-es">Col 1 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 5 · Row 1">Cell C1 G5 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 5 · Row 2">Cell C1 G5 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 5 · Row 3">Cell C1 G5 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g6"/>
+<section class="grp collapsed"><header><label class="title" for="b1g6" title="Toggle group rows"><span class="t-en">Col 1 · Group 6</span><span class="t-es">Col 1 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 6 · Row 1">Cell C1 G6 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 6 · Row 2">Cell C1 G6 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 6 · Row 3">Cell C1 G6 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g7"/>
+<section class="grp collapsed"><header><label class="title" for="b1g7" title="Toggle group rows"><span class="t-en">Col 1 · Group 7</span><span class="t-es">Col 1 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 7 · Row 1">Cell C1 G7 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 7 · Row 2">Cell C1 G7 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 7 · Row 3">Cell C1 G7 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g8"/>
+<section class="grp collapsed"><header><label class="title" for="b1g8" title="Toggle group rows"><span class="t-en">Col 1 · Group 8</span><span class="t-es">Col 1 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 8 · Row 1">Cell C1 G8 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 8 · Row 2">Cell C1 G8 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 8 · Row 3">Cell C1 G8 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g9"/>
+<section class="grp collapsed"><header><label class="title" for="b1g9" title="Toggle group rows"><span class="t-en">Col 1 · Group 9</span><span class="t-es">Col 1 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 9 · Row 1">Cell C1 G9 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 9 · Row 2">Cell C1 G9 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 9 · Row 3">Cell C1 G9 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g10"/>
+<section class="grp collapsed"><header><label class="title" for="b1g10" title="Toggle group rows"><span class="t-en">Col 1 · Group 10</span><span class="t-es">Col 1 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 10 · Row 1">Cell C1 G10 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 10 · Row 2">Cell C1 G10 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 10 · Row 3">Cell C1 G10 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b1g11"/>
+<section class="grp collapsed"><header><label class="title" for="b1g11" title="Toggle group rows"><span class="t-en">Col 1 · Group 11</span><span class="t-es">Col 1 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 1 · Group 11 · Row 1">Cell C1 G11 R1</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 11 · Row 2">Cell C1 G11 R2</div>
+<div class="row" contenteditable="true" title="Column 1 · Group 11 · Row 3">Cell C1 G11 R3</div>
+</div></section>
+</div>
+<div class="col col-2">
+<input class="vh" type="checkbox" id="col2"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 2</span><span class="t-es">Columna 2</span></span><label class="btn" for="col2" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b2g1"/>
+<section class="grp collapsed"><header><label class="title" for="b2g1" title="Toggle group rows"><span class="t-en">Col 2 · Group 1</span><span class="t-es">Col 2 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 1 · Row 1">Cell C2 G1 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 1 · Row 2">Cell C2 G1 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 1 · Row 3">Cell C2 G1 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g2"/>
+<section class="grp collapsed"><header><label class="title" for="b2g2" title="Toggle group rows"><span class="t-en">Col 2 · Group 2</span><span class="t-es">Col 2 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 2 · Row 1">Cell C2 G2 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 2 · Row 2">Cell C2 G2 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 2 · Row 3">Cell C2 G2 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g3"/>
+<section class="grp collapsed"><header><label class="title" for="b2g3" title="Toggle group rows"><span class="t-en">Col 2 · Group 3</span><span class="t-es">Col 2 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 3 · Row 1">Cell C2 G3 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 3 · Row 2">Cell C2 G3 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 3 · Row 3">Cell C2 G3 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g4"/>
+<section class="grp collapsed"><header><label class="title" for="b2g4" title="Toggle group rows"><span class="t-en">Col 2 · Group 4</span><span class="t-es">Col 2 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 4 · Row 1">Cell C2 G4 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 4 · Row 2">Cell C2 G4 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 4 · Row 3">Cell C2 G4 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g5"/>
+<section class="grp collapsed"><header><label class="title" for="b2g5" title="Toggle group rows"><span class="t-en">Col 2 · Group 5</span><span class="t-es">Col 2 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 5 · Row 1">Cell C2 G5 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 5 · Row 2">Cell C2 G5 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 5 · Row 3">Cell C2 G5 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g6"/>
+<section class="grp collapsed"><header><label class="title" for="b2g6" title="Toggle group rows"><span class="t-en">Col 2 · Group 6</span><span class="t-es">Col 2 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 6 · Row 1">Cell C2 G6 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 6 · Row 2">Cell C2 G6 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 6 · Row 3">Cell C2 G6 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g7"/>
+<section class="grp collapsed"><header><label class="title" for="b2g7" title="Toggle group rows"><span class="t-en">Col 2 · Group 7</span><span class="t-es">Col 2 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 7 · Row 1">Cell C2 G7 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 7 · Row 2">Cell C2 G7 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 7 · Row 3">Cell C2 G7 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g8"/>
+<section class="grp collapsed"><header><label class="title" for="b2g8" title="Toggle group rows"><span class="t-en">Col 2 · Group 8</span><span class="t-es">Col 2 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 8 · Row 1">Cell C2 G8 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 8 · Row 2">Cell C2 G8 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 8 · Row 3">Cell C2 G8 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g9"/>
+<section class="grp collapsed"><header><label class="title" for="b2g9" title="Toggle group rows"><span class="t-en">Col 2 · Group 9</span><span class="t-es">Col 2 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 9 · Row 1">Cell C2 G9 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 9 · Row 2">Cell C2 G9 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 9 · Row 3">Cell C2 G9 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g10"/>
+<section class="grp collapsed"><header><label class="title" for="b2g10" title="Toggle group rows"><span class="t-en">Col 2 · Group 10</span><span class="t-es">Col 2 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 10 · Row 1">Cell C2 G10 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 10 · Row 2">Cell C2 G10 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 10 · Row 3">Cell C2 G10 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b2g11"/>
+<section class="grp collapsed"><header><label class="title" for="b2g11" title="Toggle group rows"><span class="t-en">Col 2 · Group 11</span><span class="t-es">Col 2 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 2 · Group 11 · Row 1">Cell C2 G11 R1</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 11 · Row 2">Cell C2 G11 R2</div>
+<div class="row" contenteditable="true" title="Column 2 · Group 11 · Row 3">Cell C2 G11 R3</div>
+</div></section>
+</div>
+<div class="col col-3">
+<input class="vh" type="checkbox" id="col3"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 3</span><span class="t-es">Columna 3</span></span><label class="btn" for="col3" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b3g1"/>
+<section class="grp collapsed"><header><label class="title" for="b3g1" title="Toggle group rows"><span class="t-en">Col 3 · Group 1</span><span class="t-es">Col 3 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 1 · Row 1">Cell C3 G1 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 1 · Row 2">Cell C3 G1 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 1 · Row 3">Cell C3 G1 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g2"/>
+<section class="grp collapsed"><header><label class="title" for="b3g2" title="Toggle group rows"><span class="t-en">Col 3 · Group 2</span><span class="t-es">Col 3 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 2 · Row 1">Cell C3 G2 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 2 · Row 2">Cell C3 G2 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 2 · Row 3">Cell C3 G2 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g3"/>
+<section class="grp collapsed"><header><label class="title" for="b3g3" title="Toggle group rows"><span class="t-en">Col 3 · Group 3</span><span class="t-es">Col 3 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 3 · Row 1">Cell C3 G3 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 3 · Row 2">Cell C3 G3 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 3 · Row 3">Cell C3 G3 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g4"/>
+<section class="grp collapsed"><header><label class="title" for="b3g4" title="Toggle group rows"><span class="t-en">Col 3 · Group 4</span><span class="t-es">Col 3 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 4 · Row 1">Cell C3 G4 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 4 · Row 2">Cell C3 G4 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 4 · Row 3">Cell C3 G4 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g5"/>
+<section class="grp collapsed"><header><label class="title" for="b3g5" title="Toggle group rows"><span class="t-en">Col 3 · Group 5</span><span class="t-es">Col 3 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 5 · Row 1">Cell C3 G5 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 5 · Row 2">Cell C3 G5 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 5 · Row 3">Cell C3 G5 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g6"/>
+<section class="grp collapsed"><header><label class="title" for="b3g6" title="Toggle group rows"><span class="t-en">Col 3 · Group 6</span><span class="t-es">Col 3 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 6 · Row 1">Cell C3 G6 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 6 · Row 2">Cell C3 G6 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 6 · Row 3">Cell C3 G6 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g7"/>
+<section class="grp collapsed"><header><label class="title" for="b3g7" title="Toggle group rows"><span class="t-en">Col 3 · Group 7</span><span class="t-es">Col 3 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 7 · Row 1">Cell C3 G7 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 7 · Row 2">Cell C3 G7 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 7 · Row 3">Cell C3 G7 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g8"/>
+<section class="grp collapsed"><header><label class="title" for="b3g8" title="Toggle group rows"><span class="t-en">Col 3 · Group 8</span><span class="t-es">Col 3 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 8 · Row 1">Cell C3 G8 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 8 · Row 2">Cell C3 G8 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 8 · Row 3">Cell C3 G8 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g9"/>
+<section class="grp collapsed"><header><label class="title" for="b3g9" title="Toggle group rows"><span class="t-en">Col 3 · Group 9</span><span class="t-es">Col 3 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 9 · Row 1">Cell C3 G9 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 9 · Row 2">Cell C3 G9 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 9 · Row 3">Cell C3 G9 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g10"/>
+<section class="grp collapsed"><header><label class="title" for="b3g10" title="Toggle group rows"><span class="t-en">Col 3 · Group 10</span><span class="t-es">Col 3 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 10 · Row 1">Cell C3 G10 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 10 · Row 2">Cell C3 G10 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 10 · Row 3">Cell C3 G10 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b3g11"/>
+<section class="grp collapsed"><header><label class="title" for="b3g11" title="Toggle group rows"><span class="t-en">Col 3 · Group 11</span><span class="t-es">Col 3 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 3 · Group 11 · Row 1">Cell C3 G11 R1</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 11 · Row 2">Cell C3 G11 R2</div>
+<div class="row" contenteditable="true" title="Column 3 · Group 11 · Row 3">Cell C3 G11 R3</div>
+</div></section>
+</div>
+<div class="col col-4">
+<input class="vh" type="checkbox" id="col4"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 4</span><span class="t-es">Columna 4</span></span><label class="btn" for="col4" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b4g1"/>
+<section class="grp collapsed"><header><label class="title" for="b4g1" title="Toggle group rows"><span class="t-en">Col 4 · Group 1</span><span class="t-es">Col 4 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 1 · Row 1">Cell C4 G1 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 1 · Row 2">Cell C4 G1 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 1 · Row 3">Cell C4 G1 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g2"/>
+<section class="grp collapsed"><header><label class="title" for="b4g2" title="Toggle group rows"><span class="t-en">Col 4 · Group 2</span><span class="t-es">Col 4 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 2 · Row 1">Cell C4 G2 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 2 · Row 2">Cell C4 G2 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 2 · Row 3">Cell C4 G2 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g3"/>
+<section class="grp collapsed"><header><label class="title" for="b4g3" title="Toggle group rows"><span class="t-en">Col 4 · Group 3</span><span class="t-es">Col 4 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 3 · Row 1">Cell C4 G3 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 3 · Row 2">Cell C4 G3 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 3 · Row 3">Cell C4 G3 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g4"/>
+<section class="grp collapsed"><header><label class="title" for="b4g4" title="Toggle group rows"><span class="t-en">Col 4 · Group 4</span><span class="t-es">Col 4 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 4 · Row 1">Cell C4 G4 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 4 · Row 2">Cell C4 G4 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 4 · Row 3">Cell C4 G4 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g5"/>
+<section class="grp collapsed"><header><label class="title" for="b4g5" title="Toggle group rows"><span class="t-en">Col 4 · Group 5</span><span class="t-es">Col 4 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 5 · Row 1">Cell C4 G5 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 5 · Row 2">Cell C4 G5 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 5 · Row 3">Cell C4 G5 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g6" checked/>
+<section class="grp"><header><label class="title" for="b4g6" title="Toggle group rows"><span class="t-en">Col 4 · Group 6</span><span class="t-es">Col 4 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 6 · Row 1">Cell C4 G6 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 6 · Row 2">Cell C4 G6 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 6 · Row 3">Cell C4 G6 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g7"/>
+<section class="grp collapsed"><header><label class="title" for="b4g7" title="Toggle group rows"><span class="t-en">Col 4 · Group 7</span><span class="t-es">Col 4 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 7 · Row 1">Cell C4 G7 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 7 · Row 2">Cell C4 G7 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 7 · Row 3">Cell C4 G7 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g8"/>
+<section class="grp collapsed"><header><label class="title" for="b4g8" title="Toggle group rows"><span class="t-en">Col 4 · Group 8</span><span class="t-es">Col 4 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 8 · Row 1">Cell C4 G8 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 8 · Row 2">Cell C4 G8 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 8 · Row 3">Cell C4 G8 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g9"/>
+<section class="grp collapsed"><header><label class="title" for="b4g9" title="Toggle group rows"><span class="t-en">Col 4 · Group 9</span><span class="t-es">Col 4 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 9 · Row 1">Cell C4 G9 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 9 · Row 2">Cell C4 G9 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 9 · Row 3">Cell C4 G9 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g10"/>
+<section class="grp collapsed"><header><label class="title" for="b4g10" title="Toggle group rows"><span class="t-en">Col 4 · Group 10</span><span class="t-es">Col 4 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 10 · Row 1">Cell C4 G10 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 10 · Row 2">Cell C4 G10 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 10 · Row 3">Cell C4 G10 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b4g11"/>
+<section class="grp collapsed"><header><label class="title" for="b4g11" title="Toggle group rows"><span class="t-en">Col 4 · Group 11</span><span class="t-es">Col 4 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 4 · Group 11 · Row 1">Cell C4 G11 R1</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 11 · Row 2">Cell C4 G11 R2</div>
+<div class="row" contenteditable="true" title="Column 4 · Group 11 · Row 3">Cell C4 G11 R3</div>
+</div></section>
+</div>
+<div class="col col-5">
+<input class="vh" type="checkbox" id="col5"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 5</span><span class="t-es">Columna 5</span></span><label class="btn" for="col5" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b5g1"/>
+<section class="grp collapsed"><header><label class="title" for="b5g1" title="Toggle group rows"><span class="t-en">Col 5 · Group 1</span><span class="t-es">Col 5 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 1 · Row 1"><details><summary>C5 G1 R1</summary><div class="inner">Inner for Column 5 · Group 1 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 1 · Row 2"><details><summary>C5 G1 R2</summary><div class="inner">Inner for Column 5 · Group 1 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 1 · Row 3"><details><summary>C5 G1 R3</summary><div class="inner">Inner for Column 5 · Group 1 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g2"/>
+<section class="grp collapsed"><header><label class="title" for="b5g2" title="Toggle group rows"><span class="t-en">Col 5 · Group 2</span><span class="t-es">Col 5 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 2 · Row 1"><details><summary>C5 G2 R1</summary><div class="inner">Inner for Column 5 · Group 2 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 2 · Row 2"><details><summary>C5 G2 R2</summary><div class="inner">Inner for Column 5 · Group 2 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 2 · Row 3"><details><summary>C5 G2 R3</summary><div class="inner">Inner for Column 5 · Group 2 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g3"/>
+<section class="grp collapsed"><header><label class="title" for="b5g3" title="Toggle group rows"><span class="t-en">Col 5 · Group 3</span><span class="t-es">Col 5 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 3 · Row 1"><details><summary>C5 G3 R1</summary><div class="inner">Inner for Column 5 · Group 3 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 3 · Row 2"><details><summary>C5 G3 R2</summary><div class="inner">Inner for Column 5 · Group 3 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 3 · Row 3"><details><summary>C5 G3 R3</summary><div class="inner">Inner for Column 5 · Group 3 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g4"/>
+<section class="grp collapsed"><header><label class="title" for="b5g4" title="Toggle group rows"><span class="t-en">Col 5 · Group 4</span><span class="t-es">Col 5 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 4 · Row 1"><details><summary>C5 G4 R1</summary><div class="inner">Inner for Column 5 · Group 4 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 4 · Row 2"><details><summary>C5 G4 R2</summary><div class="inner">Inner for Column 5 · Group 4 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 4 · Row 3"><details><summary>C5 G4 R3</summary><div class="inner">Inner for Column 5 · Group 4 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g5"/>
+<section class="grp collapsed"><header><label class="title" for="b5g5" title="Toggle group rows"><span class="t-en">Col 5 · Group 5</span><span class="t-es">Col 5 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 5 · Row 1"><details><summary>C5 G5 R1</summary><div class="inner">Inner for Column 5 · Group 5 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 5 · Row 2"><details><summary>C5 G5 R2</summary><div class="inner">Inner for Column 5 · Group 5 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 5 · Row 3"><details><summary>C5 G5 R3</summary><div class="inner">Inner for Column 5 · Group 5 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g6"/>
+<section class="grp collapsed"><header><label class="title" for="b5g6" title="Toggle group rows"><span class="t-en">Col 5 · Group 6</span><span class="t-es">Col 5 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 6 · Row 1"><details><summary>C5 G6 R1</summary><div class="inner">Inner for Column 5 · Group 6 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 6 · Row 2"><details><summary>C5 G6 R2</summary><div class="inner">Inner for Column 5 · Group 6 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 6 · Row 3"><details><summary>C5 G6 R3</summary><div class="inner">Inner for Column 5 · Group 6 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g7"/>
+<section class="grp collapsed"><header><label class="title" for="b5g7" title="Toggle group rows"><span class="t-en">Col 5 · Group 7</span><span class="t-es">Col 5 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 7 · Row 1"><details><summary>C5 G7 R1</summary><div class="inner">Inner for Column 5 · Group 7 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 7 · Row 2"><details><summary>C5 G7 R2</summary><div class="inner">Inner for Column 5 · Group 7 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 7 · Row 3"><details><summary>C5 G7 R3</summary><div class="inner">Inner for Column 5 · Group 7 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g8"/>
+<section class="grp collapsed"><header><label class="title" for="b5g8" title="Toggle group rows"><span class="t-en">Col 5 · Group 8</span><span class="t-es">Col 5 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 8 · Row 1"><details><summary>C5 G8 R1</summary><div class="inner">Inner for Column 5 · Group 8 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 8 · Row 2"><details><summary>C5 G8 R2</summary><div class="inner">Inner for Column 5 · Group 8 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 8 · Row 3"><details><summary>C5 G8 R3</summary><div class="inner">Inner for Column 5 · Group 8 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g9"/>
+<section class="grp collapsed"><header><label class="title" for="b5g9" title="Toggle group rows"><span class="t-en">Col 5 · Group 9</span><span class="t-es">Col 5 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 9 · Row 1"><details><summary>C5 G9 R1</summary><div class="inner">Inner for Column 5 · Group 9 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 9 · Row 2"><details><summary>C5 G9 R2</summary><div class="inner">Inner for Column 5 · Group 9 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 9 · Row 3"><details><summary>C5 G9 R3</summary><div class="inner">Inner for Column 5 · Group 9 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g10"/>
+<section class="grp collapsed"><header><label class="title" for="b5g10" title="Toggle group rows"><span class="t-en">Col 5 · Group 10</span><span class="t-es">Col 5 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 10 · Row 1"><details><summary>C5 G10 R1</summary><div class="inner">Inner for Column 5 · Group 10 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 10 · Row 2"><details><summary>C5 G10 R2</summary><div class="inner">Inner for Column 5 · Group 10 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 10 · Row 3"><details><summary>C5 G10 R3</summary><div class="inner">Inner for Column 5 · Group 10 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b5g11"/>
+<section class="grp collapsed"><header><label class="title" for="b5g11" title="Toggle group rows"><span class="t-en">Col 5 · Group 11</span><span class="t-es">Col 5 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 5 · Group 11 · Row 1"><details><summary>C5 G11 R1</summary><div class="inner">Inner for Column 5 · Group 11 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 11 · Row 2"><details><summary>C5 G11 R2</summary><div class="inner">Inner for Column 5 · Group 11 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 5 · Group 11 · Row 3"><details><summary>C5 G11 R3</summary><div class="inner">Inner for Column 5 · Group 11 · Row 3.</div></details></div>
+</div></section>
+</div>
+<div class="col col-6">
+<input class="vh" type="checkbox" id="col6"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 6</span><span class="t-es">Columna 6</span></span><label class="btn" for="col6" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b6g1"/>
+<section class="grp collapsed"><header><label class="title" for="b6g1" title="Toggle group rows"><span class="t-en">Col 6 · Group 1</span><span class="t-es">Col 6 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 1 · Row 1">Cell C6 G1 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 1 · Row 2">Cell C6 G1 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 1 · Row 3">Cell C6 G1 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g2"/>
+<section class="grp collapsed"><header><label class="title" for="b6g2" title="Toggle group rows"><span class="t-en">Col 6 · Group 2</span><span class="t-es">Col 6 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 2 · Row 1">Cell C6 G2 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 2 · Row 2">Cell C6 G2 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 2 · Row 3">Cell C6 G2 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g3"/>
+<section class="grp collapsed"><header><label class="title" for="b6g3" title="Toggle group rows"><span class="t-en">Col 6 · Group 3</span><span class="t-es">Col 6 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 3 · Row 1">Cell C6 G3 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 3 · Row 2">Cell C6 G3 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 3 · Row 3">Cell C6 G3 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g4"/>
+<section class="grp collapsed"><header><label class="title" for="b6g4" title="Toggle group rows"><span class="t-en">Col 6 · Group 4</span><span class="t-es">Col 6 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 4 · Row 1">Cell C6 G4 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 4 · Row 2">Cell C6 G4 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 4 · Row 3">Cell C6 G4 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g5"/>
+<section class="grp collapsed"><header><label class="title" for="b6g5" title="Toggle group rows"><span class="t-en">Col 6 · Group 5</span><span class="t-es">Col 6 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 5 · Row 1">Cell C6 G5 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 5 · Row 2">Cell C6 G5 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 5 · Row 3">Cell C6 G5 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g6"/>
+<section class="grp collapsed"><header><label class="title" for="b6g6" title="Toggle group rows"><span class="t-en">Col 6 · Group 6</span><span class="t-es">Col 6 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 6 · Row 1">Cell C6 G6 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 6 · Row 2">Cell C6 G6 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 6 · Row 3">Cell C6 G6 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g7"/>
+<section class="grp collapsed"><header><label class="title" for="b6g7" title="Toggle group rows"><span class="t-en">Col 6 · Group 7</span><span class="t-es">Col 6 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 7 · Row 1">Cell C6 G7 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 7 · Row 2">Cell C6 G7 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 7 · Row 3">Cell C6 G7 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g8"/>
+<section class="grp collapsed"><header><label class="title" for="b6g8" title="Toggle group rows"><span class="t-en">Col 6 · Group 8</span><span class="t-es">Col 6 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 8 · Row 1">Cell C6 G8 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 8 · Row 2">Cell C6 G8 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 8 · Row 3">Cell C6 G8 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g9"/>
+<section class="grp collapsed"><header><label class="title" for="b6g9" title="Toggle group rows"><span class="t-en">Col 6 · Group 9</span><span class="t-es">Col 6 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 9 · Row 1">Cell C6 G9 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 9 · Row 2">Cell C6 G9 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 9 · Row 3">Cell C6 G9 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g10"/>
+<section class="grp collapsed"><header><label class="title" for="b6g10" title="Toggle group rows"><span class="t-en">Col 6 · Group 10</span><span class="t-es">Col 6 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 10 · Row 1">Cell C6 G10 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 10 · Row 2">Cell C6 G10 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 10 · Row 3">Cell C6 G10 R3</div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b6g11"/>
+<section class="grp collapsed"><header><label class="title" for="b6g11" title="Toggle group rows"><span class="t-en">Col 6 · Group 11</span><span class="t-es">Col 6 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 6 · Group 11 · Row 1">Cell C6 G11 R1</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 11 · Row 2">Cell C6 G11 R2</div>
+<div class="row" contenteditable="true" title="Column 6 · Group 11 · Row 3">Cell C6 G11 R3</div>
+</div></section>
+</div>
+<div class="col col-7">
+<input class="vh" type="checkbox" id="col7"/>
+<div class="col-header"><span class="title"><span class="t-en">Column 7</span><span class="t-es">Columna 7</span></span><label class="btn" for="col7" title="Expand/Collapse whole column">↕ <span class="t-en">Column</span><span class="t-es">Columna</span></label></div>
+<input class="grp-toggle" type="checkbox" id="b7g1"/>
+<section class="grp collapsed"><header><label class="title" for="b7g1" title="Toggle group rows"><span class="t-en">Col 7 · Group 1</span><span class="t-es">Col 7 · Grupo 1</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 1 · Row 1"><details><summary>C7 G1 R1</summary><div class="inner">Inner for Column 7 · Group 1 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 1 · Row 2"><details><summary>C7 G1 R2</summary><div class="inner">Inner for Column 7 · Group 1 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 1 · Row 3"><details><summary>C7 G1 R3</summary><div class="inner">Inner for Column 7 · Group 1 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g2"/>
+<section class="grp collapsed"><header><label class="title" for="b7g2" title="Toggle group rows"><span class="t-en">Col 7 · Group 2</span><span class="t-es">Col 7 · Grupo 2</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 2 · Row 1"><details><summary>C7 G2 R1</summary><div class="inner">Inner for Column 7 · Group 2 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 2 · Row 2"><details><summary>C7 G2 R2</summary><div class="inner">Inner for Column 7 · Group 2 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 2 · Row 3"><details><summary>C7 G2 R3</summary><div class="inner">Inner for Column 7 · Group 2 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g3"/>
+<section class="grp collapsed"><header><label class="title" for="b7g3" title="Toggle group rows"><span class="t-en">Col 7 · Group 3</span><span class="t-es">Col 7 · Grupo 3</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 3 · Row 1"><details><summary>C7 G3 R1</summary><div class="inner">Inner for Column 7 · Group 3 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 3 · Row 2"><details><summary>C7 G3 R2</summary><div class="inner">Inner for Column 7 · Group 3 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 3 · Row 3"><details><summary>C7 G3 R3</summary><div class="inner">Inner for Column 7 · Group 3 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g4"/>
+<section class="grp collapsed"><header><label class="title" for="b7g4" title="Toggle group rows"><span class="t-en">Col 7 · Group 4</span><span class="t-es">Col 7 · Grupo 4</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 4 · Row 1"><details><summary>C7 G4 R1</summary><div class="inner">Inner for Column 7 · Group 4 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 4 · Row 2"><details><summary>C7 G4 R2</summary><div class="inner">Inner for Column 7 · Group 4 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 4 · Row 3"><details><summary>C7 G4 R3</summary><div class="inner">Inner for Column 7 · Group 4 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g5"/>
+<section class="grp collapsed"><header><label class="title" for="b7g5" title="Toggle group rows"><span class="t-en">Col 7 · Group 5</span><span class="t-es">Col 7 · Grupo 5</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 5 · Row 1"><details><summary>C7 G5 R1</summary><div class="inner">Inner for Column 7 · Group 5 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 5 · Row 2"><details><summary>C7 G5 R2</summary><div class="inner">Inner for Column 7 · Group 5 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 5 · Row 3"><details><summary>C7 G5 R3</summary><div class="inner">Inner for Column 7 · Group 5 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g6"/>
+<section class="grp collapsed"><header><label class="title" for="b7g6" title="Toggle group rows"><span class="t-en">Col 7 · Group 6</span><span class="t-es">Col 7 · Grupo 6</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 6 · Row 1"><details><summary>C7 G6 R1</summary><div class="inner">Inner for Column 7 · Group 6 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 6 · Row 2"><details><summary>C7 G6 R2</summary><div class="inner">Inner for Column 7 · Group 6 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 6 · Row 3"><details><summary>C7 G6 R3</summary><div class="inner">Inner for Column 7 · Group 6 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g7"/>
+<section class="grp collapsed"><header><label class="title" for="b7g7" title="Toggle group rows"><span class="t-en">Col 7 · Group 7</span><span class="t-es">Col 7 · Grupo 7</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 7 · Row 1"><details><summary>C7 G7 R1</summary><div class="inner">Inner for Column 7 · Group 7 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 7 · Row 2"><details><summary>C7 G7 R2</summary><div class="inner">Inner for Column 7 · Group 7 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 7 · Row 3"><details><summary>C7 G7 R3</summary><div class="inner">Inner for Column 7 · Group 7 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g8"/>
+<section class="grp collapsed"><header><label class="title" for="b7g8" title="Toggle group rows"><span class="t-en">Col 7 · Group 8</span><span class="t-es">Col 7 · Grupo 8</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 8 · Row 1"><details><summary>C7 G8 R1</summary><div class="inner">Inner for Column 7 · Group 8 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 8 · Row 2"><details><summary>C7 G8 R2</summary><div class="inner">Inner for Column 7 · Group 8 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 8 · Row 3"><details><summary>C7 G8 R3</summary><div class="inner">Inner for Column 7 · Group 8 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g9"/>
+<section class="grp collapsed"><header><label class="title" for="b7g9" title="Toggle group rows"><span class="t-en">Col 7 · Group 9</span><span class="t-es">Col 7 · Grupo 9</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 9 · Row 1"><details><summary>C7 G9 R1</summary><div class="inner">Inner for Column 7 · Group 9 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 9 · Row 2"><details><summary>C7 G9 R2</summary><div class="inner">Inner for Column 7 · Group 9 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 9 · Row 3"><details><summary>C7 G9 R3</summary><div class="inner">Inner for Column 7 · Group 9 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g10"/>
+<section class="grp collapsed"><header><label class="title" for="b7g10" title="Toggle group rows"><span class="t-en">Col 7 · Group 10</span><span class="t-es">Col 7 · Grupo 10</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 10 · Row 1"><details><summary>C7 G10 R1</summary><div class="inner">Inner for Column 7 · Group 10 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 10 · Row 2"><details><summary>C7 G10 R2</summary><div class="inner">Inner for Column 7 · Group 10 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 10 · Row 3"><details><summary>C7 G10 R3</summary><div class="inner">Inner for Column 7 · Group 10 · Row 3.</div></details></div>
+</div></section>
+<input class="grp-toggle" type="checkbox" id="b7g11"/>
+<section class="grp collapsed"><header><label class="title" for="b7g11" title="Toggle group rows"><span class="t-en">Col 7 · Group 11</span><span class="t-es">Col 7 · Grupo 11</span></label></header><div class="rows">
+<div class="row" contenteditable="true" title="Column 7 · Group 11 · Row 1"><details><summary>C7 G11 R1</summary><div class="inner">Inner for Column 7 · Group 11 · Row 1.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 11 · Row 2"><details><summary>C7 G11 R2</summary><div class="inner">Inner for Column 7 · Group 11 · Row 2.</div></details></div>
+<div class="row" contenteditable="true" title="Column 7 · Group 11 · Row 3"><details><summary>C7 G11 R3</summary><div class="inner">Inner for Column 7 · Group 11 · Row 3.</div></details></div>
+</div></section>
+</div>
+  </div>
+  <div class="actions">
+    <a class="btn" href="#save"><span class="t-en">SAVE</span><span class="t-es">GUARDAR</span></a>
+    <a class="btn" href="#share"><span class="t-en">SHARE</span><span class="t-es">COMPARTIR</span></a>
+    <a class="btn" href="#publish"><span class="t-en">PUBLISH</span><span class="t-es">PUBLICAR</span></a>
+  </div>
+</section>
+
+<section id="save" class="modal">
+  <div class="box">
+    <h3><span class="t-en">Save</span><span class="t-es">Guardar</span></h3>
+    <ol>
+      <li><span class="t-en">Use your browser’s <strong>Print…</strong> (Ctrl/Cmd+P).</span><span class="t-es">Usa la opción <strong>Imprimir…</strong> de tu navegador (Ctrl/Cmd+P).</span></li>
+      <li><span class="t-en">Select <strong>Save as PDF</strong> to capture current edits.</span><span class="t-es">Elige <strong>Guardar como PDF</strong> para capturar las ediciones actuales.</span></li>
+      <li><span class="t-en">Or copy/paste edited content elsewhere.</span><span class="t-es">O copia/pega el contenido editado en otro lugar.</span></li>
+    </ol>
+    <a class="btn close" href="#"><span class="t-en">Close</span><span class="t-es">Cerrar</span></a>
+  </div>
+</section>
+
+<section id="share" class="modal">
+  <div class="box">
+    <h3><span class="t-en">Share</span><span class="t-es">Compartir</span></h3>
+    <p><span class="t-en">Copy the table or export to PDF. Optionally open your mail client:</span><span class="t-es">Copia la tabla o exporta a PDF. Opcionalmente abre tu cliente de correo:</span></p>
+    <p><a class="btn ghost" href="mailto:?subject=Navigator%20Grid&body=See%20attached%20PDF%20or%20pasted%20content."><span class="t-en">Open Mail</span><span class="t-es">Abrir Correo</span></a></p>
+    <a class="btn close" href="#"><span class="t-en">Close</span><span class="t-es">Cerrar</span></a>
+  </div>
+</section>
+
+<section id="publish" class="modal">
+  <div class="box">
+    <h3><span class="t-en">Publish (No-JS)</span><span class="t-es">Publicar (Sin-JS)</span></h3>
+    <ul>
+      <li><span class="t-en">Upload these static files to your site.</span><span class="t-es">Sube estos archivos estáticos a tu sitio.</span></li>
+      <li><span class="t-en">Paste the HTML into your CMS.</span><span class="t-es">Pega el HTML en tu CMS.</span></li>
+      <li><span class="t-en">Export to PDF and publish.</span><span class="t-es">Exporta a PDF y publica.</span></li>
+    </ul>
+    <a class="btn close" href="#"><span class="t-en">Close</span><span class="t-es">Cerrar</span></a>
+  </div>
+</section>
+
+</body>
+</html>

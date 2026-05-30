@@ -283,6 +283,7 @@
     .bubble-legend .dot.wish { background: #2f6eb0; }
     .bubble-legend .dot.want { background: #d18e1a; }
     .bubble-legend .dot.need { background: #c7362b; }
+    .bubble-legend .dot.reset { background: #fff; border: 1px solid #9bb2c4; }
     .bubble-hint {
       width: 100%; text-align: center;
       color: #6a8aa3; font-size: 0.85rem; padding: 1rem 0;
@@ -315,6 +316,7 @@
     .inv-bubble:hover {
       transform: scale(1.12); border-color: var(--app-accent); z-index: 2;
     }
+    .inv-bubble:hover .inv-bubble-label { opacity: 1; }   /* peek title on hover */
     @keyframes inv-bubble-in {
       0%   { opacity: 0; transform: translateY(44px) scale(0.5); }
       60%  { opacity: 1; transform: translateY(-5px) scale(1.06); }
@@ -324,6 +326,17 @@
     .inv-bubble[data-state="wish"] { background: #2f6eb0; color: #fff; border-color: #2f6eb0; }
     .inv-bubble[data-state="want"] { background: #d18e1a; color: #fff; border-color: #d18e1a; }
     .inv-bubble[data-state="need"] { background: #c7362b; color: #fff; border-color: #c7362b; }
+    /* item title — sits below the bubble; shown once the bubble is checked */
+    .inv-bubble-label {
+      position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+      max-width: 92px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font: 600 0.6rem/1.1 var(--font-ui, inherit);
+      color: #1e4a6b; background: rgba(255, 255, 255, 0.9);
+      padding: 1px 6px; border-radius: 7px;
+      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+      box-shadow: 0 1px 3px rgba(0, 20, 40, 0.12);
+    }
+    .inv-bubble[data-state] .inv-bubble-label { opacity: 1; }
     @media (prefers-reduced-motion: reduce) {
       .inv-bubble { animation-duration: 0.01s; }
     }
@@ -2199,6 +2212,10 @@
       b.title = name;
       b.setAttribute('aria-label', name);
       b.innerHTML = `<i class="${rowIconClass(row)}" aria-hidden="true"></i>`;
+      const lab = document.createElement('span');
+      lab.className = 'inv-bubble-label';
+      lab.textContent = name;   // title shown below the icon when checked
+      b.appendChild(lab);
       const st = currentRowState(row);
       if (st) b.dataset.state = st;
       b.addEventListener('click', () => {
@@ -2306,9 +2323,11 @@
     }
     function setCloudHeight(cloud, n) {
       const cw = cloud.getBoundingClientRect().width || 440;
-      const perRow = Math.max(2, Math.floor(cw / 66));
+      const perRow = Math.max(2, Math.floor(cw / 74));
       const gridRows = Math.ceil(n / perRow);
-      cloud.style.height = Math.max(220, gridRows * 66 + 30) + 'px';
+      // generous vertical room: each re-click reveal noticeably expands the
+      // area downward, and checked bubbles have space for their titles below.
+      cloud.style.height = Math.max(240, gridRows * 104 + 40) + 'px';
     }
 
     const bubbleByRow = new Map(); // row el → bubble el (so reveals are incremental)
@@ -2322,7 +2341,7 @@
       if (!desired.length) {
         stopBubblePhysics();
         bubbleByRow.clear();
-        bubbleView.innerHTML = '<p class="bubble-hint">Pick one or more categories above to see their things as bubbles. Click a category again to reveal more of it. Tap a bubble: 1× Have · 2× Wish · 3× Want · 4× Need.</p>';
+        bubbleView.innerHTML = '<p class="bubble-hint">Pick one or more categories above to see their things as bubbles. Click a category again to reveal more of it. Tap a bubble: 1× Have · 2× Wish · 3× Want · 4× Need · 5× Reset.</p>';
         return;
       }
       let cloud = bubbleView.querySelector('.bubble-cloud');
@@ -2333,6 +2352,7 @@
           '<span><i class="dot wish"></i>2× Wish</span>' +
           '<span><i class="dot want"></i>3× Want</span>' +
           '<span><i class="dot need"></i>4× Need</span>' +
+          '<span><i class="dot reset"></i>5× Reset</span>' +
           '</div>';
         bubbleView.innerHTML = legend + '<div class="bubble-cloud"></div>';
         cloud = bubbleView.querySelector('.bubble-cloud');

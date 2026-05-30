@@ -1444,6 +1444,8 @@
   }
   /* Disabled radio-set (e.g. Compensation when only Gift is selected) */
   .radio-set.is-disabled{ opacity: .4; pointer-events: none; }
+  /* Soft-disabled clause: visually dim but still interactive (notes preserved) */
+  .opt-row .radio-clauses label.clause.is-soft-disabled{ opacity: .5; }
   /* Main clause checked → bold like sub-clauses when checked (font-weight: 700) */
   .opt-row .options .radio-set > .radio-set-head > label:has(input:checked){
     font-weight: 700;
@@ -2266,7 +2268,6 @@
                 <label><input type="checkbox" name="tempo" value="Availability"><span>Certain availability</span></label>
               </span>
               <div class="radio-clauses" data-mutex-group="availability">
-                <div class="clause-subhead">Open access</div>
                 <label class="clause is-common" data-mutex="open-access"><input type="checkbox" name="tempo-clause" value="anytime"><span class="clause-ico">⏱️</span>Anytime<button type="button" class="clause-plus" data-route="uso" title="Also relates to Use" aria-label="Route to Use">＋</button></label>
                 <div class="clause-subhead">Time limits</div>
                 <label class="clause is-common" data-mutex="time-limits"><input type="checkbox" name="tempo-clause" value="unlimited-time"><span class="clause-ico">⏱️</span>Unlimited time of use per user<button type="button" class="clause-plus" data-route="dest" title="Also relates to People" aria-label="Route to People">＋</button></label>
@@ -2280,7 +2281,7 @@
                 <label class="clause" data-mutex="time-limits"><input type="checkbox" name="tempo-clause" value="no-limit-per-session"><span class="clause-ico">🚫</span>No limit per session<button type="button" class="clause-plus" data-route="dest" title="Also relates to People" aria-label="Route to People">＋</button></label>
                 <label class="clause" data-mutex="time-limits"><input type="checkbox" name="tempo-clause" value="min-use"><span class="clause-ico">🚫</span>A minimum of use<button type="button" class="clause-plus" data-route="dest" title="Also relates to People" aria-label="Route to People">＋</button></label>
                 <label class="clause" data-mutex="time-limits"><input type="checkbox" name="tempo-clause" value="max-use"><span class="clause-ico">🚫</span>A maximum of use<button type="button" class="clause-plus" data-route="dest" title="Also relates to People" aria-label="Route to People">＋</button></label>
-                <div class="clause-subhead">Certain moveability</div>
+                <div class="clause-subhead">Moveability</div>
                 <label class="clause" data-mutex="moveability"><input type="checkbox" name="tempo-clause" value="everywhere"><span class="clause-ico">📍</span>Everywhere<button type="button" class="clause-plus" data-route="dest" title="Also relates to People" aria-label="Route to People">＋</button></label>
                 <label class="clause" data-mutex="moveability"><input type="checkbox" name="tempo-clause" value="some-places"><span class="clause-ico">📍</span>To some places</label>
                 <label class="clause" data-mutex="moveability"><input type="checkbox" name="tempo-clause" value="new-places"><span class="clause-ico">📍</span>To new places</label>
@@ -2289,8 +2290,7 @@
             </span>
             <span class="radio-set" data-set="tempo-conditions">
               <span class="radio-set-head">
-                <label><input type="checkbox" name="tempo" value="Conditions over time"><span>Conditions over time</span></label>
-                <button type="button" class="radio-plus" aria-label="Time-condition clauses" title="First time, climate, iteration">＋</button>
+                <label><input type="checkbox" name="tempo" value="Conditions over time"><span>Certain conditions over time</span></label>
               </span>
               <div class="radio-clauses">
                 <label class="clause"><input type="checkbox" name="tempo-clause" value="first-time-thing"><span class="clause-ico">⏱️</span>First time using the thing<button type="button" class="clause-plus" data-route="uso" title="Also relates to Use" aria-label="Route to Use">＋</button></label>
@@ -3350,6 +3350,26 @@
         if (other !== unlimitedUsersInput) other.checked = false;
       });
     });
+  }
+
+  // ── "Use where it is" soft-disables the Moveability sublist: when checked
+  // the moveability items dim (.is-soft-disabled, opacity .5) and uncheck,
+  // but any notes/inputs attached to them are preserved (we only flip the
+  // checkbox state, not any sibling note fields).
+  const useWhereInput = document.querySelector('input[name="tempo"][value="Use where it is"]');
+  if (useWhereInput) {
+    const applyMoveabilityState = () => {
+      const dim = useWhereInput.checked;
+      $$('label.clause[data-mutex="moveability"]').forEach(label => {
+        label.classList.toggle("is-soft-disabled", dim);
+        if (dim) {
+          const input = label.querySelector('input[type="checkbox"]');
+          if (input && input.checked) input.checked = false;
+        }
+      });
+    };
+    useWhereInput.addEventListener("change", applyMoveabilityState);
+    applyMoveabilityState();
   }
 
   // ── Compensation disabled when ONLY Gift is the active mode (no lend,

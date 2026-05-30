@@ -39,6 +39,7 @@
 
   /* ── topbar (flove-bar) ─────────────────────────────────────── */
   .flove-bar{
+    position:relative; z-index:32;
     display:flex; align-items:center; gap:12px;
     padding:10px 16px;
     background:linear-gradient(180deg, rgba(255,255,255,.02), transparent);
@@ -53,26 +54,55 @@
     letter-spacing:.01em;
   }
   .flove-bar .flove-spacer{ flex:1 1 auto }
-  .flove-bar .flove-home{
+  .flove-bar .flove-home,
+  .flove-bar .about-btn{
     color:var(--ink-dim); text-decoration:none;
     font-size:.85rem; font-weight:600;
     padding:6px 12px; border-radius:var(--radius-pill);
     border:1px solid var(--line);
+    background:transparent; cursor:pointer;
+    font-family:inherit;
     transition:all var(--fast);
   }
-  .flove-bar .flove-home:hover{ color:var(--accent); border-color:var(--accent) }
-
-  /* ── header section under topbar ────────────────────────────── */
-  .site-header{
-    padding:14px 16px 4px; max-width:1200px; margin:0 auto;
+  .flove-bar .flove-home:hover,
+  .flove-bar .about-btn:hover{ color:var(--accent); border-color:var(--accent) }
+  body:has(#about-toggle:checked) .flove-bar .about-btn{
+    color:#001018; background:var(--accent); border-color:var(--accent);
   }
-  .site-header h1{
-    margin:0; font-size:1.05rem; font-weight:600;
+
+  /* ── About panel — toggled by #about-toggle, click-outside closes ─── */
+  .about-ctl{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+  .about-backdrop{
+    position:fixed; inset:0; z-index:30;
+    background:rgba(0,0,0,.35);
+    display:none; cursor:default;
+  }
+  body:has(#about-toggle:checked) .about-backdrop{ display:block }
+  .about-panel{
+    position:fixed; top:54px; left:50%;
+    transform:translateX(-50%) translateY(-8px);
+    width:min(640px, calc(100% - 24px));
+    max-height:calc(100vh - 80px); overflow:auto;
+    z-index:31;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:0 12px 32px rgba(0,0,0,.45);
+    padding:18px 22px;
+    opacity:0; pointer-events:none;
+    transition:opacity var(--fast), transform var(--fast);
+  }
+  body:has(#about-toggle:checked) .about-panel{
+    opacity:1; pointer-events:auto;
+    transform:translateX(-50%) translateY(0);
+  }
+  .about-panel h1{
+    margin:0 0 .35rem; font-size:1.1rem; font-weight:700;
     color:var(--ink); letter-spacing:.01em;
   }
-  .site-header .subtitle{
-    margin:.35rem 0 0;
-    color:var(--ink-dim); font-size:.85rem; line-height:1.5;
+  .about-panel .subtitle{
+    margin:0; color:var(--ink-dim);
+    font-size:.9rem; line-height:1.55;
   }
 
   /* ── layout ─────────────────────────────────────────────────── */
@@ -158,6 +188,9 @@
   .actions .btn.outline{ background:transparent }
   .actions .btn.is-kept{
     border-color:var(--success); color:var(--success);
+  }
+  .actions .btn.is-checked{
+    border-color:var(--accent); color:var(--accent);
   }
   .mobile-only{ display:none }
 
@@ -279,6 +312,9 @@
 </head>
 <body>
 
+<!-- About panel state (checkbox toggled by .about-btn / closed by backdrop) -->
+<input type="checkbox" id="about-toggle" class="about-ctl">
+
 <!-- ─── topbar ─────────────────────────────────────────────────── -->
 <div class="flove-bar">
   <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
@@ -298,13 +334,18 @@
   </svg>
   <span class="flove-app-name">willy</span>
   <span class="flove-spacer"></span>
+  <label class="about-btn" for="about-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="about-panel" title="About">About</label>
   <a class="flove-home" href="index.html" aria-label="Back to flove launcher">← flove</a>
 </div>
 
-<header class="site-header">
+<!-- Click-outside backdrop: clicking it unchecks #about-toggle and closes the panel -->
+<label class="about-backdrop" for="about-toggle" aria-label="Close About"></label>
+
+<!-- About panel — opens below the topbar, anchored center -->
+<aside id="about-panel" class="about-panel" role="dialog" aria-label="About Willy">
   <h1>Teleological Whys &amp; Sins and Commandments Hows</h1>
   <p class="subtitle">Drag each word onto the axis. Where a will or virtue sits is your stance.</p>
-</header>
+</aside>
 
 <main class="layout">
   <!-- Column 1: Words / Tabs -->
@@ -319,7 +360,7 @@
       <div class="word-list" id="wills-list"></div>
       <div class="actions">
         <button id="willsKeep"     class="btn outline">Keep</button>
-        <button id="willsLoadMore" class="btn">Load more</button>
+        <button id="willsLoadMore" class="btn" aria-pressed="false">Informal</button>
       </div>
     </section>
 
@@ -328,7 +369,7 @@
       <div class="word-grid" id="virtuesin-list"></div>
       <div class="actions">
         <button id="virtueKeep"     class="btn outline">Keep</button>
-        <button id="virtueLoadMore" class="btn">Load more</button>
+        <button id="virtueLoadMore" class="btn" aria-pressed="false">Informal</button>
       </div>
     </section>
 
@@ -595,18 +636,25 @@
     });
   });
 
-  // ── load-more buttons swap A↔B ──────────────────────────────
+  // ── set-toggle buttons: A = Informal (default), B = Formal ──
+  function refreshSetButton(btn, set){
+    const isFormal = (set === 'B');
+    btn.textContent = isFormal ? 'Formal' : 'Informal';
+    btn.setAttribute('aria-pressed', isFormal ? 'true' : 'false');
+    btn.classList.toggle('is-checked', isFormal);
+  }
+
   willsLoadMore.addEventListener('click', () => {
     state.wills.active = state.wills.active === 'A' ? 'B' : 'A';
     renderWillsList();
-    willsLoadMore.textContent = state.wills.active === 'A' ? 'Load more' : 'Load previous';
+    refreshSetButton(willsLoadMore, state.wills.active);
     toggleAxisMode('wills');
     refreshKeepLabels();
   });
   virtueLoadMore.addEventListener('click', () => {
     state.virtue.active = state.virtue.active === 'A' ? 'B' : 'A';
     renderVirtuesList();
-    virtueLoadMore.textContent = state.virtue.active === 'A' ? 'Load more' : 'Load previous';
+    refreshSetButton(virtueLoadMore, state.virtue.active);
     toggleAxisMode('virtue');
     refreshKeepLabels();
   });
@@ -805,9 +853,9 @@
   toggleAxisMode('wills');
   refreshKeepLabels();
 
-  // restore Load-more button labels if state.active was loaded as B
-  if (state.wills.active  === 'B') willsLoadMore.textContent  = 'Load previous';
-  if (state.virtue.active === 'B') virtueLoadMore.textContent = 'Load previous';
+  // sync button label with the (possibly restored) active set
+  refreshSetButton(willsLoadMore,  state.wills.active);
+  refreshSetButton(virtueLoadMore, state.virtue.active);
 })();
 </script>
 

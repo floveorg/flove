@@ -170,7 +170,7 @@
   .chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
 
   /* ── action buttons ─────────────────────────────────────────── */
-  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
+  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap }
   .actions .btn{
     padding:9px 14px;
     border:1px solid var(--line);
@@ -181,10 +181,6 @@
   }
   .actions .btn:hover{ filter:brightness(1.15); border-color:var(--accent) }
   .actions .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
-  .actions .btn.primary{
-    background:var(--accent-2); color:#1a0600;
-    font-weight:700; border-color:transparent;
-  }
   .actions .btn.outline{ background:transparent }
   .actions .btn.is-kept{
     border-color:var(--success); color:var(--success);
@@ -193,6 +189,43 @@
     border-color:var(--accent); color:var(--accent);
   }
   .mobile-only{ display:none }
+
+  /* ── summary actions (flovynormal pattern) — ghost pills ──── */
+  .action-row{
+    display:flex; flex-wrap:wrap; gap:.5rem;
+    margin-top:12px;
+  }
+  .btn.ghost{
+    display:inline-flex; align-items:center; gap:.3rem;
+    height:36px; padding:0 .8rem;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    border-radius:var(--radius-pill);
+    font:600 .8rem/1 var(--font-ui);
+    letter-spacing:.04em; cursor:pointer;
+    transition:border-color var(--fast), color var(--fast), background var(--fast), transform var(--fast);
+  }
+  .btn.ghost:hover{
+    border-color:var(--accent); color:var(--accent);
+    background:rgba(77,208,225,.06);
+    transform:translateY(-1px);
+  }
+  .btn.ghost:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+  .btn.ghost[aria-pressed="true"]{
+    background:rgba(77,208,225,.14);
+    color:var(--accent); border-color:var(--accent);
+  }
+  /* Magic mode: gentle accent glow on placed chips */
+  body.is-magic .dropzone .chip{
+    box-shadow:0 0 0 1px rgba(77,208,225,.45), 0 4px 14px rgba(77,208,225,.25);
+    border-color:var(--accent);
+  }
+  /* Minimal view: hide dashed guide lines and dropzone borders */
+  .axis-square.is-minimal .axis-guide,
+  .axis-square.is-minimal .axis-line.faint{ display:none }
+  .axis-square.is-minimal .dropzone{ border-color:transparent; background:transparent }
+  .axis-square.is-minimal .dropzone.over{ border-color:var(--accent); background:rgba(77,208,225,.10) }
 
   /* ── axis square ────────────────────────────────────────────── */
   .axis-wrap{ width:100% }
@@ -408,10 +441,11 @@
       </div>
     </div>
 
-    <footer class="actions">
-      <button id="saveBtn"    class="btn">Save</button>
-      <button id="shareBtn"   class="btn">Share</button>
-      <button id="publishBtn" class="btn primary">Publish</button>
+    <footer class="action-row">
+      <button id="viewsBtn"   class="btn ghost" aria-pressed="false" title="Toggle minimal view">Views</button>
+      <button id="insightBtn" class="btn ghost" title="Cycle through insights">Insight</button>
+      <button id="magicBtn"   class="btn ghost" aria-pressed="false" title="Toggle magic chip glow">Magic</button>
+      <button id="copyBtn"    class="btn ghost" title="Copy placements as text">Copy</button>
     </footer>
   </section>
 </main>
@@ -819,30 +853,56 @@
     toast._t = setTimeout(() => toastEl.classList.remove('is-on'), ms);
   }
 
-  $('#saveBtn').addEventListener('click', () => {
-    capturePlacements();
-    savePlacements();
-    toast('Saved locally');
+  // ── Summary actions (flovynormal-summary standard) ──────────
+  // Views: toggles a minimal axis view (hides dashed guides + zone borders).
+  const viewsBtn = $('#viewsBtn');
+  viewsBtn.addEventListener('click', () => {
+    const on = !axis.classList.contains('is-minimal');
+    axis.classList.toggle('is-minimal', on);
+    viewsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 
-  $('#shareBtn').addEventListener('click', async () => {
+  // Insight: cycles through short interpretive tips via the toast.
+  const INSIGHTS = [
+    '💡 Who — which wills point at others, which at yourself?',
+    '💡 What — which virtues hold the line, which sins pull at it?',
+    '💡 Where — what sits at the centre and what at the edges?',
+    '💡 Why — what would change if these words traded places?',
+  ];
+  let insightIdx = 0;
+  $('#insightBtn').addEventListener('click', () => {
+    toast(INSIGHTS[insightIdx], 2600);
+    insightIdx = (insightIdx + 1) % INSIGHTS.length;
+  });
+
+  // Magic: toggles a body class that adds an accent glow to placed chips.
+  const magicBtn = $('#magicBtn');
+  magicBtn.addEventListener('click', () => {
+    const on = !document.body.classList.contains('is-magic');
+    document.body.classList.toggle('is-magic', on);
+    magicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+
+  // Copy: writes a readable placement summary to the clipboard.
+  $('#copyBtn').addEventListener('click', async () => {
     capturePlacements();
-    const payload = encodeURIComponent(JSON.stringify(state.placements));
-    const url = location.origin + location.pathname + '#willy=' + payload;
+    const lines = [];
+    ['wills','virtue'].forEach(kind => {
+      ['A','B'].forEach(set => {
+        const map = state.placements[kind][set] || {};
+        const entries = Object.entries(map);
+        if (!entries.length) return;
+        lines.push(`# ${kind === 'wills' ? 'Wills' : 'VirtueSins'} · ${set === 'A' ? 'Informal' : 'Formal'}`);
+        entries.forEach(([zone, word]) => lines.push(`  ${zone}: ${word}`));
+      });
+    });
+    const text = lines.length ? lines.join('\n') : 'No placements yet.';
     try{
-      await navigator.clipboard.writeText(url);
-      toast('Share link copied');
+      await navigator.clipboard.writeText(text);
+      toast('Copied');
     } catch(_){
-      // fallback: drop in URL hash
-      history.replaceState(null, '', '#willy=' + payload);
-      toast('Share link in address bar');
+      toast('Copy not available');
     }
-  });
-
-  $('#publishBtn').addEventListener('click', () => {
-    capturePlacements();
-    savePlacements();
-    toast('Published (demo) — saved locally');
   });
 
   // ── boot ────────────────────────────────────────────────────

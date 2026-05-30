@@ -1157,7 +1157,7 @@
       padding: 0.5rem 0 0.2rem;
     }
     .parents-row .field-btn {
-      font-size: 1.8rem;
+      font-size: var(--btn-size, 1.8rem);
       padding: 0.6rem 1.5rem;
       font-weight: 600;
       will-change: transform;
@@ -1278,7 +1278,7 @@
       will-change: left, top;
       animation: bubble-pop 0.5s cubic-bezier(0.22, 0.9, 0.35, 1.05) backwards;
     }
-    .field-btn.bubble-item { font-size: 1.25rem; padding: 0.5rem 1.1rem; font-weight: 600; }
+    .field-btn.bubble-item { font-size: var(--btn-size, 1.25rem); padding: 0.5rem 1.1rem; font-weight: 600; }
     @keyframes bubble-pop {
       from { opacity: 0; transform: scale(0.4); }
       to   { opacity: 1; transform: scale(1); }
@@ -1301,7 +1301,7 @@
     .essence-sublist { margin: 0.35rem 0 0.55rem; padding-left: 1.4rem; list-style: lower-alpha; }
     .essence-sublist > .essence-subli { margin: 0.28rem 0; }
     .essence-sublist > .essence-subli::marker { color: #5a8ab0; font-weight: 700; }
-    .field-btn.list-parent { font-size: 1.02rem; font-weight: 700; padding: 0.28rem 0.85rem; }
+    .field-btn.list-parent { font-size: var(--btn-size, 1.02rem); font-weight: 700; padding: 0.28rem 0.85rem; }
     .subtab-btn.list-item { position: static; animation: none; white-space: normal; vertical-align: middle; }
 
     /* Drag-to-reorder within a subtab row. */
@@ -1746,6 +1746,7 @@
       });
       displayState.randomCache = {
         sizes, offsets, orderByParent,
+        parentOrder: [...fields].sort(() => Math.random() - 0.5),
         allOrder: all.sort(() => Math.random() - 0.5)
       };
     }
@@ -1775,6 +1776,23 @@
         return (0.65 + t * 1.15).toFixed(2) + 'rem'; // 0.65 → 1.80rem
       }
       return null;
+    }
+    // Random modifier reorders the MAIN categories too (cloud + list); for
+    // bubbles their positions are already random so order doesn't matter.
+    function parentOrder() {
+      if (displayState.random) {
+        if (!displayState.randomCache) buildRandomCache();
+        return displayState.randomCache.parentOrder || fields;
+      }
+      return fields;
+    }
+    // Size modifier graded for the main categories, scaled to each layout's
+    // own base size (dancing cloud > bubbles > list).
+    function parentSize(idx, total, mode) {
+      if (!displayState.sized) return null;
+      const t = total > 1 ? idx / (total - 1) : 0;
+      const base = mode === 'dancing' ? 1.8 : mode === 'bubble' ? 1.25 : mode === 'list' ? 1.02 : 1.2;
+      return (base * (0.7 + t * 0.7)).toFixed(2) + 'rem'; // 0.70× → 1.40× base
     }
 
     const fieldsList = document.getElementById('fieldsList');
@@ -1849,6 +1867,8 @@
       btn.dataset.name = name;
       if (mode === 'dancing') btn.style.animationDelay = (i * 0.7).toFixed(2) + 's';
       if (mode === 'bubble')  btn.style.animationDelay = (i * 0.08).toFixed(2) + 's';
+      const ps = parentSize(i, fields.length, mode);
+      if (ps) btn.style.setProperty('--btn-size', ps);
       if (isOpen(name) || isSelected(name)) btn.classList.add('active');
       if (fieldHasContent(name) || (tree[name] || []).some(fieldHasContent)) btn.classList.add('has-content');
       btn.textContent = name;
@@ -1878,7 +1898,7 @@
       fieldsList.innerHTML = '';
       if (displayState.cloud) {
         fieldsList.className = 'fields-list parents-row';
-        fields.forEach((name, i) => fieldsList.appendChild(makeParentBtn(name, i, 'dancing')));
+        parentOrder().forEach((name, i) => fieldsList.appendChild(makeParentBtn(name, i, 'dancing')));
       } else {
         fieldsList.className = 'fields-list';
       }
@@ -1975,7 +1995,7 @@
         box.className = 'subtabs-list is-open list-mode';
         const ol = document.createElement('ol');
         ol.className = 'essence-list';
-        fields.forEach((name, i) => {
+        parentOrder().forEach((name, i) => {
           const li = document.createElement('li');
           li.className = 'essence-li';
           li.appendChild(makeParentBtn(name, i, 'list'));
@@ -2144,7 +2164,7 @@
       parentsCloud.el = cloud;
       setParentsCloudHeight(cloud, fields.length);
       const rect = cloud.getBoundingClientRect();
-      fields.forEach((name, i) => {
+      parentOrder().forEach((name, i) => {
         let b = parentBubbleByName.get(name);
         if (!b) {
           b = makeParentBtn(name, i, 'bubble');
@@ -2154,6 +2174,9 @@
         } else {
           b.classList.toggle('active', isOpen(name) || isSelected(name));
           b.classList.toggle('has-content', fieldHasContent(name) || (tree[name] || []).some(fieldHasContent));
+          // Re-apply Size grading to parent bubbles that are already drifting.
+          const ps = parentSize(i, fields.length, 'bubble');
+          if (ps) b.style.setProperty('--btn-size', ps); else b.style.removeProperty('--btn-size');
         }
       });
       ensureCloudRaf(parentsCloud);

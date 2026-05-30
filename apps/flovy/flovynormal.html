@@ -9245,5 +9245,80 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 })();
 </script>
 
+<script>
+/* Compass engine — ports wanty.html's compass so the display modes actually
+   reorder / move / randomize the entry items (not just CSS nth-child tricks):
+     · scope  — sort short→long, sized up the list
+     · cloud  — leave the CSS drift, clear inline transforms
+     · random — genuine shuffle + random size/rotation, re-rolled each pick
+     · none   — natural order (or the user's dragged order)
+   Items are also drag-to-reorder (move), which sets a custom order honoured
+   in none/cloud. Standardised so any tier can reuse it. */
+(function(){
+  const lists = Array.from(document.querySelectorAll('.entry-list'));
+  if (!lists.length) return;
+  const MODES = ['disp-none','disp-scope','disp-cloud','disp-random'];
+  const activeMode = () => {
+    for (const m of MODES){ const el = document.getElementById(m); if (el && el.checked) return m.slice(5); }
+    return 'none';
+  };
+  const itemsOf = list => Array.from(list.children).filter(n => n.tagName === 'LI');
+  const reset = li => { li.style.order=''; li.style.scale=''; li.style.rotate=''; };
+
+  function applyList(list){
+    const mode = activeMode();
+    const lis = itemsOf(list);
+    lis.forEach(reset);
+    if (mode === 'random'){
+      const order = [...lis].sort(() => Math.random() - 0.5);
+      order.forEach((li, i) => {
+        li.style.order  = i;
+        li.style.scale  = (0.8 + Math.random() * 0.5).toFixed(2);
+        li.style.rotate = ((Math.random() - 0.5) * 8).toFixed(1) + 'deg';
+      });
+    } else if (mode === 'scope'){
+      const sorted = [...lis].sort((a, b) => a.textContent.trim().length - b.textContent.trim().length);
+      const den = Math.max(1, sorted.length - 1);
+      sorted.forEach((li, i) => { li.style.order = i; li.style.scale = (0.85 + (i / den) * 0.45).toFixed(2); });
+    }
+    // 'cloud' and 'none' keep natural / dragged DOM order (inline transforms cleared)
+  }
+  const applyAll = () => lists.forEach(applyList);
+
+  // Re-roll randomness when the random mode is (re)picked, even if already active.
+  document.addEventListener('click', e => {
+    const lbl = e.target.closest('label[for]');
+    if (lbl && MODES.includes(lbl.getAttribute('for'))) setTimeout(applyAll, 0);
+  });
+  document.addEventListener('change', e => {
+    if (e.target && MODES.includes(e.target.id)) applyAll();
+  });
+
+  // Drag-to-reorder (move) — works in every mode; persists as the DOM order.
+  let dragged = null;
+  lists.forEach(list => {
+    list.addEventListener('dragstart', e => {
+      const li = e.target.closest('li'); if (!li || !list.contains(li)) return;
+      dragged = li; li.style.opacity = '.4';
+    });
+    list.addEventListener('dragend', () => { if (dragged){ dragged.style.opacity=''; dragged = null; applyAll(); } });
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      const li = e.target.closest('li');
+      if (!dragged || !li || li === dragged || !list.contains(li)) return;
+      const r = li.getBoundingClientRect();
+      const after = (e.clientY - r.top) > r.height / 2;
+      list.insertBefore(dragged, after ? li.nextSibling : li);
+    });
+  });
+  // make items draggable as they appear
+  const markDraggable = () => lists.forEach(l => itemsOf(l).forEach(li => { li.draggable = true; li.style.cursor = 'grab'; }));
+  markDraggable();
+  lists.forEach(list => new MutationObserver(() => { markDraggable(); applyAll(); }).observe(list, { childList: true }));
+
+  applyAll();
+})();
+</script>
+
 </body>
 </html>

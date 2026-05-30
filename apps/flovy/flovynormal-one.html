@@ -3032,7 +3032,7 @@ label[for]{ cursor: pointer; user-select: none; }
   transform: translateX(-10px);          /* nudged 10px leftwards */
   transition: background var(--fast), transform var(--fast);
 }
-.mark-link:hover{ background: var(--fill-mid); transform: translate(-10px, -1px); }
+.mark-link:hover{ background: transparent; transform: translate(-10px, -1px); }
 .mark{
   font-size: 1.9rem;
   color: var(--accent);
@@ -3047,7 +3047,7 @@ label[for]{ cursor: pointer; user-select: none; }
   transform: translateX(-30px);          /* nudged 30px leftwards */
   transition: background var(--fast), transform var(--fast);
 }
-.title-label:hover{ background: rgba(var(--accent-rgb), .10); transform: translate(-30px, -1px); }
+.title-label:hover{ background: transparent; transform: translate(-30px, -1px); }
 body:has(#intro-open:checked) .title-label{ background: rgba(var(--accent-rgb), .18); }
 /* .title-h1 wraps the .title-label label semantically without affecting layout. */
 .title-h1{ display: contents; margin: 0; }
@@ -3743,7 +3743,10 @@ body:has(#magic-open:checked):has(#d-armmore:checked) .labeler-list{ display: gr
 /* ── 2.10 menu ☰ ─────────────────────────────────────────── */
 .top-menu{ position: relative; }
 .menu-list{
-  top: calc(100% + 8px); right: 0;
+  /* anchored just below the logo (left edge of the centered topbar) */
+  position: fixed;
+  top: 54px; right: auto;
+  left: max(10px, calc(50vw - 206px));
   min-width: 286px;
   z-index: var(--z-dropdown);
   /* Override the panel-bg + blur defaults: the menu must fully invade the
@@ -4122,20 +4125,33 @@ body:has(#opt-certify:checked) .menu-certify-row{ display: list-item; }
 .menu-certify-row .cert-intro p:last-child{ margin: 0; }
 .menu-certify-row .cert-intro em{ color: var(--accent); font-style: normal; }
 
-/* Topbar collapse — the ⚙ settings button hides every other topbar
-   widget (compass, All toggle, magic, tier-pop, slogan) leaving only
-   the logo, title, spacer and the settings button itself. */
-body:has(#topbar-collapsed:checked) .topbar-inner > .compass-wrap,
-body:has(#topbar-collapsed:checked) .topbar-inner > .app-toggle-btn,
-body:has(#topbar-collapsed:checked) .topbar-inner > .magic-wrap,
-body:has(#topbar-collapsed:checked) .topbar-inner > .tier-pop,
-body:has(#topbar-collapsed:checked) .topbar-inner > .labeler-slogan{
+/* Topbar nesting — every other topbar widget is hidden by default and
+   revealed all-at-once by the ⚙ settings button (and hidden again). Only
+   logo, title, spacer and the settings button stay visible by default. */
+body:not(:has(#topbar-collapsed:checked)) .topbar-inner > .compass-wrap,
+body:not(:has(#topbar-collapsed:checked)) .topbar-inner > .app-toggle-btn,
+body:not(:has(#topbar-collapsed:checked)) .topbar-inner > .magic-wrap,
+body:not(:has(#topbar-collapsed:checked)) .topbar-inner > .tier-pop,
+body:not(:has(#topbar-collapsed:checked)) .topbar-inner > .labeler-slogan{
   display: none;
 }
-body:has(#topbar-collapsed:checked) .settings-btn{
-  color: var(--accent-deep);
-  border-color: var(--accent);
+/* Settings ⚙ button — default · hover/active · checked(expanded) states */
+.settings-btn{
+  border: 0; background: transparent; color: var(--ink-soft);
+  transition: var(--btn-trans), transform .25s var(--bounce);
 }
+.settings-btn svg{ transition: transform .4s var(--bounce); }
+.settings-btn:hover{
+  color: var(--accent-deep); background: var(--fill-soft);
+  box-shadow: 0 6px 16px var(--accent-glow);
+}
+.settings-btn:hover svg{ transform: rotate(45deg); }
+.settings-btn:active{ transform: scale(.9); }
+body:has(#topbar-collapsed:checked) .settings-btn{
+  background: var(--grad-active); color: #fff;
+  box-shadow: 0 6px 16px var(--accent-glow);
+}
+body:has(#topbar-collapsed:checked) .settings-btn svg{ transform: rotate(90deg); }
 body:has(#sound-mini:checked)     .menu-nav-step[for="sound-mini"]     .menu-nav-node,
 body:has(#sound-basic:checked)    .menu-nav-step[for="sound-basic"]    .menu-nav-node,
 body:has(#sound-normal:checked)   .menu-nav-step[for="sound-normal"]   .menu-nav-node,
@@ -7784,20 +7800,14 @@ body:has(input[name="topbar-labeler"]:not(#topbar-labeler-none):checked) .rater-
   to  { clip-path: inset(0 0 0 0); }
 }
 
-/* opacity:0 starting state on the elements that fade in */
-.mark-link,
-.title-label,
-.compass-wrap,
-.app-toggle-btn,
-.magic-wrap,
-.top-menu,
+/* opacity:0 starting state on the elements that fade in.
+   Topbar buttons excluded — they appear instantly (no entrance delay) and
+   keeping a retained transform on .top-menu would trap the fixed menu. */
 .step-panels,
 .path{ opacity: 0; }
 .page-slogan{ clip-path: inset(0 100% 0 0); }
 
-.mark-link          { animation: flov-fly-left 1s var(--bounce) 1s forwards; }
-.title-label          { animation: flov-fly-left-title 2s var(--bounce) 2s forwards; }
-.compass-wrap       { animation: flov-fly-left 2.5s var(--bounce) 3s forwards; }
+/* topbar buttons: no entrance animation / delay — visible immediately */
 .page-slogan        {
   animation:
     flov-typed     3s   steps(44, end) 4s forwards,
@@ -7824,9 +7834,7 @@ body:has(input[name="topbar-labeler"]:not(#topbar-labeler-none):checked) .rater-
 }
 .step-panels        { animation: flov-fly-up 3s var(--bounce) 20s forwards; }
 .path            { animation: flov-fly-up 3s var(--bounce) 20s forwards; }
-.app-toggle-btn,
-.magic-wrap,
-.top-menu           { animation: flov-fly-left 5s var(--bounce) 8s forwards; }
+/* .app-toggle-btn / .magic-wrap / .top-menu — no entrance animation. */
 
 /* slogan — absolutely centered in the topbar; second line sits 2 rows below */
 .page-slogan{

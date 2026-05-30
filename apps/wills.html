@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>flove · wills</title>
+<meta name="description" content="Teleological Whys, Virtues, Sins and Commandments — drag the words onto the axis to map your stance.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path fill='%234dd0e1' d='M16 27.5C16 27.5 3.5 19.8 3.5 11.2 3.5 7.3 6.6 4.5 10 4.5 12.7 4.5 15 6 16 8.2 17 6 19.3 4.5 22 4.5 25.4 4.5 28.5 7.3 28.5 11.2 28.5 19.8 16 27.5 16 27.5Z'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:          #0b0c10;
+    --panel:       #111319;
+    --ink:         #e6eef8;
+    --ink-dim:     #a9b4c3;
+    --accent:      #4dd0e1;
+    --accent-deep: #2ba5b5;
+    --accent-2:    #ff8a65;
+    --line:        rgba(255,255,255,.20);
+    --faint:       rgba(255,255,255,.12);
+    --chip:        #1a1f2b;
+    --chip-border: #2a3142;
+    --chip-placed: #0b1221;
+    --success:     #00c853;
+    --font-ui:     'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --radius:      14px;
+    --radius-sm:   10px;
+    --radius-pill: 999px;
+    --fast:        .15s cubic-bezier(.2,.8,.2,1);
+  }
+  *{ box-sizing:border-box }
+  html, body{ height:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.45 var(--font-ui);
+  }
+
+  /* ── topbar (flove-bar) ─────────────────────────────────────── */
+  .flove-bar{
+    display:flex; align-items:center; gap:12px;
+    padding:10px 16px;
+    background:linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+    border-bottom:1px solid var(--line);
+  }
+  .flove-bar .flove-mark{
+    width:1.6em; height:1.6em;
+    filter:drop-shadow(0 0 6px rgba(77,208,225,.35));
+  }
+  .flove-bar .flove-app-name{
+    font-family:var(--font-ui); font-weight:700; font-size:1.15rem;
+    letter-spacing:.01em;
+  }
+  .flove-bar .flove-spacer{ flex:1 1 auto }
+  .flove-bar .flove-home{
+    color:var(--ink-dim); text-decoration:none;
+    font-size:.85rem; font-weight:600;
+    padding:6px 12px; border-radius:var(--radius-pill);
+    border:1px solid var(--line);
+    transition:all var(--fast);
+  }
+  .flove-bar .flove-home:hover{ color:var(--accent); border-color:var(--accent) }
+
+  /* ── header section under topbar ────────────────────────────── */
+  .site-header{
+    padding:14px 16px 4px; max-width:1200px; margin:0 auto;
+  }
+  .site-header h1{
+    margin:0; font-size:1.05rem; font-weight:600;
+    color:var(--ink); letter-spacing:.01em;
+  }
+  .site-header .subtitle{
+    margin:.35rem 0 0;
+    color:var(--ink-dim); font-size:.85rem; line-height:1.5;
+  }
+
+  /* ── layout ─────────────────────────────────────────────────── */
+  .layout{
+    display:grid; grid-template-columns:320px 1fr; gap:16px;
+    max-width:1200px; margin:0 auto; padding:16px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius); padding:12px;
+  }
+  .words-panel{ display:flex; flex-direction:column; gap:12px; min-height:300px }
+
+  /* ── tabs ───────────────────────────────────────────────────── */
+  .tabs{
+    display:flex; background:#0d1018;
+    border:1px solid var(--line); border-radius:var(--radius-sm);
+    overflow:hidden;
+  }
+  .tab{
+    flex:1; padding:10px 12px;
+    background:transparent; border:0;
+    color:var(--ink); cursor:pointer;
+    font:600 .9rem/1 var(--font-ui);
+    transition:background var(--fast), color var(--fast);
+  }
+  .tab:hover{ background:rgba(77,208,225,.08) }
+  .tab.active{ background:var(--accent); color:#001018; font-weight:700 }
+  .tab:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px }
+
+  .tabpanel{ display:none }
+  .tabpanel.active{ display:block }
+
+  /* ── chip lists ─────────────────────────────────────────────── */
+  .word-list{ display:flex; flex-wrap:wrap; gap:8px; padding:8px }
+  .word-grid{
+    display:grid; grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:8px; padding:8px;
+  }
+  .group-title{
+    grid-column:1/-1;
+    margin:6px 0 2px;
+    font:700 .72rem/1 var(--font-ui);
+    letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-dim);
+  }
+  .group-title:first-child{ margin-top:0 }
+  .group-title.sins{ color:var(--accent-2) }
+  .group-title.commands{ color:var(--accent) }
+
+  .chip{
+    background:var(--chip);
+    border:1px solid var(--chip-border);
+    border-radius:var(--radius-pill);
+    padding:7px 12px;
+    color:var(--ink);
+    cursor:grab; user-select:none;
+    font:500 .85rem/1.2 var(--font-ui);
+    transition:transform .08s ease, border-color var(--fast), background var(--fast);
+  }
+  .chip:hover{ border-color:var(--accent) }
+  .chip:active{ transform:scale(.96); cursor:grabbing }
+  .chip.is-dragging{ opacity:.55; outline:2px dashed var(--accent) }
+  .chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+
+  /* ── action buttons ─────────────────────────────────────────── */
+  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
+  .actions .btn{
+    padding:9px 14px;
+    border:1px solid var(--line);
+    background:#0f1320; color:var(--ink);
+    border-radius:var(--radius-sm); cursor:pointer;
+    font:600 .85rem/1 var(--font-ui);
+    transition:filter var(--fast), border-color var(--fast);
+  }
+  .actions .btn:hover{ filter:brightness(1.15); border-color:var(--accent) }
+  .actions .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+  .actions .btn.primary{
+    background:var(--accent-2); color:#1a0600;
+    font-weight:700; border-color:transparent;
+  }
+  .actions .btn.outline{ background:transparent }
+  .actions .btn.is-kept{
+    border-color:var(--success); color:var(--success);
+  }
+  .mobile-only{ display:none }
+
+  /* ── axis square ────────────────────────────────────────────── */
+  .axis-wrap{ width:100% }
+  .axis-square{
+    position:relative; width:100%; aspect-ratio:1/1;
+    border-radius:var(--radius); overflow:hidden;
+    background:radial-gradient(120% 120% at 50% 0%, rgba(77,208,225,.08), transparent 60%);
+  }
+  .axis-svg{ position:absolute; inset:0; width:100%; height:100% }
+  .axis-line{ stroke:var(--line); stroke-width:1.5 }
+  .axis-line.faint{ stroke:var(--faint) }
+  .axis-guide{ stroke:var(--faint); stroke-dasharray:2 3; stroke-width:1 }
+  .half-dash{ stroke-dasharray:3 3 }
+
+  /* ── dropzones ──────────────────────────────────────────────── */
+  .zones-layer{ position:absolute; inset:0 }
+  .zones-layer.hidden{ display:none }
+
+  .dropzone{
+    position:absolute;
+    display:flex; align-items:center; justify-content:center;
+    min-width:56px; min-height:32px;
+    padding:6px 8px;
+    border:1px dashed var(--line);
+    border-radius:var(--radius-sm);
+    transition:background var(--fast), border-color var(--fast);
+    pointer-events:auto;
+  }
+  .dropzone.empty{ background:rgba(255,255,255,.02) }
+  .dropzone.over{ border-color:var(--accent); background:rgba(77,208,225,.10) }
+  .dropzone .chip{
+    background:var(--chip-placed);
+    border-color:#1f2a40;
+    cursor:grab;
+  }
+
+  /* zone positions */
+  .vertex{ width:90px; height:38px }
+  .top-left    { top:6px;    left:6px }
+  .top-right   { top:6px;    right:6px }
+  .bottom-right{ bottom:6px; right:6px }
+  .bottom-left { bottom:6px; left:6px }
+
+  .mid-left { top:50%; left:6px;  transform:translateY(-50%); width:110px }
+  .mid-right{ top:50%; right:6px; transform:translateY(-50%); width:110px }
+
+  .edge       { width:110px }
+  .edge-top   { top:6px;    left:50%; transform:translateX(-50%) }
+  .edge-bottom{ bottom:6px; left:50%; transform:translateX(-50%) }
+  .edge-left  { left:6px;  top:50%; transform:translateY(-50%); width:90px }
+  .edge-right { right:6px; top:50%; transform:translateY(-50%); width:90px }
+
+  .diag{ width:120px }
+  .d-tl-mr{ top:22%;    right:6px }
+  .d-bl-mr{ bottom:22%; right:6px }
+  .d-tr-ml{ top:22%;    left:6px }
+  .d-br-ml{ bottom:22%; left:6px }
+
+  .diag-back{ width:120px; opacity:.95 }
+  .d-mr-tl{ top:12%;    right:22% }
+  .d-mr-bl{ bottom:12%; right:22% }
+  .d-ml-tr{ top:12%;    left:22% }
+  .d-ml-br{ bottom:12%; left:22% }
+
+  .dmid{ width:120px }
+  .d-left-center { top:50%; left:30%; transform:translate(-50%,-50%) }
+  .d-right-center{ top:50%; left:70%; transform:translate(-50%,-50%) }
+
+  .center-hole{
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:64px; height:64px;
+    border-radius:12px;
+    border:2px dotted var(--faint);
+    opacity:.85;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .center-hole::after{
+    content:"Center";
+    color:var(--ink-dim); font-size:.7rem;
+  }
+
+  .hide{ display:none !important }
+
+  /* ── toast (replaces alert()) ───────────────────────────────── */
+  .toast{
+    position:fixed; bottom:20px; left:50%;
+    transform:translateX(-50%) translateY(20px);
+    padding:10px 16px;
+    background:rgba(15,19,32,.96); color:var(--ink);
+    border:1px solid var(--accent);
+    border-radius:var(--radius-pill);
+    font:600 .85rem/1.2 var(--font-ui);
+    box-shadow:0 6px 18px rgba(0,0,0,.45);
+    opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:50;
+  }
+  .toast.is-on{ opacity:1; transform:translateX(-50%) translateY(0) }
+
+  /* ── responsive ─────────────────────────────────────────────── */
+  @media (max-width: 980px){
+    .layout{ grid-template-columns:1fr; gap:12px }
+    .mobile-only{ display:flex; justify-content:flex-end }
+    .axis-panel{ order:2 }
+    .words-panel{ order:1 }
+    .word-grid{ grid-template-columns:repeat(3, minmax(0,1fr)) }
+  }
+  @media (max-width: 560px){
+    .word-grid{ grid-template-columns:repeat(2, minmax(0,1fr)) }
+    .vertex, .edge, .diag, .diag-back, .mid-left, .mid-right, .dmid{ min-width:44px }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration:.01ms !important; transition-duration:.01ms !important }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── topbar ─────────────────────────────────────────────────── -->
+<div class="flove-bar">
+  <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="g-wills" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"   stop-color="#4dd0e1"/>
+        <stop offset="55%"  stop-color="#2ba5b5"/>
+        <stop offset="100%" stop-color="#ff8a65"/>
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke="url(#g-wills)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="14" y="14" width="72" height="72" rx="3"/>
+      <line x1="14" y1="50" x2="86" y2="50"/>
+      <line x1="50" y1="14" x2="50" y2="86"/>
+    </g>
+    <circle cx="50" cy="50" r="6" fill="url(#g-wills)"/>
+  </svg>
+  <span class="flove-app-name">wills</span>
+  <span class="flove-spacer"></span>
+  <a class="flove-home" href="index.html" aria-label="Back to flove launcher">← flove</a>
+</div>
+
+<header class="site-header">
+  <h1>Teleological Whys &amp; Sins and Commandments Hows</h1>
+  <p class="subtitle">Drag each word onto the axis. Where a will or virtue sits is your stance.</p>
+</header>
+
+<main class="layout">
+  <!-- Column 1: Words / Tabs -->
+  <aside class="panel words-panel">
+    <nav class="tabs" role="tablist" aria-label="Word categories">
+      <button class="tab active" role="tab" aria-selected="true"  aria-controls="tab-wills"     data-tab="wills">Wills</button>
+      <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-virtuesin" data-tab="virtuesin">VirtueSins</button>
+    </nav>
+
+    <!-- Wills -->
+    <section id="tab-wills" class="tabpanel active" role="tabpanel" aria-labelledby="wills">
+      <div class="word-list" id="wills-list"></div>
+      <div class="actions">
+        <button id="willsKeep"     class="btn outline">Keep</button>
+        <button id="willsLoadMore" class="btn">Load more</button>
+      </div>
+    </section>
+
+    <!-- Virtue/Sin -->
+    <section id="tab-virtuesin" class="tabpanel" role="tabpanel" aria-labelledby="virtuesin">
+      <div class="word-grid" id="virtuesin-list"></div>
+      <div class="actions">
+        <button id="virtueKeep"     class="btn outline">Keep</button>
+        <button id="virtueLoadMore" class="btn">Load more</button>
+      </div>
+    </section>
+
+    <div class="actions mobile-only">
+      <button id="nextBtn" class="btn">Next →</button>
+    </div>
+  </aside>
+
+  <!-- Column 2: Axis Square -->
+  <section class="panel axis-panel">
+    <div class="axis-wrap">
+      <div class="axis-square" id="axis">
+        <svg viewBox="0 0 100 100" class="axis-svg" aria-hidden="true">
+          <!-- Square border -->
+          <rect x="1" y="1" width="98" height="98" class="axis-line line-core" fill="none"/>
+          <!-- Cross -->
+          <line x1="1"  y1="50" x2="99" y2="50" class="axis-line line-core"/>
+          <line x1="50" y1="1"  x2="50" y2="99" class="axis-line line-core"/>
+          <!-- Diagonals -->
+          <line x1="1"  y1="1"  x2="99" y2="99" class="axis-line faint line-extra"/>
+          <line x1="99" y1="1"  x2="1"  y2="99" class="axis-line faint line-extra"/>
+          <!-- Guides from vertices to mid-left/mid-right -->
+          <line x1="1"  y1="1"  x2="1"  y2="50" class="axis-guide line-extra"/>
+          <line x1="1"  y1="1"  x2="99" y2="50" class="axis-guide line-extra"/>
+          <line x1="99" y1="1"  x2="1"  y2="50" class="axis-guide line-extra"/>
+          <line x1="99" y1="1"  x2="99" y2="50" class="axis-guide line-extra"/>
+          <line x1="1"  y1="99" x2="1"  y2="50" class="axis-guide line-extra"/>
+          <line x1="1"  y1="99" x2="99" y2="50" class="axis-guide line-extra"/>
+          <line x1="99" y1="99" x2="1"  y2="50" class="axis-guide line-extra"/>
+          <line x1="99" y1="99" x2="99" y2="50" class="axis-guide line-extra"/>
+          <!-- Dashed half-lines from mid-left and mid-right to center -->
+          <line x1="1"  y1="50" x2="50" y2="50" class="axis-guide line-extra half-dash"/>
+          <line x1="99" y1="50" x2="50" y2="50" class="axis-guide line-extra half-dash"/>
+        </svg>
+        <!-- Layers are injected by JS -->
+      </div>
+    </div>
+
+    <footer class="actions">
+      <button id="saveBtn"    class="btn">Save</button>
+      <button id="shareBtn"   class="btn">Share</button>
+      <button id="publishBtn" class="btn primary">Publish</button>
+    </footer>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ─── templates JS clones into per-set layers ───────────────── -->
+<template id="tpl-core-zones">
+  <div class="dropzone mid-left  zone-core" data-zone="left-middle"></div>
+  <div class="dropzone mid-right zone-core" data-zone="right-middle"></div>
+  <div class="dropzone edge edge-top    zone-core" data-zone="edge-top"></div>
+  <div class="dropzone edge edge-bottom zone-core" data-zone="edge-bottom"></div>
+</template>
+
+<template id="tpl-virtue-zones">
+  <!-- Vertices -->
+  <div class="dropzone vertex top-left     zone-extra" data-zone="v3-up"></div>
+  <div class="dropzone vertex top-right    zone-extra" data-zone="v2-right-vertex"></div>
+  <div class="dropzone vertex bottom-right zone-extra" data-zone="v4-down-vertex"></div>
+  <div class="dropzone vertex bottom-left  zone-extra" data-zone="v1-left-vertex"></div>
+  <!-- Core -->
+  <div class="dropzone mid-left  zone-core" data-zone="left-middle"></div>
+  <div class="dropzone mid-right zone-core" data-zone="right-middle"></div>
+  <div class="dropzone edge edge-top    zone-core"  data-zone="edge-top"></div>
+  <div class="dropzone edge edge-right  zone-extra" data-zone="edge-right"></div>
+  <div class="dropzone edge edge-bottom zone-core"  data-zone="edge-bottom"></div>
+  <div class="dropzone edge edge-left   zone-extra" data-zone="edge-left"></div>
+  <!-- Diagonals: vertices → mid-left/mid-right -->
+  <div class="dropzone diag d-tl-mr zone-extra" data-zone="d_tl_mr"></div>
+  <div class="dropzone diag d-bl-mr zone-extra" data-zone="d_bl_mr"></div>
+  <div class="dropzone diag d-tr-ml zone-extra" data-zone="d_tr_ml"></div>
+  <div class="dropzone diag d-br-ml zone-extra" data-zone="d_br_ml"></div>
+  <!-- Reverse-direction placeholders -->
+  <div class="dropzone diag-back d-mr-tl zone-extra" data-zone="d_mr_tl"></div>
+  <div class="dropzone diag-back d-mr-bl zone-extra" data-zone="d_mr_bl"></div>
+  <div class="dropzone diag-back d-ml-tr zone-extra" data-zone="d_ml_tr"></div>
+  <div class="dropzone diag-back d-ml-br zone-extra" data-zone="d_ml_br"></div>
+  <!-- Dashed half-line midpoints -->
+  <div class="dropzone dmid d-left-center  zone-extra" data-zone="lm_center"></div>
+  <div class="dropzone dmid d-right-center zone-extra" data-zone="rm_center"></div>
+  <!-- Center -->
+  <div class="center-hole zone-extra" aria-label="Center (empty)"></div>
+</template>
+
+<script>
+(function(){
+  "use strict";
+
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+
+  // ── word data ───────────────────────────────────────────────
+  // Wills: 4 chips each, dropped into the cross arms.
+  const WILLS = {
+    A: ['FATAL','FINE','LUCKY','RANDOM'],
+    B: ['CHAOS','ORDER','GRACE','FATE'],
+  };
+
+  // VirtueSins: 12 commandments + 12 sins, dropped onto the full square.
+  // Two sets: A (canonical English) and B (Spanish slang counterpart).
+  const VIRTUES = {
+    A: {
+      commands: ['Love Now','Love Whole','Cheer ancestors','Glorify celebrations','No envy','No steal','No kill','Be pure','Be honest','Control lust','No naive','Be loyal'],
+      sins:     ['Pride','Greed','Wrath','Envy','Lust','Gluttony','Sloth','Deceit','Stupidity','Treachery','Boring','Wishful'],
+    },
+    B: {
+      commands: ['No seas un pringao','No vayas de guais','Enróllate con tus viejos','Cúrrate las fiestas','Se buena gente','No me seas un culo quiero culo veo','No mangues','No te cargues a nadie','Menos cuentos','No babosees','No me seas un fumao','No te pases con la peña'],
+      sins:     ['Perro','Flipao','Cabrón','Amargao','Salido','Ansias','Judas','Subnormal','Tragón','Pical','Trolero','Pelotero'],
+    },
+  };
+
+  // ── DOM refs ────────────────────────────────────────────────
+  const tabs            = $$('.tab');
+  const panels          = { wills: $('#tab-wills'), virtuesin: $('#tab-virtuesin') };
+  const willsList       = $('#wills-list');
+  const virtueList      = $('#virtuesin-list');
+  const willsLoadMore   = $('#willsLoadMore');
+  const virtueLoadMore  = $('#virtueLoadMore');
+  const willsKeepBtn    = $('#willsKeep');
+  const virtueKeepBtn   = $('#virtueKeep');
+  const nextBtn         = $('#nextBtn');
+  const axis            = $('#axis');
+  const lineCore        = $$('.line-core',  axis);
+  const lineExtra       = $$('.line-extra', axis);
+  const tplCore         = $('#tpl-core-zones');
+  const tplVirtue       = $('#tpl-virtue-zones');
+  const toastEl         = $('#toast');
+
+  const STORAGE_KEY = 'flove.wills.v1';
+
+  let state = {
+    tab: 'wills',
+    wills:  { active: 'A', kept: {A:false, B:false} },
+    virtue: { active: 'A', kept: {A:false, B:false} },
+    layers: {
+      wills:  { A:null, B:null },
+      virtue: { A:null, B:null },
+    },
+    placements: {
+      // serialized snapshot of which chip is in which zone, per (kind,set)
+      // shape: { wills: {A:{zone:word,…}, B:{…}}, virtue:{…} }
+      wills:  { A:{}, B:{} },
+      virtue: { A:{}, B:{} },
+    },
+  };
+
+  // ── render chip lists ───────────────────────────────────────
+  function renderWillsList(){
+    willsList.innerHTML = '';
+    const words = WILLS[state.wills.active];
+    const placed = state.placements.wills[state.wills.active];
+    words.forEach(w => {
+      // skip words currently placed on the axis (they live in zones)
+      if (Object.values(placed).includes(w)) return;
+      willsList.appendChild(makeChip(w));
+    });
+  }
+
+  function renderVirtuesList(){
+    virtueList.innerHTML = '';
+    const data = VIRTUES[state.virtue.active];
+    const placed = state.placements.virtue[state.virtue.active];
+    const placedSet = new Set(Object.values(placed));
+
+    const cmdTitle = document.createElement('h3');
+    cmdTitle.className = 'group-title commands';
+    cmdTitle.textContent = 'Commandments';
+    virtueList.appendChild(cmdTitle);
+    data.commands.forEach(w => {
+      if (placedSet.has(w)) return;
+      virtueList.appendChild(makeChip(w));
+    });
+
+    const sinTitle = document.createElement('h3');
+    sinTitle.className = 'group-title sins';
+    sinTitle.textContent = 'Sins';
+    virtueList.appendChild(sinTitle);
+    data.sins.forEach(w => {
+      if (placedSet.has(w)) return;
+      virtueList.appendChild(makeChip(w));
+    });
+  }
+
+  function makeChip(word){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip draggable';
+    b.draggable = true;
+    b.dataset.word = word;
+    b.textContent = word;
+    return b;
+  }
+
+  // ── per-set drop-zone layers on the axis ────────────────────
+  function createLayer(kind, set){
+    const wrap = document.createElement('div');
+    wrap.className = 'zones-layer';
+    wrap.dataset.kind = kind;
+    wrap.dataset.set  = set;
+    const tpl = (kind === 'wills') ? tplCore : tplVirtue;
+    wrap.appendChild(document.importNode(tpl.content, true));
+    $$('.dropzone', wrap).forEach(z => z.classList.add('empty'));
+    return wrap;
+  }
+
+  function ensureLayers(){
+    if (state.layers.wills.A) return;
+    ['A','B'].forEach(s => {
+      state.layers.wills[s]  = createLayer('wills',  s);
+      state.layers.virtue[s] = createLayer('virtue', s);
+      axis.appendChild(state.layers.wills[s]);
+      axis.appendChild(state.layers.virtue[s]);
+    });
+  }
+
+  function updateLayerVisibility(){
+    // hide everything first
+    Object.values(state.layers.wills)
+      .concat(Object.values(state.layers.virtue))
+      .forEach(el => el && el.classList.add('hidden'));
+
+    if (state.tab === 'wills'){
+      // wills tab: only the active wills layer shows
+      state.layers.wills[state.wills.active].classList.remove('hidden');
+    } else {
+      // virtue tab: active layer + any kept layers
+      state.layers.virtue[state.virtue.active].classList.remove('hidden');
+      ['A','B'].forEach(s => {
+        if (s !== state.virtue.active && state.virtue.kept[s]){
+          state.layers.virtue[s].classList.remove('hidden');
+        }
+      });
+    }
+  }
+
+  function toggleAxisMode(mode){
+    // wills mode: hide extras; virtue mode: show everything
+    if (mode === 'wills'){
+      lineExtra.forEach(el => el.classList.add('hide'));
+    } else {
+      lineExtra.forEach(el => el.classList.remove('hide'));
+    }
+    lineCore.forEach(el => el.classList.remove('hide'));
+    updateLayerVisibility();
+  }
+
+  // ── tabs ────────────────────────────────────────────────────
+  tabs.forEach(t => {
+    t.addEventListener('click', () => {
+      tabs.forEach(x => {
+        x.classList.remove('active');
+        x.setAttribute('aria-selected', 'false');
+      });
+      t.classList.add('active');
+      t.setAttribute('aria-selected', 'true');
+
+      const target = t.dataset.tab;
+      Object.entries(panels).forEach(([k, el]) => el.classList.toggle('active', k === target));
+      state.tab = target;
+      toggleAxisMode(target === 'wills' ? 'wills' : 'virtue');
+      refreshKeepLabels();
+    });
+  });
+
+  // ── load-more buttons swap A↔B ──────────────────────────────
+  willsLoadMore.addEventListener('click', () => {
+    state.wills.active = state.wills.active === 'A' ? 'B' : 'A';
+    renderWillsList();
+    willsLoadMore.textContent = state.wills.active === 'A' ? 'Load more' : 'Load previous';
+    toggleAxisMode('wills');
+    refreshKeepLabels();
+  });
+  virtueLoadMore.addEventListener('click', () => {
+    state.virtue.active = state.virtue.active === 'A' ? 'B' : 'A';
+    renderVirtuesList();
+    virtueLoadMore.textContent = state.virtue.active === 'A' ? 'Load more' : 'Load previous';
+    toggleAxisMode('virtue');
+    refreshKeepLabels();
+  });
+
+  // ── Keep buttons ────────────────────────────────────────────
+  function refreshKeepLabels(){
+    [['wills', willsKeepBtn], ['virtue', virtueKeepBtn]].forEach(([k, btn]) => {
+      const kept = state[k].kept[state[k].active];
+      btn.textContent = kept ? 'Kept ✓' : 'Keep';
+      btn.classList.toggle('is-kept', kept);
+    });
+  }
+
+  willsKeepBtn.addEventListener('click', () => {
+    const s = state.wills.active;
+    state.wills.kept[s] = !state.wills.kept[s];
+    refreshKeepLabels();
+    savePlacements();
+  });
+  virtueKeepBtn.addEventListener('click', () => {
+    const s = state.virtue.active;
+    state.virtue.kept[s] = !state.virtue.kept[s];
+    updateLayerVisibility();
+    refreshKeepLabels();
+    savePlacements();
+  });
+
+  // ── mobile "Next" button toggles between the two tabs ───────
+  if (nextBtn){
+    nextBtn.addEventListener('click', () => {
+      const next = state.tab === 'wills' ? 'virtuesin' : 'wills';
+      const btn = tabs.find(t => t.dataset.tab === next);
+      if (btn) btn.click();
+    });
+  }
+
+  // ── drag and drop ───────────────────────────────────────────
+  let dragged = null;
+
+  function chipKind(chip){
+    // figure out whether a chip belongs to wills or virtue based on data
+    const word = chip.dataset.word;
+    if (WILLS.A.includes(word) || WILLS.B.includes(word)) return 'wills';
+    return 'virtue';
+  }
+
+  // Event delegation: chip drag handlers attached on the lists +
+  // each layer once via document-level listeners — robust across re-renders.
+  document.addEventListener('dragstart', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    dragged = chip;
+    chip.classList.add('is-dragging');
+    e.dataTransfer.setData('text/plain', chip.dataset.word || chip.textContent);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  document.addEventListener('dragend', () => {
+    if (dragged) dragged.classList.remove('is-dragging');
+    dragged = null;
+  });
+
+  document.addEventListener('dragover', (e) => {
+    const zone = e.target.closest('.dropzone');
+    const list = e.target.closest('#wills-list, #virtuesin-list');
+    if (zone || list){
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (zone) zone.classList.add('over');
+    }
+  });
+  document.addEventListener('dragleave', (e) => {
+    const zone = e.target.closest('.dropzone');
+    if (zone) zone.classList.remove('over');
+  });
+  document.addEventListener('drop', (e) => {
+    if (!dragged) return;
+    const zone = e.target.closest('.dropzone');
+    const list = e.target.closest('#wills-list, #virtuesin-list');
+
+    if (zone){
+      e.preventDefault();
+      zone.classList.remove('over');
+      // displace any previous chip back to its list
+      const prev = zone.querySelector('.chip');
+      if (prev){
+        const targetList = (chipKind(prev) === 'wills') ? willsList : virtueList;
+        targetList.appendChild(prev);
+      }
+      zone.appendChild(dragged);
+      zone.classList.remove('empty');
+      capturePlacements();
+      savePlacements();
+    } else if (list){
+      e.preventDefault();
+      list.appendChild(dragged);
+      capturePlacements();
+      savePlacements();
+    }
+  });
+
+  // ── placements persistence (localStorage) ───────────────────
+  function capturePlacements(){
+    state.placements = { wills: {A:{}, B:{}}, virtue: {A:{}, B:{}} };
+    ['wills','virtue'].forEach(kind => {
+      ['A','B'].forEach(set => {
+        const layer = state.layers[kind][set];
+        if (!layer) return;
+        $$('.dropzone', layer).forEach(z => {
+          const chip = z.querySelector('.chip');
+          if (chip) state.placements[kind][set][z.dataset.zone] = chip.dataset.word;
+        });
+      });
+    });
+  }
+
+  function savePlacements(){
+    try{
+      const snapshot = {
+        wills:  { active: state.wills.active,  kept: state.wills.kept  },
+        virtue: { active: state.virtue.active, kept: state.virtue.kept },
+        placements: state.placements,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch(_){ /* quota or disabled — ignore */ }
+  }
+
+  function loadPlacements(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const snap = JSON.parse(raw);
+      if (!snap || !snap.placements) return;
+
+      state.wills.active  = snap.wills?.active  || 'A';
+      state.virtue.active = snap.virtue?.active || 'A';
+      state.wills.kept    = Object.assign({A:false,B:false}, snap.wills?.kept  || {});
+      state.virtue.kept   = Object.assign({A:false,B:false}, snap.virtue?.kept || {});
+      state.placements    = Object.assign(state.placements, snap.placements);
+
+      // rebuild each layer's chips from the saved placement map
+      ['wills','virtue'].forEach(kind => {
+        ['A','B'].forEach(set => {
+          const layer = state.layers[kind][set];
+          if (!layer) return;
+          const map = state.placements[kind][set] || {};
+          Object.entries(map).forEach(([zoneId, word]) => {
+            const zone = layer.querySelector(`[data-zone="${zoneId}"]`);
+            if (!zone) return;
+            zone.appendChild(makeChip(word));
+            zone.classList.remove('empty');
+          });
+        });
+      });
+    } catch(_){ /* corrupt snapshot — ignore */ }
+  }
+
+  // ── footer actions ──────────────────────────────────────────
+  function toast(msg, ms=1600){
+    toastEl.textContent = msg;
+    toastEl.classList.add('is-on');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toastEl.classList.remove('is-on'), ms);
+  }
+
+  $('#saveBtn').addEventListener('click', () => {
+    capturePlacements();
+    savePlacements();
+    toast('Saved locally');
+  });
+
+  $('#shareBtn').addEventListener('click', async () => {
+    capturePlacements();
+    const payload = encodeURIComponent(JSON.stringify(state.placements));
+    const url = location.origin + location.pathname + '#wills=' + payload;
+    try{
+      await navigator.clipboard.writeText(url);
+      toast('Share link copied');
+    } catch(_){
+      // fallback: drop in URL hash
+      history.replaceState(null, '', '#wills=' + payload);
+      toast('Share link in address bar');
+    }
+  });
+
+  $('#publishBtn').addEventListener('click', () => {
+    capturePlacements();
+    savePlacements();
+    toast('Published (demo) — saved locally');
+  });
+
+  // ── boot ────────────────────────────────────────────────────
+  ensureLayers();
+  loadPlacements();
+  renderWillsList();
+  renderVirtuesList();
+  toggleAxisMode('wills');
+  refreshKeepLabels();
+
+  // restore Load-more button labels if state.active was loaded as B
+  if (state.wills.active  === 'B') willsLoadMore.textContent  = 'Load previous';
+  if (state.virtue.active === 'B') virtueLoadMore.textContent = 'Load previous';
+})();
+</script>
+
+</body>
+</html>

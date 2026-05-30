@@ -240,6 +240,80 @@
       transform: rotate(45deg);
     }
 
+    /* magic toggle — sits at the end of the tab row · enables multi-select
+       of categories + a bubble view of their items' icons */
+    .tab-magic {
+      flex: 0 0 auto;
+      min-width: 40px;
+      background: #efeaff;
+      border-color: #7c6bd6;
+      color: #5b4bc4;
+    }
+    .tab-magic[aria-pressed="true"] {
+      background: linear-gradient(180deg, #6d5cd6, #5b4bc4);
+      border-color: #5b4bc4;
+      color: #fff;
+      box-shadow: 0 6px 14px -4px rgba(91, 75, 196, 0.45);
+    }
+
+    /* ── Bubble view (multi-select magic mode) ────────────────────── */
+    #bubbleView { display: none; }
+    body.magic-mode .table-wrapper,
+    body.magic-mode .paginator { display: none; }
+    body.magic-mode #bubbleView {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: white;
+      border: 1px solid #e0eaf3;
+      border-radius: 18px;
+      padding: 1.2rem 1rem 1.4rem;
+      box-shadow: 0 6px 14px -6px rgba(0, 20, 40, 0.06);
+      margin-bottom: 1.2rem;
+    }
+    .bubble-legend {
+      display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+      font-size: 0.72rem; font-weight: 600; color: #5a7488;
+    }
+    .bubble-legend .dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      display: inline-block; margin-right: 5px; vertical-align: middle;
+    }
+    .bubble-legend .dot.have { background: #2b7a4b; }
+    .bubble-legend .dot.wish { background: #2f6eb0; }
+    .bubble-legend .dot.want { background: #d18e1a; }
+    .bubble-legend .dot.need { background: #c7362b; }
+    .bubble-hint {
+      width: 100%; text-align: center;
+      color: #6a8aa3; font-size: 0.85rem; padding: 1rem 0;
+    }
+    .bubble-cloud {
+      display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    }
+    .inv-bubble {
+      width: 50px; height: 50px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid rgba(30, 74, 107, 0.15);
+      background: radial-gradient(circle at 32% 28%, #fff 0%, #f0f6fc 70%, #e3eef7 100%);
+      color: #1e4a6b; font-size: 1.25rem; cursor: pointer; position: relative;
+      box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.9), 0 2px 5px rgba(0, 0, 0, 0.08);
+      transition: transform 0.15s, background 0.2s, border-color 0.2s, color 0.2s;
+      animation: inv-bubble-float 4s ease-in-out infinite;
+      animation-delay: calc(var(--bi, 0) * 0.12s);
+    }
+    .inv-bubble:hover { transform: scale(1.1); border-color: var(--app-accent); }
+    @keyframes inv-bubble-float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-4px); }
+    }
+    .inv-bubble[data-state="have"] { background: #2b7a4b; color: #fff; border-color: #2b7a4b; }
+    .inv-bubble[data-state="wish"] { background: #2f6eb0; color: #fff; border-color: #2f6eb0; }
+    .inv-bubble[data-state="want"] { background: #d18e1a; color: #fff; border-color: #d18e1a; }
+    .inv-bubble[data-state="need"] { background: #c7362b; color: #fff; border-color: #c7362b; }
+    @media (prefers-reduced-motion: reduce) {
+      .inv-bubble { animation: none; }
+    }
+
     /* table */
     .table-wrapper {
       background: white;
@@ -1465,6 +1539,9 @@
     </div>
   </div>
 
+  <!-- Bubble view · shown in magic multi-select mode (icons of items in the picked categories) -->
+  <div id="bubbleView" aria-label="Category items as bubbles"></div>
+
   <!-- Paginator · 30 items per page -->
   <div class="paginator" id="paginator" aria-label="Pagination">
     <button class="page-btn" id="prevPageBtn" type="button" aria-label="Previous page">
@@ -1753,7 +1830,8 @@
       const row1 = categories.slice(0, ROW1_COUNT);
       const row2 = categories.slice(ROW1_COUNT);
       tabsDiv.innerHTML = row1.map(tabHtml).join('') +
-        (row2.length ? `<button class="tab tab-plus" id="tabsPlusBtn" type="button" aria-expanded="false" aria-controls="categoryTabsExtra" title="More categories"><i class="fas fa-plus"></i></button>` : '');
+        (row2.length ? `<button class="tab tab-plus" id="tabsPlusBtn" type="button" aria-expanded="false" aria-controls="categoryTabsExtra" title="More categories"><i class="fas fa-plus"></i></button>` : '') +
+        `<button class="tab tab-magic" id="catMagicBtn" type="button" aria-pressed="false" title="Multi-select categories · bubble view" aria-label="Multi-select bubble view"><i class="fas fa-wand-magic-sparkles"></i></button>`;
       tabsExtraDiv.innerHTML = row2.map(tabHtml).join('');
     }
     renderTabs();
@@ -1991,7 +2069,7 @@
     // Tab filtering — selectors include all rows of tabs + the topbar 'All' button
     let activeCat = null;
     let lastSpecificCat = null; // remembers last selected category (not 'all') for All-deselect restore
-    const tabs = document.querySelectorAll('.tabs .tab:not(.tab-plus)');
+    const tabs = document.querySelectorAll('.tabs .tab:not(.tab-plus):not(.tab-magic)');
     const topbarAllBtn = document.getElementById('topbarAllBtn');
     function filterByCategory(catId) {
       // toggle behavior
@@ -2024,7 +2102,116 @@
     }
     if (topbarAllBtn) topbarAllBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (multiMode) {
+        const allSel = categories.every(c => selectedCats.has(c.id));
+        selectedCats.clear();
+        if (!allSel) categories.forEach(c => selectedCats.add(c.id));
+        syncTabActive();
+        renderBubbles();
+        return;
+      }
       filterByCategory('all');
+    });
+
+    // ---------- MAGIC MULTI-SELECT · BUBBLE VIEW ----------
+    // The wand at the end of the tab row turns categories multi-selectable
+    // and swaps the table for a cloud of bubbles — one per item in the
+    // picked categories, showing only its icon. Clicking a bubble cycles
+    // its state: 1× have · 2× wish · 3× want · 4× need · 5× clear.
+    let multiMode = false;
+    const selectedCats = new Set();
+    const bubbleView = document.getElementById('bubbleView');
+    const catMagicBtn = document.getElementById('catMagicBtn');
+    const STATE_CYCLE = ['', 'have', 'wish', 'want', 'need'];
+
+    function syncTabActive() {
+      tabs.forEach(t => t.classList.toggle('active', selectedCats.has(t.dataset.cat)));
+      if (topbarAllBtn) {
+        topbarAllBtn.classList.toggle('active',
+          categories.length > 0 && categories.every(c => selectedCats.has(c.id)));
+      }
+    }
+
+    function currentRowState(row) {
+      if (row.querySelector('.col-need')?.classList.contains('selected-need')) return 'need';
+      if (row.querySelector('.col-want')?.classList.contains('selected-want')) return 'want';
+      if (row.querySelector('.col-wish')?.classList.contains('selected-wish')) return 'wish';
+      if (row.querySelector('.col-have')?.classList.contains('selected-have')) return 'have';
+      return '';
+    }
+    function setRowState(row, state) {
+      ['have', 'wish', 'want', 'need'].forEach(t => {
+        row.querySelector('.col-' + t)?.classList.toggle('selected-' + t, t === state);
+      });
+      updateRowPriority(row);
+      updateCounts();
+    }
+    function rowIconClass(row) {
+      const ic = row.querySelector('.item-cat-icon');
+      if (ic) return Array.from(ic.classList).filter(c => c === 'fas' || c.startsWith('fa-')).join(' ');
+      const catClass = Array.from(row.classList).find(c => c.startsWith('cat-'));
+      const cat = categories.find(c => c.class === catClass);
+      return 'fas ' + (cat ? cat.icon : 'fa-shapes');
+    }
+
+    function renderBubbles() {
+      if (!bubbleView) return;
+      const rows = getRows().filter(r => {
+        const catClass = Array.from(r.classList).find(c => c.startsWith('cat-'));
+        const cat = categories.find(c => c.class === catClass);
+        return cat && selectedCats.has(cat.id);
+      });
+      if (!rows.length) {
+        bubbleView.innerHTML = '<p class="bubble-hint">Pick one or more categories above to see their things as bubbles. Tap a bubble: 1× Have · 2× Wish · 3× Want · 4× Need.</p>';
+        return;
+      }
+      const legend =
+        '<div class="bubble-legend">' +
+        '<span><i class="dot have"></i>1× Have</span>' +
+        '<span><i class="dot wish"></i>2× Wish</span>' +
+        '<span><i class="dot want"></i>3× Want</span>' +
+        '<span><i class="dot need"></i>4× Need</span>' +
+        '</div>';
+      bubbleView.innerHTML = legend + '<div class="bubble-cloud"></div>';
+      const cloud = bubbleView.querySelector('.bubble-cloud');
+      rows.forEach((row, i) => {
+        const name = row.querySelector('.col-item')?.textContent.trim() || '';
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'inv-bubble';
+        b.style.setProperty('--bi', (i * 7) % 21);
+        b.title = name;
+        b.setAttribute('aria-label', name);
+        b.innerHTML = `<i class="${rowIconClass(row)}" aria-hidden="true"></i>`;
+        const st = currentRowState(row);
+        if (st) b.dataset.state = st;
+        b.addEventListener('click', () => {
+          const idx = STATE_CYCLE.indexOf(currentRowState(row));
+          const next = STATE_CYCLE[(idx + 1) % STATE_CYCLE.length];
+          setRowState(row, next);
+          if (next) b.dataset.state = next; else b.removeAttribute('data-state');
+        });
+        cloud.appendChild(b);
+      });
+    }
+
+    function setMultiMode(on) {
+      multiMode = on;
+      document.body.classList.toggle('magic-mode', on);
+      catMagicBtn?.setAttribute('aria-pressed', String(on));
+      selectedCats.clear();
+      if (on) {
+        // carry over the current single-select category, if any
+        if (activeCat && activeCat !== 'all') selectedCats.add(activeCat);
+        syncTabActive();
+        renderBubbles();
+      } else {
+        filterByCategory(activeCat);  // restore the normal filtered table
+      }
+    }
+    catMagicBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMultiMode(!multiMode);
     });
 
     // ---------- PAGINATION (20 items per page) ----------
@@ -2060,7 +2247,16 @@
     });
 
     tabs.forEach(tab => {
-      tab.addEventListener('click', () => filterByCategory(tab.dataset.cat));
+      tab.addEventListener('click', () => {
+        if (multiMode) {
+          const id = tab.dataset.cat;
+          if (selectedCats.has(id)) selectedCats.delete(id); else selectedCats.add(id);
+          syncTabActive();
+          renderBubbles();
+        } else {
+          filterByCategory(tab.dataset.cat);
+        }
+      });
     });
 
     // Attach cell click listeners (delegation)
@@ -2720,8 +2916,8 @@
       });
     }
 
-    // Initialize · first category is active by default, resume sections start collapsed
-    filterByCategory(categories[0]?.id || null);
+    // Initialize · no category expanded by default (all items shown, no active tab)
+    filterByCategory(null);
     updateAllHighlights();
     updateCounts();
   })();

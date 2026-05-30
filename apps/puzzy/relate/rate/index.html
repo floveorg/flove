@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Rate</title>
+  <link rel="stylesheet" href="../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* header */
+    .top{ max-width:980px; margin:1.4rem auto .4rem; padding:0 1rem }
+    .top h1{
+      margin:.2rem 0; font-size:1.9rem; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .top h1 .subject{ color:var(--accent2); -webkit-text-fill-color:var(--accent2) }
+    .lede{ color:var(--muted); margin:.2rem 0 0 }
+
+    /* top actions — chips that link to sub-tools */
+    .actions{ display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.7rem }
+    .chip{
+      display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;
+      padding:.4rem .8rem; border-radius:var(--flove-radius-pill);
+      background:#171a2e; border:1px solid var(--line); color:var(--ink);
+      font:inherit; font-size:.85rem; text-decoration:none;
+      transition:border-color var(--flove-fast), box-shadow var(--flove-fast), background var(--flove-fast);
+    }
+    .chip:hover{ border-color:var(--app-accent); box-shadow:0 0 12px rgba(141,137,255,.3) }
+    .chip.big{ font-size:.95rem; padding:.5rem 1rem }
+    .chip.primary{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent) }
+
+    /* central ribbon — live phrase */
+    .ribbon{
+      max-width:980px; margin:1rem auto 0; padding:0 1rem;
+    }
+    .live-phrase{
+      border:1px dashed var(--line); border-radius:var(--flove-radius);
+      padding:.8rem 1rem; min-height:2.6rem; color:var(--accent2);
+      font-size:1.05rem; letter-spacing:.4px;
+      background:linear-gradient(180deg,rgba(112,240,211,.06),rgba(255,255,255,.02));
+    }
+
+    /* main layout */
+    .layout{
+      max-width:980px; margin:1rem auto 4rem; padding:0 1rem;
+      display:grid; gap:1.2rem; grid-template-columns:1fr 230px;
+    }
+    @media (max-width:760px){ .layout{ grid-template-columns:1fr } }
+
+    /* scales */
+    .scales{ display:grid; gap:.9rem }
+    .scale{
+      border:1px solid var(--line); border-radius:var(--flove-radius);
+      padding:.9rem 1rem;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      display:grid; gap:.4rem;
+    }
+    .scale .labels{ display:flex; justify-content:space-between; align-items:baseline; gap:.5rem }
+    .lbl{ font-size:.8rem; font-weight:600; letter-spacing:.5px; color:var(--muted) }
+    .lbl.left{ color:var(--app-accent) }
+    .lbl.right{ color:var(--accent2) }
+    .lbl.mid{ color:var(--muted); font-style:italic }
+    .picker{ display:grid; gap:.35rem }
+    .picker input[type=range]{ width:100%; accent-color:var(--app-accent) }
+    .ticks{ display:flex; justify-content:space-between; color:var(--muted); font-size:.7rem }
+
+    .senses-mini{ display:flex; gap:.3rem; flex-wrap:wrap }
+    .sense-pill{
+      cursor:pointer; border:1px solid var(--line); background:#171a2e;
+      border-radius:var(--flove-radius-pill); padding:.2rem .5rem; font-size:1rem; line-height:1;
+      transition:border-color var(--flove-fast), box-shadow var(--flove-fast);
+    }
+    .sense-pill:hover{ border-color:var(--app-accent) }
+    .sense-pill.on{ border-color:var(--accent2); box-shadow:0 0 10px rgba(112,240,211,.4) }
+
+    .cta{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.4rem }
+
+    /* senses column */
+    .senses{
+      border:1px solid var(--line); border-radius:var(--flove-radius);
+      padding:1rem; align-self:start;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      display:grid; gap:.6rem;
+    }
+    .senses h4{ margin:0; font-size:.9rem; letter-spacing:.5px; color:var(--app-accent) }
+    .senses p{ margin:0; color:var(--muted); font-size:.85rem }
+
+    /* know more */
+    .output{ max-width:980px; margin:0 auto 5rem; padding:0 1rem }
+    .output summary{ cursor:pointer; color:var(--muted) }
+    .output__box{ border:1px solid var(--line); border-radius:var(--flove-radius-sm); padding:.7rem; background:#111426; margin-top:.5rem }
+    .output a{ color:var(--accent2) }
+  </style>
+</head>
+<body>
+  <!-- language radios (drive the pure-CSS i18n) -->
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">Rate</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <header class="top">
+    <h1><span class="subject">TRUE</span> <span class="t-en">Rate</span><span class="t-es">Valorar</span></h1>
+    <p class="lede"><span class="t-en">Rate a subject along fuzzy scales and relate each axis to the senses — your phrase updates live.</span><span class="t-es">Valora un sujeto a lo largo de escalas difusas y relaciona cada eje con los sentidos — tu frase se actualiza en vivo.</span></p>
+
+    <nav class="actions">
+      <a class="chip" href="axis/"><span class="t-en">Axis</span><span class="t-es">Ejes</span></a>
+      <a class="chip" href="create/"><span class="t-en">Create</span><span class="t-es">Crear</span></a>
+      <a class="chip" href="intensonims/"><span class="t-en">Intensonims</span><span class="t-es">Intensónimos</span></a>
+      <a class="chip" href="ranks/"><span class="t-en">Ranks</span><span class="t-es">Rangos</span></a>
+    </nav>
+  </header>
+
+  <!-- central ribbon -->
+  <section class="ribbon">
+    <div class="live-phrase" id="livePhrase" aria-live="polite"></div>
+  </section>
+
+  <!-- main area -->
+  <main class="layout">
+    <section class="scales">
+      <!-- each scale has a 1–7 rating and sense toggles -->
+
+      <!-- INTENSE / EQUAL / BANAL -->
+      <div class="scale" data-scale="INTENSE–BANAL">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">INTENSE</span><span class="t-es">INTENSO</span></span>
+          <span class="lbl mid"><span class="t-en">EQUAL</span><span class="t-es">IGUAL</span></span>
+          <span class="lbl right"><span class="t-en">BANAL</span><span class="t-es">BANAL</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="INTENSE to BANAL">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIMILAR / COMPLEMENT / DIFFERENT -->
+      <div class="scale" data-scale="SIMILAR–DIFFERENT" data-mid="COMPLEMENT">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">SIMILAR</span><span class="t-es">SIMILAR</span></span>
+          <span class="lbl mid"><span class="t-en">COMPLEMENT</span><span class="t-es">COMPLEMENTO</span></span>
+          <span class="lbl right"><span class="t-en">DIFFERENT</span><span class="t-es">DIFERENTE</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="SIMILAR to DIFFERENT">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABSTRACT / CONCRETE -->
+      <div class="scale" data-scale="ABSTRACT–CONCRETE">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">ABSTRACT</span><span class="t-es">ABSTRACTO</span></span>
+          <span class="lbl right"><span class="t-en">CONCRETE</span><span class="t-es">CONCRETO</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="ABSTRACT to CONCRETE">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- POSITIVE / NEGATIVE -->
+      <div class="scale" data-scale="POSITIVE–NEGATIVE">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">POSITIVE</span><span class="t-es">POSITIVO</span></span>
+          <span class="lbl right"><span class="t-en">NEGATIVE</span><span class="t-es">NEGATIVO</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="POSITIVE to NEGATIVE">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLOSE / FAR -->
+      <div class="scale" data-scale="CLOSE–FAR">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">CLOSE</span><span class="t-es">CERCA</span></span>
+          <span class="lbl right"><span class="t-en">FAR</span><span class="t-es">LEJOS</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="CLOSE to FAR">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRIMARY / SECONDARY -->
+      <div class="scale" data-scale="PRIMARY–SECONDARY">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">PRIMARY</span><span class="t-es">PRIMARIO</span></span>
+          <span class="lbl right"><span class="t-en">SECONDARY</span><span class="t-es">SECUNDARIO</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="PRIMARY to SECONDARY">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNKNOWN / KNOWN -->
+      <div class="scale" data-scale="UNKNOWN–KNOWN">
+        <div class="labels">
+          <span class="lbl left"><span class="t-en">UNKNOWN</span><span class="t-es">DESCONOCIDO</span></span>
+          <span class="lbl right"><span class="t-en">KNOWN</span><span class="t-es">CONOCIDO</span></span>
+        </div>
+        <div class="picker">
+          <input type="range" min="1" max="7" step="1" value="4" aria-label="UNKNOWN to KNOWN">
+          <div class="ticks" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+          <div class="senses-mini" role="group" aria-label="Relate this scale to senses">
+            <button type="button" class="sense-pill" data-sense="hear" title="Hear">👂</button>
+            <button type="button" class="sense-pill" data-sense="touch" title="Touch">🖐️</button>
+            <button type="button" class="sense-pill" data-sense="view" title="View">👁️</button>
+            <button type="button" class="sense-pill" data-sense="taste" title="Taste">👅</button>
+            <button type="button" class="sense-pill" data-sense="smell" title="Smell">👃</button>
+          </div>
+        </div>
+
+        <div class="cta">
+          <a class="chip big" href="ranks/"><span class="t-en">Add raters</span><span class="t-es">Añadir valoradores</span></a>
+          <button class="chip big primary" type="button"><span class="t-en">Save</span><span class="t-es">Guardar</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- right column: senses / meta-raters -->
+    <aside class="senses" id="sensesCol">
+      <h4><span class="t-en">Beyond the 5 senses…</span><span class="t-es">Más allá de los 5 sentidos…</span></h4>
+      <p><span class="t-en">Each scale can be related to a sense. Meta-raters extend rating beyond the senses.</span><span class="t-es">Cada escala puede relacionarse con un sentido. Los meta-valoradores extienden la valoración más allá de los sentidos.</span></p>
+      <a class="chip" href="create/"><span class="t-en">Add more MetaRaters</span><span class="t-es">Añadir más MetaValoradores</span></a>
+    </aside>
+  </main>
+
+  <details class="output">
+    <summary><span class="t-en">Know more</span><span class="t-es">Saber más</span></summary>
+    <div class="output__box">
+      <span class="t-en">Visit</span><span class="t-es">Visita</span> <a href="https://flove.org">flove.org</a>
+    </div>
+  </details>
+
+  <script>
+  (function(){
+    const subjectEl = document.querySelector('.subject');
+    const livePhrase = document.getElementById('livePhrase');
+
+    // Per-scale state
+    const scales = [...document.querySelectorAll('.scale')].map((el)=>{
+      const range = el.querySelector('input[type="range"]');
+      const left = el.querySelector('.lbl.left')?.textContent?.trim() || '';
+      const right = el.querySelector('.lbl.right')?.textContent?.trim() || '';
+      const mid = el.dataset.mid || el.querySelector('.lbl.mid')?.textContent?.trim() || '';
+      const senseButtons = el.querySelectorAll('.sense-pill');
+      const selectedSenses = new Set();
+
+      range.addEventListener('input', renderPhrase);
+      senseButtons.forEach(b=>{
+        b.addEventListener('click', ()=>{
+          const s = b.dataset.sense;
+          if(selectedSenses.has(s)){ selectedSenses.delete(s); b.classList.remove('on'); }
+          else { selectedSenses.add(s); b.classList.add('on'); }
+          renderPhrase();
+        });
+      });
+
+      return {el, range, left, right, mid, selectedSenses};
+    });
+
+    function renderPhrase(){
+      const subj = (subjectEl?.textContent || '').trim() || 'It';
+      const parts = scales.map(sc=>{
+        const v = parseInt(sc.range.value,10);
+        const dir = v < 4 ? sc.left.toLowerCase() : (v>4 ? sc.right.toLowerCase() : (sc.mid?sc.mid.toLowerCase():'balanced'));
+        const tagSenses = sc.selectedSenses.size ? ' ('+[...sc.selectedSenses].join(', ')+')' : '';
+        return dir + tagSenses;
+      });
+      livePhrase.textContent = subj + ' is more ' + parts.join(', ') + ' than LOVE.';
+    }
+
+    renderPhrase();
+  })();
+  </script>
+</body>
+</html>

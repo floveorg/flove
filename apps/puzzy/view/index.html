@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — View</title>
+  <link rel="stylesheet" href="../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+    a{ color:inherit; text-decoration:none }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* ============================================================
+       Puzzy View — a pure-CSS concept map.
+       A central object node, NEAR pills opening inline popovers,
+       FAR pills opening full tree modals. All driven by :target.
+       ============================================================ */
+    .board{
+      position:relative; width:min(1100px,94vw); height:660px; margin:28px auto;
+      border-radius:var(--flove-radius); overflow:hidden;
+      border:1px solid var(--line);
+      background:
+        radial-gradient(700px 360px at 50% 95%, rgba(141,137,255,.18), transparent 60%),
+        linear-gradient(180deg, #11131f, #0d0f1a 55%, #0b0b14);
+      box-shadow:0 24px 60px rgba(0,0,0,.45);
+    }
+
+    /* main OBJECT node */
+    .node-love{
+      position:absolute; left:50%; bottom:78px; transform:translateX(-50%);
+      width:180px; height:180px; border-radius:30px;
+      background:conic-gradient(from 180deg at 50% 50%, #1a1c30, #1a1c30 40%, #2a2360 60%, #143a35);
+      border:2px dashed var(--app-accent); display:grid; place-items:center;
+      box-shadow:0 12px 30px rgba(141,137,255,.25);
+      transition:transform .25s var(--flove-ease), filter .25s var(--flove-ease), opacity .25s var(--flove-ease);
+    }
+    .node-love h2{
+      margin:0; font-size:42px; letter-spacing:1px;
+      color:var(--app-accent); text-shadow:0 2px 8px rgba(141,137,255,.4);
+    }
+
+    /* pills */
+    .pill{
+      position:absolute; transform:translate(-50%,-50%);
+      padding:10px 16px; border-radius:var(--flove-radius-pill);
+      background:#171a2e; border:1px solid var(--line);
+      color:var(--ink); font-weight:800; letter-spacing:.25px; font-size:.85rem;
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+      transition:transform .2s var(--flove-ease), box-shadow .2s var(--flove-ease), opacity .2s var(--flove-ease), filter .2s var(--flove-ease), border-color var(--flove-fast);
+    }
+    .pill:hover{
+      transform:translate(-50%,-50%) scale(1.06);
+      border-color:var(--app-accent);
+      box-shadow:0 16px 32px rgba(141,137,255,.35);
+    }
+
+    /* approximate positions */
+    .pill.rank{left:32%; top:33%}
+    .pill.match{left:46%; top:47%}
+    .pill.acts{left:61%; top:33%}
+    .pill.syns{left:23%; top:66%}
+    .pill.ants{left:56%; top:66%}
+    .pill.parents{left:41%; top:58%}
+    .pill.types{left:51%; top:58%}
+    /* farther */
+    .pill.wizard{left:83%; top:64%}
+    .pill.raters{left:80%; top:78%}
+    .pill.plus1{left:7%; top:70%; background:#0f1120; color:var(--accent2); border-color:#2a3d4f}
+    .pill.plus2{left:32%; top:18%; background:#0f1120; color:var(--accent2); border-color:#2a3d4f}
+    .pill.plus3{left:72%; top:18%; background:#0f1120; color:var(--accent2); border-color:#2a3d4f}
+
+    /* connectors (decor) */
+    .connector{ position:absolute; pointer-events:none; width:2px; background:linear-gradient(var(--app-accent),var(--accent2)); opacity:.5 }
+    .connector.rank{left:32%; top:33%; height:120px; transform:translate(-50%,-50%) rotate(40deg)}
+    .connector.acts{left:61%; top:33%; height:120px; transform:translate(-50%,-50%) rotate(140deg)}
+    .connector.match{left:46%; top:47%; height:80px; transform:translate(-50%,-50%) rotate(90deg)}
+
+    /* --- NEAR WORD CLICK: inline microcards ----------------------------- */
+    .popover{
+      position:absolute; min-width:260px; max-width:320px;
+      background:rgba(19,22,42,.92); backdrop-filter:saturate(1.2) blur(4px);
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm); padding:12px 12px 10px;
+      color:var(--ink); box-shadow:0 20px 50px rgba(0,0,0,.5);
+      opacity:0; transform:translateY(6px) scale(.98); pointer-events:none;
+      transition:opacity .25s var(--flove-ease), transform .25s var(--flove-ease);
+    }
+    .popover h3{ margin:0 0 6px 0; font-size:15px; letter-spacing:.4px; color:var(--accent2) }
+    .popover .row{ display:flex; gap:6px; flex-wrap:wrap }
+    .popover .tag{
+      padding:7px 10px; border-radius:var(--flove-radius-pill);
+      border:1px solid var(--line); background:#171a2e; font-weight:700; font-size:.8rem;
+    }
+    .popover .mini{ margin-top:8px; display:flex; gap:8px }
+    .popover .mini a{
+      padding:6px 8px; border-radius:var(--flove-radius-sm);
+      border:1px solid var(--line); background:#171a2e; font-weight:800; font-size:.8rem;
+    }
+    .popover .mini a:hover{ border-color:var(--app-accent) }
+
+    /* attach each popover near its pill coordinate */
+    #rank{left:32%; top:42%}
+    #match{left:46%; top:57%}
+    #acts{left:61%; top:42%}
+    #synonyms{left:23%; top:76%}
+    #antonyms{left:56%; top:76%}
+    #parents{left:41%; top:68%}
+    #types{left:51%; top:68%}
+
+    /* open with :target */
+    .board:has(#rank:target) #rank,
+    .board:has(#match:target) #match,
+    .board:has(#acts:target) #acts,
+    .board:has(#synonyms:target) #synonyms,
+    .board:has(#antonyms:target) #antonyms,
+    .board:has(#parents:target) #parents,
+    .board:has(#types:target) #types{ opacity:1; transform:none; pointer-events:auto }
+
+    /* When a popover is open: minimize rest */
+    .board:has(.popover:target) .pill:not(.near),
+    .board:has(.popover:target) .pill.near,
+    .board:has(.popover:target) .node-love{
+      opacity:.25; filter:saturate(.7) blur(.2px);
+      transform:translate(-50%,-50%) scale(.92);
+      pointer-events:none;
+    }
+    .board:has(.popover:target) .node-love{ transform:translateX(-50%) scale(.92) }
+    /* highlight the associated near pill */
+    .board:has(#rank:target) .pill.rank,
+    .board:has(#match:target) .pill.match,
+    .board:has(#acts:target) .pill.acts,
+    .board:has(#synonyms:target) .pill.syns,
+    .board:has(#antonyms:target) .pill.ants,
+    .board:has(#parents:target) .pill.parents,
+    .board:has(#types:target) .pill.types{ opacity:1; filter:none; pointer-events:auto }
+
+    /* close button */
+    .close{
+      position:absolute; right:8px; top:6px; padding:2px 8px;
+      border-radius:var(--flove-radius-pill); border:1px solid var(--line);
+      background:#171a2e; font-weight:900; color:var(--ink);
+    }
+    .close:hover{ border-color:var(--app-accent) }
+
+    /* --- FAR WORD CLICK: full tree overlay -------------------------------- */
+    .treeModal{
+      position:absolute; inset:10px; border-radius:var(--flove-radius);
+      background:rgba(13,15,26,.97); color:var(--ink);
+      border:1px solid var(--line); padding:14px;
+      display:grid; grid-template-columns:1.1fr .9fr; gap:12px;
+      opacity:0; pointer-events:none; transform:translateY(8px) scale(.98);
+      transition:opacity .3s var(--flove-ease), transform .3s var(--flove-ease);
+    }
+    .treeModal h2{ margin:4px 0 8px 0; color:var(--app-accent) }
+    .tree{ border:1px dashed var(--line); border-radius:var(--flove-radius-sm); padding:8px }
+    .tree details{ border-left:3px solid var(--line); margin:.25rem 0 .25rem .5rem; padding:.2rem .2rem .2rem .6rem }
+    .tree summary{ cursor:pointer; list-style:none }
+    .tree summary::-webkit-details-marker{ display:none }
+    .tree details[open]>summary{ color:var(--accent2) }
+    .leaf{ color:var(--muted); font-size:.9rem; margin:.2rem 0 }
+
+    .actions .btn{
+      display:inline-block; padding:9px 12px; border-radius:var(--flove-radius-sm);
+      border:1px solid var(--line); background:#171a2e; color:var(--ink); font-weight:700; margin:0 6px 6px 0;
+      cursor:pointer;
+    }
+    .actions .btn:hover{ border-color:var(--app-accent) }
+    .modalbar{ display:flex; align-items:center; justify-content:space-between; gap:12px }
+    .modalbar a{
+      padding:8px 12px; border-radius:var(--flove-radius-sm);
+      border:1px solid var(--line); background:#12152a; color:var(--ink);
+    }
+    .modalbar .primary{
+      background:var(--app-accent); color:var(--app-ink-on-accent); font-weight:900; border-color:var(--app-accent);
+    }
+
+    /* open states by :target */
+    .board:has(#wizard:target) .treeModal.wizard,
+    .board:has(#raters:target) .treeModal.raters{ opacity:1; pointer-events:auto; transform:none }
+
+    /* When far modal open: shrink and blur base map */
+    .board:has(.treeModal:target) .pill,
+    .board:has(.treeModal:target) .node-love{ opacity:.2; filter:blur(.8px); pointer-events:none }
+    /* keep the launcher pill slightly visible */
+    .board:has(#wizard:target) .pill.wizard,
+    .board:has(#raters:target) .pill.raters{ opacity:.65; filter:none }
+
+    @media (max-width:760px){
+      .treeModal{ grid-template-columns:1fr }
+    }
+
+    /* help footer */
+    .footerHelp{ width:min(1100px,94vw); margin:0 auto 26px auto; color:var(--muted); font-size:.9rem }
+    .footerHelp a{ color:var(--accent2); text-decoration:underline }
+  </style>
+</head>
+<body>
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">View</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <main class="board" id="map">
+    <div class="node-love"><h2>LOVE</h2></div>
+
+    <!-- connectors decor -->
+    <i class="connector rank"></i><i class="connector acts"></i><i class="connector match"></i>
+
+    <!-- NEAR pills (open inline popovers) -->
+    <a class="pill rank near"  href="#rank"><span class="t-en">APPS</span><span class="t-es">APPS</span></a>
+    <a class="pill match near"  href="#match"><span class="t-en">ACTS</span><span class="t-es">ACTOS</span></a>
+    <a class="pill acts near"  href="#acts"><span class="t-en">MATCHES</span><span class="t-es">COINCIDENCIAS</span></a>
+    <a class="pill syns near"  href="#synonyms"><span class="t-en">SIMILAR</span><span class="t-es">SIMILAR</span></a>
+    <a class="pill ants near"  href="#antonyms"><span class="t-en">DIFFERENT</span><span class="t-es">DIFERENTE</span></a>
+    <a class="pill types near"  href="#types"><span class="t-en">PRISMS</span><span class="t-es">PRISMAS</span></a>
+
+    <!-- FAR pills (open big modal trees) -->
+    <a class="pill wizard" href="#wizard"><span class="t-en">WIZARD</span><span class="t-es">ASISTENTE</span></a>
+    <a class="pill raters" href="#raters"><span class="t-en">RATE</span><span class="t-es">VALORAR</span></a>
+    <a class="pill plus1" href="#wizard">+1</a>
+    <a class="pill plus2" href="#wizard">+2</a>
+    <a class="pill plus3" href="#wizard">+3</a>
+
+    <!-- Inline popovers (near items) -->
+    <section class="popover" id="rank">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row">
+        <span class="tag">Souls</span><span class="tag">Trusts</span><span class="tag">GenderWars</span>
+      </div>
+      <div class="mini">
+        <a href="#wizard"><span class="t-en">WIZARD</span><span class="t-es">ASISTENTE</span></a>
+        <a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a>
+      </div>
+    </section>
+
+    <section class="popover" id="acts">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row">
+        <span class="tag">Couples</span><span class="tag">Close</span><span class="tag">Rares</span>
+      </div>
+      <div class="mini">
+        <a href="#wizard"><span class="t-en">WIZARD</span><span class="t-es">ASISTENTE</span></a><a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a>
+      </div>
+    </section>
+
+    <section class="popover" id="match">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row">
+        <span class="tag">☺ Joy</span><span class="tag">↗ Rise</span><span class="tag">→ Guide</span>
+      </div>
+      <div class="mini"><a href="#raters"><span class="t-en">RATERS</span><span class="t-es">VALORADORES</span></a><a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a></div>
+    </section>
+
+    <section class="popover" id="synonyms">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row"><span class="tag">Lovely</span><span class="tag">Joyful</span><span class="tag">Delight</span></div>
+      <div class="mini"><a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a></div>
+    </section>
+
+    <section class="popover" id="antonyms">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row"><span class="tag">Fear</span><span class="tag">Disgust</span><span class="tag">Apathy</span></div>
+      <div class="mini"><a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a></div>
+    </section>
+
+    <section class="popover" id="parents">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row"><span class="tag">Care</span><span class="tag">Admire</span><span class="tag">Respect</span></div>
+      <div class="mini"><a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a></div>
+    </section>
+
+    <section class="popover" id="types">
+      <a class="close" href="#map">×</a>
+      <h3></h3>
+      <div class="row"><span class="tag">Whole</span><span class="tag">Close</span><span class="tag">Eros</span></div>
+      <div class="mini"><a href="#map"><span class="t-en">Back</span><span class="t-es">Volver</span></a></div>
+    </section>
+
+    <!-- Far word modals -->
+    <section class="treeModal wizard" id="wizard">
+      <div class="modalbar">
+        <a href="#map">← <span class="t-en">Back</span><span class="t-es">Volver</span></a>
+        <h2><span class="t-en">WIZARD</span><span class="t-es">ASISTENTE</span></h2>
+        <a href="#map" class="primary"><span class="t-en">Save</span><span class="t-es">Guardar</span></a>
+      </div>
+      <div class="tree">
+        <details open>
+          <summary><span class="t-en">ENJOY LOVE</span><span class="t-es">DISFRUTA EL AMOR</span></summary>
+          <div class="leaf">🙂 Smiles → Joy → Delight</div>
+          <div class="leaf">↗ Growth → Nurture → Care</div>
+          <div class="leaf">→ Direction → Intention → Acts</div>
+          <details>
+            <summary><span class="t-en">Expand…</span><span class="t-es">Expandir…</span></summary>
+            <div class="leaf">Passion · Adore · Care</div>
+          </details>
+        </details>
+        <details>
+          <summary><span class="t-en">DEFINITIONS</span><span class="t-es">DEFINICIONES</span></summary>
+          <div class="leaf">Propositions · Labels · Modes ... </div>
+        </details>
+      </div>
+      <aside class="actions">
+        <div style="margin-bottom:8px">
+          <a class="btn">☺ Joy</a>
+          <a class="btn">↗ Rise</a>
+          <a class="btn">→ Guide</a>
+        </div>
+        <div>
+          <a class="btn"><span class="t-en">Resume</span><span class="t-es">Reanudar</span></a>
+          <a class="btn"><span class="t-en">Mark</span><span class="t-es">Marcar</span></a>
+          <a class="btn"><span class="t-en">Save</span><span class="t-es">Guardar</span></a>
+        </div>
+      </aside>
+    </section>
+
+    <section class="treeModal raters" id="raters">
+      <div class="modalbar">
+        <a href="#map">← <span class="t-en">Back</span><span class="t-es">Volver</span></a>
+        <h2><span class="t-en">RATERS</span><span class="t-es">VALORADORES</span></h2>
+        <a href="#map" class="primary"><span class="t-en">Apply</span><span class="t-es">Aplicar</span></a>
+      </div>
+      <div class="tree">
+        <details open>
+          <summary><span class="t-en">METRICS</span><span class="t-es">MÉTRICAS</span></summary>
+          <div class="leaf">+1 Kind</div>
+          <div class="leaf">+2 Nice</div>
+          <div class="leaf">+3 Excelent</div>
+        </details>
+        <details>
+          <summary><span class="t-en">SCALES</span><span class="t-es">ESCALAS</span></summary>
+          <div class="leaf">Joy · Care · Clarity</div>
+        </details>
+      </div>
+      <aside class="actions">
+        <a href="https://flove.org/demos/fuzzy/semantics" class="btn"><span class="t-en">Create RATER</span><span class="t-es">Crear VALORADOR</span></a>
+        <a class="btn"><span class="t-en">Export</span><span class="t-es">Exportar</span></a>
+      </aside>
+    </section>
+
+  </main>
+
+  <p class="footerHelp">
+    <span class="t-en">Tap a NEAR word for a quick card, or a FAR word to open its full tree.</span>
+    <span class="t-es">Toca una palabra CERCANA para una tarjeta rápida, o una palabra LEJANA para abrir su árbol completo.</span>
+  </p>
+</body>
+</html>

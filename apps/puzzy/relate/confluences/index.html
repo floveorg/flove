@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Confluences</title>
+  <link rel="stylesheet" href="../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+
+      /* Confluence rainbow per column — re-tinted to ride the Puzzy
+         violet→teal axis, with a warm centre so column 4 still reads
+         as the "confluence" focus */
+      --c1:#8d89ff; /* violet (app accent) */
+      --c2:#9d7bf0; /* violet-indigo */
+      --c3:#b58bd6; /* magenta-soft */
+      --c4:#70f0d3; /* teal (confluence centre, accent2) */
+      --c5:#6fd6e6; /* cyan */
+      --c6:#7ab0f0; /* sky */
+      --c7:#8d89ff; /* violet (mirror of c1) */
+
+      /* Ink on the coloured buttons (all readable dark ink-on-accent) */
+      --g1:var(--app-ink-on-accent); --g2:var(--app-ink-on-accent);
+      --g3:var(--app-ink-on-accent); --g4:var(--app-ink-on-accent);
+      --g5:var(--app-ink-on-accent); --g6:var(--app-ink-on-accent);
+      --g7:var(--app-ink-on-accent);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* header */
+    .top{ max-width:1100px; margin:1.4rem auto .4rem; padding:0 1rem }
+    .top h1{
+      margin:.2rem 0; font-size:1.9rem; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .lede{ color:var(--muted); margin:.2rem 0 0 }
+
+    /* how-to hint */
+    .hint{
+      max-width:1100px; margin:1rem auto 0; padding:.7rem .9rem;
+      color:var(--muted); font-size:.9rem;
+      border:1px dashed var(--line); border-radius:var(--flove-radius);
+      background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.02));
+    }
+
+    /* Board (lists stacked vertically) */
+    .wrap{ max-width:1100px; margin:.8rem auto 4rem; padding:0 1rem }
+    .board{ display:grid; gap:14px }
+
+    /* Each list = 7 equal columns */
+    .list{
+      margin:0; padding:10px; list-style:none;
+      border-radius:var(--flove-radius);
+      display:grid; grid-template-columns:repeat(7,1fr);
+      align-items:center; min-height:72px;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border:1px solid var(--line);
+    }
+
+    /* BIG, filled "buttons" */
+    .list > li{
+      justify-self:stretch; align-self:center; text-align:center;
+      padding:.85rem 1.1rem; font-weight:700; font-size:1.05rem;
+      border-radius:var(--flove-radius-sm); border:none;
+      background:var(--col, #888); color:var(--fg, var(--app-ink-on-accent));
+      box-shadow:
+        0 10px 22px rgba(0,0,0,.35),
+        inset 0 1px 0 rgba(255,255,255,.25);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    /* ---------- COLOR BY COLUMN + ink for text ---------- */
+    /* len-1: [col4] */
+    .list.len-1 > li:nth-child(1){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
+
+    /* len-2: [col1, col7] */
+    .list.len-2 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
+    .list.len-2 > li:nth-child(2){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
+
+    /* len-3: [col1, col4, col7] */
+    .list.len-3 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
+    .list.len-3 > li:nth-child(2){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
+    .list.len-3 > li:nth-child(3){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
+
+    /* len-4: [col1, col3, col5, col7] */
+    .list.len-4 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
+    .list.len-4 > li:nth-child(2){ grid-column:3/4; --col:var(--c3); --fg:var(--g3); }
+    .list.len-4 > li:nth-child(3){ grid-column:5/6; --col:var(--c5); --fg:var(--g5); }
+    .list.len-4 > li:nth-child(4){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
+
+    /* len-5: [col1, col3, col4, col5, col7] */
+    .list.len-5 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
+    .list.len-5 > li:nth-child(2){ grid-column:3/4; --col:var(--c3); --fg:var(--g3); }
+    .list.len-5 > li:nth-child(3){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
+    .list.len-5 > li:nth-child(4){ grid-column:5/6; --col:var(--c5); --fg:var(--g5); }
+    .list.len-5 > li:nth-child(5){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
+
+    /* len-6: [col1, col2, col3, col5, col6, col7] */
+    .list.len-6 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
+    .list.len-6 > li:nth-child(2){ grid-column:2/3; --col:var(--c2); --fg:var(--g2); }
+    .list.len-6 > li:nth-child(3){ grid-column:3/4; --col:var(--c3); --fg:var(--g3); }
+    .list.len-6 > li:nth-child(4){ grid-column:5/6; --col:var(--c5); --fg:var(--g5); }
+    .list.len-6 > li:nth-child(5){ grid-column:6/7; --col:var(--c6); --fg:var(--g6); }
+    .list.len-6 > li:nth-child(6){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
+
+    /* len-7: [col1..col7] */
+    .list.len-7 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
+    .list.len-7 > li:nth-child(2){ grid-column:2/3; --col:var(--c2); --fg:var(--g2); }
+    .list.len-7 > li:nth-child(3){ grid-column:3/4; --col:var(--c3); --fg:var(--g3); }
+    .list.len-7 > li:nth-child(4){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
+    .list.len-7 > li:nth-child(5){ grid-column:5/6; --col:var(--c5); --fg:var(--g5); }
+    .list.len-7 > li:nth-child(6){ grid-column:6/7; --col:var(--c6); --fg:var(--g6); }
+    .list.len-7 > li:nth-child(7){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
+
+    /* Responsive */
+    @media (max-width:900px){
+      .wrap{ padding:0 .9rem }
+      .list{ padding:8px; min-height:66px }
+      .list > li{ font-size:1rem; padding:.75rem 1rem }
+    }
+  </style>
+</head>
+<body>
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">Confluences</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <header class="top">
+    <h1><span class="t-en">My Favourite Confluences</span><span class="t-es">Mis Confluencias Favoritas</span></h1>
+    <p class="lede"><span class="t-en">Lists that converge — each one centred on its confluence.</span><span class="t-es">Listas que convergen — cada una centrada en su confluencia.</span></p>
+  </header>
+
+  <p class="hint">
+    <span class="t-en">How to use: each row is one list. Add a class <code>len-1</code> … <code>len-7</code> matching how many items it has, and place items in natural order (first → last). The grid spreads them across the 7 columns, centred. Special rule for <code>len-2</code>: item 1 → column 1, item 2 → column 7.</span>
+    <span class="t-es">Cómo usar: cada fila es una lista. Añade una clase <code>len-1</code> … <code>len-7</code> según cuántos elementos tenga, y coloca los elementos en orden natural (primero → último). La rejilla los reparte por las 7 columnas, centrados. Regla especial para <code>len-2</code>: elemento 1 → columna 1, elemento 2 → columna 7.</span>
+  </p>
+
+  <main class="wrap">
+    <section class="board">
+
+      <!-- EXAMPLES: Replace with your data and keep the len-* accurate -->
+
+      <!-- length = 1 (item centred on column 4; confluence centre) -->
+      <ul class="list len-1" aria-label="Example list with 1 item">
+        <li>Organism</li>
+      </ul>
+
+      <!-- length = 3 (cols 1,4,7; middle is the centre) -->
+      <ul class="list len-3" aria-label="Example list with 3 items">
+        <li>Inner</li>
+        <li>Middle</li>
+        <li>Outer</li>
+      </ul>
+
+      <ul class="list len-3" aria-label="Example list with 3 items">
+        <li>Past</li>
+        <li>Present</li>
+        <li>Future</li>
+      </ul>
+
+      <ul class="list len-3" aria-label="Example list with 3 items">
+        <li>Transform</li>
+        <li>Conjugate</li>
+        <li>Transduct</li>
+      </ul>
+
+      <!-- length = 5 (balanced around centre col 4) -->
+      <ul class="list len-5" aria-label="Example list with 5 items">
+        <li>Taste</li>
+        <li>Smell</li>
+        <li>Hear</li>
+        <li>Touch</li>
+        <li>View</li>
+      </ul>
+
+      <ul class="list len-5" aria-label="Example list with 5 items">
+        <li>Fire</li>
+        <li>Air</li>
+        <li>Plasma</li>
+        <li>Water</li>
+        <li>Earth</li>
+      </ul>
+
+      <ul class="list len-5" aria-label="Example list with 5 items">
+        <li>I</li>
+        <li>E</li>
+        <li>A</li>
+        <li>O</li>
+        <li>U</li>
+      </ul>
+
+      <ul class="list len-5" aria-label="Example list with 5 items">
+        <li>Sour</li>
+        <li>Bitter</li>
+        <li>Umami</li>
+        <li>Salty</li>
+        <li>Sweet</li>
+      </ul>
+
+      <ul class="list len-5" aria-label="Example list with 5 items">
+        <li>Political</li>
+        <li>Economical</li>
+        <li>Media</li>
+        <li>Legal</li>
+        <li>Military</li>
+      </ul>
+
+      <!-- length = 7 (fills all columns 1..7; exact spectrum across) -->
+      <ul class="list len-7" aria-label="Example list with 7 items">
+        <li>Adrenal</li>
+        <li>Gonads</li>
+        <li>Pancreas</li>
+        <li>Thymus</li>
+        <li>Thyroid</li>
+        <li>Pituitary</li>
+        <li>Hypothalamus</li>
+      </ul>
+
+    </section>
+  </main>
+</body>
+</html>

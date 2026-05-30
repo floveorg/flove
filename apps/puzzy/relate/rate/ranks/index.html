@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Ranks</title>
+  <link rel="stylesheet" href="../../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* header */
+    .top{ max-width:980px; margin:1.4rem auto .4rem; padding:0 1rem }
+    .top h1{
+      margin:.2rem 0; font-size:1.9rem; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .lede{ color:var(--muted); margin:.2rem 0 0 }
+
+    /* ===== Ranks layout (ported from OldCSS, re-tinted to Puzzy) ===== */
+    .ranking{ max-width:820px; margin:1rem auto 4rem; padding:0 1rem; display:block }
+    .triad, .pentad{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border-radius:var(--flove-radius); padding:1rem; margin-bottom:1.2rem;
+    }
+    .triad h3, .pentad h3{ margin:.1rem 0 .8rem; font-size:1.05rem; letter-spacing:.6px; color:var(--accent2) }
+
+    /* Controls: rank groups choose A/B/C(/D/E) */
+    .controls{ display:flex; gap:.8rem; flex-wrap:wrap; margin-bottom:.9rem; border:none; padding:0 }
+    .controls fieldset{
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm); padding:.4rem .5rem;
+      display:flex; align-items:center; gap:.35rem; background:var(--field);
+    }
+    .controls legend{ padding:0 .35rem; color:var(--muted); font-size:.85rem }
+    .controls legend h2{ margin:0; font-size:.85rem; font-weight:700; letter-spacing:.5px; color:var(--app-accent) }
+    .controls label{
+      display:inline-flex; align-items:center; gap:.25rem;
+      background:#171a2e; border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      padding:.25rem .5rem; cursor:pointer; font-size:.9rem;
+      transition:border-color var(--flove-fast), background var(--flove-fast);
+    }
+    .controls label:hover{ border-color:var(--app-accent) }
+    .controls input[type=radio]{ appearance:none; width:0; height:0; position:absolute; pointer-events:none }
+    .controls label:has(input:checked){
+      background:linear-gradient(135deg,var(--app-accent),var(--accent2));
+      color:var(--app-ink-on-accent); font-weight:700; border-color:var(--app-accent);
+    }
+
+    /* Card title text */
+    .card h2{ margin:0; font-size:.95rem; font-weight:600; letter-spacing:.4px }
+
+    /* Vertical stack (triads) reordered by CSS */
+    .stack{
+      display:grid;
+      grid-template-areas:"pos1" "pos2" "pos3";
+      grid-template-rows:1cm 1cm 1cm;
+      gap:.35rem;
+    }
+
+    /* Cards */
+    .card{
+      grid-area:pos3; /* default: last */
+      display:block; width:100%; text-align:left;
+      background:#171722; border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      padding:0 .6rem; color:var(--ink); font:inherit; cursor:pointer;
+      transition:transform .15s ease, box-shadow .2s ease, border-color var(--flove-fast);
+    }
+    .card:active{ transform:scale(.985) }
+    .card.A{ --glow: rgba(141,137,255,.28) }
+    .card.B{ --glow: rgba(112,240,211,.24) }
+    .card.C{ --glow: rgba(201,198,255,.22) }
+    .card.D{ --glow: rgba(141,137,255,.18) }
+    .card.E{ --glow: rgba(112,240,211,.16) }
+    .card{ box-shadow:0 0 0 1px rgba(255,255,255,.02) inset, 0 6px 24px rgba(0,0,0,.35), 0 0 0 1px var(--glow) }
+    .stack .card{ height:1cm; line-height:1cm; padding:0 .6rem }
+
+    /* === :has() ordering — TRIADS === */
+    #triad-1:has(#t1-r1-A:checked) .A {grid-area:pos1}
+    #triad-1:has(#t1-r2-A:checked) .A {grid-area:pos2}
+    #triad-1:has(#t1-r3-A:checked) .A {grid-area:pos3}
+    #triad-1:has(#t1-r1-B:checked) .B {grid-area:pos1}
+    #triad-1:has(#t1-r2-B:checked) .B {grid-area:pos2}
+    #triad-1:has(#t1-r3-B:checked) .B {grid-area:pos3}
+    #triad-1:has(#t1-r1-C:checked) .C {grid-area:pos1}
+    #triad-1:has(#t1-r2-C:checked) .C {grid-area:pos2}
+    #triad-1:has(#t1-r3-C:checked) .C {grid-area:pos3}
+
+    #triad-2:has(#t2-r1-A:checked) .A {grid-area:pos1}
+    #triad-2:has(#t2-r2-A:checked) .A {grid-area:pos2}
+    #triad-2:has(#t2-r3-A:checked) .A {grid-area:pos3}
+    #triad-2:has(#t2-r1-B:checked) .B {grid-area:pos1}
+    #triad-2:has(#t2-r2-B:checked) .B {grid-area:pos2}
+    #triad-2:has(#t2-r3-B:checked) .B {grid-area:pos3}
+    #triad-2:has(#t2-r1-C:checked) .C {grid-area:pos1}
+    #triad-2:has(#t2-r2-C:checked) .C {grid-area:pos2}
+    #triad-2:has(#t2-r3-C:checked) .C {grid-area:pos3}
+
+    #triad-3:has(#t3-r1-A:checked) .A {grid-area:pos1}
+    #triad-3:has(#t3-r2-A:checked) .A {grid-area:pos2}
+    #triad-3:has(#t3-r3-A:checked) .A {grid-area:pos3}
+    #triad-3:has(#t3-r1-B:checked) .B {grid-area:pos1}
+    #triad-3:has(#t3-r2-B:checked) .B {grid-area:pos2}
+    #triad-3:has(#t3-r3-B:checked) .B {grid-area:pos3}
+    #triad-3:has(#t3-r1-C:checked) .C {grid-area:pos1}
+    #triad-3:has(#t3-r2-C:checked) .C {grid-area:pos2}
+    #triad-3:has(#t3-r3-C:checked) .C {grid-area:pos3}
+
+    #triad-4:has(#t4-r1-A:checked) .A {grid-area:pos1}
+    #triad-4:has(#t4-r2-A:checked) .A {grid-area:pos2}
+    #triad-4:has(#t4-r3-A:checked) .A {grid-area:pos3}
+    #triad-4:has(#t4-r1-B:checked) .B {grid-area:pos1}
+    #triad-4:has(#t4-r2-B:checked) .B {grid-area:pos2}
+    #triad-4:has(#t4-r3-B:checked) .B {grid-area:pos3}
+    #triad-4:has(#t4-r1-C:checked) .C {grid-area:pos1}
+    #triad-4:has(#t4-r2-C:checked) .C {grid-area:pos2}
+    #triad-4:has(#t4-r3-C:checked) .C {grid-area:pos3}
+
+    #triad-5:has(#t5-r1-A:checked) .A {grid-area:pos1}
+    #triad-5:has(#t5-r2-A:checked) .A {grid-area:pos2}
+    #triad-5:has(#t5-r3-A:checked) .A {grid-area:pos3}
+    #triad-5:has(#t5-r1-B:checked) .B {grid-area:pos1}
+    #triad-5:has(#t5-r2-B:checked) .B {grid-area:pos2}
+    #triad-5:has(#t5-r3-B:checked) .B {grid-area:pos3}
+    #triad-5:has(#t5-r1-C:checked) .C {grid-area:pos1}
+    #triad-5:has(#t5-r2-C:checked) .C {grid-area:pos2}
+    #triad-5:has(#t5-r3-C:checked) .C {grid-area:pos3}
+
+    /* 'More' toggle */
+    .more-toggle{ display:none }
+    .more-label{
+      display:inline-flex; align-items:center; justify-content:center;
+      margin:1rem 0; padding:.5rem 1rem; border:1px solid var(--line);
+      background:var(--field); color:var(--ink); border-radius:var(--flove-radius-sm); cursor:pointer;
+      transition:border-color var(--flove-fast);
+    }
+    .more-label:hover{ border-color:var(--app-accent) }
+    .pentads{ display:none }
+    .more-toggle:checked ~ .pentads{ display:block }
+
+    /* Pentads: square arena, 5 positions */
+    .pentad .arena{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      grid-template-rows:1fr 1fr 1fr;
+      grid-template-areas:
+        "pos2 . pos3"
+        ". pos1 ."
+        "pos4 . pos5";
+      gap:.5rem; align-items:center; justify-items:center; min-height:9cm;
+    }
+    .pentad .arena .card{ width:max(6rem,30%); height:1cm; line-height:1cm; text-align:center; padding:0 .5rem }
+
+    /* === :has() ordering — PENTADS === */
+    #pentad-extra-1:has(#pe1-r1-A:checked) .A {grid-area:pos1}
+    #pentad-extra-1:has(#pe1-r2-A:checked) .A {grid-area:pos2}
+    #pentad-extra-1:has(#pe1-r3-A:checked) .A {grid-area:pos3}
+    #pentad-extra-1:has(#pe1-r4-A:checked) .A {grid-area:pos4}
+    #pentad-extra-1:has(#pe1-r5-A:checked) .A {grid-area:pos5}
+    #pentad-extra-1:has(#pe1-r1-B:checked) .B {grid-area:pos1}
+    #pentad-extra-1:has(#pe1-r2-B:checked) .B {grid-area:pos2}
+    #pentad-extra-1:has(#pe1-r3-B:checked) .B {grid-area:pos3}
+    #pentad-extra-1:has(#pe1-r4-B:checked) .B {grid-area:pos4}
+    #pentad-extra-1:has(#pe1-r5-B:checked) .B {grid-area:pos5}
+    #pentad-extra-1:has(#pe1-r1-C:checked) .C {grid-area:pos1}
+    #pentad-extra-1:has(#pe1-r2-C:checked) .C {grid-area:pos2}
+    #pentad-extra-1:has(#pe1-r3-C:checked) .C {grid-area:pos3}
+    #pentad-extra-1:has(#pe1-r4-C:checked) .C {grid-area:pos4}
+    #pentad-extra-1:has(#pe1-r5-C:checked) .C {grid-area:pos5}
+    #pentad-extra-1:has(#pe1-r1-D:checked) .D {grid-area:pos1}
+    #pentad-extra-1:has(#pe1-r2-D:checked) .D {grid-area:pos2}
+    #pentad-extra-1:has(#pe1-r3-D:checked) .D {grid-area:pos3}
+    #pentad-extra-1:has(#pe1-r4-D:checked) .D {grid-area:pos4}
+    #pentad-extra-1:has(#pe1-r5-D:checked) .D {grid-area:pos5}
+    #pentad-extra-1:has(#pe1-r1-E:checked) .E {grid-area:pos1}
+    #pentad-extra-1:has(#pe1-r2-E:checked) .E {grid-area:pos2}
+    #pentad-extra-1:has(#pe1-r3-E:checked) .E {grid-area:pos3}
+    #pentad-extra-1:has(#pe1-r4-E:checked) .E {grid-area:pos4}
+    #pentad-extra-1:has(#pe1-r5-E:checked) .E {grid-area:pos5}
+
+    #pentad-extra-2:has(#pe2-r1-A:checked) .A {grid-area:pos1}
+    #pentad-extra-2:has(#pe2-r2-A:checked) .A {grid-area:pos2}
+    #pentad-extra-2:has(#pe2-r3-A:checked) .A {grid-area:pos3}
+    #pentad-extra-2:has(#pe2-r4-A:checked) .A {grid-area:pos4}
+    #pentad-extra-2:has(#pe2-r5-A:checked) .A {grid-area:pos5}
+    #pentad-extra-2:has(#pe2-r1-B:checked) .B {grid-area:pos1}
+    #pentad-extra-2:has(#pe2-r2-B:checked) .B {grid-area:pos2}
+    #pentad-extra-2:has(#pe2-r3-B:checked) .B {grid-area:pos3}
+    #pentad-extra-2:has(#pe2-r4-B:checked) .B {grid-area:pos4}
+    #pentad-extra-2:has(#pe2-r5-B:checked) .B {grid-area:pos5}
+    #pentad-extra-2:has(#pe2-r1-C:checked) .C {grid-area:pos1}
+    #pentad-extra-2:has(#pe2-r2-C:checked) .C {grid-area:pos2}
+    #pentad-extra-2:has(#pe2-r3-C:checked) .C {grid-area:pos3}
+    #pentad-extra-2:has(#pe2-r4-C:checked) .C {grid-area:pos4}
+    #pentad-extra-2:has(#pe2-r5-C:checked) .C {grid-area:pos5}
+    #pentad-extra-2:has(#pe2-r1-D:checked) .D {grid-area:pos1}
+    #pentad-extra-2:has(#pe2-r2-D:checked) .D {grid-area:pos2}
+    #pentad-extra-2:has(#pe2-r3-D:checked) .D {grid-area:pos3}
+    #pentad-extra-2:has(#pe2-r4-D:checked) .D {grid-area:pos4}
+    #pentad-extra-2:has(#pe2-r5-D:checked) .D {grid-area:pos5}
+    #pentad-extra-2:has(#pe2-r1-E:checked) .E {grid-area:pos1}
+    #pentad-extra-2:has(#pe2-r2-E:checked) .E {grid-area:pos2}
+    #pentad-extra-2:has(#pe2-r3-E:checked) .E {grid-area:pos3}
+    #pentad-extra-2:has(#pe2-r4-E:checked) .E {grid-area:pos4}
+    #pentad-extra-2:has(#pe2-r5-E:checked) .E {grid-area:pos5}
+
+    #pentad-extra-3:has(#pe3-r1-A:checked) .A {grid-area:pos1}
+    #pentad-extra-3:has(#pe3-r2-A:checked) .A {grid-area:pos2}
+    #pentad-extra-3:has(#pe3-r3-A:checked) .A {grid-area:pos3}
+    #pentad-extra-3:has(#pe3-r4-A:checked) .A {grid-area:pos4}
+    #pentad-extra-3:has(#pe3-r5-A:checked) .A {grid-area:pos5}
+    #pentad-extra-3:has(#pe3-r1-B:checked) .B {grid-area:pos1}
+    #pentad-extra-3:has(#pe3-r2-B:checked) .B {grid-area:pos2}
+    #pentad-extra-3:has(#pe3-r3-B:checked) .B {grid-area:pos3}
+    #pentad-extra-3:has(#pe3-r4-B:checked) .B {grid-area:pos4}
+    #pentad-extra-3:has(#pe3-r5-B:checked) .B {grid-area:pos5}
+    #pentad-extra-3:has(#pe3-r1-C:checked) .C {grid-area:pos1}
+    #pentad-extra-3:has(#pe3-r2-C:checked) .C {grid-area:pos2}
+    #pentad-extra-3:has(#pe3-r3-C:checked) .C {grid-area:pos3}
+    #pentad-extra-3:has(#pe3-r4-C:checked) .C {grid-area:pos4}
+    #pentad-extra-3:has(#pe3-r5-C:checked) .C {grid-area:pos5}
+    #pentad-extra-3:has(#pe3-r1-D:checked) .D {grid-area:pos1}
+    #pentad-extra-3:has(#pe3-r2-D:checked) .D {grid-area:pos2}
+    #pentad-extra-3:has(#pe3-r3-D:checked) .D {grid-area:pos3}
+    #pentad-extra-3:has(#pe3-r4-D:checked) .D {grid-area:pos4}
+    #pentad-extra-3:has(#pe3-r5-D:checked) .D {grid-area:pos5}
+    #pentad-extra-3:has(#pe3-r1-E:checked) .E {grid-area:pos1}
+    #pentad-extra-3:has(#pe3-r2-E:checked) .E {grid-area:pos2}
+    #pentad-extra-3:has(#pe3-r3-E:checked) .E {grid-area:pos3}
+    #pentad-extra-3:has(#pe3-r4-E:checked) .E {grid-area:pos4}
+    #pentad-extra-3:has(#pe3-r5-E:checked) .E {grid-area:pos5}
+
+    #pentad-extra-4:has(#pe4-r1-A:checked) .A {grid-area:pos1}
+    #pentad-extra-4:has(#pe4-r2-A:checked) .A {grid-area:pos2}
+    #pentad-extra-4:has(#pe4-r3-A:checked) .A {grid-area:pos3}
+    #pentad-extra-4:has(#pe4-r4-A:checked) .A {grid-area:pos4}
+    #pentad-extra-4:has(#pe4-r5-A:checked) .A {grid-area:pos5}
+    #pentad-extra-4:has(#pe4-r1-B:checked) .B {grid-area:pos1}
+    #pentad-extra-4:has(#pe4-r2-B:checked) .B {grid-area:pos2}
+    #pentad-extra-4:has(#pe4-r3-B:checked) .B {grid-area:pos3}
+    #pentad-extra-4:has(#pe4-r4-B:checked) .B {grid-area:pos4}
+    #pentad-extra-4:has(#pe4-r5-B:checked) .B {grid-area:pos5}
+    #pentad-extra-4:has(#pe4-r1-C:checked) .C {grid-area:pos1}
+    #pentad-extra-4:has(#pe4-r2-C:checked) .C {grid-area:pos2}
+    #pentad-extra-4:has(#pe4-r3-C:checked) .C {grid-area:pos3}
+    #pentad-extra-4:has(#pe4-r4-C:checked) .C {grid-area:pos4}
+    #pentad-extra-4:has(#pe4-r5-C:checked) .C {grid-area:pos5}
+    #pentad-extra-4:has(#pe4-r1-D:checked) .D {grid-area:pos1}
+    #pentad-extra-4:has(#pe4-r2-D:checked) .D {grid-area:pos2}
+    #pentad-extra-4:has(#pe4-r3-D:checked) .D {grid-area:pos3}
+    #pentad-extra-4:has(#pe4-r4-D:checked) .D {grid-area:pos4}
+    #pentad-extra-4:has(#pe4-r5-D:checked) .D {grid-area:pos5}
+    #pentad-extra-4:has(#pe4-r1-E:checked) .E {grid-area:pos1}
+    #pentad-extra-4:has(#pe4-r2-E:checked) .E {grid-area:pos2}
+    #pentad-extra-4:has(#pe4-r3-E:checked) .E {grid-area:pos3}
+    #pentad-extra-4:has(#pe4-r4-E:checked) .E {grid-area:pos4}
+    #pentad-extra-4:has(#pe4-r5-E:checked) .E {grid-area:pos5}
+
+    #pentad-extra-5:has(#pe5-r1-A:checked) .A {grid-area:pos1}
+    #pentad-extra-5:has(#pe5-r2-A:checked) .A {grid-area:pos2}
+    #pentad-extra-5:has(#pe5-r3-A:checked) .A {grid-area:pos3}
+    #pentad-extra-5:has(#pe5-r4-A:checked) .A {grid-area:pos4}
+    #pentad-extra-5:has(#pe5-r5-A:checked) .A {grid-area:pos5}
+    #pentad-extra-5:has(#pe5-r1-B:checked) .B {grid-area:pos1}
+    #pentad-extra-5:has(#pe5-r2-B:checked) .B {grid-area:pos2}
+    #pentad-extra-5:has(#pe5-r3-B:checked) .B {grid-area:pos3}
+    #pentad-extra-5:has(#pe5-r4-B:checked) .B {grid-area:pos4}
+    #pentad-extra-5:has(#pe5-r5-B:checked) .B {grid-area:pos5}
+    #pentad-extra-5:has(#pe5-r1-C:checked) .C {grid-area:pos1}
+    #pentad-extra-5:has(#pe5-r2-C:checked) .C {grid-area:pos2}
+    #pentad-extra-5:has(#pe5-r3-C:checked) .C {grid-area:pos3}
+    #pentad-extra-5:has(#pe5-r4-C:checked) .C {grid-area:pos4}
+    #pentad-extra-5:has(#pe5-r5-C:checked) .C {grid-area:pos5}
+    #pentad-extra-5:has(#pe5-r1-D:checked) .D {grid-area:pos1}
+    #pentad-extra-5:has(#pe5-r2-D:checked) .D {grid-area:pos2}
+    #pentad-extra-5:has(#pe5-r3-D:checked) .D {grid-area:pos3}
+    #pentad-extra-5:has(#pe5-r4-D:checked) .D {grid-area:pos4}
+    #pentad-extra-5:has(#pe5-r5-D:checked) .D {grid-area:pos5}
+    #pentad-extra-5:has(#pe5-r1-E:checked) .E {grid-area:pos1}
+    #pentad-extra-5:has(#pe5-r2-E:checked) .E {grid-area:pos2}
+    #pentad-extra-5:has(#pe5-r3-E:checked) .E {grid-area:pos3}
+    #pentad-extra-5:has(#pe5-r4-E:checked) .E {grid-area:pos4}
+    #pentad-extra-5:has(#pe5-r5-E:checked) .E {grid-area:pos5}
+
+    /* analysis link card */
+    .analyse-card{ display:inline-block; margin-top:1.5rem }
+    .analyse-card a{ color:var(--accent2); text-decoration:none }
+  </style>
+</head>
+<body>
+  <!-- language radios (drive the pure-CSS i18n) -->
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag"><span class="t-en">Ranks</span><span class="t-es">Rangos</span></span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <header class="top">
+    <h1><span class="t-en">Ranks</span><span class="t-es">Rangos</span></h1>
+    <p class="lede"><span class="t-en">Rank each set — pick who goes 1st, 2nd, 3rd; the cards reorder live.</span><span class="t-es">Ordena cada conjunto — elige quién va 1º, 2º, 3º; las tarjetas se reordenan en vivo.</span></p>
+  </header>
+
+  <section class="ranking">
+    <div class="triads-grid">
+
+      <!-- ====== TRIAD 1 ====== -->
+      <div class="triad" id="triad-1">
+        <form class="controls">
+          <fieldset>
+            <legend><h2><span class="t-en">JOY</span><span class="t-es">ALEGRÍA</span></h2></legend>
+            <label><input id="t1-r1-A" name="t1-r1" type="radio"> 1</label>
+            <label><input id="t1-r1-B" name="t1-r1" type="radio"> 2</label>
+            <label><input id="t1-r1-C" name="t1-r1" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">LOVE</span><span class="t-es">AMOR</span></h2></legend>
+            <label><input id="t1-r2-A" name="t1-r2" type="radio"> 1</label>
+            <label><input id="t1-r2-B" name="t1-r2" type="radio"> 2</label>
+            <label><input id="t1-r2-C" name="t1-r2" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">WISDOM</span><span class="t-es">SABIDURÍA</span></h2></legend>
+            <label><input checked id="t1-r3-A" name="t1-r3" type="radio"> 1</label>
+            <label><input id="t1-r3-B" name="t1-r3" type="radio"> 2</label>
+            <label><input id="t1-r3-C" name="t1-r3" type="radio"> 3</label>
+          </fieldset>
+        </form>
+        <div class="stack">
+          <button class="card A"><h2><span class="t-en">JOY</span><span class="t-es">ALEGRÍA</span></h2></button>
+          <button class="card B"><h2><span class="t-en">LOVE</span><span class="t-es">AMOR</span></h2></button>
+          <button class="card C"><h2><span class="t-en">WISDOM</span><span class="t-es">SABIDURÍA</span></h2></button>
+        </div>
+      </div>
+
+      <!-- ====== TRIAD 2 ====== -->
+      <div class="triad" id="triad-2">
+        <form class="controls">
+          <fieldset>
+            <legend><h2><span class="t-en">LOCAL</span><span class="t-es">LOCAL</span></h2></legend>
+            <label><input id="t2-r1-A" name="t2-r1" type="radio"> 1</label>
+            <label><input id="t2-r1-B" name="t2-r1" type="radio"> 2</label>
+            <label><input id="t2-r1-C" name="t2-r1" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">PERSONAL</span><span class="t-es">PERSONAL</span></h2></legend>
+            <label><input id="t2-r2-A" name="t2-r2" type="radio"> 1</label>
+            <label><input checked id="t2-r2-B" name="t2-r2" type="radio"> 2</label>
+            <label><input id="t2-r2-C" name="t2-r2" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">SOCIAL</span><span class="t-es">SOCIAL</span></h2></legend>
+            <label><input checked id="t2-r3-A" name="t2-r3" type="radio"> 1</label>
+            <label><input id="t2-r3-B" name="t2-r3" type="radio"> 2</label>
+            <label><input id="t2-r3-C" name="t2-r3" type="radio"> 3</label>
+          </fieldset>
+        </form>
+        <div class="stack">
+          <button class="card A"><h2><span class="t-en">LOCAL</span><span class="t-es">LOCAL</span></h2></button>
+          <button class="card B"><h2><span class="t-en">PERSONAL</span><span class="t-es">PERSONAL</span></h2></button>
+          <button class="card C"><h2><span class="t-en">SOCIAL</span><span class="t-es">SOCIAL</span></h2></button>
+        </div>
+      </div>
+
+      <!-- ====== TRIAD 3 ====== -->
+      <div class="triad" id="triad-3">
+        <form class="controls">
+          <fieldset>
+            <legend><h2><span class="t-en">SHARE</span><span class="t-es">COMPARTIR</span></h2></legend>
+            <label><input id="t3-r1-A" name="t3-r1" type="radio"> 1</label>
+            <label><input id="t3-r1-B" name="t3-r1" type="radio"> 2</label>
+            <label><input id="t3-r1-C" name="t3-r1" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">EXCHANGE</span><span class="t-es">INTERCAMBIAR</span></h2></legend>
+            <label><input id="t3-r2-A" name="t3-r2" type="radio"> 1</label>
+            <label><input id="t3-r2-B" name="t3-r2" type="radio"> 2</label>
+            <label><input id="t3-r2-C" name="t3-r2" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">GIFT</span><span class="t-es">REGALAR</span></h2></legend>
+            <label><input checked id="t3-r3-A" name="t3-r3" type="radio"> 1</label>
+            <label><input id="t3-r3-B" name="t3-r3" type="radio"> 2</label>
+            <label><input id="t3-r3-C" name="t3-r3" type="radio"> 3</label>
+          </fieldset>
+        </form>
+        <div class="stack">
+          <button class="card A"><h2><span class="t-en">SHARE</span><span class="t-es">COMPARTIR</span></h2></button>
+          <button class="card B"><h2><span class="t-en">EXCHANGE</span><span class="t-es">INTERCAMBIAR</span></h2></button>
+          <button class="card C"><h2><span class="t-en">GIFT</span><span class="t-es">REGALAR</span></h2></button>
+        </div>
+      </div>
+
+      <!-- ====== TRIAD 4 ====== -->
+      <div class="triad" id="triad-4">
+        <form class="controls">
+          <fieldset>
+            <legend><h2><span class="t-en">ARTISAN</span><span class="t-es">ARTESANO</span></h2></legend>
+            <label><input id="t4-r1-A" name="t4-r1" type="radio"> 1</label>
+            <label><input checked id="t4-r1-B" name="t4-r1" type="radio"> 2</label>
+            <label><input id="t4-r1-C" name="t4-r1" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">ECOLOGICAL</span><span class="t-es">ECOLÓGICO</span></h2></legend>
+            <label><input id="t4-r2-A" name="t4-r2" type="radio"> 1</label>
+            <label><input id="t4-r2-B" name="t4-r2" type="radio"> 2</label>
+            <label><input id="t4-r2-C" name="t4-r2" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">OFFER</span><span class="t-es">OFERTA</span></h2></legend>
+            <label><input checked id="t4-r3-A" name="t4-r3" type="radio"> 1</label>
+            <label><input id="t4-r3-B" name="t4-r3" type="radio"> 2</label>
+            <label><input id="t4-r3-C" name="t4-r3" type="radio"> 3</label>
+          </fieldset>
+        </form>
+        <div class="stack">
+          <button class="card A"><h2><span class="t-en">ARTISAN</span><span class="t-es">ARTESANO</span></h2></button>
+          <button class="card B"><h2><span class="t-en">ECOLOGICAL</span><span class="t-es">ECOLÓGICO</span></h2></button>
+          <button class="card C"><h2><span class="t-en">OFFER</span><span class="t-es">OFERTA</span></h2></button>
+        </div>
+      </div>
+
+      <!-- ====== TRIAD 5 ====== -->
+      <div class="triad" id="triad-5">
+        <form class="controls">
+          <fieldset>
+            <legend><h2><span class="t-en">WHY</span><span class="t-es">POR QUÉ</span></h2></legend>
+            <label><input id="t5-r1-A" name="t5-r1" type="radio"> 1</label>
+            <label><input id="t5-r1-B" name="t5-r1" type="radio"> 2</label>
+            <label><input id="t5-r1-C" name="t5-r1" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">WHAT</span><span class="t-es">QUÉ</span></h2></legend>
+            <label><input id="t5-r2-A" name="t5-r2" type="radio"> 1</label>
+            <label><input id="t5-r2-B" name="t5-r2" type="radio"> 2</label>
+            <label><input checked id="t5-r2-C" name="t5-r2" type="radio"> 3</label>
+          </fieldset>
+          <fieldset>
+            <legend><h2><span class="t-en">HOW</span><span class="t-es">CÓMO</span></h2></legend>
+            <label><input checked id="t5-r3-A" name="t5-r3" type="radio"> 1</label>
+            <label><input id="t5-r3-B" name="t5-r3" type="radio"> 2</label>
+            <label><input id="t5-r3-C" name="t5-r3" type="radio"> 3</label>
+          </fieldset>
+        </form>
+        <div class="stack">
+          <button class="card A"><h2><span class="t-en">WHY</span><span class="t-es">POR QUÉ</span></h2></button>
+          <button class="card B"><h2><span class="t-en">WHAT</span><span class="t-es">QUÉ</span></h2></button>
+          <button class="card C"><h2><span class="t-en">HOW</span><span class="t-es">CÓMO</span></h2></button>
+        </div>
+      </div>
+
+      <!-- ====== MORE · PENTADS ====== -->
+      <input class="more-toggle" id="more" type="checkbox">
+      <label class="more-label" for="more"><span class="t-en">More</span><span class="t-es">Más</span></label>
+
+      <div class="pentads">
+
+        <!-- PENTAD 1 · SENSES -->
+        <div class="pentad" id="pentad-extra-1">
+          <h3><span class="t-en">SENSES</span><span class="t-es">SENTIDOS</span></h3>
+          <form class="controls">
+            <fieldset>
+              <legend><h2><span class="t-en">TASTE</span><span class="t-es">GUSTO</span></h2></legend>
+              <label><input id="pe1-r1-A" name="pe1-r1" type="radio"> 1</label>
+              <label><input id="pe1-r1-B" name="pe1-r1" type="radio"> 2</label>
+              <label><input id="pe1-r1-C" name="pe1-r1" type="radio"> 3</label>
+              <label><input id="pe1-r1-D" name="pe1-r1" type="radio"> 4</label>
+              <label><input id="pe1-r1-E" name="pe1-r1" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">SMELL</span><span class="t-es">OLFATO</span></h2></legend>
+              <label><input id="pe1-r2-A" name="pe1-r2" type="radio"> 1</label>
+              <label><input id="pe1-r2-B" name="pe1-r2" type="radio"> 2</label>
+              <label><input id="pe1-r2-C" name="pe1-r2" type="radio"> 3</label>
+              <label><input id="pe1-r2-D" name="pe1-r2" type="radio"> 4</label>
+              <label><input id="pe1-r2-E" name="pe1-r2" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">HEARING</span><span class="t-es">OÍDO</span></h2></legend>
+              <label><input checked id="pe1-r3-A" name="pe1-r3" type="radio"> 1</label>
+              <label><input id="pe1-r3-B" name="pe1-r3" type="radio"> 2</label>
+              <label><input id="pe1-r3-C" name="pe1-r3" type="radio"> 3</label>
+              <label><input id="pe1-r3-D" name="pe1-r3" type="radio"> 4</label>
+              <label><input id="pe1-r3-E" name="pe1-r3" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">TOUCH</span><span class="t-es">TACTO</span></h2></legend>
+              <label><input id="pe1-r4-A" name="pe1-r4" type="radio"> 1</label>
+              <label><input id="pe1-r4-B" name="pe1-r4" type="radio"> 2</label>
+              <label><input id="pe1-r4-C" name="pe1-r4" type="radio"> 3</label>
+              <label><input id="pe1-r4-D" name="pe1-r4" type="radio"> 4</label>
+              <label><input id="pe1-r4-E" name="pe1-r4" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">SIGHT</span><span class="t-es">VISTA</span></h2></legend>
+              <label><input id="pe1-r5-A" name="pe1-r5" type="radio"> 1</label>
+              <label><input id="pe1-r5-B" name="pe1-r5" type="radio"> 2</label>
+              <label><input id="pe1-r5-C" name="pe1-r5" type="radio"> 3</label>
+              <label><input id="pe1-r5-D" name="pe1-r5" type="radio"> 4</label>
+              <label><input id="pe1-r5-E" name="pe1-r5" type="radio"> 5</label>
+            </fieldset>
+          </form>
+          <div class="arena">
+            <button class="card A"><h2><span class="t-en">TASTE</span><span class="t-es">GUSTO</span></h2></button>
+            <button class="card B"><h2><span class="t-en">SMELL</span><span class="t-es">OLFATO</span></h2></button>
+            <button class="card C"><h2><span class="t-en">HEARING</span><span class="t-es">OÍDO</span></h2></button>
+            <button class="card D"><h2><span class="t-en">TOUCH</span><span class="t-es">TACTO</span></h2></button>
+            <button class="card E"><h2><span class="t-en">SIGHT</span><span class="t-es">VISTA</span></h2></button>
+          </div>
+        </div>
+
+        <!-- PENTAD 2 · TASTES -->
+        <div class="pentad" id="pentad-extra-2">
+          <h3><span class="t-en">TASTES</span><span class="t-es">GUSTOS</span></h3>
+          <form class="controls">
+            <fieldset>
+              <legend><h2><span class="t-en">SOUR</span><span class="t-es">ÁCIDO</span></h2></legend>
+              <label><input id="pe2-r1-A" name="pe2-r1" type="radio"> 1</label>
+              <label><input id="pe2-r1-B" name="pe2-r1" type="radio"> 2</label>
+              <label><input id="pe2-r1-C" name="pe2-r1" type="radio"> 3</label>
+              <label><input id="pe2-r1-D" name="pe2-r1" type="radio"> 4</label>
+              <label><input id="pe2-r1-E" name="pe2-r1" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">TART</span><span class="t-es">AGRIO</span></h2></legend>
+              <label><input id="pe2-r2-A" name="pe2-r2" type="radio"> 1</label>
+              <label><input id="pe2-r2-B" name="pe2-r2" type="radio"> 2</label>
+              <label><input id="pe2-r2-C" name="pe2-r2" type="radio"> 3</label>
+              <label><input id="pe2-r2-D" name="pe2-r2" type="radio"> 4</label>
+              <label><input id="pe2-r2-E" name="pe2-r2" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">SWEET</span><span class="t-es">DULCE</span></h2></legend>
+              <label><input checked id="pe2-r3-A" name="pe2-r3" type="radio"> 1</label>
+              <label><input id="pe2-r3-B" name="pe2-r3" type="radio"> 2</label>
+              <label><input id="pe2-r3-C" name="pe2-r3" type="radio"> 3</label>
+              <label><input id="pe2-r3-D" name="pe2-r3" type="radio"> 4</label>
+              <label><input id="pe2-r3-E" name="pe2-r3" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">UMAMI</span><span class="t-es">UMAMI</span></h2></legend>
+              <label><input id="pe2-r4-A" name="pe2-r4" type="radio"> 1</label>
+              <label><input id="pe2-r4-B" name="pe2-r4" type="radio"> 2</label>
+              <label><input id="pe2-r4-C" name="pe2-r4" type="radio"> 3</label>
+              <label><input id="pe2-r4-D" name="pe2-r4" type="radio"> 4</label>
+              <label><input id="pe2-r4-E" name="pe2-r4" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">SALTY</span><span class="t-es">SALADO</span></h2></legend>
+              <label><input id="pe2-r5-A" name="pe2-r5" type="radio"> 1</label>
+              <label><input id="pe2-r5-B" name="pe2-r5" type="radio"> 2</label>
+              <label><input id="pe2-r5-C" name="pe2-r5" type="radio"> 3</label>
+              <label><input id="pe2-r5-D" name="pe2-r5" type="radio"> 4</label>
+              <label><input id="pe2-r5-E" name="pe2-r5" type="radio"> 5</label>
+            </fieldset>
+          </form>
+          <div class="arena">
+            <button class="card A"><h2><span class="t-en">SOUR</span><span class="t-es">ÁCIDO</span></h2></button>
+            <button class="card B"><h2><span class="t-en">TART</span><span class="t-es">AGRIO</span></h2></button>
+            <button class="card C"><h2><span class="t-en">SWEET</span><span class="t-es">DULCE</span></h2></button>
+            <button class="card D"><h2><span class="t-en">UMAMI</span><span class="t-es">UMAMI</span></h2></button>
+            <button class="card E"><h2><span class="t-en">SALTY</span><span class="t-es">SALADO</span></h2></button>
+          </div>
+        </div>
+
+        <!-- PENTAD 3 · SOCIAL POWERS -->
+        <div class="pentad" id="pentad-extra-3">
+          <h3><span class="t-en">SOCIAL POWERS</span><span class="t-es">PODERES SOCIALES</span></h3>
+          <form class="controls">
+            <fieldset>
+              <legend><h2><span class="t-en">ECONOMY</span><span class="t-es">ECONOMÍA</span></h2></legend>
+              <label><input id="pe3-r1-A" name="pe3-r1" type="radio"> 1</label>
+              <label><input id="pe3-r1-B" name="pe3-r1" type="radio"> 2</label>
+              <label><input id="pe3-r1-C" name="pe3-r1" type="radio"> 3</label>
+              <label><input id="pe3-r1-D" name="pe3-r1" type="radio"> 4</label>
+              <label><input id="pe3-r1-E" name="pe3-r1" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">JUDICIAL</span><span class="t-es">JUDICIAL</span></h2></legend>
+              <label><input id="pe3-r2-A" name="pe3-r2" type="radio"> 1</label>
+              <label><input id="pe3-r2-B" name="pe3-r2" type="radio"> 2</label>
+              <label><input id="pe3-r2-C" name="pe3-r2" type="radio"> 3</label>
+              <label><input id="pe3-r2-D" name="pe3-r2" type="radio"> 4</label>
+              <label><input id="pe3-r2-E" name="pe3-r2" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">MEDIA</span><span class="t-es">MEDIOS</span></h2></legend>
+              <label><input checked id="pe3-r3-A" name="pe3-r3" type="radio"> 1</label>
+              <label><input id="pe3-r3-B" name="pe3-r3" type="radio"> 2</label>
+              <label><input id="pe3-r3-C" name="pe3-r3" type="radio"> 3</label>
+              <label><input id="pe3-r3-D" name="pe3-r3" type="radio"> 4</label>
+              <label><input id="pe3-r3-E" name="pe3-r3" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">MILITARY</span><span class="t-es">MILITAR</span></h2></legend>
+              <label><input id="pe3-r4-A" name="pe3-r4" type="radio"> 1</label>
+              <label><input id="pe3-r4-B" name="pe3-r4" type="radio"> 2</label>
+              <label><input id="pe3-r4-C" name="pe3-r4" type="radio"> 3</label>
+              <label><input id="pe3-r4-D" name="pe3-r4" type="radio"> 4</label>
+              <label><input id="pe3-r4-E" name="pe3-r4" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">POLITICAL</span><span class="t-es">POLÍTICO</span></h2></legend>
+              <label><input id="pe3-r5-A" name="pe3-r5" type="radio"> 1</label>
+              <label><input id="pe3-r5-B" name="pe3-r5" type="radio"> 2</label>
+              <label><input id="pe3-r5-C" name="pe3-r5" type="radio"> 3</label>
+              <label><input id="pe3-r5-D" name="pe3-r5" type="radio"> 4</label>
+              <label><input id="pe3-r5-E" name="pe3-r5" type="radio"> 5</label>
+            </fieldset>
+          </form>
+          <div class="arena">
+            <button class="card A"><h2><span class="t-en">ECONOMY</span><span class="t-es">ECONÓMICO</span></h2></button>
+            <button class="card B"><h2><span class="t-en">JUDICIAL</span><span class="t-es">JUDICIAL</span></h2></button>
+            <button class="card C"><h2><span class="t-en">MEDIA</span><span class="t-es">MEDIOS</span></h2></button>
+            <button class="card D"><h2><span class="t-en">MILITARY</span><span class="t-es">MILITAR</span></h2></button>
+            <button class="card E"><h2><span class="t-en">POLITICAL</span><span class="t-es">POLÍTICO</span></h2></button>
+          </div>
+        </div>
+
+        <!-- PENTAD 4 · PATHOLOGIES -->
+        <div class="pentad" id="pentad-extra-4">
+          <h3><span class="t-en">PATHOLOGIES</span><span class="t-es">PATOLOGÍAS</span></h3>
+          <form class="controls">
+            <fieldset>
+              <legend><h2><span class="t-en">MYTHOMANIA</span><span class="t-es">MITOMANÍA</span></h2></legend>
+              <label><input id="pe4-r1-A" name="pe4-r1" type="radio"> 1</label>
+              <label><input id="pe4-r1-B" name="pe4-r1" type="radio"> 2</label>
+              <label><input id="pe4-r1-C" name="pe4-r1" type="radio"> 3</label>
+              <label><input id="pe4-r1-D" name="pe4-r1" type="radio"> 4</label>
+              <label><input id="pe4-r1-E" name="pe4-r1" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">HYPERGAMY</span><span class="t-es">HIPERGAMIA</span></h2></legend>
+              <label><input id="pe4-r2-A" name="pe4-r2" type="radio"> 1</label>
+              <label><input id="pe4-r2-B" name="pe4-r2" type="radio"> 2</label>
+              <label><input id="pe4-r2-C" name="pe4-r2" type="radio"> 3</label>
+              <label><input id="pe4-r2-D" name="pe4-r2" type="radio"> 4</label>
+              <label><input id="pe4-r2-E" name="pe4-r2" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">MASOCHISM</span><span class="t-es">MASOQUISMO</span></h2></legend>
+              <label><input checked id="pe4-r3-A" name="pe4-r3" type="radio"> 1</label>
+              <label><input id="pe4-r3-B" name="pe4-r3" type="radio"> 2</label>
+              <label><input id="pe4-r3-C" name="pe4-r3" type="radio"> 3</label>
+              <label><input id="pe4-r3-D" name="pe4-r3" type="radio"> 4</label>
+              <label><input id="pe4-r3-E" name="pe4-r3" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">HYBRISTOPHILIA</span><span class="t-es">HIBRISTOFILIA</span></h2></legend>
+              <label><input id="pe4-r4-A" name="pe4-r4" type="radio"> 1</label>
+              <label><input id="pe4-r4-B" name="pe4-r4" type="radio"> 2</label>
+              <label><input id="pe4-r4-C" name="pe4-r4" type="radio"> 3</label>
+              <label><input id="pe4-r4-D" name="pe4-r4" type="radio"> 4</label>
+              <label><input id="pe4-r4-E" name="pe4-r4" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">SADISM</span><span class="t-es">SADISMO</span></h2></legend>
+              <label><input id="pe4-r5-A" name="pe4-r5" type="radio"> 1</label>
+              <label><input id="pe4-r5-B" name="pe4-r5" type="radio"> 2</label>
+              <label><input id="pe4-r5-C" name="pe4-r5" type="radio"> 3</label>
+              <label><input id="pe4-r5-D" name="pe4-r5" type="radio"> 4</label>
+              <label><input id="pe4-r5-E" name="pe4-r5" type="radio"> 5</label>
+            </fieldset>
+          </form>
+          <div class="arena">
+            <button class="card A"><h2><span class="t-en">MYTHOMANIA</span><span class="t-es">MITOMANÍA</span></h2></button>
+            <button class="card B"><h2><span class="t-en">MASOCHISM</span><span class="t-es">MASOQUISMO</span></h2></button>
+            <button class="card C"><h2><span class="t-en">HYPERGAMY</span><span class="t-es">HIPERGAMIA</span></h2></button>
+            <button class="card D"><h2><span class="t-en">HYBRISTOPHILIA</span><span class="t-es">HIBRISTOFILIA</span></h2></button>
+            <button class="card E"><h2><span class="t-en">SADISM</span><span class="t-es">SADISMO</span></h2></button>
+          </div>
+        </div>
+
+        <!-- PENTAD 5 · ELEMENTS / STATES OF MATTER -->
+        <div class="pentad" id="pentad-extra-5">
+          <h3><span class="t-en">ELEMENTS / STATES OF MATTER</span><span class="t-es">ELEMENTOS / ESTADOS DE LA MATERIA</span></h3>
+          <form class="controls">
+            <fieldset>
+              <legend><h2><span class="t-en">WATER</span><span class="t-es">AGUA</span></h2></legend>
+              <label><input id="pe5-r1-A" name="pe5-r1" type="radio"> 1</label>
+              <label><input id="pe5-r1-B" name="pe5-r1" type="radio"> 2</label>
+              <label><input id="pe5-r1-C" name="pe5-r1" type="radio"> 3</label>
+              <label><input id="pe5-r1-D" name="pe5-r1" type="radio"> 4</label>
+              <label><input id="pe5-r1-E" name="pe5-r1" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">AIR</span><span class="t-es">AIRE</span></h2></legend>
+              <label><input id="pe5-r2-A" name="pe5-r2" type="radio"> 1</label>
+              <label><input id="pe5-r2-B" name="pe5-r2" type="radio"> 2</label>
+              <label><input id="pe5-r2-C" name="pe5-r2" type="radio"> 3</label>
+              <label><input id="pe5-r2-D" name="pe5-r2" type="radio"> 4</label>
+              <label><input id="pe5-r2-E" name="pe5-r2" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">FIRE</span><span class="t-es">FUEGO</span></h2></legend>
+              <label><input checked id="pe5-r3-A" name="pe5-r3" type="radio"> 1</label>
+              <label><input id="pe5-r3-B" name="pe5-r3" type="radio"> 2</label>
+              <label><input id="pe5-r3-C" name="pe5-r3" type="radio"> 3</label>
+              <label><input id="pe5-r3-D" name="pe5-r3" type="radio"> 4</label>
+              <label><input id="pe5-r3-E" name="pe5-r3" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">PLASMA</span><span class="t-es">PLASMA</span></h2></legend>
+              <label><input id="pe5-r4-A" name="pe5-r4" type="radio"> 1</label>
+              <label><input id="pe5-r4-B" name="pe5-r4" type="radio"> 2</label>
+              <label><input id="pe5-r4-C" name="pe5-r4" type="radio"> 3</label>
+              <label><input id="pe5-r4-D" name="pe5-r4" type="radio"> 4</label>
+              <label><input id="pe5-r4-E" name="pe5-r4" type="radio"> 5</label>
+            </fieldset>
+            <fieldset>
+              <legend><h2><span class="t-en">EARTH</span><span class="t-es">TIERRA</span></h2></legend>
+              <label><input id="pe5-r5-A" name="pe5-r5" type="radio"> 1</label>
+              <label><input id="pe5-r5-B" name="pe5-r5" type="radio"> 2</label>
+              <label><input id="pe5-r5-C" name="pe5-r5" type="radio"> 3</label>
+              <label><input id="pe5-r5-D" name="pe5-r5" type="radio"> 4</label>
+              <label><input id="pe5-r5-E" name="pe5-r5" type="radio"> 5</label>
+            </fieldset>
+          </form>
+          <div class="arena">
+            <button class="card A"><h2><span class="t-en">WATER</span><span class="t-es">AGUA</span></h2></button>
+            <button class="card B"><h2><span class="t-en">AIR</span><span class="t-es">AIRE</span></h2></button>
+            <button class="card C"><h2><span class="t-en">FIRE</span><span class="t-es">FUEGO</span></h2></button>
+            <button class="card D"><h2><span class="t-en">PLASMA</span><span class="t-es">PLASMA</span></h2></button>
+            <button class="card E"><h2><span class="t-en">EARTH</span><span class="t-es">TIERRA</span></h2></button>
+          </div>
+        </div>
+
+      </div><!-- /.pentads -->
+
+      <button class="card A analyse-card">
+        <a href="analysis/"><h2><span class="t-en">ANALYSE</span><span class="t-es">ANALIZAR</span></h2></a>
+      </button>
+
+    </div><!-- /.triads-grid -->
+  </section>
+</body>
+</html>

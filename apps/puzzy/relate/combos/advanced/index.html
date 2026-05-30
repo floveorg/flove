@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Advanced</title>
+  <link rel="stylesheet" href="../../../../flove.css">
+  <style>
+    :root{
+      /* flove identity overrides — Puzzy: violet accent, teal flourish, on a deep canvas */
+      --app-accent:        #8d89ff;
+      --app-accent-soft:   #c9c6ff;
+      --app-ink-on-accent: #0b0b14;
+
+      /* Puzzy local palette (dark) */
+      --bg:#0b0b0f; --panel:#11131a; --ink:#e9eaf2; --muted:#a3a7b4;
+      --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1000px 700px at 110% -10%, rgba(141,137,255,.16), transparent 60%),
+        radial-gradient(800px 600px at -10% 120%, rgba(112,240,211,.12), transparent 50%),
+        var(--bg);
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    /* i18n — pure CSS (§13.2) */
+    .t-es{ display:none }
+    body:has(#ui-lang-es:checked) .t-en{ display:none }
+    body:has(#ui-lang-es:checked) .t-es{ display:inline }
+
+    /* language toggle inside the flove-bar */
+    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang input{ position:absolute; opacity:0; pointer-events:none }
+    .lang label{
+      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
+      border:1px solid transparent;
+    }
+    #ui-lang-en:checked ~ label[for=ui-lang-en],
+    #ui-lang-es:checked ~ label[for=ui-lang-es]{
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
+    }
+
+    /* shell */
+    .shell{ max-width:980px; margin:1.4rem auto 4rem; padding:0 1rem; display:grid; gap:1.2rem }
+
+    /* header */
+    .hdr{ display:flex; gap:.75rem; align-items:baseline; flex-wrap:wrap }
+    .hdr .tag{
+      padding:.2rem .6rem; border:1px solid var(--line); border-radius:var(--flove-radius-pill);
+      background:#0f1120; color:var(--accent2); font-weight:700; font-size:.8rem; letter-spacing:.4px;
+    }
+    .hdr h1{
+      font-size:1.6rem; margin:.25rem 0 0; letter-spacing:.5px;
+      background:linear-gradient(180deg,#fff,#cfc9ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+
+    /* cards */
+    .card{
+      border:1px solid var(--line); border-radius:var(--flove-radius);
+      padding:1rem 1.1rem;
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    }
+    .card h2{ margin:.1rem 0 .75rem; font-size:1.05rem; letter-spacing:.6px; color:var(--accent2) }
+    .card h3{ margin:.25rem 0 .5rem; font-size:.95rem; letter-spacing:.6px; color:var(--app-accent); font-weight:700 }
+    .line{ height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent); margin:.25rem 0 .75rem }
+
+    /* input row */
+    .inputline{ display:grid; grid-template-columns:1fr auto; gap:.65rem; align-items:start }
+    .ghost{
+      border:1px dashed var(--line); border-radius:var(--flove-radius-sm);
+      padding:.7rem .85rem; background:var(--field);
+    }
+    .ghost input{
+      appearance:none; border:0; outline:0; background:transparent; color:var(--ink);
+      font:600 1.05rem/1.2 var(--flove-font-ui); width:100%;
+    }
+
+    /* buttons */
+    .btn{
+      display:inline-grid; place-items:center;
+      padding:.6rem .9rem; border-radius:var(--flove-radius-sm); border:1px solid var(--line);
+      background:#121733; color:var(--ink); font-weight:700; cursor:pointer;
+      transition:box-shadow var(--flove-fast), border-color var(--flove-fast); user-select:none;
+    }
+    .btn:hover{ border-color:var(--app-accent); box-shadow:0 0 12px rgba(141,137,255,.45) }
+    .btn.accent{
+      background:linear-gradient(180deg,var(--accent2),var(--app-accent));
+      color:var(--app-ink-on-accent); border-color:var(--app-accent);
+    }
+
+    /* chips for custom values */
+    .chips{ display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.6rem }
+    .chip{
+      font-weight:600; font-size:.9rem; color:var(--app-accent-soft);
+      background:#121733; border:1px solid var(--line); border-radius:var(--flove-radius-pill);
+      padding:.35rem .65rem;
+    }
+
+    /* senses */
+    .senses{ display:grid; grid-template-columns:repeat(5,1fr); gap:.6rem; margin-top:.5rem }
+    .sense{
+      display:grid; gap:.35rem; place-items:center; border:1px solid var(--line);
+      background:var(--field); padding:.75rem; border-radius:var(--flove-radius-sm); text-align:center;
+      cursor:pointer; transition:border-color var(--flove-fast), box-shadow var(--flove-fast);
+    }
+    .sense b{ font-size:1.05rem }
+    .sense input{ display:none }
+    .sense:has(input:checked){ border-color:var(--accent2); box-shadow:0 0 0 2px rgba(112,240,211,.45) }
+
+    /* combos */
+    .actions{ display:flex; gap:.6rem; align-items:center; margin-top:.9rem; flex-wrap:wrap }
+    .toggle-all{ display:flex; align-items:center; gap:.45rem; font-weight:700; color:var(--ink) }
+    .toggle-all input{ width:1.05rem; height:1.05rem; accent-color:var(--app-accent) }
+
+    .combos{ margin-top:1rem }
+    .combos-hdr{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem }
+    .combos-list{ display:grid; grid-template-columns:repeat(2,minmax(260px,1fr)); gap:.45rem }
+    .combo{
+      display:flex; gap:.55rem; align-items:center; border:1px solid var(--line);
+      background:var(--field); padding:.5rem .7rem; border-radius:var(--flove-radius-sm);
+    }
+    .combo input{ width:1rem; height:1rem; accent-color:var(--app-accent) }
+    .combo-line{ display:flex; flex-wrap:wrap; gap:.35rem }
+    .token{
+      display:inline-block; padding:.15rem .45rem; border-radius:var(--flove-radius-sm);
+      background:#0f173a; border:1px solid var(--line); font-weight:700; font-style:normal;
+    }
+
+    /* wise it */
+    .wise-panel{
+      margin-top:1rem; border:1px dashed var(--line); border-radius:var(--flove-radius-sm);
+      padding:.4rem .75rem; background:#0f142e;
+    }
+    .wise-panel > summary{ cursor:pointer; font-weight:800; color:var(--app-accent-soft); padding:.5rem 0 }
+    .wise-grid{ display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:.5rem }
+    .wise{
+      display:flex; gap:.45rem; align-items:center; border:1px solid var(--line);
+      background:var(--field); padding:.5rem .7rem; border-radius:var(--flove-radius-sm); cursor:pointer;
+    }
+    .wise input{ accent-color:var(--app-accent) }
+
+    /* footer actions (JS-driven) */
+    .footer-actions{ display:flex; gap:.6rem; flex-wrap:wrap }
+    .mega-btn{
+      text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
+      gap:.55rem; padding:.7rem 1.1rem; border-radius:var(--flove-radius-sm); border:1px solid var(--line);
+      font-weight:900; letter-spacing:.2px; cursor:pointer;
+      color:var(--ink); background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+      transition:transform .12s ease, border-color var(--flove-fast), box-shadow var(--flove-fast);
+    }
+    .mega-btn:hover{ transform:translateY(-1px); border-color:var(--app-accent); box-shadow:0 0 14px rgba(141,137,255,.4) }
+    .mega-btn.save{ border-color:var(--app-accent) }
+    .mega-btn.send{ border-color:var(--accent2) }
+    .mega-btn.publish{ border-color:var(--app-accent-soft) }
+
+    .action-note{ margin-top:.6rem; font-weight:700; color:var(--app-accent-soft); min-height:1.2em }
+    .action-note.ok{ color:var(--accent2) }
+    .action-note.warn{ color:#ffd27a }
+
+    /* save output editor */
+    .editor-list{ display:grid; gap:.9rem; margin-top:.6rem }
+    .editor-block{
+      border:1px solid var(--line); background:var(--field);
+      border-radius:var(--flove-radius-sm); padding:.8rem .9rem;
+    }
+    .editor-title{ margin:0 0 .55rem; display:flex; flex-wrap:wrap; gap:.35rem }
+    .tag-sm{ background:#0f173a; border:1px solid var(--line); border-radius:var(--flove-radius-sm); padding:.2rem .5rem }
+    .editor-row{ display:grid; gap:.4rem; margin:.4rem 0 }
+    .editor-row label{ font-weight:800; color:var(--app-accent-soft) }
+    .editor-input{
+      width:100%; padding:.6rem .7rem; border-radius:var(--flove-radius-sm);
+      border:1px solid var(--line); background:var(--field); color:var(--ink); font:inherit;
+    }
+    .editor-input:focus{
+      outline:none; border-color:var(--app-accent);
+      box-shadow:0 0 0 3px rgba(141,137,255,.18);
+    }
+
+    /* overlay */
+    .overlay{
+      position:fixed; inset:0; background:rgba(3,5,20,.66);
+      display:none; align-items:center; justify-content:center; padding:1rem; z-index:20;
+    }
+    .overlay.show{ display:flex }
+    .modal{
+      background:var(--panel); border:1px solid var(--line); border-radius:var(--flove-radius);
+      padding:1rem 1.2rem; max-width:460px; width:100%;
+      box-shadow:0 20px 60px rgba(0,0,0,.55);
+    }
+    .modal h3{ margin-top:0; color:var(--accent2) }
+    .modal .btn{ margin-top:.6rem }
+
+    /* responsive */
+    @media (max-width:960px){
+      .senses{ grid-template-columns:1fr 1fr }
+      .wise-grid{ grid-template-columns:1fr 1fr }
+      .combos-list{ grid-template-columns:1fr }
+      .inputline{ grid-template-columns:1fr; gap:.55rem }
+    }
+  </style>
+</head>
+<body>
+  <!-- language radios (drive the pure-CSS i18n) -->
+  <nav class="flove-bar flove-bar--dark">
+    <a class="flove-home" href="../../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
+    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
+    <span class="flove-app-name">Puzzy</span>
+    <span class="flove-tag">Advanced</span>
+    <span class="lang">
+      <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+      <input type="radio" name="ui-lang" id="ui-lang-es">
+      <label for="ui-lang-en">EN</label>
+      <label for="ui-lang-es">ES</label>
+    </span>
+  </nav>
+
+  <div class="shell">
+    <header class="hdr">
+      <span class="tag">FUZZY</span>
+      <h1><span class="t-en">Advanced combinations</span><span class="t-es">Combinaciones avanzadas</span></h1>
+    </header>
+
+    <!-- SEED INPUTS -->
+    <section class="card">
+      <h2><span class="t-en">Add your keywords here</span><span class="t-es">Añade tus palabras clave aquí</span></h2>
+      <div class="line"></div>
+      <div class="inputline">
+        <label class="ghost" aria-label="Add a keyword">
+          <input id="seedInput" placeholder="Add one here…">
+        </label>
+        <button id="addMoreBtn" class="btn" aria-label="Add more custom value"><span class="t-en">Add more</span><span class="t-es">Añadir más</span></button>
+      </div>
+      <div id="customTokens" class="chips" aria-live="polite"></div>
+    </section>
+
+    <!-- SENSES -->
+    <section class="card" id="sensesSection">
+      <h2><span class="t-en">Senses</span><span class="t-es">Sentidos</span></h2>
+      <div class="senses" role="group" aria-label="Senses">
+        <label class="sense">
+          <b><span class="t-en">Hear</span><span class="t-es">Oír</span></b> 🔊
+          <input type="checkbox" value="Hear" class="sense-check">
+        </label>
+        <label class="sense">
+          <b><span class="t-en">Taste</span><span class="t-es">Gusto</span></b> 🍽️
+          <input type="checkbox" value="Taste" class="sense-check">
+        </label>
+        <label class="sense">
+          <b><span class="t-en">Smell</span><span class="t-es">Olfato</span></b> 🌿
+          <input type="checkbox" value="Smell" class="sense-check">
+        </label>
+        <label class="sense">
+          <b><span class="t-en">Touch</span><span class="t-es">Tacto</span></b> ✋
+          <input type="checkbox" value="Touch" class="sense-check">
+        </label>
+        <label class="sense">
+          <b><span class="t-en">View</span><span class="t-es">Vista</span></b> 👁️
+          <input type="checkbox" value="View" class="sense-check">
+        </label>
+      </div>
+    </section>
+
+    <!-- COMBO GENERATOR -->
+    <section class="card">
+
+      <div class="actions">
+        <button id="nextBtn" class="btn accent"><span class="t-en">Generate combinations</span><span class="t-es">Generar combinaciones</span></button>
+
+        <!-- Toggle-all: unchecked by default -->
+        <label class="toggle-all">
+          <input id="toggleAll" type="checkbox">
+          <span><span class="t-en">Select all</span><span class="t-es">Seleccionar todo</span></span>
+        </label>
+      </div>
+
+      <!-- Combinations (built after Next) -->
+      <div id="combosWrap" class="combos" hidden>
+        <div class="combos-hdr">
+          <h3><span class="t-en">All possible combinations</span><span class="t-es">Todas las combinaciones posibles</span></h3>
+        </div>
+        <div id="combosList" class="combos-list"></div>
+      </div>
+
+      <!-- WISE IT (below combos, collapsed by default) -->
+      <details id="wiseDetails" class="wise-panel">
+        <summary><span class="t-en">Wise it</span><span class="t-es">Wise it</span></summary>
+        <div class="wise-grid">
+          <label class="wise"><input type="checkbox" value="Ethical"    class="wise-check"> <span class="t-en">Evidence</span><span class="t-es">Evidencia</span></label>
+          <label class="wise"><input type="checkbox" value="Pragmatic"  class="wise-check"> <span class="t-en">Axiom</span><span class="t-es">Axioma</span></label>
+          <label class="wise"><input type="checkbox" value="Aesthetic"  class="wise-check"> <span class="t-en">Prediction</span><span class="t-es">Predicción</span></label>
+          <label class="wise"><input type="checkbox" value="Social"     class="wise-check"> <span class="t-en">Proposal</span><span class="t-es">Propuesta</span></label>
+          <label class="wise"><input type="checkbox" value="Spiritual"  class="wise-check"> <span class="t-en">Challenge</span><span class="t-es">Reto</span></label>
+        </div>
+      </details>
+    </section>
+
+    <!-- ACTIONS (now JS-driven) -->
+    <section class="card">
+      <div class="footer-actions">
+        <button id="saveBtn" class="mega-btn save"><span class="t-en">Save</span><span class="t-es">Guardar</span></button>
+        <button id="shareBtn" class="mega-btn send"><span class="t-en">Share</span><span class="t-es">Compartir</span></button>
+        <button id="publishBtn" class="mega-btn publish"><span class="t-en">Publish</span><span class="t-es">Publicar</span></button>
+      </div>
+      <div id="actionNote" class="action-note" aria-live="polite"></div>
+    </section>
+
+    <!-- SAVE OUTPUT (generated editor) -->
+    <section id="editorWrap" class="card" hidden>
+      <h2><span class="t-en">Edit your selections</span><span class="t-es">Edita tus selecciones</span></h2>
+      <div id="editorList" class="editor-list"></div>
+    </section>
+
+    <!-- JS SUCCESS OVERLAY -->
+    <div id="overlay" class="overlay">
+      <div class="modal">
+        <h3 id="overlayTitle">Done</h3>
+        <p id="overlayMsg">Your data was processed.</p>
+        <button class="btn" id="overlayClose"><span class="t-en">Close</span><span class="t-es">Cerrar</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Basic elements =====
+    const seedInput = document.getElementById('seedInput');
+    const addMoreBtn = document.getElementById('addMoreBtn');
+    const customTokens = document.getElementById('customTokens');
+
+    const nextBtn = document.getElementById('nextBtn');
+    const combosWrap = document.getElementById('combosWrap');
+    const combosList = document.getElementById('combosList');
+    const toggleAll = document.getElementById('toggleAll');
+
+    const saveBtn = document.getElementById('saveBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const publishBtn = document.getElementById('publishBtn');
+    const actionNote = document.getElementById('actionNote');
+
+    const editorWrap = document.getElementById('editorWrap');
+    const editorList = document.getElementById('editorList');
+
+    const overlay = document.getElementById('overlay');
+    const overlayClose = document.getElementById('overlayClose');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayMsg = document.getElementById('overlayMsg');
+
+    // ===== State =====
+    const customValues = []; // user-added tokens
+
+    function addCustomToken(val) {
+      const clean = (val || '').trim();
+      if (!clean) return;
+      customValues.push(clean);
+
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = clean;
+      customTokens.appendChild(chip);
+      seedInput.value = '';
+    }
+
+    addMoreBtn.addEventListener('click', () => addCustomToken(seedInput.value));
+    seedInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustomToken(seedInput.value);
+      }
+    });
+
+    // ===== Collect & combine =====
+    function collectSelectedPool() {
+      const senses = Array.from(document.querySelectorAll('.sense-check:checked')).map(i => i.value);
+      return [...senses, ...customValues];
+    }
+
+    function combinations(items) {
+      const out = [];
+      const n = items.length;
+      for (let mask = 1; mask < (1 << n); mask++) {
+        const combo = [];
+        for (let i = 0; i < n; i++) if (mask & (1 << i)) combo.push(items[i]);
+        out.push(combo);
+      }
+      return out;
+    }
+
+    function renderComboRow(combo, idx) {
+      // No plus sign — render as inline tokens with spacing only
+      const id = `combo-${idx}`;
+      const row = document.createElement('label');
+      row.className = 'combo';
+      const tokens = combo.map(v => `<em class="token">${v}</em>`).join(' ');
+      row.innerHTML = `<input type="checkbox" id="${id}">
+                       <span class="combo-line">${tokens}</span>`;
+      return row;
+    }
+
+    nextBtn.addEventListener('click', () => {
+      const pool = collectSelectedPool();
+      combosList.innerHTML = '';
+      if (pool.length === 0) { combosWrap.hidden = true; return; }
+
+      const combos = combinations(pool);
+      const frag = document.createDocumentFragment();
+      combos
+        .sort((a,b)=> a.length-b.length || a.join().localeCompare(b.join()))
+        .forEach((combo, idx) => frag.appendChild(renderComboRow(combo, idx)));
+
+      combosList.appendChild(frag);
+      combosWrap.hidden = false;
+      toggleAll.checked = false; // keep unchecked by default
+    });
+
+    toggleAll.addEventListener('change', () => {
+      const boxes = combosList.querySelectorAll('input[type="checkbox"]');
+      boxes.forEach(b => b.checked = toggleAll.checked);
+    });
+
+    // ===== Wise it selections =====
+    function getWiseSelections() {
+      return Array.from(document.querySelectorAll('.wise-check:checked')).map(i => i.value);
+    }
+
+    // ===== Build data snapshot =====
+    function collectSelectedCombos() {
+      const rows = combosList.querySelectorAll('.combo');
+      const picks = [];
+      rows.forEach(row => {
+        const box = row.querySelector('input[type="checkbox"]');
+        if (box && box.checked) {
+          const tokens = Array.from(row.querySelectorAll('.token')).map(el => el.textContent.trim());
+          if (tokens.length) picks.push(tokens);
+        }
+      });
+      return picks;
+    }
+
+    function buildExportObject() {
+      return {
+        seeds: customValues.slice(),
+        senses: Array.from(document.querySelectorAll('.sense-check:checked')).map(i => i.value),
+        wise: getWiseSelections(),
+        combinations: collectSelectedCombos(),
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // ===== Save: create editor inputs per combination + wise fields =====
+    function renderEditor() {
+      const wise = getWiseSelections();
+      const combos = collectSelectedCombos();
+
+      editorList.innerHTML = '';
+      if (combos.length === 0) {
+        editorWrap.hidden = true;
+        showNote('Select at least one combination before saving.', 'warn');
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      combos.forEach((combo, i) => {
+        const block = document.createElement('div');
+        block.className = 'editor-block';
+
+        const title = document.createElement('h3');
+        title.className = 'editor-title';
+        // No plus sign — show tokens spaced
+        title.innerHTML = combo.map(v => `<span class="tag-sm">${v}</span>`).join(' ');
+        block.appendChild(title);
+
+        // Main free text for the combination
+        const line = document.createElement('div');
+        line.className = 'editor-row';
+        line.innerHTML = `
+          <label>Note for this combination</label>
+          <input type="text" class="editor-input" placeholder="Write something…">
+        `;
+        block.appendChild(line);
+
+        // Wise fields (only those selected)
+        wise.forEach(w => {
+          const row = document.createElement('div');
+          row.className = 'editor-row';
+          const safe = w.toLowerCase().replace(/\W+/g,'-');
+          row.innerHTML = `
+            <label>${w}</label>
+            <input type="text" class="editor-input" placeholder="${w}…"
+              name="wise-${safe}-${i}">
+          `;
+          block.appendChild(row);
+        });
+
+        frag.appendChild(block);
+      });
+
+      editorList.appendChild(frag);
+      editorWrap.hidden = false;
+      editorWrap.scrollIntoView({behavior:'smooth', block:'start'});
+      showOverlay('Saved', 'Your fields were generated below, one set per selected combination.');
+    }
+
+    saveBtn.addEventListener('click', renderEditor);
+
+    // ===== Share =====
+    async function handleShare() {
+      const data = buildExportObject();
+      const summary =
+        `FLOVE — Share\n\nSeeds: ${data.seeds.join(', ') || '—'}\n` +
+        `Senses: ${data.senses.join(', ') || '—'}\n` +
+        `Wise: ${data.wise.join(', ') || '—'}\n` +
+        `Combos: ${data.combinations.map(c=>c.join(' ')).join(' | ') || '—'}\n` +
+        `When: ${data.timestamp}`;
+
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'FLOVE selections', text: summary });
+          showNote('Shared via system share sheet.', 'ok');
+        } else {
+          const mailto =
+            `mailto:?subject=${encodeURIComponent('FUZZY selections')}` +
+            `&body=${encodeURIComponent(summary)}`;
+          window.location.href = mailto;
+          showNote('Opening your email app to share…', 'ok');
+        }
+      } catch (e) {
+        showNote('Share canceled or failed.', 'warn');
+      }
+    }
+    shareBtn.addEventListener('click', handleShare);
+
+    // ===== Publish =====
+    async function handlePublish() {
+      const data = buildExportObject();
+      const json = JSON.stringify(data, null, 2);
+      // Download file
+      const blob = new Blob([json], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flove-data-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      // Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(json);
+        showOverlay('Published', 'JSON downloaded and also copied to your clipboard.');
+      } catch {
+        showOverlay('Published', 'JSON downloaded. (Clipboard copy not permitted by browser.)');
+      }
+    }
+    publishBtn.addEventListener('click', handlePublish);
+
+    // ===== Helpers: notes & overlay =====
+    function showNote(msg, kind='info'){
+      actionNote.textContent = msg;
+      actionNote.className = `action-note ${kind}`;
+      setTimeout(() => {
+        actionNote.textContent = '';
+        actionNote.className = 'action-note';
+      }, 4000);
+    }
+
+    function showOverlay(title, msg){
+      overlayTitle.textContent = title;
+      overlayMsg.textContent = msg;
+      overlay.classList.add('show');
+    }
+    overlayClose.addEventListener('click', ()=> overlay.classList.remove('show'));
+    overlay.addEventListener('click', (e)=> {
+      if (e.target === overlay) overlay.classList.remove('show');
+    });
+  </script>
+</body>
+</html>

@@ -29,6 +29,15 @@
     --pink:        #ec4899;
     --cyan:        #06b6d4;
 
+    /* tokens used by the ported flovynormal action-grid (Invitation) */
+    --accent-rgb:   139,92,246;
+    --fill-soft:    var(--accent-soft);
+    --fill-mid:     #ddd6fe;
+    --fill-pressed: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    --grad-active:  linear-gradient(180deg, var(--accent), var(--accent-deep));
+    --ink-mute:     var(--muted);
+    --btn-trans:    all var(--fast);
+
     --radius-sm: 12px;
     --radius:    18px;
     --radius-lg: 24px;
@@ -395,6 +404,8 @@
   }
   @media (max-width: 640px){ .scope-grid{ grid-template-columns: 1fr } }
   .scope-right{ display: grid; gap: 14px }
+  /* Who section — Close / Near / All: center the button label text */
+  .scope-grid .choices.inline label{ justify-content: center; text-align: center }
 
   .ppl-label{
     display: block;
@@ -513,11 +524,9 @@
   .tree-col{ display: grid; gap: 10px; align-content: start }
   @media (max-width: 640px){ .tree{ grid-template-columns: 1fr } }
   /* tree levels — each unlocked once the previous group has a pick.
-     lvl-2 (Past/Current/Future) is optional refinement (hidden behind +),
-     so lvl-3 unlocks straight from lvl-1 — picking lvl-2 isn't required. */
+     lvl-2 (Past/Current/Future) and lvl-3 are now always available (the
+     More/Less radio gate was removed); lvl-4 / lvl-5 still chain. */
   .lvl-2, .lvl-3, .lvl-4, .lvl-5{ transition: opacity var(--fast) }
-  .tree:not(:has(input[name="t1"]:checked)) .lvl-2,
-  .tree:not(:has(input[name="t1"]:checked)) .lvl-3,
   .tree:not(:has(input[name="t3"]:checked)) .lvl-4,
   .tree:not(:has(input[name="t4"]:checked)) .lvl-5{
     opacity:.4; pointer-events:none;
@@ -526,6 +535,9 @@
      always visible alongside lvl-3 / lvl-5 */
   .section[data-sec="4"] .lvl-2{ display: none }
   .section[data-sec="4"]:has(#tree-more-toggle:checked) .lvl-2{ display: block }
+  /* Note textarea — revealed by the same "+" toggle */
+  .section[data-sec="4"] .pref-note-field{ display: none }
+  .section[data-sec="4"]:has(#tree-more-toggle:checked) .pref-note-field{ display: block }
   .tree-more-wrap{ display: flex; justify-content: center; margin-top: 12px; position: relative }
   .tree-more-wrap > input[type="checkbox"]{ position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px }
 
@@ -1060,6 +1072,519 @@
     color: #fff; border-color: transparent;
   }
   #acc-que .ta-field .ta-bottom-tools .bot-row{ margin-left: 4px }
+
+  /* ====================================================================
+     INVITATION ACTION-GRID — ported from flovynormal §15 (summary panel),
+     mirroring offer/freed.html. All rules are scoped under .inv-body so
+     they only style the Invitation's interior. Hidden-input ids
+     (cycle-save, magic-toggle, etc.) only exist inside .inv-body, so
+     `body:has(#id:checked)` only fires when an Invitation toggle is active.
+     ==================================================================== */
+
+  .inv-body .action-grid{ display:flex; flex-direction:column; gap: 2rem; }
+  .inv-body .action-row{ display:flex; flex-wrap:wrap; gap: .5rem; justify-content:flex-start }
+  .inv-body .action-row.right{
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: .35rem;
+  }
+
+  /* Ghost buttons — flovynormal default. Scoped to .inv-body so the rest of
+     shareful's .btn (pill look) is untouched. */
+  .inv-body .btn{
+    display:inline-flex; align-items:center; gap:.25rem;
+    height: 36px; padding: 0 .55rem;
+    border-radius: var(--radius-pill);
+    font: 600 .82rem/1 var(--font-ui);
+    letter-spacing: .04em; cursor: pointer;
+    text-decoration: none;
+    border: 1px solid var(--line-strong);
+    background: transparent; color: var(--ink-soft);
+    transition: var(--btn-trans), transform var(--fast);
+  }
+  .inv-body .btn.ghost{ background: transparent; border: 1px solid var(--line-strong); color: var(--ink-soft); }
+  .inv-body .btn.ghost:hover{
+    background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
+    box-shadow: 0 6px 16px var(--accent-glow); transform: translateY(-1px);
+  }
+  .inv-body .btn.ghost:active{
+    background: var(--fill-pressed); color:#fff; border-color: var(--accent);
+    transform: translateY(0); box-shadow: none;
+  }
+  .inv-body .btn.solid{ background: var(--grad-active); color:#fff; border:1px solid var(--accent-deep); }
+  .inv-body .btn.solid:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+
+  /* Top action-row buttons (Insight / Magic / Copy) — 15% smaller */
+  .inv-body .action-row > .btn,
+  .inv-body .action-row > .insight-cycle .btn{
+    height: 31px;
+    padding: 0 .47rem;
+    font-size: .7rem;
+  }
+
+  /* Clause output — magic-variant swap (shareful's #sentence keeps .sentence) */
+  .inv-body .clause-magic{ display:none; }
+  body:has(#magic-toggle:checked) .inv-body .clause-default{ display:none; }
+  body:has(#magic-toggle:checked) .inv-body .clause-magic{ display:block; }
+  .inv-body .magic-btn-summary .label-on{ display:none; }
+  body:has(#magic-toggle:checked) .inv-body .magic-btn-summary .label-off{ display:none; }
+  body:has(#magic-toggle:checked) .inv-body .magic-btn-summary .label-on{ display:inline; }
+  body:has(#magic-toggle:checked) .inv-body .magic-btn-summary{
+    background: var(--fill-pressed); color:#fff; border-color: var(--accent);
+  }
+
+  /* Insight cycle — 5 states (0 empty + 4 texts) */
+  .inv-body .insight-cycle{ display:inline-flex; position:relative; }
+  .inv-body .insight-step{ display:none; }
+  body:has(#insight-0:checked) .inv-body .insight-step:nth-child(1),
+  body:has(#insight-1:checked) .inv-body .insight-step:nth-child(2),
+  body:has(#insight-2:checked) .inv-body .insight-step:nth-child(3),
+  body:has(#insight-3:checked) .inv-body .insight-step:nth-child(4),
+  body:has(#insight-4:checked) .inv-body .insight-step:nth-child(5){ display:inline-flex; }
+  body:has(#insight-1:checked) .inv-body .insight-step:nth-child(2),
+  body:has(#insight-2:checked) .inv-body .insight-step:nth-child(3),
+  body:has(#insight-3:checked) .inv-body .insight-step:nth-child(4),
+  body:has(#insight-4:checked) .inv-body .insight-step:nth-child(5){
+    background: var(--fill-pressed); color:#fff; border-color: var(--accent);
+  }
+  .inv-body .insight-panel{
+    display:none;
+    margin-top: .9rem; padding: .9rem 1rem;
+    border-radius: 12px;
+    background: rgba(var(--accent-rgb), .06);
+    border: 1px solid rgba(var(--accent-rgb), .18);
+    font-size: .88rem; line-height: 1.55; color: var(--ink);
+  }
+  body:has(#insight-1:checked) .inv-body .insight-1-content,
+  body:has(#insight-2:checked) .inv-body .insight-2-content,
+  body:has(#insight-3:checked) .inv-body .insight-3-content,
+  body:has(#insight-4:checked) .inv-body .insight-4-content{ display:block; }
+
+  /* Views subtab — sits immediately below the Insight/Magic/Copy row */
+  .inv-body .action-row--views{
+    display:flex;
+    visibility:hidden;
+    justify-content:flex-start;
+    gap:.25rem;
+    margin: -16px 0 0 0;
+    min-height: 22px;
+  }
+  body:has(#views-open:checked) .inv-body .action-row--views{ visibility: visible; }
+  .inv-body .action-row--views .view-pick{
+    height: 22px !important;
+    padding: 0 .5rem !important;
+    font-size: .75rem !important;
+    line-height: 1;
+    border-radius: 6px;
+  }
+  body:has(#view-bars:checked)     .inv-body .view-pick[for="view-bars"],
+  body:has(#view-vertical:checked) .inv-body .view-pick[for="view-vertical"],
+  body:has(#view-axial:checked)    .inv-body .view-pick[for="view-axial"],
+  body:has(#view-spider:checked)   .inv-body .view-pick[for="view-spider"]{
+    background: var(--fill-pressed); color:#fff; border-color: var(--accent);
+  }
+  body:has(#views-open:checked) .inv-body .views-btn,
+  body:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked) .inv-body .views-btn{
+    background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep);
+  }
+
+  /* Chart slot — collapsed when no view marked. */
+  .inv-body .cssviz-out{
+    margin-top: .85rem;
+    padding-top: .7rem;
+    border-top: 1px dashed rgba(0,0,0,.08);
+  }
+  body:not(:has(#view-bars:checked, #view-vertical:checked, #view-axial:checked, #view-spider:checked)) .inv-body .cssviz-out{
+    display:none;
+  }
+  .inv-body .cssviz{ display:none; max-width: 360px; margin: 0 auto; }
+  body:has(#view-bars:checked) .inv-body .cssviz--bars{ display:block; }
+  body:has(#view-vertical:checked) .inv-body .cssviz--vertical{
+    display:flex; align-items:flex-end; justify-content:space-around; gap:.7rem;
+  }
+  body:has(#view-vertical:checked) .inv-body .cssviz--bars{ display:none; }
+  .inv-body .cssviz--svg{ text-align:center; color: var(--ink-mute); font-size:.8rem }
+  body:has(#view-axial:checked) .inv-body .cssviz--svg,
+  body:has(#view-spider:checked) .inv-body .cssviz--svg{ display:block; }
+  body:has(#view-axial:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .inv-body .cssviz--bars,
+  body:has(#view-axial:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .inv-body .cssviz--vertical,
+  body:has(#view-spider:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .inv-body .cssviz--bars,
+  body:has(#view-spider:checked):not(:has(#view-bars:checked)):not(:has(#view-vertical:checked)) .inv-body .cssviz--vertical{
+    display:none;
+  }
+  .inv-body .cssbar{ display:flex; align-items:center; gap:.55rem; margin:.34rem 0; }
+  .inv-body .cssbar-emo{ width:1.5em; text-align:center; font-size:1.1rem }
+  .inv-body .cssbar-trk{
+    position:relative; flex:1; height:10px;
+    background: rgba(0,0,0,.08); border-radius:999px; overflow:hidden;
+  }
+  .inv-body .cssbar-trk > i{
+    position:absolute; left:0; top:0; bottom:0; width:0;
+    background: var(--accent); transition: width .2s ease;
+  }
+  .inv-body .csscol{ display:flex; flex-direction:column; align-items:center; gap:.35rem; }
+  .inv-body .csscol-trk{
+    position:relative; width:14px; height:104px;
+    background: rgba(0,0,0,.08); border-radius:999px; overflow:hidden;
+  }
+  .inv-body .csscol-trk > i{
+    position:absolute; left:0; right:0; bottom:0; height:0;
+    background: var(--accent); transition: height .2s ease;
+  }
+
+  /* Copy hint */
+  .inv-body .copy-btn{ margin: 0; }
+  .inv-body .copy-hint-panel{
+    display:none;
+    margin-top:.6rem; padding:.7rem .9rem;
+    border-radius: 10px;
+    background: rgba(0,0,0,.04);
+    border: 1px dashed var(--line-strong);
+    font-size:.85rem; line-height:1.5; color: var(--ink-soft);
+    text-align:center;
+  }
+  .inv-body .copy-hint-panel kbd{
+    display:inline-block; padding:1px 6px; margin:0 1px;
+    font: 600 .78rem/1 var(--font-ui);
+    background:#fff; border:1px solid var(--line-strong);
+    border-bottom-width: 2px; border-radius:4px;
+    color: var(--ink);
+  }
+  body:has(#copy-hint:checked) .inv-body .copy-hint-panel{ display:block; }
+  body:has(#copy-hint:checked) .inv-body .copy-btn{
+    background: var(--fill-pressed); color:#fff; border-color: var(--accent);
+  }
+
+  /* Save / Share / Publish cycles */
+  .inv-body .save-wrap, .inv-body .share-wrap, .inv-body .pub-wrap{
+    position:relative; display:inline-flex; flex-direction:column;
+  }
+  .inv-body .save-wrap { align-items:flex-start; }
+  .inv-body .share-wrap{ align-items:center; }
+  .inv-body .pub-wrap  { align-items:flex-end; }
+  .inv-body .cycle-trigger{ position:relative; display:inline-flex; }
+  .inv-body .cycle-step{ display:none; }
+  .inv-body .save-btn, .inv-body .share-btn, .inv-body .publish-btn{
+    height: 28px; padding: 0 .55rem; font-size:.7rem; white-space:nowrap;
+  }
+  .inv-body .save-wrap  .cycle-step--open,
+  .inv-body .pub-wrap   .cycle-step--open,
+  .inv-body .share-wrap .cycle-step--open{ display:inline-flex; }
+  body:has(#cycle-save:checked)  .inv-body .save-wrap  .cycle-step--open,
+  body:has(#cycle-pub:checked)   .inv-body .pub-wrap   .cycle-step--open,
+  body:has(#cycle-share:checked) .inv-body .share-wrap .cycle-step--open,
+  .inv-body .save-wrap.is-open  .cycle-step--open,
+  .inv-body .pub-wrap.is-open   .cycle-step--open,
+  .inv-body .share-wrap.is-open .cycle-step--open{ display:none; }
+  body:has(#cycle-save:checked)  .inv-body .save-wrap  .cycle-step--close,
+  body:has(#cycle-pub:checked)   .inv-body .pub-wrap   .cycle-step--close,
+  body:has(#cycle-share:checked) .inv-body .share-wrap .cycle-step--close,
+  .inv-body .save-wrap.is-open  .cycle-step--close,
+  .inv-body .pub-wrap.is-open   .cycle-step--close,
+  .inv-body .share-wrap.is-open .cycle-step--close{ display:inline-flex; }
+  body:has(#cycle-save:checked)  .inv-body .save-btn,
+  body:has(#cycle-pub:checked)   .inv-body .publish-btn,
+  body:has(#cycle-share:checked) .inv-body .share-btn,
+  .inv-body .save-wrap.is-open  .save-btn,
+  .inv-body .pub-wrap.is-open   .publish-btn,
+  .inv-body .share-wrap.is-open .share-btn{
+    background: var(--fill-pressed); color:#fff; border-color: var(--accent);
+  }
+
+  /* Sub-rows — in-flow inside the cycle-trigger (column flex), ordered
+     above / below the trigger. */
+  .inv-body .cycle-trigger{ flex-direction: column; align-items: inherit; gap: .35rem; }
+  .inv-body .cycle-row{
+    display:none;
+    flex-wrap:nowrap; gap:.25rem;
+    white-space:nowrap;
+  }
+  .inv-body .cycle-row.above{ order: -1; }
+  .inv-body .cycle-row.below{ order:  1; }
+  .inv-body .cycle-row.app-row{ order: -2; }
+  .inv-body .save-btn, .inv-body .share-btn, .inv-body .publish-btn{ order: 0; }
+  .inv-body .pub-wrap .go-btn{ order: 0; }
+  .inv-body .save-wrap  .cycle-row{ justify-content:flex-start; }
+  .inv-body .pub-wrap   .cycle-row{ justify-content:flex-end; }
+  .inv-body .share-wrap .cycle-row{ justify-content:center; }
+  body:has(#cycle-save:checked)  .inv-body .save-wrap  .cycle-row,
+  body:has(#cycle-pub:checked)   .inv-body .pub-wrap   .cycle-row,
+  body:has(#cycle-share:checked) .inv-body .share-wrap .cycle-row,
+  .inv-body .save-wrap.is-open  .cycle-row,
+  .inv-body .share-wrap.is-open .cycle-row,
+  .inv-body .pub-wrap.is-open   .cycle-row{ display:inline-flex; }
+  body:has(#cycle-pub:checked) .inv-body .pub-wrap .cycle-row.pub-row--schedule,
+  .inv-body .pub-wrap.is-open .cycle-row.pub-row--schedule{ display:none; }
+  body:has(#cycle-pub:checked):has(#pub-plat-0asis:checked) .inv-body .pub-wrap .cycle-row.pub-row--schedule,
+  .inv-body .pub-wrap.is-open.plat-0asis .cycle-row.pub-row--schedule{ display:inline-flex; }
+
+  /* Sub-row buttons — smaller, squared */
+  .inv-body .cycle-row .btn{
+    height: 25px; padding: 0 .5rem; border-radius:4px;
+    font-size:.72rem; letter-spacing:.03em;
+  }
+  .inv-body .cycle-row .btn:hover{ box-shadow:none; transform:none; }
+  body:has(#save-app:checked)         .inv-body [for="save-app"],
+  body:has(#save-fmt-txt:checked)     .inv-body [for="save-fmt-txt"],
+  body:has(#save-fmt-md:checked)      .inv-body [for="save-fmt-md"],
+  body:has(#save-fmt-jpg:checked)     .inv-body [for="save-fmt-jpg"],
+  body:has(#save-fmt-html:checked)    .inv-body [for="save-fmt-html"],
+  body:has(#save-fmt-csv:checked)     .inv-body [for="save-fmt-csv"],
+  body:has(#save-fmt-xml:checked)     .inv-body [for="save-fmt-xml"],
+  body:has(#save-fmt-json:checked)    .inv-body [for="save-fmt-json"],
+  body:has(#pub-all:checked)          .inv-body [for="pub-all"],
+  body:has(#pub-plat-wizardry:checked) .inv-body [for="pub-plat-wizardry"],
+  body:has(#pub-plat-reddit:checked)  .inv-body [for="pub-plat-reddit"],
+  body:has(#pub-plat-0asis:checked)   .inv-body [for="pub-plat-0asis"],
+  body:has(#pub-plat-mastodon:checked) .inv-body [for="pub-plat-mastodon"],
+  body:has(#pub-plat-bsky:checked)    .inv-body [for="pub-plat-bsky"],
+  body:has(#pub-plat-threads:checked) .inv-body [for="pub-plat-threads"],
+  body:has(#pub-plat-x:checked)       .inv-body [for="pub-plat-x"],
+  body:has(#pub-plat-tumblr:checked)  .inv-body [for="pub-plat-tumblr"],
+  body:has(#pub-plat-medium:checked)  .inv-body [for="pub-plat-medium"]{
+    background: var(--accent);
+    color:#fff;
+    border-color: var(--accent-deep);
+    box-shadow: inset 0 0 0 1px var(--accent-deep), 0 2px 6px var(--accent-glow);
+  }
+
+  /* App pill — bigger, rounder, with a click animation */
+  .inv-body .app-row [for="save-app"]{
+    height: calc(25px * 1.15); padding: 0 .8rem; border-radius:999px;
+    font-weight: 700;
+    transition: transform var(--fast), box-shadow var(--fast), background var(--fast);
+  }
+  .inv-body .app-row [for="save-app"]:hover{ box-shadow: 0 4px 10px var(--accent-glow); }
+  .inv-body .app-row [for="save-app"]:active{ animation: app-press .35s ease; }
+  @keyframes app-press{
+    0%   { transform: scale(1); }
+    40%  { transform: scale(.9);  box-shadow: 0 0 0 6px var(--accent-glow); }
+    100% { transform: scale(1);   box-shadow: 0 4px 10px var(--accent-glow); }
+  }
+
+  /* Platform 3-pane slider sitting below Publish */
+  .inv-body .plat-row{ align-items:center; gap: .25rem; }
+  .inv-body .plat-viewport{
+    --plat-set-w: 13.5rem;
+    overflow:hidden; width: var(--plat-set-w);
+  }
+  .inv-body .plat-track{
+    display:flex; flex-wrap:nowrap;
+    transition: transform .35s ease; will-change: transform;
+  }
+  .inv-body .plat-set{
+    display:inline-flex; flex: 0 0 var(--plat-set-w); width: var(--plat-set-w); gap:.25rem;
+  }
+  .inv-body .plat-set .btn{
+    flex: 1 1 0; min-width: 0; padding: 0 .35rem;
+    text-align:center; justify-content:center;
+  }
+  body:has(#pub-plat-set-1:checked) .inv-body .plat-track{ transform: translateX(calc(-1 * var(--plat-set-w))); }
+  body:has(#pub-plat-set-2:checked) .inv-body .plat-track{ transform: translateX(calc(-2 * var(--plat-set-w))); }
+  .inv-body .plat-nav{
+    display:none;
+    align-items:center; justify-content:center;
+    width:22px; height:25px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background: rgba(255,255,255,.6);
+    cursor:pointer; font-size:.95rem; line-height:1;
+    color: var(--ink-soft);
+    user-select:none;
+  }
+  .inv-body .plat-nav:hover{ background: var(--accent); color:#fff; border-color: var(--accent-deep); }
+  body:has(#pub-plat-set-0:checked) .inv-body .plat-nav[data-when-set="0"],
+  body:has(#pub-plat-set-1:checked) .inv-body .plat-nav[data-when-set="1"],
+  body:has(#pub-plat-set-2:checked) .inv-body .plat-nav[data-when-set="2"]{ display:inline-flex; }
+
+  /* Inline Go button — collapsed until Publish is open */
+  .inv-body .pub-wrap .go-btn{
+    min-width: 0; max-width: 0; padding: 0; margin: 0;
+    border-width: 0; opacity: 0; overflow: hidden;
+    white-space: nowrap; height: 29px; font-size: .72rem;
+    text-decoration: none;
+    transition: max-width .3s ease, padding .3s ease, margin .3s ease, opacity .25s ease .05s;
+  }
+  body:has(#cycle-pub:checked) .inv-body .pub-wrap .go-btn,
+  .inv-body .pub-wrap.is-open .go-btn{
+    max-width: 6rem; padding: 0 .55rem; margin-left: .35rem;
+    border-width: 1px; opacity: 1;
+  }
+
+  /* Schedule row */
+  .inv-body .pub-row--schedule{
+    align-items:center; gap:.35rem; padding:0;
+    flex-wrap:nowrap; white-space:nowrap;
+  }
+  .inv-body .pub-row--schedule .pub-hh,
+  .inv-body .pub-row--schedule .pub-mm,
+  .inv-body .pub-row--schedule .pub-target{
+    height: 25px; padding: 0 .4rem;
+    font: 600 .72rem/1 var(--font-ui); letter-spacing: .03em;
+    color: var(--ink); background: rgba(255,255,255,.9);
+    border: 1px solid var(--line-strong); border-radius: 4px;
+    outline: none;
+    transition: border-color var(--fast), box-shadow var(--fast);
+  }
+  .inv-body .pub-row--schedule .pub-hh:focus,
+  .inv-body .pub-row--schedule .pub-mm:focus,
+  .inv-body .pub-row--schedule .pub-target:focus{
+    border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  .inv-body .pub-row--schedule .pub-colon{
+    font: 700 .85rem/1 var(--font-ui); color: var(--ink-soft);
+  }
+  .inv-body .pub-row--schedule .pub-all-btn{ flex: 0 0 auto; }
+
+  /* Calendar control + popup panel */
+  .inv-body .pub-cal-wrap{ position:relative; display:inline-flex; }
+  .inv-body .pub-cal{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:25px; padding:0;
+    border:1px solid var(--line-strong); border-radius:4px;
+    background: rgba(255,255,255,.9);
+    cursor:pointer; line-height:1;
+    transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
+  }
+  .inv-body .pub-cal:hover, .inv-body .pub-cal:focus-within{
+    border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  body:has(#pub-cal-open:checked) .inv-body .pub-cal{
+    background: var(--accent); color:#fff; border-color: var(--accent-deep);
+  }
+  .inv-body .pub-cal .pub-cal-icon{ pointer-events:none; font-size:.95rem; line-height:1; }
+  .inv-body .pub-cal-panel{
+    display:none; position:absolute;
+    bottom: calc(100% + 6px); left: 0; z-index: 60;
+    padding: 24px .5rem .45rem;
+    background:#fff; border:1px solid var(--line-strong); border-radius:8px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.15);
+    white-space:nowrap;
+  }
+  body:has(#pub-cal-open:checked) .inv-body .pub-cal-panel{
+    display:inline-flex; align-items:center; gap:.3rem;
+  }
+  .inv-body .pub-cal-close{
+    position:absolute; top:4px; left:4px;
+    width:18px; height:18px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%; background: rgba(255,255,255,.9);
+    border:1px solid var(--line); color: var(--ink);
+    font: 700 .85rem/1 var(--font-ui);
+    cursor:pointer;
+    transition: background var(--fast), color var(--fast), border-color var(--fast);
+  }
+  .inv-body .pub-cal-close:hover{ background: var(--accent); color:#fff; border-color: var(--accent-deep); }
+  .inv-body .pub-cal-sel{
+    height:25px; padding: 0 .35rem;
+    font: 600 .72rem/1 var(--font-ui); letter-spacing:.03em;
+    color: var(--ink); background: rgba(255,255,255,.9);
+    border:1px solid var(--line-strong); border-radius:4px;
+    outline:none; cursor:pointer;
+  }
+  .inv-body .pub-cal-sel:focus{ border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+  /* Platform intro panels */
+  .inv-body .plat-intro{
+    display:none;
+    width:100%; max-width:320px;
+    margin-top: .35rem;
+    padding: .6rem .8rem;
+    background: transparent; border:0; border-radius:0;
+    text-align:center;
+    font-size:.85rem; color: var(--ink); line-height:1.5;
+  }
+  .inv-body .plat-intro p{ margin: 0 0 .35rem; }
+  .inv-body .plat-intro p:last-child{ margin-bottom: 0; }
+  body:has(#cycle-pub:checked):has(#pub-plat-wizardry:checked) .inv-body .plat-intro--wizardry,
+  body:has(#cycle-pub:checked):has(#pub-plat-reddit:checked)   .inv-body .plat-intro--reddit,
+  body:has(#cycle-pub:checked):has(#pub-plat-0asis:checked)    .inv-body .plat-intro--0asis{ display:block; }
+  .inv-body .pub-wrap .plat-intro{ margin-top: calc(25px + .35rem); }
+
+  /* Boty wizardry grid (3×3) */
+  .inv-body .wizardry-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:.45rem;
+  }
+  .inv-body .wizardry-cell{
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    gap:.15rem; min-height: 64px; padding: .45rem .35rem;
+    border:1px solid var(--line); border-radius:10px;
+    background: rgba(255,255,255,.85);
+    font-size:.78rem; text-align:center; cursor:pointer;
+    transition: var(--btn-trans), opacity var(--fast), transform var(--fast), background var(--fast);
+  }
+  .inv-body .wizardry-cell:hover{
+    border-color: var(--accent); background: var(--fill-soft); transform: translateY(-1px);
+  }
+  .inv-body .wizardry-cell-icon{ font-size: 1.6rem; line-height: 1; }
+  .inv-body .wizardry-cell-name{ font: 700 .72rem/1 var(--font-ui); color: var(--ink-soft); letter-spacing: .04em; }
+  .inv-body .wizardry-cell-info{
+    display:none; margin-top: .25rem;
+    font: 400 .7rem/1.35 var(--font-ui); color: var(--ink);
+  }
+  body:has(input[name="wizardry-pick"]:not(#wizardry-none):checked) .inv-body .wizardry-cell{ opacity: .5; }
+  body:has(#wizardry-sage:checked)  .inv-body .wizardry-cell[for="wizardry-sage"],
+  body:has(#wizardry-spark:checked) .inv-body .wizardry-cell[for="wizardry-spark"],
+  body:has(#wizardry-echo:checked)  .inv-body .wizardry-cell[for="wizardry-echo"],
+  body:has(#wizardry-coral:checked) .inv-body .wizardry-cell[for="wizardry-coral"],
+  body:has(#wizardry-nova:checked)  .inv-body .wizardry-cell[for="wizardry-nova"],
+  body:has(#wizardry-lyra:checked)  .inv-body .wizardry-cell[for="wizardry-lyra"],
+  body:has(#wizardry-mira:checked)  .inv-body .wizardry-cell[for="wizardry-mira"],
+  body:has(#wizardry-pico:checked)  .inv-body .wizardry-cell[for="wizardry-pico"],
+  body:has(#wizardry-vega:checked)  .inv-body .wizardry-cell[for="wizardry-vega"]{
+    opacity: 1;
+    border-color: var(--accent-deep);
+    background: var(--fill-mid);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  body:has(#wizardry-sage:checked)  .inv-body .wizardry-cell[for="wizardry-sage"]  .wizardry-cell-info,
+  body:has(#wizardry-spark:checked) .inv-body .wizardry-cell[for="wizardry-spark"] .wizardry-cell-info,
+  body:has(#wizardry-echo:checked)  .inv-body .wizardry-cell[for="wizardry-echo"]  .wizardry-cell-info,
+  body:has(#wizardry-coral:checked) .inv-body .wizardry-cell[for="wizardry-coral"] .wizardry-cell-info,
+  body:has(#wizardry-nova:checked)  .inv-body .wizardry-cell[for="wizardry-nova"]  .wizardry-cell-info,
+  body:has(#wizardry-lyra:checked)  .inv-body .wizardry-cell[for="wizardry-lyra"]  .wizardry-cell-info,
+  body:has(#wizardry-mira:checked)  .inv-body .wizardry-cell[for="wizardry-mira"]  .wizardry-cell-info,
+  body:has(#wizardry-pico:checked)  .inv-body .wizardry-cell[for="wizardry-pico"]  .wizardry-cell-info,
+  body:has(#wizardry-vega:checked)  .inv-body .wizardry-cell[for="wizardry-vega"]  .wizardry-cell-info{ display:block; }
+
+  /* Download row — Save's format ticks light up the download button */
+  .inv-body .download-row{ display:flex; width:100%; margin-top: .6rem; }
+  .inv-body .dl-btn{
+    --dl-base: 60;
+    --dl-txt:0; --dl-md:0; --dl-jpg:0; --dl-html:0; --dl-csv:0; --dl-xml:0; --dl-json:0; --dl-app:0;
+    flex: 1 1 0; min-width: 0; width: 100%;
+    height: 36px; padding: 0 .72rem;
+    border-radius: 4px;
+    font-weight: 700; font-size: .86rem; letter-spacing: .03em;
+    text-decoration: none;
+    display:inline-flex; align-items:center; justify-content:center;
+    opacity: calc(
+      (var(--dl-base) + var(--dl-txt) + var(--dl-md) + var(--dl-jpg) + var(--dl-html)
+       + var(--dl-csv) + var(--dl-xml) + var(--dl-json) + var(--dl-app)) / 100
+    );
+    transition: opacity var(--fast);
+  }
+  body:has(#save-fmt-txt:checked)  .inv-body .dl-btn{ --dl-txt: 5; }
+  body:has(#save-fmt-md:checked)   .inv-body .dl-btn{ --dl-md:  5; }
+  body:has(#save-fmt-jpg:checked)  .inv-body .dl-btn{ --dl-jpg: 5; }
+  body:has(#save-fmt-html:checked) .inv-body .dl-btn{ --dl-html:5; }
+  body:has(#save-fmt-csv:checked)  .inv-body .dl-btn{ --dl-csv: 5; }
+  body:has(#save-fmt-xml:checked)  .inv-body .dl-btn{ --dl-xml: 5; }
+  body:has(#save-fmt-json:checked) .inv-body .dl-btn{ --dl-json:5; }
+  body:has(#save-app:checked)      .inv-body .dl-btn{ --dl-app:25; }
+  .inv-body .dl-btn .dl-results, .inv-body .dl-btn .dl-app{ display:none; }
+  body:has(#save-fmt-txt:checked)  .inv-body .dl-btn .dl-results,
+  body:has(#save-fmt-md:checked)   .inv-body .dl-btn .dl-results,
+  body:has(#save-fmt-jpg:checked)  .inv-body .dl-btn .dl-results,
+  body:has(#save-fmt-html:checked) .inv-body .dl-btn .dl-results,
+  body:has(#save-fmt-csv:checked)  .inv-body .dl-btn .dl-results,
+  body:has(#save-fmt-xml:checked)  .inv-body .dl-btn .dl-results,
+  body:has(#save-fmt-json:checked) .inv-body .dl-btn .dl-results{ display:inline; }
+  body:has(#save-app:checked) .inv-body .dl-btn .dl-app{ display:inline; }
+
+  /* Hide the bare radio/checkbox state inputs from the page */
+  .inv-body .ctl{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px; }
 </style>
 </head>
 <body>
@@ -1382,7 +1907,7 @@
           <fieldset>
             <div class="ta-field">
               <input type="checkbox" class="ta-magic-state" id="purposes-magic-state">
-              <textarea id="purposes" rows="3" placeholder="Purposes: study, repair, event, research…"></textarea>
+              <textarea id="purposes" rows="4" placeholder="Purposes: study, repair, event, research…"></textarea>
               <label class="ta-magic" for="purposes-magic-state" aria-label="Magic" title="Magic">✦</label>
               <div class="ta-bottom-tools">
                 <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="purposes-mic"></label>
@@ -1418,22 +1943,6 @@
     <div class="card section" data-sec="4">
       <div class="tree">
         <div class="tree-col">
-          <fieldset>
-            <div class="ta-field pref-ta">
-              <input type="checkbox" class="ta-magic-state" id="pref-note-magic-state">
-              <textarea id="pref-note" rows="3" placeholder="Notes on your preferences…"></textarea>
-              <label class="ta-magic" for="pref-note-magic-state" aria-label="Magic" title="Magic">✦</label>
-              <div class="ta-bottom-tools">
-                <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="pref-note-mic"></label>
-              </div>
-            </div>
-          </fieldset>
-          <fieldset>
-            <div class="stack">
-              <label><input type="radio" name="t1" id="t-more"> More</label>
-              <label><input type="radio" name="t1" id="t-less"> Less</label>
-            </div>
-          </fieldset>
           <fieldset class="lvl-2">
             <div class="stack">
               <label><input type="checkbox" name="t2" id="t-past"> Past</label>
@@ -1468,15 +1977,92 @@
       </div>
       <div class="tree-more-wrap">
         <input type="checkbox" id="tree-more-toggle">
-        <label class="extra-plus" for="tree-more-toggle" aria-label="Show more dimensions" title="Past · current · future">＋</label>
+        <label class="extra-plus" for="tree-more-toggle" aria-label="Show more dimensions" title="Past · current · future · note">＋</label>
       </div>
+      <fieldset class="pref-note-field">
+        <div class="ta-field pref-ta">
+          <input type="checkbox" class="ta-magic-state" id="pref-note-magic-state">
+          <textarea id="pref-note" rows="3" placeholder="Notes on your preferences…"></textarea>
+          <label class="ta-magic" for="pref-note-magic-state" aria-label="Magic" title="Magic">✦</label>
+          <div class="ta-bottom-tools">
+            <label class="ta-tool" aria-label="Upload audio" title="Audio">🎤<input type="file" accept="audio/*" id="pref-note-mic"></label>
+          </div>
+        </div>
+      </fieldset>
     </div>
 
     <div class="invite-block">
       <input type="checkbox" id="invite-toggle" class="invite-toggle">
       <label class="invite-btn" for="invite-toggle" id="inviteBtn" data-progress="0">Invitation</label>
-      <div class="invite-card">
-      <p class="sentence" aria-live="polite" id="sentence">
+      <div class="invite-card inv-body">
+
+      <!-- Hidden state inputs — drive the CSS-only state machine for the
+           magic toggle, insight cycle, copy hint, Save/Share/Publish
+           cycles, platform picker and calendar popup. -->
+      <input class="ctl" type="checkbox" id="magic-toggle">
+      <input class="ctl" type="checkbox" id="copy-hint">
+      <input class="ctl" type="radio" name="insight" id="insight-0" checked>
+      <input class="ctl" type="radio" name="insight" id="insight-1">
+      <input class="ctl" type="radio" name="insight" id="insight-2">
+      <input class="ctl" type="radio" name="insight" id="insight-3">
+      <input class="ctl" type="radio" name="insight" id="insight-4">
+      <input class="ctl" type="radio" name="cycle" id="cycle-none" checked>
+      <input class="ctl" type="radio" name="cycle" id="cycle-save">
+      <input class="ctl" type="radio" name="cycle" id="cycle-share">
+      <input class="ctl" type="radio" name="cycle" id="cycle-pub">
+      <input class="ctl" type="checkbox" id="save-fmt-txt">
+      <input class="ctl" type="checkbox" id="save-fmt-md">
+      <input class="ctl" type="checkbox" id="save-fmt-jpg">
+      <input class="ctl" type="checkbox" id="save-fmt-html">
+      <input class="ctl" type="checkbox" id="save-fmt-csv">
+      <input class="ctl" type="checkbox" id="save-fmt-xml">
+      <input class="ctl" type="checkbox" id="save-fmt-json">
+      <input class="ctl" type="checkbox" id="save-app">
+      <input class="ctl" type="radio" name="pub-plat-set" id="pub-plat-set-0" checked>
+      <input class="ctl" type="radio" name="pub-plat-set" id="pub-plat-set-1">
+      <input class="ctl" type="radio" name="pub-plat-set" id="pub-plat-set-2">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-none" checked>
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-wizardry">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-reddit">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-0asis">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-mastodon">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-bsky">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-threads">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-x">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-tumblr">
+      <input class="ctl" type="radio" name="pub-plat" id="pub-plat-medium">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-none" checked>
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-sage">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-spark">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-echo">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-coral">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-nova">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-lyra">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-mira">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-pico">
+      <input class="ctl" type="radio" name="wizardry-pick" id="wizardry-vega">
+      <input class="ctl" type="checkbox" id="pub-cal-open">
+      <input class="ctl" type="checkbox" id="pub-all">
+
+      <!-- INSIGHT PANELS — one is revealed per cycle state (1..4); state 0 = none -->
+      <section class="insight-panel insight-1-content" aria-label="Insight · Who">
+        <strong>💡 Who</strong> — who may borrow this, and from how close?
+        <p>Name the circle your loan travels through: who you trust first, who it might reach next, whose need it answers. The relations you can name are the ones you can tune.</p>
+      </section>
+      <section class="insight-panel insight-2-content" aria-label="Insight · For">
+        <strong>💡 For</strong> — what is it lent for, and on what terms?
+        <p>Read the purpose of your offer. Study, repair, an event, plain use — each invites a different care. Naming it clarifies what you expect back.</p>
+      </section>
+      <section class="insight-panel insight-3-content" aria-label="Insight · Where">
+        <strong>💡 Where / When</strong> — where does it stay, and when does it return?
+        <p>Underline the edges: used in place, returned after use, returned on request. What stays flexible on purpose, and what is better said out loud?</p>
+      </section>
+      <section class="insight-panel insight-4-content" aria-label="Insight · Why">
+        <strong>💡 Why</strong> — why does this framing matter?
+        <p>Ask what kind of trust your invitation builds — generous, careful, open. The shape of the sentence is already half of the answer.</p>
+      </section>
+
+      <p class="sentence clause-default" aria-live="polite" id="sentence">
         I agree to lend <strong class="thing-title-slot">this item</strong><!--
         --><span class="thing-slot thing-sector-slot"></span><!--
         --><span class="thing-slot thing-desc-slot"></span><!--
@@ -1512,6 +2098,9 @@
         <span class="seg t-things"><strong>things</strong></span>
         <span class="seg t-relations"><strong>relations</strong></span>.
       </p>
+      <p class="sentence clause-magic" id="sentenceMagic" aria-live="polite">
+        ✨ A warmer re-telling of your invitation will appear here.
+      </p>
       <div class="extra-info-wrap">
         <input type="checkbox" class="extra-info-toggle" id="extra-invite-toggle">
         <label class="extra-plus" for="extra-invite-toggle" aria-label="Add additional information" title="Additional information">＋</label>
@@ -1523,9 +2112,212 @@
           </div>
         </div>
       </div>
-      <div class="submit">
-        <button class="btn ghost" type="button" id="resetBtn2">Reset</button>
-        <button class="btn primary" type="button" id="copyBtn2">Copy phrase</button>
+      <div class="action-grid">
+
+        <!-- TOP ACTION-ROW · Insight / Magic / Copy -->
+        <div class="action-row">
+          <span class="insight-cycle">
+            <label class="btn ghost insight-step" for="insight-1" aria-label="Show insight 1">Insight</label>
+            <label class="btn ghost insight-step" for="insight-2" aria-label="Show insight 2">Insight · 1/4</label>
+            <label class="btn ghost insight-step" for="insight-3" aria-label="Show insight 3">Insight · 2/4</label>
+            <label class="btn ghost insight-step" for="insight-4" aria-label="Show insight 4">Insight · 3/4</label>
+            <label class="btn ghost insight-step" for="insight-0" aria-label="Close insights">Insight · 4/4</label>
+          </span>
+          <label class="btn ghost magic-btn-summary" for="magic-toggle">
+            <span class="label-off">Magic</span>
+            <span class="label-on">Phrase</span>
+          </label>
+          <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase">Copy</label>
+        </div>
+
+        <div class="copy-hint-panel" role="status">
+          Select the phrase above (triple-click selects the whole paragraph), then press <kbd>Ctrl</kbd>+<kbd>C</kbd> on Windows/Linux or <kbd>⌘</kbd>+<kbd>C</kbd> on Mac to copy it.
+        </div>
+
+        <!-- SAVE · SHARE · PUBLISH -->
+        <div class="action-row right">
+
+          <!-- SAVE -->
+          <span class="save-wrap">
+            <span class="cycle-trigger">
+              <label class="btn ghost save-btn cycle-step cycle-step--open"  for="cycle-save" title="Save">💾 Save</label>
+              <label class="btn ghost save-btn cycle-step cycle-step--close" for="cycle-none" title="Close">💾 Save</label>
+              <span class="cycle-row below">
+                <label class="btn ghost" for="save-fmt-txt"  title="Txt"  data-fmt="txt">TXT</label>
+                <label class="btn ghost" for="save-fmt-md"   title="Md"   data-fmt="md">MD</label>
+                <label class="btn ghost" for="save-fmt-jpg"  title="Jpg"  data-fmt="jpg">JPG</label>
+                <label class="btn ghost" for="save-fmt-html" title="Html" data-fmt="html">HTML</label>
+                <label class="btn ghost" for="save-fmt-csv"  title="Csv"  data-fmt="csv">CSV</label>
+                <label class="btn ghost" for="save-fmt-xml"  title="Xml"  data-fmt="xml">XML</label>
+                <label class="btn ghost" for="save-fmt-json" title="Json" data-fmt="json">JSON</label>
+              </span>
+              <span class="cycle-row app-row">
+                <label class="btn ghost" for="save-app" title="App">App</label>
+              </span>
+            </span>
+          </span>
+
+          <!-- SHARE -->
+          <span class="share-wrap">
+            <span class="cycle-trigger">
+              <label class="btn ghost share-btn cycle-step cycle-step--open"  for="cycle-share" title="Share">📤 Share</label>
+              <label class="btn ghost share-btn cycle-step cycle-step--close" for="cycle-none"  title="Close">📤 Share</label>
+              <span class="cycle-row below">
+                <button type="button" class="btn ghost share-sub" data-share="print"  title="Print">🖨 Print</button>
+                <button type="button" class="btn ghost share-sub" data-share="mobile" title="Share with a mobile app">📱 Mobile</button>
+                <button type="button" class="btn ghost share-sub" data-share="apps"   title="Share menu (all apps)">🌐 Apps</button>
+                <a class="btn ghost share-sub" href="mailto:?subject=A%20shareful%20lending%20invitation&body=%5BYour%20lending%20conditions%5D%0A%0A%E2%80%94%20flove%20%C2%B7%20shareful" title="Send by email">📧 Email</a>
+              </span>
+            </span>
+          </span>
+
+          <!-- PUBLISH -->
+          <div class="pub-wrap">
+            <span class="cycle-trigger">
+              <span class="cycle-row above pub-row--schedule" role="group" aria-label="0asis publish schedule">
+                <span class="pub-cal-wrap">
+                  <label class="pub-cal" for="pub-cal-open" aria-label="Pick a date" title="Pick a date" tabindex="0">
+                    <span class="pub-cal-icon" aria-hidden="true">📅</span>
+                  </label>
+                  <div class="pub-cal-panel" role="group" aria-label="Pick day, month and year">
+                    <label class="pub-cal-close" for="pub-cal-open" title="Close" aria-label="Close calendar" tabindex="0">×</label>
+                    <select class="pub-cal-sel pub-cal-d" aria-label="Day">
+                      <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                      <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                      <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15" selected>15</option>
+                      <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                      <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
+                      <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
+                      <option value="31">31</option>
+                    </select>
+                    <select class="pub-cal-sel pub-cal-m" aria-label="Month">
+                      <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
+                      <option value="5" selected>May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
+                      <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                    </select>
+                    <select class="pub-cal-sel pub-cal-y" aria-label="Year">
+                      <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option>
+                      <option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
+                    </select>
+                  </div>
+                </span>
+                <select class="pub-hh" aria-label="Hour">
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option>
+                  <option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option>
+                  <option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option>
+                  <option value="12" selected>12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                  <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option>
+                  <option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span class="pub-colon" aria-hidden="true">:</span>
+                <select class="pub-mm" aria-label="Minute">
+                  <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option>
+                  <option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option>
+                  <option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+                </select>
+                <select class="pub-target" aria-label="Audience">
+                  <option value="groups" selected>Groups</option>
+                  <option value="friends">Friends</option>
+                  <option value="followers">Followers</option>
+                  <option value="lists">Lists</option>
+                  <option value="links">Links</option>
+                </select>
+                <label class="btn ghost pub-all-btn" for="pub-all" title="All">All</label>
+              </span>
+              <label class="btn ghost publish-btn cycle-step cycle-step--open"  for="cycle-pub"  title="Publish">📨 Publish</label>
+              <label class="btn ghost publish-btn cycle-step cycle-step--close" for="cycle-none" title="Close">📨 Publish</label>
+              <a class="btn solid go-btn" href="#" data-publish-go title="Go">✈ Go</a>
+              <span class="cycle-row below plat-row">
+                <span class="plat-viewport">
+                  <span class="plat-track">
+                    <span class="plat-set">
+                      <label class="btn ghost" for="pub-plat-wizardry" title="Boty">Boty</label>
+                      <label class="btn ghost" for="pub-plat-reddit"   title="Reddit">Reddit</label>
+                      <label class="btn ghost" for="pub-plat-0asis"    title="0asis">0asis</label>
+                    </span>
+                    <span class="plat-set">
+                      <label class="btn ghost" for="pub-plat-mastodon" title="Mastodon">Mastodon</label>
+                      <label class="btn ghost" for="pub-plat-bsky"     title="Bluesky">Bluesky</label>
+                      <label class="btn ghost" for="pub-plat-threads"  title="Threads">Threads</label>
+                    </span>
+                    <span class="plat-set">
+                      <label class="btn ghost" for="pub-plat-x"        title="X">X</label>
+                      <label class="btn ghost" for="pub-plat-tumblr"   title="Tumblr">Tumblr</label>
+                      <label class="btn ghost" for="pub-plat-medium"   title="Medium">Medium</label>
+                    </span>
+                  </span>
+                </span>
+                <label class="plat-nav" for="pub-plat-set-1" data-when-set="0" title="More platforms" aria-label="More platforms">＋</label>
+                <label class="plat-nav" for="pub-plat-set-2" data-when-set="1" title="More platforms" aria-label="More platforms">＋</label>
+                <label class="plat-nav" for="pub-plat-set-0" data-when-set="2" title="More platforms" aria-label="More platforms">＋</label>
+              </span>
+            </span>
+            <div class="plat-intro plat-intro--wizardry">
+              <p class="plat-intro-lead">Boty publishes to a chosen bot.</p>
+              <div class="wizardry-grid">
+                <label class="wizardry-cell" for="wizardry-sage"  title="Sage"  data-wizardry="sage">
+                  <span class="wizardry-cell-icon">🦉</span>
+                  <span class="wizardry-cell-name">Sage</span>
+                  <span class="wizardry-cell-info">Wise and contemplative.<br>Reflects, summarises and adds depth.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-spark" title="Spark" data-wizardry="spark">
+                  <span class="wizardry-cell-icon">⚡</span>
+                  <span class="wizardry-cell-name">Spark</span>
+                  <span class="wizardry-cell-info">Quick-witted and energetic.<br>Punchy ideas, fast turns of phrase.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-echo"  title="Echo"  data-wizardry="echo">
+                  <span class="wizardry-cell-icon">🐦</span>
+                  <span class="wizardry-cell-name">Echo</span>
+                  <span class="wizardry-cell-info">Mirrors what you say.<br>Helps you hear your voice back.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-coral" title="Coral" data-wizardry="coral">
+                  <span class="wizardry-cell-icon">🪸</span>
+                  <span class="wizardry-cell-name">Coral</span>
+                  <span class="wizardry-cell-info">Warm and supportive.<br>Gentle correction and care.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-nova"  title="Nova"  data-wizardry="nova">
+                  <span class="wizardry-cell-icon">🌟</span>
+                  <span class="wizardry-cell-name">Nova</span>
+                  <span class="wizardry-cell-info">Bright and visionary.<br>Big-picture, hopeful clarity.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-lyra"  title="Lyra"  data-wizardry="lyra">
+                  <span class="wizardry-cell-icon">🎵</span>
+                  <span class="wizardry-cell-name">Lyra</span>
+                  <span class="wizardry-cell-info">Lyrical and rhythmic.<br>Turns prose nearly musical.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-mira"  title="Mira"  data-wizardry="mira">
+                  <span class="wizardry-cell-icon">🔮</span>
+                  <span class="wizardry-cell-name">Mira</span>
+                  <span class="wizardry-cell-info">Intuitive and visionary.<br>Spots the patterns others miss.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-pico"  title="Pico"  data-wizardry="pico">
+                  <span class="wizardry-cell-icon">🐝</span>
+                  <span class="wizardry-cell-name">Pico</span>
+                  <span class="wizardry-cell-info">Tiny, precise, busy.<br>Polishes the details with care.</span>
+                </label>
+                <label class="wizardry-cell" for="wizardry-vega"  title="Vega"  data-wizardry="vega">
+                  <span class="wizardry-cell-icon">🦊</span>
+                  <span class="wizardry-cell-name">Vega</span>
+                  <span class="wizardry-cell-info">Cool and confident.<br>Cuts through noise with poise.</span>
+                </label>
+              </div>
+            </div>
+            <div class="plat-intro plat-intro--reddit">
+              <p>Reddit is a social platform of communities and discussions. <a href="https://reddit.com/" target="_blank" rel="noopener">reddit.com</a></p>
+            </div>
+            <div class="plat-intro plat-intro--0asis">
+              <p>0asis is a Friend2Friend Groupware. <a href="https://0asis.org/" target="_blank" rel="noopener">0asis.org</a></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- DOWNLOAD ROW — opacity reflects how many formats / App are armed -->
+        <div class="download-row">
+          <a class="btn solid dl-btn" id="dlBtn" href="#" title="Download bundle of marked formats">
+            <span class="dl-base">Download</span><span class="dl-results">&nbsp;results</span><span class="dl-app">&nbsp;App</span>
+          </a>
+        </div>
+
       </div>
       </div>
     </div>
@@ -1848,9 +2640,227 @@
   $("#resetBtn")?.addEventListener("click", reset);
   $("#resetBtn2")?.addEventListener("click", reset);
 
+  // ====================================================================
+  //  INVITATION ACTION-GRID — ported from offer/freed.html (flovynormal §15)
+  // ====================================================================
+  function fullText(){
+    return $("#sentence").textContent.replace(/\s+/g, " ").trim();
+  }
+  function escMagic(s){ return String(s).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
+
+  function buildHTMLDoc(){
+    const text = fullText();
+    const esc = s => s.replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+    return `<!doctype html><html><head><meta charset="utf-8"><title>Shareful · Lending Conditions</title>
+<style>body{background:#fbfaff;color:#1a1232;font-family:Georgia,serif;padding:32px;max-width:680px;margin:auto;line-height:1.6}
+h1{color:#6d28d9;font-family:Georgia,serif;border-bottom:2px dashed #8b5cf6;padding-bottom:8px}
+em{color:#423066}</style></head>
+<body><h1>✦ Shareful · Lending Conditions</h1>
+<p>${esc(text)}</p></body></html>`;
+  }
+  function renderJPG(cb){
+    const W = 880, H = 560, P = 36;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, "#f5f0ff"); grad.addColorStop(1, "#fbfaff");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "#8b5cf6"; ctx.lineWidth = 3;
+    ctx.setLineDash([8, 8]); ctx.strokeRect(P/2, P/2, W - P, H - P);
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#6d28d9";
+    ctx.font = "700 28px Georgia, serif";
+    ctx.fillText("✦ Shareful · Lending Conditions", P, P + 24);
+    ctx.fillStyle = "#1a1232";
+    ctx.font = "500 17px Georgia, serif";
+    const text = fullText();
+    const maxW = W - P*2;
+    const words = text.split(/\s+/);
+    let line = "", y = P + 70;
+    words.forEach(w => {
+      const test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width > maxW) {
+        ctx.fillText(line, P, y); line = w; y += 26;
+      } else { line = test; }
+    });
+    if (line) ctx.fillText(line, P, y);
+    ctx.fillStyle = "rgba(66,48,102,.5)";
+    ctx.font = "italic 13px Georgia, serif";
+    ctx.fillText("flove · shareful", P, H - P);
+    canvas.toBlob(cb, "image/jpeg", 0.92);
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 80);
+  }
+  function buildCSV(){
+    const rows = [["field","value"]];
+    const data = { ...snapshot(), conditions: fullText() };
+    Object.entries(data).forEach(([k,v]) => rows.push([k, String(v ?? "").replace(/"/g, '""')]));
+    return rows.map(r => r.map(c => /[",\n]/.test(c) ? `"${c}"` : c).join(",")).join("\n") + "\n";
+  }
+  function buildXML(){
+    const data = { ...snapshot(), conditions: fullText() };
+    const esc = s => String(s ?? "").replace(/[<>&'"]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;","\"":"&quot;"}[c]));
+    const body = Object.entries(data).map(([k,v]) => `  <${k}>${esc(v)}</${k}>`).join("\n");
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<shareful>\n${body}\n</shareful>\n`;
+  }
+  function buildMD(){
+    return `# ✦ Shareful · Lending Conditions\n\n${fullText()}\n`;
+  }
+
+  // ===== MAGIC TOGGLE — rewrite the same selections in a warmer voice =====
+  function renderMagic(){
+    const target = $("#sentenceMagic");
+    if (!target) return;
+    const title = (($(".thing-title-slot")?.textContent) || "this item").trim();
+    const ppl   = $("#people")?.value.trim();
+    const purp  = $("#purposes")?.value.trim();
+    const note  = $("#pref-note")?.value.trim();
+    const extra = $("#extra-invite")?.value.trim();
+    const scope = $("#for-close")?.checked ? "those close to me"
+                : $("#for-near")?.checked  ? "people nearby"
+                : $("#for-all")?.checked   ? "anyone who needs it"
+                : "you";
+    const ret = $("#ts-where")?.checked      ? "right where it lives"
+              : $("#ts-backafter")?.checked  ? "and find its way back after use"
+              : $("#ts-onrequest")?.checked  ? "and return whenever I ask"
+              : "";
+    const bits = [];
+    bits.push(`✨ With open hands I lend <strong>${escMagic(title)}</strong> to ${scope}`);
+    if (ppl)  bits.push(`— especially ${escMagic(ppl)}`);
+    if (purp) bits.push(`so it can serve ${escMagic(purp)}`);
+    bits.push(".");
+    if (ret)   bits.push(`Use it ${ret}.`);
+    if (note)  bits.push(escMagic(note.endsWith(".") ? note : note + "."));
+    if (extra) bits.push(`— ${escMagic(extra)}`);
+    target.innerHTML = bits.join(" ").replace(/\s+\./g, ".");
+  }
+  $("#lend").addEventListener("input",  renderMagic);
+  $("#lend").addEventListener("change", renderMagic);
+
+  // ===== COPY — Clipboard API on click, with keyboard hint via CSS =====
+  $(".copy-btn")?.addEventListener("click", () => {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(fullText()).then(
+      () => toast("✓ Phrase copied"),
+      () => {/* fall back to keyboard hint */}
+    );
+  });
+
+  // ===== Mutually exclusive cycles (Save / Share / Publish) =====
+  const cycleWraps = { save: $(".save-wrap"), share: $(".share-wrap"), pub: $(".pub-wrap") };
+  function closeAllCycles(){
+    Object.values(cycleWraps).forEach(w => { if (w) w.classList.remove("is-open"); });
+    const none = $("#cycle-none"); if (none) none.checked = true;
+  }
+  function toggleCycle(key){
+    const w = cycleWraps[key]; if (!w) return;
+    const wasOpen = w.classList.contains("is-open");
+    closeAllCycles();
+    if (!wasOpen){
+      w.classList.add("is-open");
+      const r = $("#cycle-" + key); if (r) r.checked = true;
+    }
+  }
+  $$(".save-wrap .cycle-step, .share-wrap .cycle-step, .pub-wrap .cycle-step").forEach(lbl => {
+    lbl.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const wrap = lbl.closest(".save-wrap, .share-wrap, .pub-wrap");
+      const key  = wrap.classList.contains("save-wrap") ? "save"
+                 : wrap.classList.contains("share-wrap") ? "share" : "pub";
+      if (lbl.classList.contains("cycle-step--close")) closeAllCycles();
+      else                                              toggleCycle(key);
+    });
+  });
+  document.addEventListener("click", e => {
+    if (e.target.closest(".save-wrap, .share-wrap, .pub-wrap, .insight-cycle, .copy-btn, .copy-hint-panel, .pub-cal-panel, .magic-btn-summary, .plat-intro, .download-row")) return;
+    closeAllCycles();
+    const copyHint = $("#copy-hint"); if (copyHint && copyHint.checked) copyHint.checked = false;
+    const calOpen = $("#pub-cal-open"); if (calOpen && calOpen.checked) calOpen.checked = false;
+  });
+
+  // Keep .pub-wrap.plat-0asis class in sync so the schedule row reveal works.
+  $$('input[name="pub-plat"]').forEach(r => {
+    r.addEventListener("change", () => {
+      cycleWraps.pub?.classList.toggle("plat-0asis", $("#pub-plat-0asis")?.checked);
+    });
+  });
+
+  // ===== SHARE handlers =====
+  $$('.share-sub[data-share]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const action = btn.dataset.share;
+      const text   = fullText();
+      const title  = "✦ Shareful · Lending Conditions";
+      if (action === "print") { window.print(); return; }
+      if (action === "mobile" || action === "apps"){
+        if (navigator.share){
+          try { await navigator.share({ title, text }); toast("✓ Shared"); }
+          catch(_) { /* user cancelled */ }
+        } else {
+          toast("Web Share not supported here");
+        }
+      }
+    });
+  });
+
+  // ===== PUBLISH (Go) handler =====
+  $('[data-publish-go]')?.addEventListener("click", e => {
+    e.preventDefault();
+    const plat = document.querySelector('input[name="pub-plat"]:checked');
+    const platKey = plat ? plat.id.replace("pub-plat-","") : "none";
+    if (platKey === "none"){ toast("Pick a platform first"); return; }
+    const audience = $(".pub-target")?.value || "groups";
+    if (platKey === "0asis"){
+      const d  = $(".pub-cal-d")?.value, m = $(".pub-cal-m")?.value, y = $(".pub-cal-y")?.value;
+      const hh = $(".pub-hh")?.value, mm = $(".pub-mm")?.value;
+      toast(`✓ Scheduled on 0asis for ${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${hh}:${mm} · to ${audience}`);
+    } else if (platKey === "wizardry"){
+      const bot = document.querySelector('input[name="wizardry-pick"]:checked');
+      const botKey = bot ? bot.id.replace("wizardry-","") : "none";
+      if (botKey === "none"){ toast("Pick a Boty first"); return; }
+      toast(`✓ Sent to Boty · ${botKey}`);
+    } else {
+      toast(`✓ Published to ${platKey} · to ${audience}`);
+    }
+    const none = $("#cycle-none"); if (none) none.checked = true;
+  });
+
+  // ===== DOWNLOAD bundle — what's ticked under Save gets emitted =====
+  const fmtBuilders = {
+    txt:  () => ({ blob: new Blob([fullText() + "\n"], { type:"text/plain" }),       name:"shareful-lending.txt" }),
+    md:   () => ({ blob: new Blob([buildMD()],         { type:"text/markdown" }),    name:"shareful-lending.md" }),
+    html: () => ({ blob: new Blob([buildHTMLDoc()],    { type:"text/html" }),        name:"shareful-lending.html" }),
+    csv:  () => ({ blob: new Blob([buildCSV()],        { type:"text/csv" }),         name:"shareful-lending.csv" }),
+    xml:  () => ({ blob: new Blob([buildXML()],        { type:"application/xml" }),  name:"shareful-lending.xml" }),
+    json: () => ({ blob: new Blob([JSON.stringify({ ...snapshot(), conditions: fullText() }, null, 2)], { type:"application/json" }), name:"shareful-lending.json" }),
+  };
+  $("#dlBtn")?.addEventListener("click", e => {
+    e.preventDefault();
+    const picks = ["txt","md","jpg","html","csv","xml","json"].filter(f => $("#save-fmt-"+f)?.checked);
+    const wantApp = $("#save-app")?.checked;
+    if (!picks.length && !wantApp){ toast("Tick one or more formats under Save first"); return; }
+    if (wantApp){ toast("App destination — coming soon"); }
+    picks.forEach(f => {
+      if (f === "jpg"){
+        renderJPG(b => { if (!b){ toast("JPG not supported"); return; } downloadBlob(b, "shareful-lending.jpg"); });
+        return;
+      }
+      const { blob, name } = fmtBuilders[f]();
+      downloadBlob(blob, name);
+    });
+    if (picks.length) toast(`✓ Downloaded ${picks.length} file${picks.length>1?"s":""}`);
+  });
+
   try{ localStorage.removeItem(KEY); }catch(e){}
   updateSlots();
   updateProgress();
+  renderMagic();
 })();
 
 // ── ported QUE handlers from offer.html ──

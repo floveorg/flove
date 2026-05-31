@@ -1224,6 +1224,10 @@
     margin:0 0 1rem;
   }
   .ai-chips[hidden]{display:none}
+  .ai-note{
+    margin:0 0 1rem;color:var(--sky);font:600 .9rem/1.4 ui-serif,Georgia,serif;
+  }
+  .ai-note[hidden]{display:none}
   .ai-chip{
     display:inline-block;padding:.3rem .65rem;border-radius:999px;
     background:linear-gradient(135deg,rgba(168,228,255,.18),rgba(255,95,220,.14));
@@ -2403,6 +2407,23 @@
     color:var(--muted);font-size:.84rem;line-height:1.5;
   }
 
+  /* Chosen perspectives summary block. */
+  .flv-std .perspectives-chosen{margin:1rem 0 .2rem}
+  .flv-std .pp-title{
+    display:block;font:700 .7rem/1 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.4rem;text-align:center;
+  }
+  .flv-std .pp-row{
+    display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:center;justify-content:center;
+    margin:.2rem 0;
+  }
+  .flv-std .pp-tag{
+    font:700 .62rem/1 system-ui,sans-serif;color:var(--accent);
+    letter-spacing:.12em;text-transform:uppercase;
+  }
+  .flv-std .pp-bar{font:500 .84rem/1.4 ui-serif,Georgia,serif;color:var(--ink)}
+  .flv-std .pp-bar b{color:var(--gold);font-weight:700}
+
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
   .flv-std .action-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
@@ -2800,6 +2821,7 @@
         <h3 class="ai-name" id="ai-name"></h3>
         <p class="ai-phrase" id="ai-phrase"></p>
         <div class="ai-chips" id="ai-chips" hidden></div>
+        <p class="ai-note" id="ai-note" hidden></p>
         <div class="ai-actions">
           <button class="btn btn-ghost" id="ai-cancel" type="button">Cancel</button>
           <button class="btn btn-primary" id="ai-go" type="button">Go →</button>
@@ -2881,6 +2903,25 @@
       <output class="clause clause-magic" spellcheck="false" aria-label="Magic phrase">
         ✨ A warmer retelling of the same keys will show up here.
       </output>
+
+      <!-- Insight cards — shown above the row of buttons, one at a time via
+           the insight cycle (0..4). -->
+      <section class="insight-panel insight-1-content" aria-label="Insight 1">
+        <strong>💡 First vs second play</strong> — what changed under the new perspective?
+        <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
+      </section>
+      <section class="insight-panel insight-2-content" aria-label="Insight 2">
+        <strong>💡 Tension</strong> — which decks were hardest to rank?
+        <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
+      </section>
+      <section class="insight-panel insight-3-content" aria-label="Insight 3">
+        <strong>💡 Perspective</strong> — how did the bars shift things?
+        <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
+      </section>
+      <section class="insight-panel insight-4-content" aria-label="Insight 4">
+        <strong>💡 Why</strong> — why this arrangement, for you?
+        <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
+      </section>
 
       <div class="action-grid">
 
@@ -3042,25 +3083,6 @@
         <div class="download-row">
           <a class="fbtn dl-btn" href="#" download="flove-keys" title="Download" data-flove-save="bundle">⬇ Download</a>
         </div>
-
-        <!-- Insight cards moved below the Download button; shown one at a time
-             via the insight cycle (0..4). -->
-        <section class="insight-panel insight-1-content" aria-label="Insight 1">
-          <strong>💡 First vs second play</strong> — what changed under the new perspective?
-          <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
-        </section>
-        <section class="insight-panel insight-2-content" aria-label="Insight 2">
-          <strong>💡 Tension</strong> — which decks were hardest to rank?
-          <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
-        </section>
-        <section class="insight-panel insight-3-content" aria-label="Insight 3">
-          <strong>💡 Perspective</strong> — how did the bars shift things?
-          <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
-        </section>
-        <section class="insight-panel insight-4-content" aria-label="Insight 4">
-          <strong>💡 Why</strong> — why this arrangement, for you?
-          <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
-        </section>
 
       </div>
     </section>
@@ -3491,13 +3513,12 @@
       $sub    = $progress.querySelector('.sp-sub');
     }
     const seg = (cls) => `<div class="seg${cls ? ' ' + cls : ''}"></div>`;
+    // The main (parent) bar always shows exactly three bars.
+    const PARENT = 3;
     if (isSummary){
-      // Parent: stages played (stageIdx + 1) + 1 for the results step.
-      const parentCount = (state.stageIdx + 1) + 1;
+      // Parent: all three filled, the last one marked current (results).
       let ph = '';
-      for (let i = 0; i < parentCount; i++){
-        ph += seg(i === parentCount - 1 ? 'current' : 'done');
-      }
+      for (let i = 0; i < PARENT; i++) ph += seg(i === PARENT - 1 ? 'current' : 'done');
       $parent.innerHTML = ph;
       // Sub: 1 at landing, +1 per touched Analyze/More section.
       const subCount = 1 + touchedSections.size;
@@ -3506,10 +3527,11 @@
       $sub.innerHTML = sh;
       $progress.setAttribute('aria-valuenow', String(1 + (state.analyzeLevel || 0)));
     } else {
-      // Playing: parent row tracks the stages; no sub-steps row yet.
+      // Playing: three parent bars track progress; no sub-steps row yet.
+      const cur = Math.min(state.stageIdx, PARENT - 1);
       let ph = '';
-      for (let i = 0; i < STAGES.length; i++){
-        ph += seg(i < state.stageIdx ? 'done' : (i === state.stageIdx ? 'current' : ''));
+      for (let i = 0; i < PARENT; i++){
+        ph += seg(i < cur ? 'done' : (i === cur ? 'current' : ''));
       }
       $parent.innerHTML = ph;
       $sub.innerHTML = '';
@@ -5626,11 +5648,31 @@
       // Go to the apps index filtered by this key.
       return `<a class="combos-key" href="index.html?filter=${slug}">${escapeHTML(w)}</a>`;
     }).join('');
-    return `<div class="combos-keys"><span class="combos-keys-title">Combos keywords</span>${links}</div>`
-      + `<p class="combos-keys-help">Clicking on any of the words from the decks above will lead you to its app too.</p>`;
+    return `<div class="combos-keys"><span class="combos-keys-title">Favourite Keys</span>${links}</div>`
+      + `<p class="combos-keys-help">Clicking in any of them will direct you to its specific apps.</p>`;
   }
-  // Per group: a "first" row (Title: w w w) and a "second" row below it
-  // (second: w w w), so each deck's two plays read top-to-bottom.
+  // Chosen perspectives (the original bars + the parallel "new perspective").
+  function buildPerspectivesHTML(){
+    const barsToText = (stateFor) => BARS.map(b => {
+      const s = stateFor(b.id);
+      if (!s || s.p1 == null) return null;
+      const v = (s.phase === 2 && s.p2 != null)
+        ? `${Math.min(s.p1, s.p2)}–${Math.max(s.p1, s.p2)}%`
+        : `${s.p1}%`;
+      return `<span class="pp-bar"><b>${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}:</b> ${v}</span>`;
+    }).filter(Boolean);
+    const rows = [];
+    const orig = barsToText(id => barState[id]);
+    if (orig.length) rows.push(`<div class="pp-row"><span class="pp-tag">Perspective</span>${orig.join('')}</div>`);
+    if (parallelRows.length){
+      const np = barsToText(id => parallelRows[0].states[id]);
+      if (np.length) rows.push(`<div class="pp-row"><span class="pp-tag">New perspective</span>${np.join('')}</div>`);
+    }
+    if (!rows.length) return '';
+    return `<div class="perspectives-chosen"><span class="pp-title">Perspectives chosen</span>${rows.join('')}</div>`;
+  }
+  // Per group: a row of words for the first play, then the second play below
+  // it (italic). Group title labels the pair; no "first"/"second" text.
   function buildPlayTablesHTML(){
     const first = playOrderInfo('first');
     if (!first.length) return '';
@@ -5642,13 +5684,14 @@
       const secondWords = secondMap[g.id] || g.words;
       return `<div class="pr-group">`
         + `<div class="pr-line"><span class="pr-label">${escapeHTML(g.title)}:</span>`
-        +   `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span>`
-        +   `<span class="pr-tag">(first)</span></div>`
-        + `<div class="pr-line pr-second"><span class="pr-label">second:</span>`
+        +   `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span></div>`
+        + `<div class="pr-line pr-second"><span class="pr-label"></span>`
         +   `<span class="pr-cells">${cellsHTML(g.id, secondWords)}</span></div>`
         + `</div>`;
     }).join('');
-    return `<div class="play-rows">${groups}</div>` + buildCombosKeysHTML();
+    return `<div class="play-rows">${groups}</div>`
+      + buildPerspectivesHTML()
+      + buildCombosKeysHTML();
   }
   // Word at each (group, rank) for quick lookups when comparing the plays.
   function playWordMap(which){
@@ -6229,9 +6272,10 @@
       lis.forEach((li, idx) => {
         if (li.dataset.fpWired === '1') return;
         li.dataset.fpWired = '1';
-        // Hydrate the selected state on re-render
+        // Hydrate the selected state on re-render. Prefer the clean dataset
+        // word so gender icons (♀/♂) prepended into .nm don't end up in chips.
         const nm = li.querySelector('.nm');
-        const word = nm ? nm.textContent.trim() : (li.dataset.word || '');
+        const word = (li.dataset.word || (nm ? nm.textContent : '')).trim();
         if (word && _fpSelectedWords.has(word)) li.classList.add('fp-selected');
         li.addEventListener('click', (e) => {
           if (!_playMoreOn) return;
@@ -6240,7 +6284,7 @@
           // Once the user has actually picked one, the loud border pulse can
           // calm down — they know what to do now.
           $summary.classList.remove('click-me-call');
-          const w = (li.querySelector('.nm')?.textContent || li.dataset.word || '').trim();
+          const w = (li.dataset.word || li.querySelector('.nm')?.textContent || '').trim();
           if (!w) return;
           if (_fpSelectedWords.has(w)){
             _fpSelectedWords.delete(w);
@@ -6777,6 +6821,17 @@
     } else {
       $chips.hidden = true;
       $chips.innerHTML = '';
+    }
+    // Combos gets an extra prompt to take the keywords further.
+    const $note = document.getElementById('ai-note');
+    if ($note){
+      if (opts.key === 'combos'){
+        $note.hidden = false;
+        $note.textContent = 'Define these keywords further';
+      } else {
+        $note.hidden = true;
+        $note.textContent = '';
+      }
     }
     $go.onclick = () => {
       $bd.hidden = true;

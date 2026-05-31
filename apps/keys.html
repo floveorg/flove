@@ -731,7 +731,7 @@
   .play-more-row:not(:has(.play-more-btn:not([hidden]))){display:none}
   /* Prompt shown above the decks while Play more is engaged. */
   .play-more-hint{
-    margin:.2rem auto .8rem;max-width:60ch;text-align:center;
+    margin:.2rem auto .8rem;max-width:60ch;text-align:center;align-self:center;
     color:var(--sky);font-size:.98rem;font-weight:600;letter-spacing:.2px;
   }
   .play-more-hint[hidden]{display:none}
@@ -2268,6 +2268,15 @@
   }
   .flv-std .fbtn.solid:hover{color:#1a1a28}
 
+  /* ---- collapsible summary (collapsed by default, header toggles) ---- */
+  .flv-std .std-toggle{
+    cursor:pointer;display:flex;align-items:center;gap:.45rem;user-select:none;
+  }
+  .flv-std .std-toggle .std-chev{transition:transform .2s ease;opacity:.8;font-size:.8em}
+  .flv-std:not(.is-collapsed) .std-toggle .std-chev{transform:rotate(90deg)}
+  /* When collapsed only the header shows; everything else is tucked away. */
+  .flv-std.is-collapsed > *:not(h2){display:none}
+
   /* ---- insight cards (above the phrase) ---- */
   .flv-std .insight-panel{
     display:none;margin:0 0 .8rem;padding:.75rem .9rem;border-radius:12px;
@@ -2756,7 +2765,7 @@
          within the panel. Contract hooks kept: .step-panel.is-summary,
          .clause[data-flove-phrase], .dl-btn[data-flove-save="bundle"].
          ============================================================ -->
-    <section class="flv-std step-panel is-summary" id="std-summary"
+    <section class="flv-std step-panel is-summary is-collapsed" id="std-summary"
              data-flove-root data-flove-title="flove-keys" hidden>
 
       <!-- hidden state inputs -->
@@ -2812,7 +2821,7 @@
       <input type="radio" name="flv-wiz" id="flv-wiz-nova"  class="flv-ctl">
       <input type="radio" name="flv-wiz" id="flv-wiz-lyra"  class="flv-ctl">
 
-      <h2>✦ Summary</h2>
+      <h2 class="std-toggle" id="std-summary-toggle" role="button" tabindex="0" aria-expanded="false">✦ Summary <span class="std-chev" aria-hidden="true">▸</span></h2>
 
       <!-- 4 insight cards, shown one at a time via the insight cycle (0..4) -->
       <section class="insight-panel insight-1-content" aria-label="Insight 1">
@@ -4214,11 +4223,10 @@
   // ============== Intro slider ==============
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
-    { n:'01', t:'Ten keys face down',      b:'Five triads and five fivys. Your job: order each key by your own criteria.' },
-    { n:'02', t:'Tap a deck',              b:'Its cards rise to the center of the table, like a hand of cards opening into a fan.' },
-    { n:'03', t:'Order the cards',         b:'Drag and drop them or use the <b>← →</b> arrows on each card. The one on the left comes first.' },
-    { n:'04', t:'Why',                     b:'Press the button and record (voice or text) the reason for that order. It stays attached to the triad.' },
-    { n:'05', t:'Done · refine · why',     b:'Close with <b>Done</b>. In the slot, fine-tune with <b>↑ ↓</b>; if the order changes from the saved why, a <b>+ why</b> button appears so you can note a new one.' },
+    { t:'We all have a view of the Whole',        b:'…that gives us calm when we clear that.' },
+    { t:'The whole is big and complex',           b:'…while it can also be simplified.' },
+    { t:'Keys words for the whole are well known', b:'…you will just need to move them up or down.' },
+    { t:'Get ready for a thrilling experience',   b:'…play it alone and/or with others, it’s more special.' },
   ];
   let introSlide = 0;
   let introObserver = null;
@@ -4231,7 +4239,7 @@
       const slide = document.createElement('div');
       slide.className = 'intro-slide';
       slide.dataset.idx = String(i);
-      slide.innerHTML = `<span class="step-num">${s.n}</span><h2>${s.t}</h2><p>${s.b}</p>`;
+      slide.innerHTML = `<h2>${s.t}</h2><p>${s.b}</p>`;
       $track.appendChild(slide);
 
       const dot = document.createElement('button');
@@ -5728,6 +5736,19 @@
       if (!e.target.closest('.fbtn')) return;
       setTimeout(() => $sec.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
     });
+
+    // Collapsed by default — the ✦ Summary header expands / collapses it.
+    const $stdToggle = document.getElementById('std-summary-toggle');
+    if ($stdToggle){
+      const toggle = () => {
+        const collapsed = $sec.classList.toggle('is-collapsed');
+        $stdToggle.setAttribute('aria-expanded', String(!collapsed));
+      };
+      $stdToggle.addEventListener('click', toggle);
+      $stdToggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
+      });
+    }
 
     // Copy: the label already toggles the how-to hint (pure CSS); also drop
     // the phrase straight onto the clipboard for convenience.

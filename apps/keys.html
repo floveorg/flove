@@ -802,10 +802,10 @@
   .summary.groups-on-top .simplex-cta{order:7}
   .summary.groups-on-top .time-stats{order:8}
   .summary.groups-on-top .play-more-row{order:8}
-  .summary.groups-on-top .summary-bottom-actions{order:9}
-  .summary.groups-on-top .see-more-help{order:10}
-  .summary.groups-on-top .related-apps{order:11}
   .summary.groups-on-top .flv-std{order:12}
+  /* See more + related apps now live below the Summary panel. */
+  .summary.groups-on-top .summary-bottom-actions{order:13}
+  .summary.groups-on-top .related-apps{order:14}
   .summary.groups-on-top{display:flex;flex-direction:column}
   /* Free-play state: strip medal palette from every summary deck so the user
      can freely re-rank cards without the gold/silver/bronze visual loading. */
@@ -2202,7 +2202,13 @@
   .ts-hint b{color:var(--gold);font-weight:600}
   .ts-hint .muted{color:var(--muted);font-size:.84rem;display:block;margin-top:.3rem}
   .ts-more-btn{margin:0 auto;display:block;padding:.4rem 1rem;font-size:.85rem}
-  .ts-analyze-btn{margin:0 auto .8rem;display:block;padding:.4rem 1rem;font-size:.85rem}
+  /* Analyze button sits centered in the expanded section; clicking it reveals
+     the further insights below, in the same section. */
+  .ts-expanded{margin-top:.7rem;text-align:center}
+  .ts-analyze-btn{margin:0 auto;display:block;padding:.4rem 1rem;font-size:.85rem}
+  .ts-further{margin-top:.7rem;text-align:left}
+  .ts-further[hidden]{display:none}
+  .ts-further-hint{margin-bottom:.6rem}
   .ts-details{margin-top:.8rem}
   .ts-details[hidden]{display:none}
   .ts-group{margin-bottom:.7rem}
@@ -2785,19 +2791,6 @@
       <button class="btn play-more-btn play-more-header" id="btn-play-more" type="button" hidden>Play more</button>
     </div>
 
-    <div class="summary-bottom-actions">
-      <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
-    </div>
-
-    <!-- "Clicking on any of the words…" help moved into the resume, below the
-         Combos keywords (see buildCombosKeysHTML). -->
-
-    <div class="related-apps" id="related-apps" hidden>
-      <div class="related-row related-row-featured" id="related-row-3"></div>
-      <button class="btn-related-plus" id="btn-related-plus" type="button" aria-label="show more apps">+</button>
-      <div class="related-row" id="related-row-6" hidden></div>
-    </div>
-
     <!-- App intro overlay: each related-app card click introduces the app
          with a short phrase before navigating. Combos additionally lists
          the Play-more selections as chips and a Go button. -->
@@ -3071,6 +3064,17 @@
 
       </div>
     </section>
+
+    <!-- See more + related apps now sit BELOW the Summary section. -->
+    <div class="summary-bottom-actions">
+      <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
+    </div>
+
+    <div class="related-apps" id="related-apps" hidden>
+      <div class="related-row related-row-featured" id="related-row-3"></div>
+      <button class="btn-related-plus" id="btn-related-plus" type="button" aria-label="show more apps">+</button>
+      <div class="related-row" id="related-row-6" hidden></div>
+    </div>
   </div>
 
 </div>
@@ -4116,6 +4120,20 @@
       <span class="muted">That can mean you didn't know much about that section, and/or that you cared more about it.</span>`;
   }
 
+  // Further insight (revealed by Analyze): the quickest deck — a fast pick
+  // usually means certainty.
+  function buildFastDeckHintHTML(){
+    const perDeck = state.timing.perDeck || {};
+    const entries = Object.entries(perDeck)
+      .filter(([id, ms]) => ms > 0 && DECKS.find(d => d.id === id && state.done[id]));
+    if (entries.length === 0) return '';
+    entries.sort((a, b) => a[1] - b[1]);
+    const d = DECKS.find(dk => dk.id === entries[0][0]);
+    const name = d ? escapeHTML(d.title) : entries[0][0];
+    return `Your quickest call was <b>${name}</b>.
+      <span class="muted">A fast pick often means you were already sure about it.</span>`;
+  }
+
   function renderTimeStats(){
     const $panel = document.getElementById('time-stats');
     if (!$panel) return;
@@ -4148,47 +4166,44 @@
         </div>`;
       }).join('');
 
-    const hasDetails = !!(stepRows || stageRows || deckRows);
-    const hasContent = !!(totalText || hintHTML || hasDetails);
+    const breakdown =
+        `${stepRows ? `<div class="ts-group"><div class="ts-cap">Steps</div>${stepRows}</div>` : ''}`
+      + `${stageRows ? `<div class="ts-group"><div class="ts-cap">Stages</div>${stageRows}</div>` : ''}`
+      + `${deckRows ? `<div class="ts-group"><div class="ts-cap">Decks · why</div>${deckRows}</div>` : ''}`;
+    const furtherHint = buildFastDeckHintHTML();
+    const hasFurther = !!(furtherHint || breakdown);
+    const hasContent = !!(totalText || hintHTML || hasFurther);
 
+    // First insight about the selections shows immediately. The Analyze button
+    // sits in the expanded section below (centered) and reveals further
+    // insights beneath it, in the same section.
     $panel.innerHTML = `
       <h3>Time stats</h3>
       ${totalText ? `<div class="ts-total">Total time · <b>${escapeHTML(totalText)}</b></div>` : ''}
-      ${hintHTML ? `<button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze</button>
-      <div class="ts-hint" id="ts-insight" hidden>${hintHTML}</div>` : ''}
-      ${hasDetails ? `<button class="btn btn-soft ts-more-btn" id="ts-more-btn" type="button" aria-expanded="false">More details</button>` : ''}
-      <div class="ts-details" id="ts-details" hidden>
-        ${stepRows ? `<div class="ts-group"><div class="ts-cap">Steps</div>${stepRows}</div>` : ''}
-        ${stageRows ? `<div class="ts-group"><div class="ts-cap">Stages</div>${stageRows}</div>` : ''}
-        ${deckRows ? `<div class="ts-group"><div class="ts-cap">Decks · why</div>${deckRows}</div>` : ''}
-      </div>
+      ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
+      ${hasFurther ? `<div class="ts-expanded">
+        <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze</button>
+        <div class="ts-further" id="ts-further" hidden>
+          ${furtherHint ? `<div class="ts-hint ts-further-hint">${furtherHint}</div>` : ''}
+          ${breakdown}
+        </div>
+      </div>` : ''}
     `;
-    // Analyze button reveals the time-stat insight (slow-deck hint).
+    // Analyze reveals the further insights below it.
     const $tsAnalyze = document.getElementById('ts-analyze-btn');
-    const $tsInsight = document.getElementById('ts-insight');
-    if ($tsAnalyze && $tsInsight){
+    const $tsFurther = document.getElementById('ts-further');
+    if ($tsAnalyze && $tsFurther){
       $tsAnalyze.addEventListener('click', () => {
-        const willShow = $tsInsight.hidden;
-        $tsInsight.hidden = !willShow;
+        const willShow = $tsFurther.hidden;
+        $tsFurther.hidden = !willShow;
         $tsAnalyze.setAttribute('aria-expanded', String(willShow));
         $tsAnalyze.textContent = willShow ? 'Hide insights' : 'Analyze';
       });
     }
-    // Stay hidden — the 2nd "more" button is what reveals the panel. We just
-    // mark whether the panel has any content to show.
+    // Stay hidden — the Stats "more" button reveals the panel. We just mark
+    // whether the panel has any content to show.
     $panel.dataset.populated = hasContent ? '1' : '0';
     $panel.hidden = true;
-
-    const $more = document.getElementById('ts-more-btn');
-    const $details = document.getElementById('ts-details');
-    if ($more && $details){
-      $more.addEventListener('click', () => {
-        const willShow = $details.hidden;
-        $details.hidden = !willShow;
-        $more.setAttribute('aria-expanded', String(willShow));
-        $more.textContent = willShow ? 'Hide details' : 'More details';
-      });
-    }
   }
 
   // ============== Actions ==============
@@ -5608,7 +5623,8 @@
     if (!picks.length) return '';
     const links = picks.map(w => {
       const slug = encodeURIComponent(w.toLowerCase());
-      return `<a class="combos-key" href="https://flove.org/${slug}" target="_blank" rel="noopener">${escapeHTML(w)}</a>`;
+      // Go to the apps index filtered by this key.
+      return `<a class="combos-key" href="index.html?filter=${slug}">${escapeHTML(w)}</a>`;
     }).join('');
     return `<div class="combos-keys"><span class="combos-keys-title">Combos keywords</span>${links}</div>`
       + `<p class="combos-keys-help">Clicking on any of the words from the decks above will lead you to its app too.</p>`;
@@ -6616,14 +6632,11 @@
           + (a.href ? ` data-app-href="${a.href}"` : '')
           + (a.external ? ' data-app-external="1"' : '')
           + (a.fivysTrigger ? ' data-app-trigger="fivys"' : '');
-        // Card (icon + label) with a centered "Go Play" button below it. The
-        // slide carousel was removed — the button takes you straight in.
-        return `<div class="ra-cell">`
-          + `<div class="${cls}" role="button" tabindex="0" ${attrs}>`
-          +   `<span class="ra-icon">${RELATED_ICONS[a.key] || ''}</span>`
-          +   `<span class="ra-label">${a.label}</span>`
-          + `</div>`
-          + `<button class="btn btn-soft ra-goplay" type="button" ${attrs}>Go Play →</button>`
+        // Card (icon + label); clicking it opens the app-intro overlay. No
+        // slide carousel and no Go Play button.
+        return `<div class="${cls}" role="button" tabindex="0" ${attrs}>`
+          + `<span class="ra-icon">${RELATED_ICONS[a.key] || ''}</span>`
+          + `<span class="ra-label">${a.label}</span>`
           + `</div>`;
       }).join('');
     document.getElementById('related-row-6').innerHTML = RELATED_MORE
@@ -6729,16 +6742,6 @@
           showAppIntro(appCardOpts(el));
         });
       }
-    });
-    // Centered "Go Play" buttons below each featured card → go straight in.
-    document.querySelectorAll('.ra-goplay').forEach(b => {
-      if (b.dataset.goWired === '1') return;
-      b.dataset.goWired = '1';
-      b.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        goPlayApp(appCardOpts(b));
-      });
     });
   }
   // The card itself opens the intro overlay (phrase + Combos chips); the

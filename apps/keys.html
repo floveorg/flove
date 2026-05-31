@@ -646,6 +646,21 @@
     margin:1.4rem 0 .6rem;flex-wrap:wrap;
   }
 
+  /* Second-play selections row — sits below the first-play decks in the
+     summary; each deck shows its second-play order, italic to set it apart. */
+  .summary-second-play{
+    margin:.8rem auto 0;display:flex;flex-direction:column;align-items:center;gap:.5rem;
+  }
+  .summary-second-play[hidden]{display:none}
+  .summary-second-play .ssp-cap{
+    font:700 .68rem/1 system-ui,sans-serif;color:var(--accent);
+    letter-spacing:.14em;text-transform:uppercase;
+  }
+  .summary-second-play .ssp-decks{
+    display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:flex-start;
+  }
+  .summary-second-play .deck-done.in-summary .nm{font-style:italic}
+
   /* Embedded fivys: collapsed triads results panel above the board */
   .embedded-triads-collapse{
     margin:0 auto 14px;width:100%;max-width:760px;
@@ -770,6 +785,7 @@
   .summary.groups-on-top .play-more-hint{order:1}
   .summary.groups-on-top .summary-triads-wrap{order:1}
   .summary.groups-on-top .summary-fivys{order:1}
+  .summary.groups-on-top .summary-second-play{order:2}
   .summary.groups-on-top .analyze-bars{order:5}
   .summary.groups-on-top .second-play{order:6}
   /* Insights panel rides right under the summary button row (its trigger). */
@@ -912,11 +928,10 @@
   }
   .ab-grid{
     display:grid;
-    grid-template-columns:1fr;
-    /* One bar per row + an extra row of breathing space between them. A bar
-       row (poles + track) is about 60px tall, so gap = 60px gives a full
-       row of additional separation. */
-    gap:60px;
+    /* Two columns — one bar per column (Subjective/Objective and
+       Momentual/General sit side by side). */
+    grid-template-columns:1fr 1fr;
+    gap:24px;
   }
   .ab-help{
     margin:.9rem 0 0;text-align:center;
@@ -930,7 +945,7 @@
   }
   .ab-poles b{color:var(--ink);font-weight:700}
   @media (max-width:520px){
-    .ab-grid{gap:48px}
+    .ab-grid{grid-template-columns:1fr;gap:36px}
   }
   .ab-track{
     position:relative;height:24px;border-radius:999px;
@@ -2274,7 +2289,7 @@
 
   /* ---- collapsible summary (collapsed by default, header toggles) ---- */
   .flv-std .std-toggle{
-    cursor:pointer;display:flex;align-items:center;gap:.45rem;user-select:none;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.45rem;user-select:none;
   }
   .flv-std .std-toggle .std-chev{transition:transform .2s ease;opacity:.8;font-size:.8em}
   .flv-std:not(.is-collapsed) .std-toggle .std-chev{transform:rotate(90deg)}
@@ -2736,15 +2751,18 @@
 
     <div class="summary-fivys" id="summary-fivys"></div>
 
+    <!-- Second-play selections, shown as a row of decks below the first play. -->
+    <div class="summary-second-play" id="summary-second-play" hidden></div>
+
     <!-- Perspectives (the "declare your perspective" bars) + the second play
          now sit BELOW the decks. -->
     <div class="analyze-bars" id="analyze-bars" hidden></div>
 
     <section class="second-play" id="second-play" hidden>
-      <h3 class="sp-title">Second play — reorder under the new perspective</h3>
       <div class="sp-decks" id="sp-decks"></div>
       <div class="sp-actions">
         <button class="btn btn-primary" id="sp-finish-btn" type="button">Finish second play →</button>
+        <button class="btn btn-ghost" id="sp-edit-btn" type="button" hidden>Edit selections</button>
       </div>
     </section>
 
@@ -2855,24 +2873,6 @@
       <input type="radio" name="flv-wiz" id="flv-wiz-lyra"  class="flv-ctl">
 
       <h2 class="std-toggle" id="std-summary-toggle" role="button" tabindex="0" aria-expanded="false">✦ Summary <span class="std-chev" aria-hidden="true">▸</span></h2>
-
-      <!-- 4 insight cards, shown one at a time via the insight cycle (0..4) -->
-      <section class="insight-panel insight-1-content" aria-label="Insight 1">
-        <strong>💡 First vs second play</strong> — what changed under the new perspective?
-        <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
-      </section>
-      <section class="insight-panel insight-2-content" aria-label="Insight 2">
-        <strong>💡 Tension</strong> — which decks were hardest to rank?
-        <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
-      </section>
-      <section class="insight-panel insight-3-content" aria-label="Insight 3">
-        <strong>💡 Perspective</strong> — how did the bars shift things?
-        <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
-      </section>
-      <section class="insight-panel insight-4-content" aria-label="Insight 4">
-        <strong>💡 Why</strong> — why this arrangement, for you?
-        <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
-      </section>
 
       <!-- two phrase variants: default recap + a warmer "magic" retelling -->
       <output class="clause clause-default" data-flove-phrase spellcheck="false" aria-label="Summary phrase">
@@ -3042,6 +3042,25 @@
         <div class="download-row">
           <a class="fbtn dl-btn" href="#" download="flove-keys" title="Download" data-flove-save="bundle">⬇ Download</a>
         </div>
+
+        <!-- Insight cards moved below the Download button; shown one at a time
+             via the insight cycle (0..4). -->
+        <section class="insight-panel insight-1-content" aria-label="Insight 1">
+          <strong>💡 First vs second play</strong> — what changed under the new perspective?
+          <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
+        </section>
+        <section class="insight-panel insight-2-content" aria-label="Insight 2">
+          <strong>💡 Tension</strong> — which decks were hardest to rank?
+          <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
+        </section>
+        <section class="insight-panel insight-3-content" aria-label="Insight 3">
+          <strong>💡 Perspective</strong> — how did the bars shift things?
+          <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
+        </section>
+        <section class="insight-panel insight-4-content" aria-label="Insight 4">
+          <strong>💡 Why</strong> — why this arrangement, for you?
+          <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
+        </section>
 
       </div>
     </section>
@@ -3945,6 +3964,30 @@
 
     if (_finishApplied) applyFinishIcons();
     updateSilverArrows();
+    renderSecondPlaySummaryDecks();
+  }
+
+  // Render the second-play selections as a read-only row of decks below the
+  // first-play decks (only once the second play is finished).
+  function renderSecondPlaySummaryDecks(){
+    const $row = document.getElementById('summary-second-play');
+    if (!$row) return;
+    if (!secondPlayFinished || !secondPlayItemOrders){
+      $row.hidden = true; $row.innerHTML = ''; return;
+    }
+    const cards = secondPlayGroupOrder().map(id => {
+      const deck = spDeckById(id);
+      if (!deck) return '';
+      const items = secondPlayItemOrders[id] || spOriginalItemOrder(id);
+      const lis = items.map(iIdx => {
+        const w = deck.items[iIdx] || '—';
+        return `<li data-word="${escapeHTML(w)}"><span class="nm">${escapeHTML(w)}</span></li>`;
+      }).join('');
+      return `<div class="deck-done in-summary" data-deck-id="${id}"><div class="deck-title">${escapeHTML(deck.title)}</div><ol>${lis}</ol></div>`;
+    }).filter(Boolean).join('');
+    if (!cards){ $row.hidden = true; $row.innerHTML = ''; return; }
+    $row.hidden = false;
+    $row.innerHTML = `<span class="ssp-cap">Second play</span><div class="ssp-decks">${cards}</div>`;
   }
 
   function showSummary(){
@@ -5516,9 +5559,10 @@
   // order as uniform same-size cells. The first Insight click lights up the
   // cells that match vs differ between the two plays.
   function playOrderInfo(which){
+    // Both plays use the no-extras base so the two tables line up by group.
     const ids = (which === 'second')
-      ? (secondPlayOrder || originalGroupOrder())
-      : originalGroupOrder();
+      ? (secondPlayOrder || secondPlayGroupOrder())
+      : secondPlayGroupOrder();
     const itemOrderFor = (id) => {
       if (which === 'second' && secondPlayItemOrders && secondPlayItemOrders[id]){
         return secondPlayItemOrders[id];
@@ -5855,7 +5899,7 @@
   function initSecondPlayItemOrders(){
     if (secondPlayItemOrders) return;
     secondPlayItemOrders = {};
-    originalGroupOrder().forEach(id => {
+    secondPlayGroupOrder().forEach(id => {
       secondPlayItemOrders[id] = spOriginalItemOrder(id);
     });
   }
@@ -5906,6 +5950,12 @@
     return out;
   }
 
+  // The second play never includes the extra decks (x*) — only the main
+  // triads/fivys the user actually played.
+  function secondPlayGroupOrder(){
+    return originalGroupOrder().filter(id => !spDeckIsExtra(id));
+  }
+
   function renderSecondPlaySummaryBars(){
     // Mini visualisation of the parallel-perspective bars' current state,
     // pinned to the top of the second-play section so the user has the
@@ -5944,10 +5994,14 @@
     const visible = parallelRows.length >= 1;
     $sec.hidden = !visible;
     if (!visible) return;
+    // Finished → freeze the selections (CSS) and swap Finish for an Edit
+    // button so the user can re-open them; otherwise the Finish button shows.
     $sec.classList.toggle('sp-finished', secondPlayFinished);
-    const $spActions = $sec.querySelector('.sp-actions');
-    if ($spActions) $spActions.style.display = secondPlayFinished ? 'none' : '';
-    if (!secondPlayOrder) secondPlayOrder = originalGroupOrder();
+    const $finish = document.getElementById('sp-finish-btn');
+    const $edit   = document.getElementById('sp-edit-btn');
+    if ($finish) $finish.hidden = secondPlayFinished;
+    if ($edit)   $edit.hidden   = !secondPlayFinished;
+    if (!secondPlayOrder) secondPlayOrder = secondPlayGroupOrder();
     initSecondPlayItemOrders();
     const $decks = document.getElementById('sp-decks');
     $decks.innerHTML = '';
@@ -6032,7 +6086,7 @@
 
   function movedDeckIds(){
     if (!secondPlayFinished || !secondPlayOrder) return new Set();
-    const orig = originalGroupOrder();
+    const orig = secondPlayGroupOrder();
     const moved = new Set();
     secondPlayOrder.forEach((deckId, pos) => {
       if (orig[pos] !== deckId) moved.add(deckId);
@@ -6041,6 +6095,11 @@
   }
 
   document.getElementById('sp-finish-btn').addEventListener('click', finishSecondPlay);
+  // Edit button (shown after Finish) re-opens the frozen selections.
+  document.getElementById('sp-edit-btn').addEventListener('click', () => {
+    secondPlayFinished = false;
+    renderSecondPlay();
+  });
 
   // Reveal the simplex CTA only when the summary actually contains fivys.
   function updateSimplexCTA(){

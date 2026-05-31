@@ -128,6 +128,8 @@
     font-weight:700; font-size:1.9em; line-height:1; letter-spacing:.02em;
   }
   .flove-bar button.flove-app-name:hover{ text-decoration:underline }
+  .flove-bar .title-voice{ font-size:1.05em; line-height:1; margin-left:.1em; }
+  .flove-bar .title-voice[hidden]{ display:none }
   .flove-bar .flove-mark{ width:1.6em; height:1.6em }
   .flove-bar .flove-spacer{ flex:1 }
   .flove-bar .topmenu-btn{
@@ -205,12 +207,19 @@
     background:linear-gradient(90deg, var(--app-accent), var(--rose));
     transform:scaleY(1.4);
   }
+  /* a freshly revealed stage dot (stage 4 / 5) fades in */
+  @keyframes barReveal{ from{ opacity:0 } to{ opacity:1 } }
+  .progress li.just-added{ animation: barReveal .5s ease both; }
+  @media (prefers-reduced-motion: reduce){ .progress li.just-added{ animation:none } }
 
   /* views */
   .view{ display:none }
   .view.is-on{ display:block; animation: rise .4s cubic-bezier(.2,.8,.2,1) both }
   @keyframes rise{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
-  @media (prefers-reduced-motion: reduce){ .view.is-on{ animation:none } }
+  /* forward (Next) navigation: fade in while sliding leftwards into place */
+  .view.is-on.enter-fwd{ animation: fadeInLeft .42s cubic-bezier(.2,.8,.2,1) both }
+  @keyframes fadeInLeft{ from{ opacity:0; transform:translateX(34px) } to{ opacity:1; transform:none } }
+  @media (prefers-reduced-motion: reduce){ .view.is-on, .view.is-on.enter-fwd{ animation:none } }
 
   .step-tag{
     display:inline-block;
@@ -230,7 +239,7 @@
   .view .hint em{ color:var(--app-accent-soft); font-style:normal }
 
   /* inputs */
-  .field{ display:flex; gap:.55rem; align-items:stretch; margin-bottom:.6rem; }
+  .field{ display:flex; gap:.55rem; align-items:stretch; margin-bottom:10px; }
   .field input{
     flex:1; padding:.85rem 1rem;
     background:var(--field);
@@ -322,8 +331,28 @@
 
   /* customize panel (slide 3) */
   .customize-wrap{ margin-top:1rem; display:flex; flex-direction:column; align-items:flex-start; gap:.6rem; }
+  /* the Customize button is the special call-to-action of this slide */
+  .customize-btn{
+    align-self:center;
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    color:var(--app-ink-on-accent);
+    border:0; font-weight:700; letter-spacing:.02em;
+    padding:.8rem 1.6rem; font-size:1rem;
+    box-shadow:0 4px 18px rgba(245,180,99,.30);
+    animation: customizePulse 2.4s ease-in-out infinite;
+  }
+  .customize-btn:hover{ filter:brightness(1.06); background:linear-gradient(135deg, var(--app-accent), var(--rose)); }
+  @keyframes customizePulse{
+    0%,100%{ box-shadow:0 4px 18px rgba(245,180,99,.28); transform:scale(1); }
+    50%    { box-shadow:0 6px 26px rgba(237,138,166,.45); transform:scale(1.03); }
+  }
+  @media (prefers-reduced-motion: reduce){ .customize-btn{ animation:none } }
+  /* clicked / open state: stop pulsing, show a clear pressed highlight */
   .customize-btn[aria-expanded="true"]{
-    background:rgba(245,180,99,.14); border-color:var(--app-accent);
+    animation:none;
+    background:rgba(245,180,99,.16);
+    color:var(--ink);
+    box-shadow:inset 0 0 0 1px var(--app-accent), 0 0 0 2px rgba(245,180,99,.25);
   }
   .customize-panel{
     width:100%;
@@ -421,25 +450,6 @@
   }
   .cust-switch input:checked + .cust-switch-track .cust-switch-on{ opacity:1; }
   .cust-switch input:checked + .cust-switch-track .cust-switch-off{ opacity:0; }
-  .cust-tell-bar{
-    display:flex; flex-wrap:wrap; gap:.35rem;
-  }
-  .cust-tell-opt{
-    appearance:none; cursor:pointer;
-    background:rgba(255,255,255,.05);
-    border:1px solid var(--line);
-    color:var(--ink-soft);
-    padding:.4rem .85rem;
-    border-radius:999px;
-    font:inherit; font-size:.88rem;
-    transition: background .15s, color .15s, border-color .15s;
-  }
-  .cust-tell-opt:hover{ color:var(--ink); border-color:var(--app-accent-soft); }
-  .cust-tell-opt.is-on{
-    background:linear-gradient(135deg, var(--app-accent), var(--rose));
-    color:var(--app-ink-on-accent);
-    border-color:transparent; font-weight:600;
-  }
   .cust-actions{ display:flex; justify-content:flex-end; margin-top:.2rem; }
 
   /* certify row — nodes sit on a progress track, all in the same row as the switch */
@@ -524,6 +534,89 @@
   .cert-intro p{ margin: 0 0 .4rem; }
   .cert-intro p:last-child{ margin: 0; }
   .cert-intro em{ color:var(--app-accent-soft); font-style:normal; }
+  .cert-intro a{ color:var(--app-accent-soft); text-underline-offset:2px; }
+
+  /* "More info" disclosure (welcome · An extreme intimacy) */
+  .moreinfo-wrap{ margin:1rem 0 .2rem; width:100%; display:flex; flex-direction:column; align-items:center; gap:.5rem; }
+  .moreinfo-btn{ font-size:.85rem; padding:.4rem .9rem; }
+  .moreinfo-btn[aria-expanded="true"]{ background:rgba(245,180,99,.14); border-color:var(--app-accent); }
+  .moreinfo-box{ margin-top:.55rem; text-align:left; }
+  .moreinfo-box[hidden]{ display:none }
+
+  /* certify-play feature fields (rendered per chosen node; hooked later) */
+  .cert-fields{
+    margin-top:.6rem;
+    display:flex; flex-direction:column; gap:10px;   /* 10px between fields */
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .cert-fields[hidden]{ display:none }
+  .cert-fields .cf-label{
+    font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:-2px;
+  }
+  .cert-fields input[type="text"],
+  .cert-fields input[type="email"],
+  .cert-fields input[type="tel"],
+  .cert-fields input[type="file"]{
+    width:100%; padding:.7rem .9rem;
+    background:var(--field); border:1px solid var(--line);
+    border-radius:12px; color:var(--ink); font:inherit; font-size:.95rem;
+  }
+  .cert-fields input:focus{ outline:none; background:var(--field-focus); border-color:var(--app-accent); }
+  .cert-fields input::placeholder{ color:var(--ink-dim) }
+  .cert-fields .cf-btn{
+    align-self:flex-start;
+    appearance:none; cursor:pointer;
+    background:rgba(255,255,255,.05); border:1px solid var(--line);
+    color:var(--ink-soft); padding:.55rem 1rem; border-radius:999px;
+    font:inherit; font-size:.88rem;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .cert-fields .cf-btn:hover{ color:var(--ink); border-color:var(--app-accent-soft); }
+  .cert-fields .cf-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .cert-fields .cf-row input{ flex:1; min-width:140px; }
+  .cert-fields .cf-note{ font-size:.82rem; color:var(--ink-dim); font-style:italic; }
+
+  /* floating Listen toggle */
+  .listen-float{
+    position:fixed; right:14px; bottom:14px; z-index:90;
+    width:48px; height:48px; border-radius:50%;
+    display:grid; place-items:center;
+    font-size:1.35rem; line-height:1; cursor:pointer;
+    background:rgba(20,14,30,.78);
+    border:1px solid var(--line);
+    box-shadow:0 4px 16px rgba(0,0,0,.4);
+    backdrop-filter: blur(4px);
+    transition: transform .12s ease, border-color .2s ease, background .2s ease;
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .listen-float[hidden]{ display:none }
+  .listen-float:hover{ border-color:var(--app-accent-soft); }
+  .listen-float:active{ transform:scale(.92); }
+  .listen-float[aria-pressed="true"]{
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    border-color:transparent;
+  }
+  /* "Biometric" is the longest cert-node name — shrink so it doesn't clip the panel edge */
+  .cert-node[data-cert="bio"] .cert-name{ font-size:.5rem; letter-spacing:.06em; }
+
+  /* collapsible section header (replaces the Certify YES/NO switch) */
+  .cust-collapse-btn{
+    appearance:none; background:transparent; border:0; cursor:pointer;
+    display:inline-flex; align-items:center; gap:.4rem;
+    align-self:flex-start;
+    font: inherit;
+    font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-dim); padding:0;
+    transition: color .15s;
+  }
+  .cust-collapse-btn::after{
+    content:'›'; font-size:1.1rem; color:var(--ink-dim);
+    transition: transform .2s ease;
+  }
+  .cust-collapse-btn:hover{ color:var(--ink-soft); }
+  .cust-collapse-btn[aria-expanded="true"]{ color:var(--ink); }
+  .cust-collapse-btn[aria-expanded="true"]::after{ transform: rotate(90deg); }
 
   /* private-mode download button (revealed when Private is checked) */
   .cust-download{
@@ -798,14 +891,14 @@
   }
   .pick-btn.is-on .pick-label{ color:var(--app-ink-on-accent); font-weight:600 }
   .pick-btn.is-on .pick-icon{ filter:none }
-  .pick-btn.is-locked{ opacity:.1; cursor:not-allowed; }
+  .pick-btn.is-locked{ opacity:.08; cursor:not-allowed; }
   .pick-btn.is-locked:hover{ background:var(--panel); }
-  /* previous-tier pick: keep checked colour at 30% opacity, not clickable */
+  /* previous-tier pick: existing selection shown dimmed (20% less opacity), not clickable */
   .pick-btn.is-prev-tier{
     background:linear-gradient(135deg, var(--app-accent), var(--rose));
     border-color:transparent;
     cursor:default;
-    opacity:.3;
+    opacity:.24;
   }
   .pick-btn.is-prev-tier .pick-label{ color:var(--app-ink-on-accent); font-weight:600 }
   .pick-btn.is-prev-tier .pick-icon{ filter:none }
@@ -946,7 +1039,8 @@
     min-width: 0;
     transition: opacity .25s ease;
   }
-  .portrait-cell.empty{ opacity:.3 }
+  /* unfilled cell = empty space: no card, no border, just holds the grid slot */
+  .portrait-cell.empty{ background:transparent; border-color:transparent; box-shadow:none; }
   .portrait-cell .cell-stage{
     font-size:.58rem; letter-spacing:.18em; text-transform:uppercase;
     color:var(--ink-dim); margin-bottom:.15rem;
@@ -974,6 +1068,8 @@
   .portrait-row-1 .portrait-cell .cell-title{ color: var(--app-accent) }
   .portrait-row-2 .portrait-cell{ border-top-color: var(--rose) }
   .portrait-row-2 .portrait-cell .cell-title{ color: var(--rose) }
+  .portrait-row-1 .portrait-cell.empty,
+  .portrait-row-2 .portrait-cell.empty{ border-top-color: transparent }
 
   /* toast */
   .toast{
@@ -1100,10 +1196,10 @@
     color:var(--ink-soft);
     border-radius:999px;
     font:inherit; font-size:.85rem;
-    opacity:.1;
+    opacity:.08;
   }
   .tier-preview .tier-chip.is-on{
-    opacity:.3;
+    opacity:.24;
     background:linear-gradient(135deg, var(--app-accent), var(--rose));
     color:var(--app-ink-on-accent);
     border-color:transparent; font-weight:600;
@@ -1119,15 +1215,15 @@
   }
   .s2-cat-list .chip.is-dim,
   .s2-cat-list .chip.is-locked-perm{
-    opacity: .1; pointer-events: none; cursor: not-allowed;
+    opacity: .08; pointer-events: none; cursor: not-allowed;
   }
   .s2-cat-list .chip.is-on{ opacity: 1 }
-  /* previous-stage species pick: checked colour at 30% */
+  /* previous-stage species pick: existing selection dimmed (20% less opacity) */
   .s2-cat-list .chip.is-prev{
     background:linear-gradient(135deg, var(--app-accent), var(--rose));
     color:var(--app-ink-on-accent);
     border-color:transparent; font-weight:600;
-    opacity:.3;
+    opacity:.24;
   }
   .s2-anopt-inline{
     margin: .8rem auto 0;
@@ -1228,25 +1324,10 @@
     .cta-row-split > *{ justify-self: stretch }
   }
 
-  /* analyze button + reveal text (below Time Stats on save-form) */
-  .analyze-wrap{
-    display:flex; flex-direction:column; align-items:center;
-    margin: 1.2rem 0 .4rem;
-  }
-  .analyze-btn{
-    background:transparent;
-    border:1px solid var(--app-accent-soft);
-    color:var(--ink);
-    padding:.65rem 1.4rem;
-    font:inherit; font-weight:600; letter-spacing:.04em;
-    cursor:pointer;
-    transition: background .2s, border-color .2s, color .2s;
-  }
-  .analyze-btn:hover{ background:rgba(245,180,99,.12); border-color:var(--app-accent); }
-  .analyze-btn[aria-expanded="true"]{
-    background:rgba(245,180,99,.18); border-color:var(--app-accent);
-  }
-  .analyze-text{
+  /* centered summary heading */
+  .summary-title{ text-align:center; }
+  /* insight panel — the 5 analyses revealed by the Insight button */
+  .insight-panel{
     width:100%;
     margin-top:.8rem;
     padding:1rem 1.1rem;
@@ -1258,11 +1339,19 @@
     font-size:.95rem; line-height:1.6;
     animation: rise .35s cubic-bezier(.2,.8,.2,1) both;
   }
-  .analyze-text[hidden]{ display:none }
-  .analyze-text p{ margin:0 0 .6rem }
-  .analyze-text p:last-child{ margin:0 }
-  .analyze-text em{ color:var(--app-accent-soft); font-style:normal }
-  .analyze-text strong{ color:var(--ink); font-weight:600 }
+  .insight-panel[hidden]{ display:none }
+  .insight-panel p{ margin:0 0 .6rem }
+  .insight-panel p:last-child{ margin:0 }
+  .insight-panel em{ color:var(--app-accent-soft); font-style:normal }
+  .insight-panel strong{ color:var(--ink); font-weight:600 }
+  .insight-set{ margin:0 0 1rem; }
+  .insight-set:last-child{ margin-bottom:0; }
+  .insight-set > h4{
+    margin:0 0 .35rem;
+    font:600 .72rem/1 'Inter', system-ui, sans-serif;
+    letter-spacing:.18em; text-transform:uppercase;
+    color:var(--app-accent);
+  }
 
   /* related-apps panel (shown on Keep-playing in save-intro) */
   .related-apps{
@@ -1391,42 +1480,10 @@
   }
   .color-pick-ball[aria-expanded="true"]{ outline-color: var(--app-accent) }
 
-  /* Hide the colour-code text in heading mirrors — keep just the swatch */
+  /* In heading mirrors keep just the swatch when a colour resolved;
+     if none resolved (free text typed), show the colour text instead. */
   [data-mirror="color-name"]{ display: none }
-
-  /* Small additional field for entering a hex code.
-     Swatch sits flush on its right as a "continuation". */
-  .field-code{
-    display: flex;
-    gap: .4rem;
-    align-items: stretch;
-    margin: .8rem 0 .2rem;
-  }
-  .field-code input{
-    flex: 0 0 auto;
-    width: 12rem;
-    max-width: 60%;
-    padding: .55rem .8rem;
-    background: var(--field);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    color: var(--ink);
-    font: inherit; font-size: .92rem;
-    transition: border-color .2s, background .2s;
-  }
-  .field-code input:focus{
-    outline: none;
-    background: var(--field-focus);
-    border-color: var(--app-accent);
-  }
-  .field-code input::placeholder{ color: var(--ink-dim) }
-  .field-code .color-ball{
-    width: 2.4rem;
-    align-self: stretch;
-    height: auto;
-    border-radius: 10px;
-    margin: 0;
-  }
+  body:not(.has-color) [data-mirror="color-name"]{ display: inline }
 
   /* Custom rainbow wheel picker — sits inline below the field.
      Flex row so the + button can sit on the right of the wheel. */
@@ -1762,6 +1819,14 @@
     font-size:.78rem; letter-spacing:.18em; text-transform:uppercase;
     color:var(--ink-dim);
   }
+  /* magic trigger sitting to the right of the text field */
+  .field-magic{ display:flex; align-items:center; gap:.6rem; margin:1.1rem 0 .5rem; }
+  .field-magic > .s2-anopt-inline{ flex:1 1 auto; min-width:0; margin:0; max-width:none; }
+  .field-magic > .s2-anopt-inline .field{ margin-bottom:0; }
+  .magic-trigger.magic-inline{
+    flex:0 0 auto; margin-left:auto;
+    width:3.1rem; height:3.1rem; font-size:1.5rem;
+  }
 
   /* "+" add button shown below the cloud — 3-click progressive reveal */
   .magic-add{
@@ -1904,6 +1969,7 @@
     <span class="yin-yang" aria-hidden="true"></span>
   </button>
   <button class="flove-app-name" id="appNameBtn" type="button" aria-expanded="false" aria-controls="appInfo">Souls</button>
+  <span class="title-voice" id="titleVoice" aria-hidden="true" hidden>🔊</span>
   <span class="flove-spacer"></span>
   <button class="topmenu-btn" id="resetBtn" type="button" aria-label="Restart">↻</button>
 </nav>
@@ -1942,9 +2008,9 @@
         <div class="slide-icon">❉</div>
         <h2><span class="t-en">An extreme intimacy</span><span class="t-es">Una intimidad extrema</span></h2>
         <p><span class="t-en">and a high potential worth for you and others</span><span class="t-es">y un alto valor potencial para ti y para otros</span></p>
-        <p><span class="t-en">We provide and recommend</span><span class="t-es">Ofrecemos y recomendamos</span></p>
+        <p><span class="t-en">we provide and recommend</span><span class="t-es">Ofrecemos y recomendamos</span></p>
         <div class="customize-wrap">
-          <button class="btn ghost customize-btn" type="button" id="customizeBtn" aria-expanded="false" aria-controls="customizePanel"><span class="t-en">⚙ Customize</span><span class="t-es">⚙ Personalizar</span></button>
+          <button class="btn customize-btn" type="button" id="customizeBtn" aria-expanded="false" aria-controls="customizePanel"><span class="t-en">⚙ Customize</span><span class="t-es">⚙ Personalizar</span></button>
           <div class="customize-panel" id="customizePanel" hidden>
             <div class="cust-group">
               <label class="cust-radio">
@@ -1973,13 +2039,17 @@
               </label>
             </div>
             <div class="cust-group">
-              <div class="cust-label"><span class="t-en">Tell</span><span class="t-es">Contar</span></div>
-              <div class="cust-tell-bar" id="custTellBar" role="radiogroup" aria-label="Tell mode">
-                <button type="button" class="cust-tell-opt is-on" data-tell="text" role="radio" aria-checked="true"><span class="t-en">Text</span><span class="t-es">Texto</span></button>
-                <button type="button" class="cust-tell-opt" data-tell="audio" role="radio" aria-checked="false"><span class="t-en">Audio</span><span class="t-es">Audio</span></button>
-                <button type="button" class="cust-tell-opt" data-tell="video" role="radio" aria-checked="false"><span class="t-en">Video</span><span class="t-es">Vídeo</span></button>
-                <button type="button" class="cust-tell-opt" data-tell="perform" role="radio" aria-checked="false"><span class="t-en">Perform</span><span class="t-es">Actuar</span></button>
+              <div class="cust-label"><span class="t-en">Play with</span><span class="t-es">Jugar con</span></div>
+              <div class="cust-certify-row" id="custPlayRow">
+                <div class="cert-track" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" id="playTrack">
+                  <div class="cert-fill" id="playFill"></div>
+                  <button type="button" class="cert-node play-node is-on" data-play="text"    aria-label="Text"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Text</span><span class="t-es">Texto</span></span></button>
+                  <button type="button" class="cert-node play-node"       data-play="audio"   aria-label="Audio"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Audio</span><span class="t-es">Audio</span></span></button>
+                  <button type="button" class="cert-node play-node"       data-play="video"   aria-label="Video"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Video</span><span class="t-es">Vídeo</span></span></button>
+                  <button type="button" class="cert-node play-node"       data-play="perform" aria-label="Perform"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Perform</span><span class="t-es">Actuar</span></span></button>
+                </div>
               </div>
+              <div class="cert-intro" id="custPlayIntro" hidden></div>
             </div>
             <div class="cust-group">
               <div class="cust-label"><span class="t-en">Language</span><span class="t-es">Idioma</span></div>
@@ -1989,16 +2059,8 @@
                 <li class="cust-lang-more"><label for="new-language-modal" id="custLangPlus" tabindex="0" title="Add a language" aria-label="Add a language"><span class="lang-flag">＋</span><span class="t-en">Add a language</span><span class="t-es">Añadir un idioma</span></label></li>
               </ul>
             </div>
-            <div class="cust-group cust-row">
-              <span class="cust-label"><span class="t-en">Certify</span><span class="t-es">Certificar</span></span>
-              <label class="cust-switch cust-switch-yn" aria-label="Certify toggle">
-                <input type="checkbox" id="custCertify">
-                <span class="cust-switch-track">
-                  <span class="cust-switch-text cust-switch-on"><span class="t-en">YES</span><span class="t-es">SÍ</span></span>
-                  <span class="cust-switch-text cust-switch-off"><span class="t-en">NO</span><span class="t-es">NO</span></span>
-                  <span class="cust-switch-thumb"></span>
-                </span>
-              </label>
+            <div class="cust-group">
+              <button type="button" class="cust-label cust-collapse-btn" id="custCertifyToggle" aria-expanded="false" aria-controls="custCertifyRow"><span class="t-en">Certify play</span><span class="t-es">Certificar juego</span></button>
               <div class="cust-certify-row" id="custCertifyRow" hidden>
                 <div class="cert-track" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="certTrack">
                   <div class="cert-fill" id="certFill"></div>
@@ -2006,11 +2068,17 @@
                   <button type="button" class="cert-node" data-cert="mail"   aria-label="Mail"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Mail</span><span class="t-es">Correo</span></span></button>
                   <button type="button" class="cert-node" data-cert="telf"   aria-label="Phone"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Telf</span><span class="t-es">Tlf</span></span></button>
                   <button type="button" class="cert-node" data-cert="id"     aria-label="ID"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Id</span><span class="t-es">Id</span></span></button>
-                  <button type="button" class="cert-node" data-cert="bio"    aria-label="Bio"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Bio</span><span class="t-es">Bio</span></span></button>
+                  <button type="button" class="cert-node" data-cert="bio"    aria-label="Biometric"><span class="cert-dot"></span><span class="cert-name"><span class="t-en">Biometric</span><span class="t-es">Biométrico</span></span></button>
                 </div>
               </div>
+              <div class="cert-intro" id="custCertGeneral" hidden></div>
+              <div class="cert-intro" id="custCertIntro" hidden></div>
+              <div class="cert-fields" id="custCertFields" hidden></div>
             </div>
-            <div class="cert-intro" id="custCertIntro" hidden></div>
+            <div class="moreinfo-wrap">
+              <button class="btn ghost moreinfo-btn" type="button" id="intimacyMoreBtn" aria-expanded="false" aria-controls="intimacyMoreBox"><span class="t-en">ⓘ More info</span><span class="t-es">ⓘ Más información</span></button>
+              <div class="moreinfo-box cert-intro" id="intimacyMoreBox" hidden></div>
+            </div>
           </div>
         </div>
       </article>
@@ -2062,12 +2130,8 @@
     <h1>Now a colour.</h1>
     <p class="hint">Any colour you want — write it freely.</p>
     <form class="field" onsubmit="return false">
-      <input id="color" type="text" autocomplete="off" placeholder="any colour — name or expression" />
+      <input id="color" type="text" autocomplete="off" placeholder="" />
       <button type="button" class="color-pick-ball" id="colorBanner" aria-label="Chosen colour — click to open the wheel" aria-haspopup="true" aria-expanded="false" aria-controls="colorPopup"></button>
-    </form>
-    <form class="field-code" onsubmit="return false">
-      <input id="colorCode" type="text" autocomplete="off" placeholder="hex code, e.g. #4fc3f7" />
-      <span class="color-ball" id="colorCodeSwatch" aria-hidden="true"></span>
     </form>
     <div class="color-popup" id="colorPopup" hidden role="region" aria-label="Colour wheel">
       <div class="color-wheel" id="colorWheel">
@@ -2143,7 +2207,7 @@
   </section>
   <section class="view" data-view="s2-cat2" data-stage="2">
     <span class="step-tag">Stage 2 · Narrower</span>
-    <h1>Pick yet another specie.</h1>
+    <h1>Pick another specie.</h1>
     <p class="hint">Choose one below my first. Optionally name an animal of that group.</p>
     <div class="s2-intro-grid">
       <div class="s2-cat-list" id="s2CatList2"></div>
@@ -2193,7 +2257,7 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s2-sense">← Back</button>
-      <button class="btn primary" type="button" data-next="s3-species" data-advance-stage="2" disabled>Next Stage →</button>
+      <button class="btn primary" type="button" data-next="s2-reveal" data-advance-stage="2" disabled>Finish</button>
     </div>
     <div class="nav-centered">
       <button class="btn ghost" type="button" data-action="pause" data-from-stage="2">Get results</button>
@@ -2222,33 +2286,18 @@
     <div class="s2-intro-grid">
       <div class="s2-cat-list" id="s3CatList"></div>
     </div>
-    <div class="s2-anopt-inline" id="s3AnoptWrap" hidden>
-      <form class="field" onsubmit="return false">
-        <input id="s3Species" type="text" autocomplete="off" required />
-      </form>
-    </div>
-    <div class="magic-row">
-      <button type="button" class="magic-trigger" data-magic-cloud="species3" aria-expanded="false" aria-controls="speciesMagicCloud" title="Float a bubble cloud of creatures">✨</button>
-      <span class="magic-label">A bubble cloud of creatures</span>
+    <div class="field-magic">
+      <div class="s2-anopt-inline" id="s3AnoptWrap" hidden>
+        <form class="field" onsubmit="return false">
+          <input id="s3Species" type="text" autocomplete="off" required />
+        </form>
+      </div>
+      <button type="button" class="magic-trigger magic-inline" data-magic-cloud="species3" aria-expanded="false" aria-controls="speciesMagicCloud" title="A bubble cloud of creatures" aria-label="A bubble cloud of creatures">✨</button>
     </div>
     <div class="magic-cloud" id="speciesMagicCloud" hidden aria-live="polite"></div>
     <button type="button" class="magic-add" data-magic-add="species3" data-level="0" hidden aria-label="Add more bubbles">+</button>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s2-reveal">← Back</button>
-      <button class="btn primary" type="button" data-next="s3-sq" disabled>Next →</button>
-    </div>
-  </section>
-  <section class="view" data-view="s3-sq" data-stage="3">
-    <span class="step-tag">Stage 3 · About this creature</span>
-    <h1>Three things from <em><span class="mirror" data-mirror="species3-or">it</span></em>.</h1>
-    <p class="hint">Gestures, instincts, textures, ways of being.</p>
-    <form class="triple" onsubmit="return false">
-      <input id="s3Sp1" type="text" autocomplete="off" />
-      <input id="s3Sp2" type="text" autocomplete="off" />
-      <input id="s3Sp3" type="text" autocomplete="off" />
-    </form>
-    <div class="nav">
-      <button class="btn ghost" type="button" data-go="s3-species">← Back</button>
       <button class="btn primary" type="button" data-next="s3-channel" disabled>Next →</button>
     </div>
   </section>
@@ -2261,7 +2310,21 @@
 
     <div class="pick-grid two-rows" id="s3BioPick"></div>
     <div class="nav">
-      <button class="btn ghost" type="button" data-go="s3-sq">← Back</button>
+      <button class="btn ghost" type="button" data-go="s3-species">← Back</button>
+      <button class="btn primary" type="button" data-next="s3-sq" disabled>Next →</button>
+    </div>
+  </section>
+  <section class="view" data-view="s3-sq" data-stage="3">
+    <span class="step-tag">Stage 3 · Through <span class="mirror" data-mirror="s3channel-name">the channel</span></span>
+    <h1>Three things <em><span class="mirror" data-mirror="species3-or">it</span></em> is <span class="mirror" data-mirror="s3channel-verb">sensing</span>.</h1>
+    <p class="hint">Gestures, instincts, textures, ways of being.</p>
+    <form class="triple" onsubmit="return false">
+      <input id="s3Sp1" type="text" autocomplete="off" />
+      <input id="s3Sp2" type="text" autocomplete="off" />
+      <input id="s3Sp3" type="text" autocomplete="off" />
+    </form>
+    <div class="nav">
+      <button class="btn ghost" type="button" data-go="s3-channel">← Back</button>
       <button class="btn primary" type="button" data-next="s3-channel-more" disabled>Next →</button>
     </div>
   </section>
@@ -2272,13 +2335,13 @@
 
     <div class="pick-grid two-rows" id="s3BioPickMore"></div>
     <div class="nav">
-      <button class="btn ghost" type="button" data-go="s3-channel">← Back</button>
+      <button class="btn ghost" type="button" data-go="s3-sq">← Back</button>
       <button class="btn primary" type="button" data-next="s3-cq" disabled>Next →</button>
     </div>
   </section>
   <section class="view" data-view="s3-cq" data-stage="3">
-    <span class="step-tag">Stage 3 · Lived through <span class="mirror" data-mirror="s3channel-name">the channel</span></span>
-    <h1><em>(<span class="mirror" data-mirror="s3channel-name">the channel</span>)</em> Three things <em><span class="mirror" data-mirror="species3-or">it</span></em> is <span class="mirror" data-mirror="s3channel-verb">sensing</span>.</h1>
+    <span class="step-tag">Stage 3 · Through <span class="mirror" data-mirror="s3channel-name">the channel</span></span>
+    <h1>Three things <em><span class="mirror" data-mirror="species3-or">it</span></em> is <span class="mirror" data-mirror="s3channel-verb">sensing</span>.</h1>
     <p class="hint">From the inside of that channel — what does the world become?</p>
     <form class="triple" onsubmit="return false">
       <input id="s3C1" type="text" autocomplete="off" />
@@ -2287,7 +2350,7 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s3-channel-more">← Back</button>
-      <button class="btn primary" type="button" data-next="s4-matter" data-advance-stage="3" disabled>Next Stage →</button>
+      <button class="btn primary" type="button" data-next="s3-reveal" data-advance-stage="3" disabled>Finish</button>
     </div>
     <div class="nav-centered">
       <button class="btn ghost" type="button" data-action="pause" data-from-stage="3">Get results</button>
@@ -2313,20 +2376,15 @@
     <span class="step-tag">Stage 4 · Matter</span>
     <h1>Now choose some other matter.</h1>
     <p class="hint">Below species and tissue, the world is still alive — or about to be.</p>
-    <details class="breadcrumb" id="s4Breadcrumb">
-      <summary>My speciation so far</summary>
-      <div class="breadcrumb__body" id="s4BreadcrumbBody"></div>
-    </details>
     <div class="tier-preview" id="s4SpeciesPreview" aria-hidden="true"></div>
     <div class="pick-grid" id="matterPick"></div>
-    <div class="s2-anopt-inline" id="s4MatterAnoptWrap" hidden>
-      <form class="field" onsubmit="return false">
-        <input id="s4MatterSpecific" type="text" autocomplete="off" />
-      </form>
-    </div>
-    <div class="magic-row">
-      <button type="button" class="magic-trigger" data-magic-cloud="matter" aria-expanded="false" aria-controls="matterMagicCloud" title="Float a bubble cloud of matter">✨</button>
-      <span class="magic-label">A bubble cloud of matter</span>
+    <div class="field-magic">
+      <div class="s2-anopt-inline" id="s4MatterAnoptWrap" hidden>
+        <form class="field" onsubmit="return false">
+          <input id="s4MatterSpecific" type="text" autocomplete="off" />
+        </form>
+      </div>
+      <button type="button" class="magic-trigger magic-inline" data-magic-cloud="matter" aria-expanded="false" aria-controls="matterMagicCloud" title="A bubble cloud of matter" aria-label="A bubble cloud of matter">✨</button>
     </div>
     <div class="magic-cloud" id="matterMagicCloud" hidden aria-live="polite"></div>
     <button type="button" class="magic-add" data-magic-add="matter" data-level="0" hidden aria-label="Add more bubbles">+</button>
@@ -2351,7 +2409,7 @@
   </section>
   <section class="view" data-view="s4-bio" data-stage="4">
     <span class="step-tag">Stage 4 · A system, deeper</span>
-    <h1>A biological system, below <em><span class="mirror" data-mirror="s3-bio-name">my previous one</span></em>.</h1>
+    <h1>Now choose another system.</h1>
     <p class="hint" id="s4BioHint">Pick something further down the list.</p>
     <div class="pick-grid" id="s4BioPick"></div>
     <div class="nav">
@@ -2370,7 +2428,7 @@
     </form>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s4-bio">← Back</button>
-      <button class="btn primary" type="button" data-next="s5-particle" data-advance-stage="4" disabled>Next Stage →</button>
+      <button class="btn primary" type="button" data-next="s4-reveal" data-advance-stage="4" disabled>Finish</button>
     </div>
     <div class="nav-centered">
       <button class="btn ghost" type="button" data-action="pause" data-from-stage="4">Get results</button>
@@ -2427,7 +2485,7 @@
   <section class="view" data-view="s5-immune" data-stage="5">
     <span class="step-tag">Stage 5 · Immune subsystem</span>
     <h1>One of four immune subsystems.</h1>
-    <p class="hint">Somatic, neuroimmune, innate, lymphatic — which one calls?</p>
+    <p class="hint">Adaptative, neuroimmune, innate, lymphatic — which one calls?</p>
     <div class="pick-grid" id="immunePick"></div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s5-pq">← Back</button>
@@ -2482,7 +2540,7 @@
 
   <section class="view" data-view="save-form">
     <span class="step-tag">My portrait</span>
-    <h1>Two columns. Five doors.</h1>
+    <h1 class="summary-title">Summary</h1>
     <p class="hint">First answers in <em>warm</em>, second answers in <em>rose</em>. <span class="pill-tag">cloud sync coming soon</span></p>
 
     <div class="portrait-frame">
@@ -2490,9 +2548,17 @@
       <div class="portrait-grid portrait-row-2" id="portraitRow2"></div>
     </div>
 
+    <div class="timestats" id="timeStats" hidden>
+      <div class="timestats__h" title="Enter" role="button" tabindex="0" aria-expanded="false">Time stats</div>
+      <div class="timestats__row" id="timeStatsRow"></div>
+      <div class="timestats__per" id="timeStatsPer"></div>
+      <div class="timestats__t-label">Click-by-click · time you took between each action</div>
+      <div class="timestats__timeline" id="timeStatsTimeline"></div>
+    </div>
+
     <div class="result-actions action-grid">
       <div class="action-row">
-        <button class="btn ghost insight-btn" type="button" id="insightBtn">💡 Insight</button>
+        <button class="btn ghost insight-btn" type="button" id="insightBtn" aria-expanded="false" aria-controls="insightPanel">💡 Insight</button>
         <button class="btn ghost magic-btn-summary" type="button" id="magicBtn" aria-pressed="false">
           <span class="label-off">✨ Magic</span>
           <span class="label-on">✦ Plain</span>
@@ -2530,18 +2596,7 @@
       </div>
     </div>
 
-    <div class="timestats" id="timeStats" hidden>
-      <div class="timestats__h" title="Enter" role="button" tabindex="0" aria-expanded="false">Time stats</div>
-      <div class="timestats__row" id="timeStatsRow"></div>
-      <div class="timestats__per" id="timeStatsPer"></div>
-      <div class="timestats__t-label">Click-by-click · time you took between each action</div>
-      <div class="timestats__timeline" id="timeStatsTimeline"></div>
-    </div>
-
-    <div class="analyze-wrap">
-      <button class="btn analyze-btn" type="button" id="analyzeBtn" aria-expanded="false" aria-controls="analyzeText">⌖ Analyze</button>
-      <div class="analyze-text" id="analyzeText" hidden></div>
-    </div>
+    <div class="insight-panel" id="insightPanel" hidden></div>
 
     <div class="nav">
       <button class="btn ghost" type="button" data-go="save-intro">← Back</button>
@@ -2558,6 +2613,9 @@
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- floating Listen toggle — appears once Listen is turned on; switches it off/on -->
+<button class="listen-float" id="listenFloat" type="button" hidden aria-pressed="false" title="Listen on / off">🔊</button>
 
 <!-- floating arcade counters — selections on top, stars below -->
 <div class="float-counters" aria-live="polite">
@@ -2593,12 +2651,12 @@
     { id:'muscular',      label:'Muscular',      icon:'💪', verb:'moving'      },
     { id:'skeletal',      label:'Skeletal',      icon:'🦴', verb:'holding'     },
     { id:'respiratory',   label:'Respiratory',   icon:'🌬️', verb:'breathing'   },
-    { id:'reproductive',  label:'Reproductive',  icon:'🌱', verb:'reproducing' },
     { id:'circulatory',   label:'Circulatory',   icon:'🩸', verb:'pumping'     },
     { id:'excretory',     label:'Excretory',     icon:'💧', verb:'filtering'   },
     { id:'digestive',     label:'Digestive',     icon:'🍃', verb:'digesting'   },
     { id:'integumentary', label:'Integumentary', icon:'🤝', verb:'touching'    },
-    { id:'immune',        label:'Immune',        icon:'🛡', verb:'defending'   }
+    { id:'immune',        label:'Immune',        icon:'🛡', verb:'defending'   },
+    { id:'reproductive',  label:'Reproductive',  icon:'🌱', verb:'reproducing' }
   ];
   // species categories (popular naming)
   const SPECIES_TREE = {
@@ -2632,7 +2690,7 @@
     { id:'higgs',    label:'Higgs',    icon:'H' }
   ];
   const IMMUNE = [
-    { id:'somatic',     label:'Somatic',     icon:'🫀' },
+    { id:'somatic',     label:'Adaptative',  icon:'🫀' },
     { id:'neuroimmune', label:'Neuroimmune', icon:'🧠' },
     { id:'innate',      label:'Innate',      icon:'🛡' },
     { id:'lymphatic',   label:'Lymphatic',   icon:'💧' }
@@ -2673,6 +2731,7 @@
     custCertify:false, custCertNode:'',
     fromReveal:'s1-reveal',
     preSaveView:'',
+    maxStageReached: 1, // highest stage entered → reveals extra top-bar dots (4, 5)
     stars: { 1:false, 2:false, 3:false, 4:false, 5:false },
     events: [], // hidden timer: { ts, kind:'pick'|'next'|'type', view, target }
     // nesting (each aq/cq word can get a parent word above it)
@@ -2696,6 +2755,68 @@
   const persist = () => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(_){}
   };
+
+  // ── audio: WebAudio chimes + speech-synthesis (all gated by the Listen toggle) ──
+  const Audio2 = (function(){
+    let ctx = null;
+    const ac = () => (ctx = ctx || new (window.AudioContext || window.webkitAudioContext)());
+    const tone = (notes) => {
+      try{
+        const a = ac(); const t = a.currentTime;
+        notes.forEach(({f, t0, dur, type='triangle', vol=0.14}) => {
+          const osc = a.createOscillator(), g = a.createGain();
+          osc.type = type; osc.frequency.setValueAtTime(f, t + t0);
+          g.gain.setValueAtTime(0, t + t0);
+          g.gain.linearRampToValueAtTime(vol, t + t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + t0 + dur);
+          osc.connect(g).connect(a.destination);
+          osc.start(t + t0); osc.stop(t + t0 + dur + 0.05);
+        });
+      } catch(_){}
+    };
+    return {
+      listenOn(){ tone([{f:660,t0:0,dur:.18},{f:990,t0:.10,dur:.22}]); },
+      next(){ tone([{f:540,t0:0,dur:.10,vol:.10}]); },                 // soft tick per Next
+      stageEnd(){ tone([{f:523.25,t0:0,dur:.22},{f:659.25,t0:.13,dur:.22},{f:783.99,t0:.26,dur:.34,vol:.16}]); }, // C-E-G rise
+      speak(text){
+        try{
+          if (!('speechSynthesis' in window) || !text) return;
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(String(text));
+          u.lang = (state.uiLang === 'es') ? 'es-ES' : 'en-US';
+          window.speechSynthesis.speak(u);
+        } catch(_){}
+      },
+      stopSpeak(){ try{ window.speechSynthesis.cancel(); } catch(_){} }
+    };
+  })();
+  // speak text only when Listen is on; strip any inline markup first
+  const speakIfListening = (text) => {
+    if (state.custListen) Audio2.speak(String(text||'').replace(/<[^>]+>/g, ' ').replace(/\s+/g,' ').trim());
+  };
+
+  // ── Listen toggle: floating control + shared setter ──
+  const listenFloat = $('#listenFloat');
+  let _listenFloatShown = false;
+  const titleVoice = $('#titleVoice');
+  const reflectListen = () => {
+    const cb = $('#custListen'); if (cb) cb.checked = !!state.custListen;
+    if (listenFloat){
+      listenFloat.hidden = !_listenFloatShown;
+      listenFloat.textContent = state.custListen ? '🔊' : '🔇';
+      listenFloat.setAttribute('aria-pressed', String(!!state.custListen));
+    }
+    // voice icon beside the page title while Listen is on
+    if (titleVoice) titleVoice.hidden = !state.custListen;
+  };
+  const setListen = (on, opts={}) => {
+    state.custListen = !!on; persist();
+    if (on) _listenFloatShown = true;   // once revealed, the float stays so you can switch off/on
+    reflectListen();
+    if (on && opts.chime) Audio2.listenOn();
+    if (!on) Audio2.stopSpeak();
+  };
+  if (listenFloat) listenFloat.addEventListener('click', () => setListen(!state.custListen, {chime:true}));
 
   // ── helpers ─────────────────────────────────────────────
   const uc = s => (s||'').trim().toUpperCase();
@@ -2804,7 +2925,7 @@
   // s3 bio systems split into two paginated pickers — page A (5) + page B (rest).
   // Single-select across both pages: picking on either sets state.s3Channel.
   const BIO_A = BIO_SYSTEMS.slice(0, 5);                // nervous, endocrine, muscular, skeletal, respiratory
-  const BIO_B = BIO_SYSTEMS.slice(5);                   // reproductive, circulatory, excretory, digestive, integumentary, immune
+  const BIO_B = BIO_SYSTEMS.slice(5);                   // circulatory, excretory, digestive, integumentary, immune, reproductive
   let refreshS3Channel = () => {};
   const s3BioGetter = () => s3ChannelType()==='bio' ? s3ChannelId() : '';
   const s3BioSetter = v => { state.s3Channel = 'bio:' + v; refreshS3Channel(); };
@@ -2813,14 +2934,14 @@
   refreshS3Channel = () => { syncS3BioA(); syncS3BioB(); };
 
   // lock s3 bio systems — nervous (its senses live in stage 2) shows a reason;
-  // immune is locked silently (no info). Reproductive is now selectable.
+  // reproductive is locked silently (no info). Immune is now selectable.
   (function lockSystemsInS3(){
     const msg = $('#s3NervousMsg');
     if (!msg) return;
     const reasons = {
       nervous: 'Select another system — you have already chosen the nervous system’s senses in the previous stage.'
     };
-    const silentLocks = ['immune'];
+    const silentLocks = ['reproductive'];
     let dismissT = null;
     let lastId   = null;
     const findBtn = (id) => $(`#s3BioPick .pick-btn[data-value="${id}"]`) || $(`#s3BioPickMore .pick-btn[data-value="${id}"]`);
@@ -2898,14 +3019,18 @@
   function applyS4BioLocks(){
     const refIdx = s3BioIndex();
     const refId  = s3ChannelId();
-    const PERMA_LOCK = new Set(['immune']); // silent, always unclickable
+    // previously-selected systems, shown coloured: the stage-3 pick + nervous
+    // (its senses were chosen back in stage 2). Reproductive is freely selectable.
+    const prevIds = new Set();
+    if (refId)       prevIds.add(refId);
+    if (state.sense) prevIds.add('nervous');
     $$('#s4BioPick .pick-btn').forEach(btn => {
       const v = btn.dataset.value;
       const idx = BIO_SYSTEMS.findIndex(x => x.id === v);
-      const isPrev = refId && v === refId;
-      const isLocked = (refIdx >= 0 && idx <= refIdx) || PERMA_LOCK.has(v);
-      btn.classList.toggle('is-prev-tier', isPrev);
-      btn.classList.toggle('is-locked', isLocked && !isPrev);
+      const isPrev = prevIds.has(v);
+      const isLocked = (refIdx >= 0 && idx <= refIdx) && !isPrev;
+      btn.classList.toggle('is-prev-tier', isPrev);   // previous picks shown dimmed like the rest
+      btn.classList.toggle('is-locked', isLocked);
       if (isLocked || isPrev){
         btn.setAttribute('aria-disabled', 'true');
       } else {
@@ -2934,9 +3059,11 @@
       b.dataset.cat = cat;
       b.dataset.idx = idx;
       b.textContent = cat;
-      const isLocked = lockMode === 'lastOnly'
-        ? idx === S2_CATS.length - 1
-        : idx >= SPECIES_LOCK_FROM;
+      const isLocked = lockMode === 'none'
+        ? false
+        : lockMode === 'lastOnly'
+          ? idx === S2_CATS.length - 1
+          : idx >= SPECIES_LOCK_FROM;
       if (isLocked) b.classList.add('is-locked-perm');
       b.addEventListener('click', () => {
         if (b.classList.contains('is-dim') || isLocked) return;
@@ -2998,7 +3125,7 @@
                           showAnoptInline('#s3AnoptWrap', '#s3Species', cat);
                           if (typeof onS3CategoryPicked === 'function') onS3CategoryPicked(cat);
                         },
-                        'lastOnly');
+                        'none');
 
   // ── tier preview (species → matter → particle ladder) ──
   // each stage shows the full ladder; previous picks highlighted, future tiers dim.
@@ -3163,47 +3290,98 @@
     });
   })();
 
-  // ── insight / magic wiring (re-uses the Analyze panel) ─────────
+  // ── insight: five different reads of the portrait ─────────────
   let magicOn = false;
-  function renderAnalyze(){
-    const panel = $('#analyzeText');
-    if (!panel) return;
-    panel.innerHTML = magicOn ? buildAnalysisMagic() : buildAnalysis();
+  function gatherPortrait(){
+    return {
+      a:   (state.animal||'').trim(),
+      col: (state.color||'').trim(),
+      aq:  [state.aq1,state.aq2,state.aq3].map(s=>(s||'').trim()).filter(Boolean),
+      cq:  [state.cq1,state.cq2,state.cq3].map(s=>(s||'').trim()).filter(Boolean),
+      sp2: (state.species||state.s2Cat2||'').trim(),
+      sp3: (state.s3Species||state.s3Cat||'').trim(),
+      sn:  SENSES.find(x => x.id === state.sense),
+      ch:  s3ChannelObj(),
+      mLabel: (state.s4MatterSpecific||'').trim() || (matterObj() ? matterObj().label : ''),
+      b4:  s4BioObj(),
+      p:   particleObj(),
+      im:  immuneObj(),
+      sn2: [state.sn1,state.sn2,state.sn3].map(s=>(s||'').trim()).filter(Boolean),
+      ch3: [state.s3C1,state.s3C2,state.s3C3].map(s=>(s||'').trim()).filter(Boolean)
+    };
+  }
+  // set 2 — the descent (scale journey, outer self → particle)
+  function insightDescent(d){
+    const steps = [];
+    if (d.a)      steps.push(`a <em>${d.a}</em>`);
+    if (d.col)    steps.push(`the colour <em>${d.col}</em>`);
+    if (d.sp2)    steps.push(`a <em>${d.sp2}</em>`);
+    if (d.sp3)    steps.push(`a narrower <em>${d.sp3}</em>`);
+    if (d.ch)     steps.push(`the <em>${d.ch.label.toLowerCase()}</em> channel`);
+    if (d.mLabel) steps.push(`<em>${d.mLabel}</em>`);
+    if (d.b4)     steps.push(`the <em>${d.b4.label.toLowerCase()}</em> system`);
+    if (d.p)      steps.push(`a <em>${d.p.label.toLowerCase()}</em>`);
+    if (d.im)     steps.push(`the <em>${d.im.label.toLowerCase()}</em> subsystem`);
+    return `<p>${steps.length ? steps.join(' → ') : '—'}</p>`;
+  }
+  // set 3 — what you bring vs what you seek
+  function insightPolarity(d){
+    const list = arr => arr.length ? arr.join(', ') : '—';
+    return `<p>You <strong>bring</strong> ${list(d.aq)}.</p>`
+         + `<p>You <strong>look for</strong> ${list(d.cq)}.</p>`
+         + ((d.aq.length && d.cq.length) ? `<p>The portrait breathes in the space between the two.</p>` : '');
+  }
+  // set 4 — completeness tally
+  function insightTally(d){
+    const layers = [d.a,d.col,d.sp2,d.sn,d.sp3,d.ch,d.mLabel,d.b4,d.p,d.im];
+    const filled = layers.filter(Boolean).length;
+    const stars  = Object.values(state.stars||{}).filter(Boolean).length;
+    const words  = [].concat(d.aq,d.cq,d.sn2,d.ch3).length;
+    return `<p><strong>${filled}/10</strong> layers named · <strong>${words}</strong> describing words · <strong>${stars}/5</strong> stages completed.</p>`;
+  }
+  // set 5 — one woven thread across the scales
+  function insightThread(d){
+    const parts = [d.a, d.sp2, d.sp3, d.mLabel, d.p && d.p.label.toLowerCase()].filter(Boolean);
+    if (!parts.length) return '<p>—</p>';
+    return `<p>From <em>${parts.join('</em> to <em>')}</em> — one self, read at every scale.</p>`;
+  }
+  function buildInsights(){
+    const d = gatherPortrait();
+    const sets = [
+      ['The read',       magicOn ? buildAnalysisMagic() : buildAnalysis()],
+      ['The descent',    insightDescent(d)],
+      ['Bring vs. seek', insightPolarity(d)],
+      ['By the numbers', insightTally(d)],
+      ['A thread',       insightThread(d)]
+    ];
+    return sets.map(([label, html]) =>
+      `<section class="insight-set"><h4>${label}</h4>${html || '<p>—</p>'}</section>`
+    ).join('');
+  }
+  function renderInsights(){
+    const panel = $('#insightPanel');
+    if (panel) panel.innerHTML = buildInsights();
   }
   (function wireInsightBtn(){
     const btn = $('#insightBtn');
-    const panel = $('#analyzeText');
-    const ab = $('#analyzeBtn');
+    const panel = $('#insightPanel');
     if (!btn || !panel) return;
     btn.addEventListener('click', () => {
-      renderAnalyze();
-      panel.hidden = false;
-      if (ab) ab.setAttribute('aria-expanded', 'true');
-      panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      const open = panel.hidden;
+      if (open) renderInsights();
+      panel.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (open) panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
     });
   })();
   (function wireMagicBtn(){
     const btn = $('#magicBtn');
-    const panel = $('#analyzeText');
+    const panel = $('#insightPanel');
     if (!btn || !panel) return;
     btn.addEventListener('click', () => {
       magicOn = !magicOn;
       btn.setAttribute('aria-pressed', String(magicOn));
-      if (!panel.hidden) renderAnalyze();
-    });
-  })();
-
-  (function wireAnalyzeBtn(){
-    const btn = $('#analyzeBtn');
-    const panel = $('#analyzeText');
-    if (!btn || !panel) return;
-    btn.addEventListener('click', () => {
-      const open = panel.hidden;
-      if (open){
-        panel.innerHTML = magicOn ? buildAnalysisMagic() : buildAnalysis();
-      }
-      panel.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
+      if (!panel.hidden) renderInsights();
     });
   })();
 
@@ -3414,7 +3592,7 @@
   const STAGE_VIEWS = {
     1: ['s1-animal','s1-aq','s1-color','s1-cq','s1-refine'],
     2: ['s2-species','s2-cat2','s2-sq','s2-sense','s2-snq'],
-    3: ['s3-species','s3-sq','s3-channel','s3-channel-more','s3-cq'],
+    3: ['s3-species','s3-channel','s3-sq','s3-channel-more','s3-cq'],
     4: ['s4-matter','s4-mq','s4-bio','s4-bq'],
     5: ['s5-particle','s5-pq','s5-immune','s5-iq']
   };
@@ -3427,6 +3605,9 @@
     5: 's5-particle'
   };
   const progressInnerEl = $('#progressInner');
+  // tracks how many top-bar dots were last rendered, so only a newly revealed
+  // dot animates in (not every dot on every navigation). Seeded to the floor.
+  let _prevBarCount = Math.max(3, state.maxStageReached || 1);
   const updateStageMeta = () => {
     const view = currentView();
     const stage = view ? +view.dataset.stage : 0;
@@ -3444,9 +3625,11 @@
       stageLabelEl.innerHTML = `Stage <b>${curStage}</b> of 5`;
     }
 
-    // stage-level bar: 3 dots (stages 4 and 5 hidden from the intro progress)
+    // stage-level bar: 3 dots to start; a new dot is revealed each time a deeper
+    // stage is reached (stage 4 → 4 dots, finishing stage 4 → 5 dots).
+    const barsCount = Math.max(3, state.maxStageReached || 1);
     progressEl.innerHTML = '';
-    [1,2,3].forEach(sNum => {
+    for (let sNum = 1; sNum <= barsCount; sNum++){
       const startView = STAGE_STARTS[sNum];
       const li = document.createElement('li');
       li.dataset.view  = startView;
@@ -3454,9 +3637,12 @@
       li.title = `Go to Stage ${sNum}`;
       if (state.stars[sNum])      li.classList.add('done');
       else if (sNum === curStage) li.classList.add('current');
+      // animate only the freshly-revealed dot
+      if (barsCount > _prevBarCount && sNum === barsCount) li.classList.add('just-added');
       li.addEventListener('click', () => goTo(startView));
       progressEl.appendChild(li);
-    });
+    }
+    _prevBarCount = barsCount;
 
     // in-stage bar: one dot per view within current stage, click jumps to that view
     if (progressInnerEl){
@@ -3533,14 +3719,25 @@
   // ── navigation ──────────────────────────────────────────
   const currentView = () => $(`.view[data-view="${state.view}"]`);
   const allViewsInDom = () => $$('.view').map(v => v.dataset.view);
-  const goTo = (viewId) => {
+  const goTo = (viewId, opts={}) => {
     if (!$(`.view[data-view="${viewId}"]`)) return;
     const order = allViewsInDom();
     const isForward = order.indexOf(viewId) > order.indexOf(state.view);
     if (isForward && !viewValid(state.view)) return;
-    state.view = viewId; persist();
+    state.view = viewId;
+    // reveal the matching top-bar dot as deeper stages are reached (only grows)
+    const _vEl = $(`.view[data-view="${viewId}"]`);
+    const _rev = viewId.match(/^s(\d)-reveal$/);
+    const _st  = _rev ? +_rev[1] : (_vEl && _vEl.dataset.stage ? +_vEl.dataset.stage : 0);
+    if (_st) state.maxStageReached = Math.max(state.maxStageReached || 1, _st);
+    persist();
     if (typeof closeAllMagicClouds === 'function') closeAllMagicClouds();
-    $$('.view').forEach(v => v.classList.toggle('is-on', v.dataset.view === viewId));
+    $$('.view').forEach(v => {
+      const on = v.dataset.view === viewId;
+      v.classList.toggle('is-on', on);
+      // forward (Next) navigation fades in leftwards; other moves use the default rise
+      v.classList.toggle('enter-fwd', on && opts.anim === 'fwd');
+    });
 
     // hooks per view
     if (viewId === 's1-refine'){ renderAqNest(); renderCqNest(); }
@@ -3571,6 +3768,7 @@
     }
     reflectMirrors();
     updateStageMeta();
+    refreshGates();   // recompute Next gating on entry (e.g. system must be picked in stage 3)
     refreshCounters();
     updateNightStage();
     // focus first empty input
@@ -3590,8 +3788,10 @@
       state.fromReveal = `s${adv}-reveal`;
       persist();
     }
+    // audio feedback when Listen is on: special chime when a stage ends, a soft tick otherwise
+    if (state.custListen){ adv ? Audio2.stageEnd() : Audio2.next(); }
     logEvent('next', b.dataset.next);
-    goTo(b.dataset.next);
+    goTo(b.dataset.next, { anim: 'fwd' });
   }));
   $$('[data-go]'  ).forEach(b => b.addEventListener('click', () => goTo(b.dataset.go)));
 
@@ -3630,6 +3830,7 @@
       const open = panel.hidden;
       panel.hidden = !open;
       btn.setAttribute('aria-expanded', String(open));
+      if (open) syncPlayFill();
     });
     // mode radios → state.custMode; Private reveals the download button
     const dl = $('#custDownload');
@@ -3642,55 +3843,101 @@
       });
     });
     refreshDl();
-    // tiny chime when Listen flips ON — WebAudio, gated by a user gesture
-    let audioCtx = null;
-    const playListenOnChime = () => {
-      try{
-        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        const t = audioCtx.currentTime;
-        // two-note rising chime: 660 Hz → 990 Hz, soft triangle
-        [{f:660, t0:0,   dur:.18}, {f:990, t0:.10, dur:.22}].forEach(({f, t0, dur}) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(f, t + t0);
-          gain.gain.setValueAtTime(0, t + t0);
-          gain.gain.linearRampToValueAtTime(0.16, t + t0 + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + t0 + dur);
-          osc.connect(gain).connect(audioCtx.destination);
-          osc.start(t + t0); osc.stop(t + t0 + dur + 0.05);
-        });
-      } catch(_){}
-    };
-    // listen switch → state.custListen + chime on turn-on
+    // listen switch → shared setListen (reveals floating control + plays chime on turn-on)
     const listen = $('#custListen');
-    if (listen) listen.addEventListener('change', () => {
-      state.custListen = !!listen.checked; persist();
-      if (listen.checked) playListenOnChime();
-    });
-    // tell bar → state.custTell
-    document.querySelectorAll('.cust-tell-opt').forEach(opt => {
-      opt.addEventListener('click', () => {
-        document.querySelectorAll('.cust-tell-opt').forEach(o => {
-          o.classList.toggle('is-on', o === opt);
-          o.setAttribute('aria-checked', String(o === opt));
-        });
-        state.custTell = opt.dataset.tell; persist();
-      });
-    });
+    if (listen) listen.addEventListener('change', () => setListen(listen.checked, {chime:true}));
     // language radios → state.uiLang
     document.querySelectorAll('input[name="uiLang"]').forEach(r => {
       r.addEventListener('change', () => {
         if (r.checked) { state.uiLang = r.id === 'ui-lang-es' ? 'es' : 'en'; persist(); }
       });
     });
-    // certify switch → reveals the nodes-on-progress row
-    const cert      = $('#custCertify');
-    const certRow   = $('#custCertifyRow');
-    const certIntro = $('#custCertIntro');
-    const certNodes = [...document.querySelectorAll('.cert-node')];
-    const certFill  = $('#certFill');
-    const certTrack = $('#certTrack');
+
+    // shared helpers for the two progress-bar pickers (Play with + Certify play)
+    const renderIntro = (el, info) => {
+      if (!el || !info) return;
+      el.hidden = false;
+      el.innerHTML =
+        `<h4><span class="t-en">${info.en.h}</span><span class="t-es">${info.es.h}</span></h4>`
+        + info.en.body.map((p, i) =>
+            `<p><span class="t-en">${p}</span><span class="t-es">${info.es.body[i] || ''}</span></p>`
+          ).join('');
+      // read the just-revealed text aloud when Listen is on
+      const L = info[state.uiLang === 'es' ? 'es' : 'en'];
+      speakIfListening([L.h, ...L.body].join('. '));
+    };
+    const setFill = (fillEl, trackEl, node, nodes) => {
+      if (!fillEl || !trackEl || !node) return;
+      const trackW = trackEl.clientWidth - 2 * 0.65 * 16; // minus left/right padding (.65rem each)
+      const nodeCenter = node.offsetLeft + node.offsetWidth/2 - 0.65 * 16;
+      const pct = trackW > 0 ? Math.max(0, Math.min(1, nodeCenter / trackW)) : 0;
+      fillEl.style.width = (pct * 100) + '%';
+      trackEl.setAttribute('aria-valuenow', String(nodes.indexOf(node) + 1));
+    };
+
+    // ── "Play with" progress bar → state.custTell, info box per node ──
+    const playRow   = $('#custPlayRow');
+    const playIntro = $('#custPlayIntro');
+    const playNodes = playRow ? [...playRow.querySelectorAll('.cert-node')] : [];
+    const playFill  = $('#playFill');
+    const playTrack = $('#playTrack');
+    const PLAY_INFO = {
+      text: {
+        en: { h: '✎ Text · write it',
+              body: ['Tell your Soul in writing — type freely at each step. The calmest, most private way to play.'] },
+        es: { h: '✎ Texto · escríbelo',
+              body: ['Cuenta tu Alma por escrito — teclea libremente en cada paso. La forma más tranquila y privada de jugar.'] }
+      },
+      audio: {
+        en: { h: '🎙 Audio · speak it',
+              body: ['Record your voice at each step instead of typing. Your tone carries what words alone can\'t.'] },
+        es: { h: '🎙 Audio · dilo en voz',
+              body: ['Graba tu voz en cada paso en lugar de teclear. Tu tono lleva lo que las palabras solas no pueden.'] }
+      },
+      video: {
+        en: { h: '🎬 Video · film it',
+              body: ['Capture yourself on camera at each step — face, gesture, surroundings. The fullest portrait.'] },
+        es: { h: '🎬 Vídeo · grábalo',
+              body: ['Captúrate en cámara en cada paso — rostro, gesto, entorno. El retrato más completo.'] }
+      },
+      perform: {
+        en: { h: '✺ Perform · act it out',
+              body: ['Play it live, as a performance — alone or with others. The most embodied, ephemeral way to tell your Soul.'] },
+        es: { h: '✺ Actuar · represéntalo',
+              body: ['Juégalo en vivo, como una actuación — solo o con otros. La forma más encarnada y efímera de contar tu Alma.'] }
+      }
+    };
+    playNodes.forEach(n => {
+      n.addEventListener('click', () => {
+        playNodes.forEach(o => o.classList.toggle('is-on', o === n));
+        setFill(playFill, playTrack, n, playNodes);
+        state.custTell = n.dataset.play; persist();
+        renderIntro(playIntro, PLAY_INFO[n.dataset.play]);
+      });
+    });
+    // recompute the play fill once the panel is open (offsets need a laid-out track)
+    function syncPlayFill(){
+      const sel = playNodes.find(n => n.classList.contains('is-on')) || playNodes[0];
+      setFill(playFill, playTrack, sel, playNodes);
+    }
+
+    // ── "Certify play" — collapsible (no switch); general info on expand, node info on pick ──
+    const certToggle  = $('#custCertifyToggle');
+    const certRow     = $('#custCertifyRow');
+    const certGeneral = $('#custCertGeneral');
+    const certIntro   = $('#custCertIntro');
+    const certNodes   = certRow ? [...certRow.querySelectorAll('.cert-node')] : [];
+    const certFill    = $('#certFill');
+    const certTrack   = $('#certTrack');
+    // general info box — shown when the bar is expanded, hidden once a child is checked
+    const CERT_GENERAL = {
+      en: { h: '✦ Certify play · optional proof you\'re a real Soul',
+            body: ['Certifying is optional.',
+                   'Pick a step to see how it works. <em>Nothing leaves your device unless you choose it.</em>'] },
+      es: { h: '✦ Certificar juego · prueba opcional de que eres un Alma real',
+            body: ['Certificar es opcional.',
+                   'Elige un paso para ver cómo funciona. <em>Nada sale de tu dispositivo salvo que tú lo decidas.</em>'] }
+    };
     // intro copy per node — bilingual; each method described in its own way
     const CERT_INFO = {
       trusts: {
@@ -3711,66 +3958,136 @@
       },
       telf: {
         en: { h: '☎ Telf · phone SMS',
-              body: ['Type your phone number. A short SMS code arrives; you confirm it.',
-                     'Useful if you want others to reach you under the same Soul on other devices.'] },
+              body: ['Type your phone number. A short SMS code arrives; you confirm it.'] },
         es: { h: '☎ Tlf · SMS al móvil',
-              body: ['Escribe tu número de teléfono. Recibirás un código por SMS y lo confirmas.',
-                     'Útil si quieres que otros te localicen bajo la misma Alma en otros dispositivos.'] }
+              body: ['Escribe tu número de teléfono. Recibirás un código por SMS y lo confirmas.'] }
       },
       id: {
-        en: { h: '🪪 Id · official document',
-              body: ['Upload a photo of an official ID (passport, national card). We check it locally on your device and <em>never send the image anywhere</em>.',
-                     'Only a yes/no token leaves the device.'] },
-        es: { h: '🪪 Id · documento oficial',
-              body: ['Sube una foto de un documento oficial (pasaporte, DNI). Lo comprobamos localmente en tu dispositivo y <em>nunca enviamos la imagen a ningún sitio</em>.',
-                     'Sólo sale del dispositivo un token de sí/no.'] }
+        en: { h: '🪪 Id · signature or card check',
+              body: ['Prove who you are by signing an official paper, or with a <em>void payment</em> — a tiny card charge that is refunded at once and never collected.',
+                     'Only a yes/no proof is kept; no document or card number is stored.'] },
+        es: { h: '🪪 Id · firma o verificación de tarjeta',
+              body: ['Demuestra quién eres firmando un documento oficial, o con un <em>pago en blanco</em> — un pequeño cargo en la tarjeta que se reembolsa al instante y nunca se cobra.',
+                     'Sólo se guarda una prueba de sí/no; no se almacena ningún documento ni número de tarjeta.'] }
       },
       bio: {
-        en: { h: '🫀 Bio · liveness sample',
-              body: ['Capture a brief liveness signal (a smile, a blink, a heart-rate pulse). Stays on your device; we keep only the proof that it happened.',
-                     'The strongest layer — and the most intimate. Optional.'] },
-        es: { h: '🫀 Bio · prueba de vida',
-              body: ['Captura una breve señal vital (una sonrisa, un parpadeo, un pulso). Se queda en tu dispositivo; sólo guardamos la prueba de que ocurrió.',
-                     'La capa más fuerte — y la más íntima. Opcional.'] }
+        en: { h: '🖐 Biometric · a body signature',
+              body: ['Confirm with a biometric trait — a fingerprint, your face, the iris, or a voiceprint. The reading is matched <em>on your device</em>; the raw biometric never leaves it.',
+                     'Only a pass/fail proof is kept. The most personal layer — and entirely optional.'] },
+        es: { h: '🖐 Biométrico · una firma del cuerpo',
+              body: ['Confírmalo con un rasgo biométrico — una huella, tu rostro, el iris o una voz. La lectura se compara <em>en tu dispositivo</em>; el dato biométrico en bruto nunca sale de él.',
+                     'Sólo se guarda una prueba de sí/no. La capa más personal — y totalmente opcional.'] }
       }
     };
-    const renderCertIntro = (key) => {
-      const info = CERT_INFO[key];
-      if (!info) return;
-      certIntro.hidden = false;
-      certIntro.innerHTML =
-        `<h4><span class="t-en">${info.en.h}</span><span class="t-es">${info.es.h}</span></h4>`
-        + info.en.body.map((p, i) =>
-            `<p><span class="t-en">${p}</span><span class="t-es">${info.es.body[i] || ''}</span></p>`
-          ).join('');
+    // ── per-node feature fields (UI only; hooked later) ──
+    const certFields = $('#custCertFields');
+    const CERT_FIELDS = {
+      trusts: { en:['<div class="cf-label">Invite people who can vouch for you</div>',
+                    '<input type="email" placeholder="email of a witness">',
+                    '<input type="email" placeholder="email of another witness">',
+                    '<input type="email" placeholder="email of another witness">',
+                    '<button type="button" class="cf-btn">Send invitations</button>'],
+                es:['<div class="cf-label">Invita a personas que puedan avalarte</div>',
+                    '<input type="email" placeholder="correo de un testigo">',
+                    '<input type="email" placeholder="correo de otro testigo">',
+                    '<input type="email" placeholder="correo de otro testigo">',
+                    '<button type="button" class="cf-btn">Enviar invitaciones</button>'] },
+      mail:   { en:['<div class="cf-label">Your email</div>',
+                    '<div class="cf-row"><input type="email" placeholder="you@example.com"><button type="button" class="cf-btn">Send code</button></div>',
+                    '<input type="text" inputmode="numeric" placeholder="6-digit code">'],
+                es:['<div class="cf-label">Tu correo</div>',
+                    '<div class="cf-row"><input type="email" placeholder="tu@ejemplo.com"><button type="button" class="cf-btn">Enviar código</button></div>',
+                    '<input type="text" inputmode="numeric" placeholder="código de 6 dígitos">'] },
+      telf:   { en:['<div class="cf-label">Your phone</div>',
+                    '<div class="cf-row"><input type="tel" placeholder="+34 600 000 000"><button type="button" class="cf-btn">Send SMS</button></div>',
+                    '<input type="text" inputmode="numeric" placeholder="SMS code">'],
+                es:['<div class="cf-label">Tu teléfono</div>',
+                    '<div class="cf-row"><input type="tel" placeholder="+34 600 000 000"><button type="button" class="cf-btn">Enviar SMS</button></div>',
+                    '<input type="text" inputmode="numeric" placeholder="código SMS">'] },
+      id:     { en:['<div class="cf-label">Sign an official paper</div>',
+                    '<button type="button" class="cf-btn">Open document to sign</button>',
+                    '<div class="cf-label">…or a void card payment</div>',
+                    '<div class="cf-row"><input type="text" inputmode="numeric" placeholder="card number"><button type="button" class="cf-btn">Verify with void payment</button></div>',
+                    '<div class="cf-note">The charge is refunded immediately — nothing is collected or stored.</div>'],
+                es:['<div class="cf-label">Firma un documento oficial</div>',
+                    '<button type="button" class="cf-btn">Abrir documento para firmar</button>',
+                    '<div class="cf-label">…o un pago en blanco con tarjeta</div>',
+                    '<div class="cf-row"><input type="text" inputmode="numeric" placeholder="número de tarjeta"><button type="button" class="cf-btn">Verificar con pago en blanco</button></div>',
+                    '<div class="cf-note">El cargo se reembolsa de inmediato — no se cobra ni se guarda nada.</div>'] },
+      bio:    { en:['<div class="cf-label">Biometric trait</div>',
+                    '<div class="cf-row"><button type="button" class="cf-btn">Scan fingerprint</button><button type="button" class="cf-btn">Scan face</button></div>',
+                    '<div class="cf-note">Matched locally — the raw biometric never leaves your device.</div>'],
+                es:['<div class="cf-label">Rasgo biométrico</div>',
+                    '<div class="cf-row"><button type="button" class="cf-btn">Escanear huella</button><button type="button" class="cf-btn">Escanear rostro</button></div>',
+                    '<div class="cf-note">Se compara localmente — el dato biométrico nunca sale de tu dispositivo.</div>'] }
     };
-    const refreshCertSwitch = () => {
-      if (!certRow) return;
-      certRow.hidden = !cert.checked;
-      if (!cert.checked) {
+    const renderCertFields = (key) => {
+      if (!certFields) return;
+      const f = CERT_FIELDS[key];
+      if (!f){ certFields.hidden = true; certFields.innerHTML = ''; return; }
+      certFields.hidden = false;
+      certFields.innerHTML = f.en.map((html, i) =>
+        `<div class="t-en">${html}</div><div class="t-es">${f.es[i] || ''}</div>`
+      ).join('');
+    };
+    // collapsible header (no switch): expanding shows the general info box,
+    // unless a child is already checked
+    if (certToggle && certRow) certToggle.addEventListener('click', () => {
+      const open = certRow.hidden;
+      certRow.hidden = !open;
+      certToggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        if (!certNodes.some(n => n.classList.contains('is-on'))) renderIntro(certGeneral, CERT_GENERAL);
+      } else {
+        certGeneral.hidden = true;
         certIntro.hidden = true;
-        certNodes.forEach(n => n.classList.remove('is-on'));
+        if (certFields){ certFields.hidden = true; certFields.innerHTML = ''; }
       }
-    };
-    if (cert) cert.addEventListener('change', () => {
-      state.custCertify = !!cert.checked; persist();
-      refreshCertSwitch();
     });
     certNodes.forEach(n => {
       n.addEventListener('click', () => {
         certNodes.forEach(o => o.classList.toggle('is-on', o === n));
-        // progress fill — % of the way to the picked node across the track
-        const idx = certNodes.indexOf(n);
-        if (certFill && certTrack){
-          const trackW = certTrack.clientWidth - 2 * 0.65 * 16; // minus left/right padding (.65rem each)
-          const nodeCenter = n.offsetLeft + n.offsetWidth/2 - 0.65 * 16;
-          const pct = trackW > 0 ? Math.max(0, Math.min(1, nodeCenter / trackW)) : 0;
-          certFill.style.width = (pct * 100) + '%';
-          certTrack.setAttribute('aria-valuenow', String(idx + 1));
-        }
+        setFill(certFill, certTrack, n, certNodes);
         state.custCertNode = n.dataset.cert; persist();
-        renderCertIntro(n.dataset.cert);
+        certGeneral.hidden = true;                 // general info disappears once a child is checked
+        renderIntro(certIntro, CERT_INFO[n.dataset.cert]);
+        renderCertFields(n.dataset.cert);          // reveal the feature fields for this method
       });
+    });
+  })();
+
+  // ── welcome "More info": the architecture behind the extreme intimacy ──
+  (function wireIntimacyInfo(){
+    const btn = $('#intimacyMoreBtn');
+    const box = $('#intimacyMoreBox');
+    if (!btn || !box) return;
+    const ARCH = {
+      en: { h:'ⓘ Built for extreme intimacy',
+            body:['In <em>Private</em> mode the whole game runs on your own device and nothing is sent until you choose to upload. Certification — email, ID, biometrics — is checked <em>locally</em>: only a yes/no proof ever leaves, never the document or the image.',
+                  'You decide what stays private, what you share with a few, and what you publish. The intimacy is yours to keep.',
+                  'More on the network: <a href="https://flove.org/nety" target="_blank" rel="noopener">flove.org/nety</a>'] },
+      es: { h:'ⓘ Diseñado para una intimidad extrema',
+            body:['En modo <em>Privado</em> todo el juego corre en tu propio dispositivo y no se envía nada hasta que decides subirlo. La certificación — correo, documento, biometría — se comprueba <em>localmente</em>: del dispositivo sólo sale una prueba de sí/no, nunca el documento ni la imagen.',
+                  'Tú decides qué permanece privado, qué compartes con unos pocos y qué publicas. La intimidad es tuya.',
+                  'Más sobre la red: <a href="https://flove.org/nety" target="_blank" rel="noopener">flove.org/nety</a>'] }
+    };
+    let built = false;
+    btn.addEventListener('click', () => {
+      const open = box.hidden;
+      box.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (open){
+        if (!built){
+          box.innerHTML =
+            `<h4><span class="t-en">${ARCH.en.h}</span><span class="t-es">${ARCH.es.h}</span></h4>`
+            + ARCH.en.body.map((p,i) => `<p><span class="t-en">${p}</span><span class="t-es">${ARCH.es.body[i]||''}</span></p>`).join('');
+          built = true;
+        }
+        const L = ARCH[state.uiLang === 'es' ? 'es' : 'en'];
+        speakIfListening([L.h, ...L.body].join('. '));
+      } else {
+        Audio2.stopSpeak();
+      }
     });
   })();
 
@@ -4042,17 +4359,19 @@
       c.innerHTML = '';
       rows.forEach((r) => {
         const cell = document.createElement('div');
-        cell.className = 'portrait-cell' + ((r.title||'').trim() ? '' : ' empty');
-        const items = (r.items||[]).map((t, i) => {
+        const t = (r.title||'').trim();
+        cell.className = 'portrait-cell' + (t ? '' : ' empty');
+        // an unfilled selection shows as plain empty space (no placeholder card)
+        if (!t){ c.appendChild(cell); return; }
+        const items = (r.items||[]).map((it, i) => {
           const nKey = r.nestKeys && r.nestKeys[i];
           const parent = (nKey && state[r.nest] && state[r.nest][nKey] || '').trim();
-          return renderItem(t, parent);
+          return renderItem(it, parent);
         }).join('');
-        const t = (r.title||'').trim();
-        const ball = (r.kind === 'Colour' && t) ? `<span class="color-ball" aria-hidden="true"></span> ` : '';
+        const ball = (r.kind === 'Colour') ? `<span class="color-ball" aria-hidden="true"></span> ` : '';
         cell.innerHTML = `
           <div class="cell-kind">${r.kind}</div>
-          <h3 class="cell-title">${ball}${escapeHtml(t) || '— not chosen —'}</h3>
+          <h3 class="cell-title">${ball}${escapeHtml(t)}</h3>
           <ul>${items}</ul>`;
         c.appendChild(cell);
       });
@@ -4338,6 +4657,8 @@
     });
     state.view = 'welcome'; state.slide = 0; state.seenWelcome = false;
     state.fromReveal = 's1-reveal';
+    state.maxStageReached = 1;
+    state.custListen = false; _listenFloatShown = false; Audio2.stopSpeak(); reflectListen();
     state.stars = { 1:false, 2:false, 3:false, 4:false, 5:false };
     state.events = [];
     state.aqNest = { aq1:'', aq2:'', aq3:'' };
@@ -5177,6 +5498,7 @@
   renderCqNest();
   refreshColorBalls();
   wireMicAndAttachments();
+  reflectListen();
   goTo(state.view);
   updateNightStage();
 })();

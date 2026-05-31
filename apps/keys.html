@@ -1641,6 +1641,14 @@
   .summary.show-silver-arrows .ad-deck ol > li:nth-child(3)::before{
     top:-8px;border-bottom:6px solid rgba(221,226,236,.55);
   }
+  /* The cards overlap by 4px and the 2nd card stacks above the 3rd, which
+     would bury the 3rd item's upward arrow (it lives in the 3rd card's own
+     stacking context). Lift the 3rd card above the 2nd while the arrows show
+     so the upward arrow is actually visible. */
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(3),
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(3){
+    z-index:12;
+  }
 
   /* Design swap — fired by the dedicated extras More button. The medal
      palette (gold / silver / bronze) jumps from the original triads to the
@@ -2288,6 +2296,41 @@
   .flv-std .clause li{margin-bottom:.2rem}
   .flv-std .clause li b{color:var(--gold);font-weight:700}
 
+  /* ---- two-play tables (First play vs Second play) inside the text area ---- */
+  .flv-std .play-tables{
+    display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
+  }
+  .flv-std .play-table{border-collapse:separate;border-spacing:4px;table-layout:fixed}
+  .flv-std .play-table caption{
+    caption-side:top;
+    font:700 .7rem/1 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.5rem;
+  }
+  /* Uniform, same-size cells for every item. */
+  .flv-std .play-table td,
+  .flv-std .play-table th{
+    width:66px;height:36px;
+    border:1px solid var(--stroke);border-radius:7px;
+    font:600 .74rem/1.1 ui-serif,Georgia,serif;
+    color:var(--ink);text-align:center;vertical-align:middle;
+    padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:linear-gradient(170deg,#3c3c54 0%,#2f2f44 100%);
+  }
+  .flv-std .play-table th.pt-grp{
+    width:88px;text-align:left;color:var(--gold);
+    background:transparent;border-color:transparent;
+  }
+  /* Highlights surfaced by the first Insight click. */
+  .flv-std .play-table .pt-cell.pt-match{
+    background:linear-gradient(170deg,rgba(0,247,167,.22),rgba(0,247,167,.08));
+    border-color:var(--brand);color:#daffec;
+  }
+  .flv-std .play-table .pt-cell.pt-diff{
+    background:linear-gradient(170deg,rgba(255,95,220,.22),rgba(255,95,220,.08));
+    border-color:var(--accent);color:#ffe0f6;
+  }
+  .flv-std #play-compare-note b{color:var(--gold)}
+
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
   .flv-std .action-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
@@ -2771,8 +2814,8 @@
 
       <!-- 4 insight cards, shown one at a time via the insight cycle (0..4) -->
       <section class="insight-panel insight-1-content" aria-label="Insight 1">
-        <strong>💡 Order</strong> — what does the order you chose say?
-        <p>The top of each deck is what you trust first. Read your stacks back as a sentence: the first cards are the lens you look through.</p>
+        <strong>💡 First vs second play</strong> — what changed under the new perspective?
+        <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
       </section>
       <section class="insight-panel insight-2-content" aria-label="Insight 2">
         <strong>💡 Tension</strong> — which decks were hardest to rank?
@@ -2798,7 +2841,6 @@
       <div class="action-grid">
 
         <div class="action-row">
-          <label class="fbtn views-btn" for="flv-views-open" aria-haspopup="true">Views</label>
           <span class="insight-cycle">
             <label class="fbtn insight-step" for="flv-insight-1">Insight</label>
             <label class="fbtn insight-step" for="flv-insight-2">Insight · 1/4</label>
@@ -2810,23 +2852,6 @@
             <span class="label-off">Magic</span><span class="label-on">Phrase</span>
           </label>
           <label class="fbtn copy-btn" for="flv-copy-hint" data-flove-copy="phrase" title="Copy">Copy</label>
-        </div>
-
-        <!-- views subtab row (space always reserved so toggling never reflows) -->
-        <div class="action-row action-row--views" role="group" aria-label="Phrase view mode">
-          <label class="fbtn view-pick" for="flv-view-table"    data-view="table">Table</label>
-          <label class="fbtn view-pick" for="flv-view-bars"     data-view="bars">Bars</label>
-          <label class="fbtn view-pick" for="flv-view-vertical" data-view="vertical">Vertical</label>
-          <label class="fbtn view-pick" for="flv-view-axial"    data-view="axial">Axial</label>
-          <label class="fbtn view-pick" for="flv-view-spider"   data-view="spider">Spider</label>
-        </div>
-
-        <!-- chart slot — painted from the perspective bars by JS -->
-        <div class="cssviz-out" aria-hidden="true">
-          <div class="cssviz cssviz--table" id="flv-viz-table"></div>
-          <div class="cssviz cssviz--bars" id="flv-viz-bars"></div>
-          <div class="cssviz cssviz--vertical" id="flv-viz-vertical"></div>
-          <div class="cssviz cssviz--svg" id="flv-viz-svg"></div>
         </div>
 
         <div class="copy-hint-panel" role="status">
@@ -5420,18 +5445,114 @@
     return s;
   }
 
+  // ---- Two-play tables (First play vs Second play) in the text area ----
+  // Each table lists the played groups as rows and their words in ranked
+  // order as uniform same-size cells. The first Insight click lights up the
+  // cells that match vs differ between the two plays.
+  function playOrderInfo(which){
+    const ids = (which === 'second')
+      ? (secondPlayOrder || originalGroupOrder())
+      : originalGroupOrder();
+    const itemOrderFor = (id) => {
+      if (which === 'second' && secondPlayItemOrders && secondPlayItemOrders[id]){
+        return secondPlayItemOrders[id];
+      }
+      return spOriginalItemOrder(id);
+    };
+    return ids.map(id => {
+      const deck = spDeckById(id);
+      if (!deck) return null;
+      const words = itemOrderFor(id).map(i => deck.items[i] || '—').filter(Boolean);
+      return { id, title: deck.title, words };
+    }).filter(Boolean);
+  }
+  function playTableHTML(info, label){
+    const rows = info.map(g => {
+      const cells = g.words.map((w, rank) =>
+        `<td class="pt-cell" data-group="${g.id}" data-rank="${rank}">${escapeHTML(w)}</td>`
+      ).join('');
+      return `<tr><th class="pt-grp">${escapeHTML(g.title)}</th>${cells}</tr>`;
+    }).join('');
+    return `<table class="play-table" data-play="${label}"><caption>${escapeHTML(label)}</caption><tbody>${rows}</tbody></table>`;
+  }
+  function buildPlayTablesHTML(){
+    const first = playOrderInfo('first');
+    if (!first.length) return '';
+    const second = playOrderInfo('second');
+    return `<div class="play-tables">`
+      + playTableHTML(first, 'First play')
+      + playTableHTML(second, 'Second play')
+      + `</div>`;
+  }
+  // Word at each (group, rank) for quick lookups when comparing the plays.
+  function playWordMap(which){
+    const map = {};
+    playOrderInfo(which).forEach(g => { map[g.id] = g.words; });
+    return map;
+  }
+  function comparePlays(){
+    const first = playWordMap('first'), second = playWordMap('second');
+    let diffs = 0, matches = 0;
+    const movedGroups = [];
+    Object.keys(first).forEach(id => {
+      const a = first[id] || [], b = second[id] || [];
+      const n = Math.max(a.length, b.length);
+      let changed = false;
+      for (let r = 0; r < n; r++){
+        if (a[r] === b[r]) matches++; else { diffs++; changed = true; }
+      }
+      if (changed){ const deck = spDeckById(id); if (deck) movedGroups.push(deck.title); }
+    });
+    return { diffs, matches, movedGroups };
+  }
+  // Light up matches / differences across both play tables, and write the
+  // comparison sentence into the insight card above the buttons.
+  function applyPlayHighlight(on){
+    const $def = document.querySelector('#std-summary .clause-default');
+    const first = playWordMap('first'), second = playWordMap('second');
+    if ($def){
+      $def.querySelectorAll('.pt-cell').forEach(td => {
+        td.classList.remove('pt-match', 'pt-diff');
+        if (!on) return;
+        const id = td.dataset.group, rank = +td.dataset.rank;
+        const same = (first[id] || [])[rank] === (second[id] || [])[rank];
+        td.classList.add(same ? 'pt-match' : 'pt-diff');
+      });
+    }
+    const $note = document.getElementById('play-compare-note');
+    if ($note && on){
+      const c = comparePlays();
+      $note.innerHTML = (c.diffs === 0)
+        ? `Both plays match — every key kept its rank. <b>${c.matches}</b> in place.`
+        : `<b>${c.diffs}</b> position${c.diffs === 1 ? '' : 's'} changed, <b>${c.matches}</b> held steady`
+          + (c.movedGroups.length ? ` — reshuffled in ${c.movedGroups.map(t => `<b>${escapeHTML(t)}</b>`).join(', ')}.` : '.');
+    }
+  }
+  // Highlight only while the first Insight step (flv-insight-1) is active.
+  function syncPlayInsight(){
+    const r = document.getElementById('flv-insight-1');
+    applyPlayHighlight(!!(r && r.checked));
+  }
+  ['flv-insight-0','flv-insight-1','flv-insight-2','flv-insight-3','flv-insight-4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', syncPlayInsight);
+  });
+
   function renderBottomSummary(){
     const $sec = document.getElementById('std-summary');
     if (!$sec) return;
-    const html = buildBottomSummaryHTML();
-    const hasContent = !!html.trim();
+    const hasContent = !!buildBottomSummaryHTML().trim();
     $sec.hidden = !hasContent;
     if (!hasContent) return;
     const $def = $sec.querySelector('.clause-default');
     const $mag = $sec.querySelector('.clause-magic');
-    if ($def) $def.innerHTML = html;
+    // The default text area now shows the two plays as tables; the warmer
+    // "magic" retelling (which folds in the perspective + picked keys) stays
+    // available behind the Magic toggle.
+    if ($def) $def.innerHTML = buildPlayTablesHTML();
     if ($mag) $mag.innerHTML = buildMagicPhraseHTML();
-    renderStdCharts();
+    // Re-apply the comparison highlight if the Insight step is still active.
+    syncPlayInsight();
   }
 
   // Paint the perspective bars into the Views chart slot (Bars / Vertical /
@@ -5560,6 +5681,13 @@
   (function wireStdSummary(){
     const $sec = document.getElementById('std-summary');
     if (!$sec) return;
+
+    // Clicking any button in this panel scrolls the panel up so the result
+    // (insight text + tables, which sit above the button rows) comes into view.
+    $sec.addEventListener('click', (e) => {
+      if (!e.target.closest('.fbtn')) return;
+      setTimeout(() => $sec.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
+    });
 
     // Copy: the label already toggles the how-to hint (pure CSS); also drop
     // the phrase straight onto the clipboard for convenience.

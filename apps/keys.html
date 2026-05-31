@@ -2407,22 +2407,21 @@
     color:var(--muted);font-size:.84rem;line-height:1.5;
   }
 
-  /* Chosen perspectives summary block. */
-  .flv-std .perspectives-chosen{margin:1rem 0 .2rem}
+  /* Chosen perspectives — two columns (original | new), two rows each,
+     percentages only; the new-perspective column is italic. */
+  .flv-std .perspectives-chosen{margin:1rem 0 .2rem;text-align:center}
   .flv-std .pp-title{
     display:block;font:700 .7rem/1 system-ui,sans-serif;color:var(--sky);
-    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.4rem;text-align:center;
+    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.5rem;
   }
-  .flv-std .pp-row{
-    display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:center;justify-content:center;
-    margin:.2rem 0;
+  .flv-std .pp-cols{display:flex;gap:28px;justify-content:center;align-items:flex-start}
+  .flv-std .pp-col{display:flex;flex-direction:column;gap:6px;align-items:center}
+  .flv-std .pp-col-new{font-style:italic}
+  .flv-std .pp-cell{
+    font:700 .92rem/1.1 ui-serif,Georgia,serif;color:var(--gold);
+    min-width:64px;
   }
-  .flv-std .pp-tag{
-    font:700 .62rem/1 system-ui,sans-serif;color:var(--accent);
-    letter-spacing:.12em;text-transform:uppercase;
-  }
-  .flv-std .pp-bar{font:500 .84rem/1.4 ui-serif,Georgia,serif;color:var(--ink)}
-  .flv-std .pp-bar b{color:var(--gold);font-weight:700}
+  .flv-std .pp-col-new .pp-cell{color:var(--accent)}
 
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
@@ -4087,6 +4086,7 @@
     // Reset parallel perspectives + insights so the panel comes back clean.
     parallelRows.length = 0;
     _insightsOpen = false;
+    _showPlayCompare = false;
     // finishSecondPlay() relocates the insights panel below the second play —
     // put it back above the decks (its authored position) on summary re-entry.
     const $insReset = document.getElementById('insights-panel');
@@ -4219,7 +4219,7 @@
         const willShow = $tsFurther.hidden;
         $tsFurther.hidden = !willShow;
         $tsAnalyze.setAttribute('aria-expanded', String(willShow));
-        $tsAnalyze.textContent = willShow ? 'Hide insights' : 'Analyze';
+        $tsAnalyze.textContent = willShow ? 'Hide' : 'Analyze';
       });
     }
     // Stay hidden — the Stats "more" button reveals the panel. We just mark
@@ -5068,6 +5068,9 @@
     renderSecondPlay();
     updatePlusBtn();
     updateInsightsBtn();
+    // Adding a new perspective shows the comparison table (+ Insights block)
+    // straight away — this is what the first Insight click used to do.
+    showPlayCompare();
     // The "+" takes you down to where the new perspective bars + the decks to
     // reorder (second play) live, below the selected decks.
     const $sp = document.getElementById('second-play');
@@ -5468,7 +5471,7 @@
     if (_insightsOpen){
       renderInsightsPanel();
       $p.hidden = false;
-      if ($btn) $btn.textContent = 'Hide insights';
+      if ($btn) $btn.textContent = 'Hide';
     } else {
       $p.hidden = true;
       if ($btn) $btn.textContent = 'Insights';
@@ -5651,25 +5654,33 @@
     return `<div class="combos-keys"><span class="combos-keys-title">Favourite Keys</span>${links}</div>`
       + `<p class="combos-keys-help">Clicking in any of them will direct you to its specific apps.</p>`;
   }
-  // Chosen perspectives (the original bars + the parallel "new perspective").
-  function buildPerspectivesHTML(){
-    const barsToText = (stateFor) => BARS.map(b => {
-      const s = stateFor(b.id);
-      if (!s || s.p1 == null) return null;
-      const v = (s.phase === 2 && s.p2 != null)
-        ? `${Math.min(s.p1, s.p2)}–${Math.max(s.p1, s.p2)}%`
-        : `${s.p1}%`;
-      return `<span class="pp-bar"><b>${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}:</b> ${v}</span>`;
-    }).filter(Boolean);
-    const rows = [];
-    const orig = barsToText(id => barState[id]);
-    if (orig.length) rows.push(`<div class="pp-row"><span class="pp-tag">Perspective</span>${orig.join('')}</div>`);
-    if (parallelRows.length){
-      const np = barsToText(id => parallelRows[0].states[id]);
-      if (np.length) rows.push(`<div class="pp-row"><span class="pp-tag">New perspective</span>${np.join('')}</div>`);
+  // Chosen perspectives. Two columns (original | new), two rows each (one per
+  // bar), percentages only, no titles; the new-perspective column is italic.
+  // The % counts the MIDDLE of the bar as 0 and each extreme as its own 100%,
+  // so a point at 30/70 reads 40%, and a range can read e.g. 20-80%.
+  function barPct(s){
+    if (!s || s.p1 == null) return null;
+    const toPct = (p) => Math.round(Math.abs(p - 50) * 2);
+    if (s.phase === 2 && s.p2 != null){
+      const a = toPct(s.p1), b = toPct(s.p2);
+      return `${Math.min(a, b)}-${Math.max(a, b)}%`;
     }
-    if (!rows.length) return '';
-    return `<div class="perspectives-chosen"><span class="pp-title">Perspectives chosen</span>${rows.join('')}</div>`;
+    return `${toPct(s.p1)}%`;
+  }
+  function buildPerspectivesHTML(){
+    const col = (stateFor) => BARS.map(b =>
+      `<div class="pp-cell">${barPct(stateFor(b.id)) || '—'}</div>`
+    ).join('');
+    const origHasAny = BARS.some(b => { const s = barState[b.id]; return s && s.p1 != null; });
+    if (!origHasAny && !parallelRows.length) return '';
+    const origCol = `<div class="pp-col">${col(id => barState[id])}</div>`;
+    const newCol = parallelRows.length
+      ? `<div class="pp-col pp-col-new">${col(id => parallelRows[0].states[id])}</div>`
+      : '';
+    return `<div class="perspectives-chosen">`
+      + `<span class="pp-title">Perspectives</span>`
+      + `<div class="pp-cols">${origCol}${newCol}</div>`
+      + `</div>`;
   }
   // Per group: a row of words for the first play, then the second play below
   // it (italic). Group title labels the pair; no "first"/"second" text.
@@ -5737,27 +5748,21 @@
           + (c.movedGroups.length ? ` — reshuffled in ${c.movedGroups.map(t => `<b>${escapeHTML(t)}</b>`).join(', ')}.` : '.');
     }
   }
-  // Highlight only while the first Insight step (flv-insight-1) is active.
-  function syncPlayInsight(){
-    const r = document.getElementById('flv-insight-1');
-    const on = !!(r && r.checked);
-    applyPlayHighlight(on);
-    // First Insight click also surfaces the Insights block — but only once a
-    // second play has been added — dropping it right below the second play.
-    if (on && parallelRows.length >= 1){
-      const $sec = document.getElementById('second-play');
-      const $p   = document.getElementById('insights-panel');
-      if ($sec && $p && $sec.parentNode && $p.previousElementSibling !== $sec){
-        $sec.parentNode.insertBefore($p, $sec.nextSibling);
-      }
-      _insightsOpen = true;
-      updateInsightsBtn();
+  // The play-comparison table (match/diff highlight + the Insights block) is
+  // now shown automatically once a new perspective is added — not on the
+  // Insight cycle click, which is left as its default card-cycling behaviour.
+  let _showPlayCompare = false;
+  function showPlayCompare(){
+    _showPlayCompare = true;
+    if (typeof renderBottomSummary === 'function') renderBottomSummary(); // builds tables + applies highlight
+    const $sec = document.getElementById('second-play');
+    const $p   = document.getElementById('insights-panel');
+    if ($sec && $p && $sec.parentNode && $p.previousElementSibling !== $sec){
+      $sec.parentNode.insertBefore($p, $sec.nextSibling);
     }
+    _insightsOpen = true;
+    updateInsightsBtn();
   }
-  ['flv-insight-0','flv-insight-1','flv-insight-2','flv-insight-3','flv-insight-4'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', syncPlayInsight);
-  });
 
   function renderBottomSummary(){
     const $sec = document.getElementById('std-summary');
@@ -5772,8 +5777,8 @@
     // available behind the Magic toggle.
     if ($def) $def.innerHTML = buildPlayTablesHTML();
     if ($mag) $mag.innerHTML = buildMagicPhraseHTML();
-    // Re-apply the comparison highlight if the Insight step is still active.
-    syncPlayInsight();
+    // Re-apply the comparison highlight if it has been turned on.
+    applyPlayHighlight(_showPlayCompare);
   }
 
   // Paint the perspective bars into the Views chart slot (Bars / Vertical /
@@ -6158,9 +6163,8 @@
     // Re-render summary so .is-moved highlights are applied to decks that
     // shifted between the original arrangement and secondPlayOrder.
     renderSummaryGrid();
-    // The Insights block is no longer auto-opened here — it surfaces on the
-    // first Insight click in the bottom std-summary (see syncPlayInsight),
-    // and only once a second play has been added.
+    // The comparison table + Insights block were already surfaced when the new
+    // perspective was added (see showPlayCompare); just refresh state here.
     updateInsightsBtn();
     // Fold the second-play result into the bottom std-summary recap.
     if (typeof renderBottomSummary === 'function') renderBottomSummary();

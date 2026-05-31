@@ -880,6 +880,10 @@
   .related-app.featured.app-combos  { --c-acc:#a8e4ff; }  /* sky · sci */
   .related-app.featured.app-fivys { --c-acc:#ff5fdc; }  /* accent */
   .related-app.featured.app-pracsys { --c-acc:#fadc92; }  /* gold */
+  /* Each featured app is a card with a centered "Go Play" button below it. */
+  .ra-cell{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+  .ra-cell .related-app.featured{width:100%}
+  .ra-goplay{padding:.4rem .9rem;font-size:.82rem;white-space:nowrap}
   .btn-related-plus{
     appearance:none;cursor:pointer;
     width:2.2rem;height:2.2rem;border-radius:50%;
@@ -2309,8 +2313,11 @@
 
   /* ---- two-play tables (First play vs Second play) inside the text area ---- */
   .flv-std .play-tables{
-    display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
+    display:flex;flex-direction:column;gap:20px;align-items:center;
   }
+  /* Second play sits in its own row below the first; its text is italic. */
+  .flv-std .play-table[data-play="Second play"] td,
+  .flv-std .play-table[data-play="Second play"] caption{font-style:italic}
   .flv-std .play-table{border-collapse:separate;border-spacing:4px;table-layout:fixed}
   .flv-std .play-table caption{
     caption-side:top;
@@ -2341,6 +2348,32 @@
     border-color:var(--accent);color:#ffe0f6;
   }
   .flv-std #play-compare-note b{color:var(--gold)}
+
+  /* Combos keywords (the Play-more picks) listed below the plays — clickable
+     links to each word's own app, with the help line beneath them. */
+  .flv-std .combos-keys{
+    margin:1rem auto 0;text-align:center;
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;
+  }
+  .flv-std .combos-keys-title{
+    width:100%;font:700 .7rem/1 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.2rem;
+  }
+  .flv-std .combos-key{
+    display:inline-block;padding:.32rem .7rem;border-radius:999px;
+    border:1px solid rgba(168,228,255,.4);
+    background:rgba(168,228,255,.1);color:var(--sky);
+    font:600 .82rem/1 ui-serif,Georgia,serif;text-decoration:none;
+    transition:transform .12s ease, background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .flv-std .combos-key:hover{
+    transform:translateY(-1px);background:rgba(168,228,255,.2);
+    color:var(--ink);border-color:var(--sky);
+  }
+  .flv-std .combos-keys-help{
+    margin:.7rem auto 0;max-width:60ch;text-align:center;
+    color:var(--muted);font-size:.84rem;line-height:1.5;
+  }
 
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
@@ -2731,9 +2764,8 @@
       <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
     </div>
 
-    <p class="see-more-help" id="see-more-help" hidden>
-      Clicking on any of the words from the decks above will lead you to its app too.
-    </p>
+    <!-- "Clicking on any of the words…" help moved into the resume, below the
+         Combos keywords (see buildCombosKeysHTML). -->
 
     <div class="related-apps" id="related-apps" hidden>
       <div class="related-row related-row-featured" id="related-row-3"></div>
@@ -5510,16 +5542,30 @@
     }).join('');
     return `<table class="play-table" data-play="${label}"><caption>${escapeHTML(label)}</caption><tbody>${rows}</tbody></table>`;
   }
+  // Combos keywords (the Play-more picks) as clickable links to each word's
+  // own app, plus the help line beneath them.
+  function buildCombosKeysHTML(){
+    const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
+    if (!picks.length) return '';
+    const links = picks.map(w => {
+      const slug = encodeURIComponent(w.toLowerCase());
+      return `<a class="combos-key" href="https://flove.org/${slug}" target="_blank" rel="noopener">${escapeHTML(w)}</a>`;
+    }).join('');
+    return `<div class="combos-keys"><span class="combos-keys-title">Combos keywords</span>${links}</div>`
+      + `<p class="combos-keys-help">Clicking on any of the words from the decks above will lead you to its app too.</p>`;
+  }
   function buildPlayTablesHTML(){
     const first = playOrderInfo('first');
     if (!first.length) return '';
     const second = playOrderInfo('second');
     // First play keeps the group titles on the left; the second play table
-    // drops them (the titles already label the row from the left table).
+    // drops them (the titles already label the row from the left table). The
+    // second play renders in its own row below the first (see .play-tables).
     return `<div class="play-tables">`
       + playTableHTML(first, 'First play', true)
       + playTableHTML(second, 'Second play', false)
-      + `</div>`;
+      + `</div>`
+      + buildCombosKeysHTML();
   }
   // Word at each (group, rank) for quick lookups when comparing the plays.
   function playWordMap(which){
@@ -6480,10 +6526,14 @@
           + (a.href ? ` data-app-href="${a.href}"` : '')
           + (a.external ? ' data-app-external="1"' : '')
           + (a.fivysTrigger ? ' data-app-trigger="fivys"' : '');
-        return `<div class="${cls}" role="button" tabindex="0" ${attrs}>`
-          + `<span class="ra-icon">${RELATED_ICONS[a.key] || ''}</span>`
-          + `<span class="ra-label">${a.label}</span>`
-          + `<span class="ra-plus" aria-hidden="true">+</span>`
+        // Card (icon + label) with a centered "Go Play" button below it. The
+        // slide carousel was removed — the button takes you straight in.
+        return `<div class="ra-cell">`
+          + `<div class="${cls}" role="button" tabindex="0" ${attrs}>`
+          +   `<span class="ra-icon">${RELATED_ICONS[a.key] || ''}</span>`
+          +   `<span class="ra-label">${a.label}</span>`
+          + `</div>`
+          + `<button class="btn btn-soft ra-goplay" type="button" ${attrs}>Go Play →</button>`
           + `</div>`;
       }).join('');
     document.getElementById('related-row-6').innerHTML = RELATED_MORE
@@ -6569,6 +6619,14 @@
     return opts;
   }
 
+  // Navigate to (play) an app from its resolved opts.
+  function goPlayApp(opts){
+    if (typeof opts.onGo === 'function'){ opts.onGo(); return; }
+    if (opts.href){
+      if (opts.external) window.open(opts.href, '_blank', 'noopener');
+      else window.location.href = opts.href;
+    }
+  }
   function wireAppCards(){
     document.querySelectorAll('.related-app').forEach(el => {
       if (el.dataset.appWired === '1') return;
@@ -6582,44 +6640,29 @@
         });
       }
     });
+    // Centered "Go Play" buttons below each featured card → go straight in.
+    document.querySelectorAll('.ra-goplay').forEach(b => {
+      if (b.dataset.goWired === '1') return;
+      b.dataset.goWired = '1';
+      b.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        goPlayApp(appCardOpts(b));
+      });
+    });
   }
+  // The card itself opens the intro overlay (phrase + Combos chips); the
+  // Go Play button below it navigates. No more slide carousel.
   function wireFeaturedCard(el){
     el.addEventListener('click', e => {
-      const tg = e.target;
-      // Slide-dot navigation
-      const dot = tg.closest('.app-slide-dot');
-      if (dot){
-        e.preventDefault();
-        e.stopPropagation();
-        setActiveSlide(el, parseInt(dot.dataset.go, 10) || 0);
-        return;
-      }
-      // Go Play CTA
-      if (tg.closest('[data-act="goplay"]')){
-        e.preventDefault();
-        e.stopPropagation();
-        const opts = el._appOpts || appCardOpts(el);
-        if (typeof opts.onGo === 'function'){ opts.onGo(); return; }
-        if (opts.href){
-          if (opts.external) window.open(opts.href, '_blank', 'noopener');
-          else window.location.href = opts.href;
-        }
-        return;
-      }
-      // Click inside the slides body (text / picture) — keep card open, no-op
-      if (tg.closest('.app-slides')) return;
-      // Otherwise: toggle expansion
       e.preventDefault();
-      if (el.classList.contains('is-expanded')) collapseFeaturedCard(el);
-      else expandFeaturedCard(el);
+      showAppIntro(appCardOpts(el));
     });
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){
-        // Only toggle on the card itself, not on nested controls
         if (e.target !== el) return;
         e.preventDefault();
-        if (el.classList.contains('is-expanded')) collapseFeaturedCard(el);
-        else expandFeaturedCard(el);
+        showAppIntro(appCardOpts(el));
       }
     });
   }
@@ -6733,18 +6776,12 @@
   function renderSelectedAppsRow(){
     const $row6 = document.getElementById('related-row-6');
     if (!$row6) return;
-    if (_fpSelectedWords && _fpSelectedWords.size > 0){
-      const words = Array.from(_fpSelectedWords);
-      $row6.innerHTML = words.map(w => {
-        const slug = encodeURIComponent(w.toLowerCase());
-        const href = `https://flove.org/${slug}`;
-        return `<button class="related-app" type="button" data-app-key="word" data-app-word="1" data-app-label="${escapeHTML(w)}" data-app-href="${href}" data-app-external="1">${escapeHTML(w)}</button>`;
-      }).join('');
-    } else {
-      $row6.innerHTML = RELATED_MORE
-        .map(a => `<button class="related-app" type="button" data-app-key="${a.label}" data-app-label="${escapeHTML(a.label)}" data-app-href="${a.href}">${a.label}</button>`)
-        .join('');
-    }
+    // Selected keywords are no longer surfaced here as buttons — they live in
+    // the resume (Combos keywords) and inside Combos. This row just shows the
+    // fixed set of more apps.
+    $row6.innerHTML = RELATED_MORE
+      .map(a => `<button class="related-app" type="button" data-app-key="${a.label}" data-app-label="${escapeHTML(a.label)}" data-app-href="${a.href}">${a.label}</button>`)
+      .join('');
     wireAppCards();
   }
   document.getElementById('btn-related-plus').addEventListener('click', () => {

@@ -58,9 +58,6 @@
     .stage-progress.in-topbar .seg{width:16px;height:3px}
     .brand-text{font-size:1.05rem}
   }
-  /* Stage progress relocated above the floating timer (counters stack). */
-  .stage-progress.above-timer{margin:0 auto 6px;pointer-events:none;flex:0 0 100%;order:-1}
-  .stage-progress.above-timer .seg{width:30px;height:5px}
   .brand-link{
     display:inline-flex;align-items:center;gap:9px;
     text-decoration:none;color:var(--ink);
@@ -727,6 +724,16 @@
   }
   /* Stop the recalling pulse once free-play is engaged. */
   .summary.free-play .play-more-btn{animation:none}
+  /* Play-more button now sits in its own centred row below the Time stats. */
+  .play-more-row{display:flex;justify-content:center;margin:1rem 0 .4rem}
+  /* Collapse the row entirely while the button is hidden, so it leaves no gap. */
+  .play-more-row:not(:has(.play-more-btn:not([hidden]))){display:none}
+  /* Prompt shown above the decks while Play more is engaged. */
+  .play-more-hint{
+    margin:.2rem auto .8rem;max-width:60ch;text-align:center;
+    color:var(--sky);font-size:.98rem;font-weight:600;letter-spacing:.2px;
+  }
+  .play-more-hint[hidden]{display:none}
   /* "Click me click me" — strong recalling effect on the BORDERS of every
      group item while free-play is active. Persistent until the user clicks
      an item, with rotating-rainbow accent borders + outline glow that read
@@ -759,6 +766,7 @@
      above analyze-bars + the second-play strip so the user works on the
      decks first. */
   .summary.groups-on-top .summary-actions{order:0}
+  .summary.groups-on-top .play-more-hint{order:1}
   .summary.groups-on-top .summary-triads-wrap{order:1}
   .summary.groups-on-top .summary-fivys{order:1}
   .summary.groups-on-top .analyze-bars{order:5}
@@ -767,6 +775,7 @@
   .summary.groups-on-top .insights-panel{order:0}
   .summary.groups-on-top .simplex-cta{order:7}
   .summary.groups-on-top .time-stats{order:8}
+  .summary.groups-on-top .play-more-row{order:8}
   .summary.groups-on-top .summary-bottom-actions{order:9}
   .summary.groups-on-top .see-more-help{order:10}
   .summary.groups-on-top .related-apps{order:11}
@@ -1207,6 +1216,13 @@
     animation:fadein .25s ease;
   }
   .second-play[hidden]{display:none}
+  /* Finished second play: the reordered result stays on the page as a frozen,
+     non-interactive display (arrows hidden, no drag). */
+  .second-play.sp-finished .sp-decks{pointer-events:none}
+  .second-play.sp-finished .sp-arrows,
+  .second-play.sp-finished .sp-item-arrows{display:none}
+  .second-play.sp-finished .sp-item-expanded,
+  .second-play.sp-finished .sp-deck-open{cursor:default}
   .second-play .sp-title{
     margin:0 0 .3rem;text-align:center;
     font:600 1.05rem/1.2 ui-serif,Georgia,serif;color:var(--accent);letter-spacing:.3px;
@@ -1421,8 +1437,8 @@
     border:1px solid var(--stroke);border-radius:14px;
     padding:8px 7px;display:flex;flex-direction:column;gap:5px;
     min-height:200px;
-    /* 20px of breathing room on the right of every extra deck */
-    margin-right:20px;
+    /* 10px of breathing room on the right of every extra deck */
+    margin-right:10px;
   }
   /* Closed (stacked) variant: rendered as a face-down deck with the group
      title written across its center. Tap / Enter reveals the open list. */
@@ -1596,52 +1612,34 @@
   }
   .analyze-arrows.is-on{opacity:1}
 
-  /* Silver convergent arrows — surfaced only when Confluence is currently in
-     the silver/middle position of the Space extra deck, and only while
-     Analyze is on (so "Hide arrows" collapses them along with the main
-     dashed arrows). Two small triangles per list: one above the silver row
-     pointing down into it, one below the silver row pointing up into it.
+  /* Confluence convergence arrows — surfaced only when Confluence is currently
+     in the silver/middle position of the Space extra deck, and only while
+     Analyze is on (so "Hide arrows" collapses them along with the main dashed
+     arrows). Two small triangles per list converge on the middle row: one
+     pointing DOWN from the first item, one pointing UP from the third item.
      Far more subtle than the analyze-arrows: small, low-opacity silver tint. */
   .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(1)::before,
   .summary.show-silver-arrows .ad-deck ol > li:nth-child(1)::before,
-  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::after,
-  .summary.show-silver-arrows .ad-deck ol > li:nth-child(2)::after{
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(3)::before,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(3)::before{
     content:"";position:absolute;left:50%;
     transform:translateX(-50%);
     width:0;height:0;pointer-events:none;
     border-left:5px solid transparent;
     border-right:5px solid transparent;
-    z-index:50;opacity:0;
-    transition:opacity .35s ease;
-    filter:drop-shadow(0 0 3px rgba(221,226,236,.4));
-  }
-  /* Down arrow moved from above the silver/centre row onto the FIRST item
-     (sits at its lower edge, pointing down toward the centre). */
-  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(1)::before,
-  .summary.show-silver-arrows .ad-deck ol > li:nth-child(1)::before{
-    bottom:-8px;border-top:6px solid rgba(221,226,236,.55);
-    opacity:1;
-  }
-  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::after,
-  .summary.show-silver-arrows .ad-deck ol > li:nth-child(2)::after{
-    bottom:-8px;border-bottom:6px solid rgba(221,226,236,.55);
-    opacity:1;
-  }
-  /* Extra "first → second" arrow surfaced when Confluence is in the silver
-     position — pointing DOWN, but placed in the LOWER border (just below the
-     existing third → second up-arrow) so both convergent arrows sit together
-     in the same border space below the silver row. */
-  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(3)::before,
-  .summary.show-silver-arrows .ad-deck ol > li:nth-child(3)::before{
-    content:"";position:absolute;left:50%;top:18px;
-    transform:translateX(-50%);
-    width:0;height:0;pointer-events:none;
-    border-left:5px solid transparent;
-    border-right:5px solid transparent;
-    border-top:6px solid rgba(221,226,236,.55);
     z-index:50;opacity:1;
     transition:opacity .35s ease;
     filter:drop-shadow(0 0 3px rgba(221,226,236,.4));
+  }
+  /* First item → DOWN into the middle (sits at the first item's lower edge). */
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(1)::before,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(1)::before{
+    bottom:-8px;border-top:6px solid rgba(221,226,236,.55);
+  }
+  /* Third item → UP into the middle (sits at the third item's upper edge). */
+  .summary.show-silver-arrows .deck-done.in-summary ol > li:nth-child(3)::before,
+  .summary.show-silver-arrows .ad-deck ol > li:nth-child(3)::before{
+    top:-8px;border-bottom:6px solid rgba(221,226,236,.55);
   }
 
   /* Design swap — fired by the dedicated extras More button. The medal
@@ -1690,30 +1688,22 @@
     color:#ffd9b3;font-weight:600;font-size:.82rem;
     text-shadow:0 1px 1px rgba(0,0,0,.45);
   }
-  /* Silver convergent arrows get noticeably brighter + larger in swap-design. */
-  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::before,
-  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(2)::before,
-  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::after,
-  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(2)::after{
-    border-left-width:7px;border-right-width:7px;
-    filter:drop-shadow(0 0 8px rgba(255,255,255,.85));
-  }
-  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::before,
-  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(2)::before{
-    top:-10px;border-top:9px solid rgba(255,255,255,.92);
-  }
-  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(2)::after,
-  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(2)::after{
-    bottom:-10px;border-bottom:9px solid rgba(255,255,255,.92);
-  }
-  /* Brighter "first → second" downward arrow in swap-design, stacked under
-     the up arrow in the lower border. */
+  /* Confluence convergence arrows get noticeably brighter + larger in
+     swap-design. */
+  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(1)::before,
+  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(1)::before,
   .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(3)::before,
   .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(3)::before{
-    top:23px;
     border-left-width:7px;border-right-width:7px;
-    border-top:9px solid rgba(255,255,255,.92);
     filter:drop-shadow(0 0 8px rgba(255,255,255,.85));
+  }
+  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(1)::before,
+  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(1)::before{
+    bottom:-10px;border-top:9px solid rgba(255,255,255,.92);
+  }
+  .summary.swap-design.show-silver-arrows .deck-done.in-summary ol > li:nth-child(3)::before,
+  .summary.swap-design.show-silver-arrows .ad-deck ol > li:nth-child(3)::before{
+    top:-10px;border-bottom:9px solid rgba(255,255,255,.92);
   }
   .analyze-arrows .arrow{
     position:absolute;left:8px;right:8px;height:0;
@@ -2483,6 +2473,16 @@
       </svg>
       <span class="brand-text">keys</span>
     </a>
+    <!-- Single merged stage-progress bar — lives in the topbar (centred). It
+         tracks stage progress while playing and the dynamic Analyze labels in
+         the summary. -->
+    <div class="stage-progress in-topbar" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+    </div>
     <span class="topbar-spacer"></span>
     <div class="menu-wrap">
       <button id="menuBtn" class="menu-btn" type="button"
@@ -2630,10 +2630,12 @@
       <button class="btn btn-primary" id="btn-analyze-more-1" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-more-2" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-more-3" type="button" hidden>More</button>
-      <button class="btn play-more-btn play-more-header" id="btn-play-more" type="button" hidden>Play more</button>
     </div>
 
     <div class="insights-panel" id="insights-panel" hidden></div>
+
+    <!-- Play-more prompt: shown above the decks once "Play more" is engaged. -->
+    <p class="play-more-hint" id="play-more-hint" hidden>Choose your favourite words from the decks and see what the Combos app will do next</p>
 
     <div class="summary-triads-wrap">
       <div class="summary-triads" id="summary-triads"></div>
@@ -2652,7 +2654,6 @@
 
     <section class="second-play" id="second-play" hidden>
       <h3 class="sp-title">Second play — reorder under the new perspective</h3>
-      <p class="sp-help">Top ↓ and bottom ↑ re-rank inside each group; ← → swap whole columns. Drag a column to move it too.</p>
       <div class="sp-decks" id="sp-decks"></div>
       <div class="sp-actions">
         <button class="btn btn-primary" id="sp-finish-btn" type="button">Finish second play →</button>
@@ -2665,6 +2666,11 @@
     </div>
 
     <div class="time-stats" id="time-stats" hidden></div>
+
+    <!-- Play-more lives below the Time stats now. -->
+    <div class="play-more-row" id="play-more-row">
+      <button class="btn play-more-btn play-more-header" id="btn-play-more" type="button" hidden>Play more</button>
+    </div>
 
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
@@ -2975,15 +2981,6 @@
 </div>
 
 <div class="float-counters" aria-live="polite">
-  <!-- Stage progress bar — moved out of the topbar to sit above the timer.
-       Colours only: the dynamic section labels are hidden via CSS. -->
-  <div class="stage-progress above-timer" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
-    <div class="seg"></div>
-    <div class="seg"></div>
-    <div class="seg"></div>
-    <div class="seg"></div>
-    <div class="seg"></div>
-  </div>
   <div class="pc pc-time is-empty is-collapsed" id="chipTime" title="Total elapsed time">
     <div class="pc-time-msg" id="timeMsg">Don't feel it as a hurry, it's just a useful fact :)</div>
     <button class="pc-time-display" type="button" id="timeToggle" aria-label="Show elapsed time">
@@ -3913,10 +3910,19 @@
     $summary.classList.remove('free-play');
     $summary.classList.remove('click-me-call');
     $summary.classList.remove('groups-on-top');
+    const $pmHint = document.getElementById('play-more-hint');
+    if ($pmHint) $pmHint.hidden = true;
     renderPlayMoreBtn();
     // Reset parallel perspectives + insights so the panel comes back clean.
     parallelRows.length = 0;
     _insightsOpen = false;
+    // finishSecondPlay() relocates the insights panel below the second play —
+    // put it back above the decks (its authored position) on summary re-entry.
+    const $insReset = document.getElementById('insights-panel');
+    const $pmHintAnchor = document.getElementById('play-more-hint');
+    if ($insReset && $pmHintAnchor && $pmHintAnchor.parentNode){
+      $pmHintAnchor.parentNode.insertBefore($insReset, $pmHintAnchor);
+    }
     updateInsightsBtn();
     // Reset second-play state too — comes back fresh every summary entry.
     secondPlayOrder = null;
@@ -4907,7 +4913,7 @@
       });
       const head = document.createElement('div');
       head.className = 'ab-parallel-head';
-      head.innerHTML = `<span class="ab-parallel-tag">Perspective ${rowI + 2}</span>
+      head.innerHTML = `<span class="ab-parallel-tag">New perspective</span>
         <button class="ab-parallel-remove" data-act="remove" aria-label="Remove this perspective" title="remove">✕</button>`;
       block.appendChild(head);
       block.appendChild(grid);
@@ -5063,6 +5069,8 @@
         s.phase = 1; s.p1 = pct; s.p2 = null;
       }
       paintBar(b);
+      // Keep the bottom std-summary recap in sync with the perspective.
+      if (typeof renderBottomSummary === 'function') renderBottomSummary();
     };
     $track.addEventListener('click', handle);
   }
@@ -5148,7 +5156,7 @@
   function buildInsights(){
     const items = [];
     parallelRows.forEach((row, rowI) => {
-      const tag = `Perspective ${rowI + 2}`;
+      const tag = `New perspective`;
       BARS.forEach(b => {
         const orig = barState[b.id];
         const par  = row.states[b.id];
@@ -5269,6 +5277,8 @@
       $p.hidden = true;
       if ($btn) $btn.textContent = 'Insights';
     }
+    // Keep the bottom std-summary recap in sync with the chosen perspective.
+    if (typeof renderBottomSummary === 'function') renderBottomSummary();
   }
   document.getElementById('btn-insights')?.addEventListener('click', () => {
     _insightsOpen = !_insightsOpen;
@@ -5288,18 +5298,37 @@
       const words = order.map(i => deck.items[i] || '—').filter(Boolean);
       return `<li><b>${escapeHTML(deck.title)}:</b> ${words.map(w => escapeHTML(w)).join(' · ')}</li>`;
     }).filter(Boolean).join('');
-    const barLines = BARS.map(b => {
-      const s = barState[b.id];
+    const barsToLines = (stateFor) => BARS.map(b => {
+      const s = stateFor(b.id);
       if (!s || s.p1 == null) return '';
       const txt = (s.phase === 2 && s.p2 != null)
         ? `${Math.min(s.p1, s.p2)}–${Math.max(s.p1, s.p2)}%`
         : `${s.p1}%`;
       return `<li><b>${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}:</b> ${txt}</li>`;
     }).filter(Boolean).join('');
+    const barLines = barsToLines(id => barState[id]);
+    // Chosen "New perspective" (the parallel-perspective bars).
+    const newPersp = parallelRows.length ? parallelRows[0] : null;
+    const newBarLines = newPersp ? barsToLines(id => newPersp.states[id]) : '';
+    // Second-play reordered groups (only once the second play is finished).
+    let secondPlayLines = '';
+    if (secondPlayFinished && secondPlayOrder){
+      secondPlayLines = secondPlayOrder.map(id => {
+        const deck = spDeckById(id);
+        if (!deck) return '';
+        const order = (secondPlayItemOrders && secondPlayItemOrders[id])
+          ? secondPlayItemOrders[id]
+          : spOriginalItemOrder(id);
+        const words = order.map(i => deck.items[i] || '—').filter(Boolean);
+        return `<li><b>${escapeHTML(deck.title)}:</b> ${words.map(w => escapeHTML(w)).join(' · ')}</li>`;
+      }).filter(Boolean).join('');
+    }
     const picks = Array.from(_fpSelectedWords).map(w => escapeHTML(w));
     return `
       ${groupLines ? `<h4>Groups</h4><ul>${groupLines}</ul>` : ''}
       ${barLines   ? `<h4>Perspective</h4><ul>${barLines}</ul>`  : ''}
+      ${newBarLines ? `<h4>New perspective</h4><ul>${newBarLines}</ul>` : ''}
+      ${secondPlayLines ? `<h4>Second play</h4><ul>${secondPlayLines}</ul>` : ''}
       ${picks.length ? `<h4>Keys you picked</h4><ul><li>${picks.map(p => `<b>${p}</b>`).join(' · ')}</li></ul>` : ''}
       ${state.gameMode && state.gameMode !== 'normal' ? `<h4>Mode</h4><ul><li>${escapeHTML(state.gameMode)}</li></ul>` : ''}
     `;
@@ -5318,15 +5347,33 @@
         lines.push(`  • ${deck.title}: ${words.join(' · ')}`);
       });
     }
-    const bars = BARS.map(b => {
-      const s = barState[b.id];
+    const barsToText = (stateFor) => BARS.map(b => {
+      const s = stateFor(b.id);
       if (!s || s.p1 == null) return null;
       const txt = (s.phase === 2 && s.p2 != null)
         ? `${Math.min(s.p1, s.p2)}–${Math.max(s.p1, s.p2)}%`
         : `${s.p1}%`;
       return `  • ${b.leftLabel} ↔ ${b.rightLabel}: ${txt}`;
     }).filter(Boolean);
+    const bars = barsToText(id => barState[id]);
     if (bars.length){ lines.push('', 'Perspective:'); lines.push(...bars); }
+    const newPersp = parallelRows.length ? parallelRows[0] : null;
+    if (newPersp){
+      const newBars = barsToText(id => newPersp.states[id]);
+      if (newBars.length){ lines.push('', 'New perspective:'); lines.push(...newBars); }
+    }
+    if (secondPlayFinished && secondPlayOrder){
+      const spLines = secondPlayOrder.map(id => {
+        const deck = spDeckById(id);
+        if (!deck) return null;
+        const order = (secondPlayItemOrders && secondPlayItemOrders[id])
+          ? secondPlayItemOrders[id]
+          : spOriginalItemOrder(id);
+        const words = order.map(i => deck.items[i] || '—').filter(Boolean);
+        return `  • ${deck.title}: ${words.join(' · ')}`;
+      }).filter(Boolean);
+      if (spLines.length){ lines.push('', 'Second play:'); lines.push(...spLines); }
+    }
     const picks = Array.from(_fpSelectedWords);
     if (picks.length){ lines.push('', 'Keys you picked:', '  ' + picks.join(' · ')); }
     if (state.gameMode && state.gameMode !== 'normal'){ lines.push('', `Mode: ${state.gameMode}`); }
@@ -5650,15 +5697,20 @@
         </div>
       `;
     }).join('');
-    $sum.innerHTML = `<div class="sp-bars-title">Perspective 2</div>${rows}`;
+    $sum.innerHTML = `<div class="sp-bars-title">New perspective</div>${rows}`;
   }
 
   function renderSecondPlay(){
     const $sec = document.getElementById('second-play');
     if (!$sec) return;
-    const eligible = parallelRows.length >= 1 && !secondPlayFinished;
-    $sec.hidden = !eligible;
-    if (!eligible) return;
+    // Stay visible even after finishing — the reordered results remain on the
+    // page; only the Finish button drops away once the play is committed.
+    const visible = parallelRows.length >= 1;
+    $sec.hidden = !visible;
+    if (!visible) return;
+    $sec.classList.toggle('sp-finished', secondPlayFinished);
+    const $spActions = $sec.querySelector('.sp-actions');
+    if ($spActions) $spActions.style.display = secondPlayFinished ? 'none' : '';
     if (!secondPlayOrder) secondPlayOrder = originalGroupOrder();
     initSecondPlayItemOrders();
     const $decks = document.getElementById('sp-decks');
@@ -5771,10 +5823,18 @@
     // Re-render summary so .is-moved highlights are applied to decks that
     // shifted between the original arrangement and secondPlayOrder.
     renderSummaryGrid();
+    // Keep the second-play results on screen and drop the Insights panel right
+    // BELOW them, so the user reads "results → insights" in order.
+    const $sec = document.getElementById('second-play');
+    const $p   = document.getElementById('insights-panel');
+    if ($sec && $p && $sec.parentNode){
+      $sec.parentNode.insertBefore($p, $sec.nextSibling);
+    }
     // Auto-open Insights so the user sees the contrast hints right away.
     _insightsOpen = true;
     updateInsightsBtn();
-    const $p = document.getElementById('insights-panel');
+    // Fold the second-play result into the bottom std-summary recap.
+    if (typeof renderBottomSummary === 'function') renderBottomSummary();
     if ($p) setTimeout(() => $p.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
 
@@ -5814,6 +5874,8 @@
         $summary.classList.remove('free-play');
         $summary.classList.remove('click-me-call');
         $summary.classList.remove('groups-on-top');
+        const $hint = document.getElementById('play-more-hint');
+        if ($hint) $hint.hidden = true;
       }
       $btn.textContent = 'Play more';
       return;
@@ -5824,6 +5886,8 @@
   function togglePlayMore(){
     _playMoreOn = !_playMoreOn;
     $summary.classList.toggle('free-play', _playMoreOn);
+    const $hint = document.getElementById('play-more-hint');
+    if ($hint) $hint.hidden = !_playMoreOn;
     if (_playMoreOn){
       // Header button hides while play-more is active.
       const $btn = document.getElementById('btn-play-more');
@@ -5887,6 +5951,8 @@
             _fpSelectedWords.add(w);
             li.classList.add('fp-selected');
           }
+          // Reflect the picked keys in the bottom std-summary recap.
+          if (typeof renderBottomSummary === 'function') renderBottomSummary();
         });
       });
     });
@@ -6061,10 +6127,10 @@
       // First item only shows ↓, last only shows ↑. Middle items have neither.
       const isFirst = pos === 0;
       const isLast  = pos === order.length - 1;
-      // For Time (x1, paired with Journalism) and Sectors (x4, paired with
-      // Economy) we also render a sibling "alt" arrow on top of the actual
-      // one — different colour, slightly more highlighted (see §gender-pair).
-      const pairHighlight = (d.id === 'x4');
+      // Companion "alt" arrows are no longer rendered in Sectors — the up and
+      // down decorative arrows were removed, so Sectors shows only its real
+      // ↑ / ↓ controls like the other extras.
+      const pairHighlight = false;
       const altArrow = (sym) => `<span class="alt-arrow" aria-hidden="true">${sym}</span>`;
       const arrowHTML =
         isFirst

@@ -2414,14 +2414,26 @@
     display:block;font:700 .7rem/1 system-ui,sans-serif;color:var(--sky);
     letter-spacing:.14em;text-transform:uppercase;margin-bottom:.5rem;
   }
-  .flv-std .pp-cols{display:flex;gap:28px;justify-content:center;align-items:flex-start}
-  .flv-std .pp-col{display:flex;flex-direction:column;gap:6px;align-items:center}
-  .flv-std .pp-col-new{font-style:italic}
+  .flv-std .pp-grid{display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:.2rem}
+  .flv-std .pp-row{display:flex;gap:16px;align-items:baseline;justify-content:center;flex-wrap:wrap}
+  /* First cell of each row: the bar's axis title. */
+  .flv-std .pp-axis{
+    font:700 .66rem/1.2 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.06em;text-transform:uppercase;
+    min-width:150px;text-align:right;
+  }
   .flv-std .pp-cell{
     font:700 .92rem/1.1 ui-serif,Georgia,serif;color:var(--gold);
-    min-width:64px;
+    min-width:96px;text-align:left;
   }
-  .flv-std .pp-col-new .pp-cell{color:var(--accent)}
+  .flv-std .pp-cell-new{font-style:italic;color:var(--accent)}
+  .flv-std .pp-pole{
+    font:600 .68rem/1 system-ui,sans-serif;color:var(--muted);
+    text-transform:none;letter-spacing:0;
+  }
+  @media (max-width:520px){
+    .flv-std .pp-axis{min-width:0;text-align:center;width:100%}
+  }
 
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
@@ -5658,28 +5670,35 @@
   // bar), percentages only, no titles; the new-perspective column is italic.
   // The % counts the MIDDLE of the bar as 0 and each extreme as its own 100%,
   // so a point at 30/70 reads 40%, and a range can read e.g. 20-80%.
-  function barPct(s){
-    if (!s || s.p1 == null) return null;
+  // A percentage cell that also names the pole it leans toward, so "20%" is
+  // never ambiguous between (e.g.) Subjective and Objective.
+  function barPctCell(s, b){
+    if (!s || s.p1 == null) return '—';
     const toPct = (p) => Math.round(Math.abs(p - 50) * 2);
-    if (s.phase === 2 && s.p2 != null){
-      const a = toPct(s.p1), b = toPct(s.p2);
-      return `${Math.min(a, b)}-${Math.max(a, b)}%`;
-    }
-    return `${toPct(s.p1)}%`;
+    const rep = (s.phase === 2 && s.p2 != null) ? (s.p1 + s.p2) / 2 : s.p1;
+    const pole = rep < 50 ? b.leftLabel : (rep > 50 ? b.rightLabel : '');
+    const pct = (s.phase === 2 && s.p2 != null)
+      ? (() => { const a = toPct(s.p1), c = toPct(s.p2); return `${Math.min(a, c)}-${Math.max(a, c)}%`; })()
+      : `${toPct(s.p1)}%`;
+    return `${pct}${pole ? ` <span class="pp-pole">${escapeHTML(pole)}</span>` : ''}`;
   }
   function buildPerspectivesHTML(){
-    const col = (stateFor) => BARS.map(b =>
-      `<div class="pp-cell">${barPct(stateFor(b.id)) || '—'}</div>`
-    ).join('');
     const origHasAny = BARS.some(b => { const s = barState[b.id]; return s && s.p1 != null; });
     if (!origHasAny && !parallelRows.length) return '';
-    const origCol = `<div class="pp-col">${col(id => barState[id])}</div>`;
-    const newCol = parallelRows.length
-      ? `<div class="pp-col pp-col-new">${col(id => parallelRows[0].states[id])}</div>`
-      : '';
+    const hasNew = parallelRows.length > 0;
+    // One row per bar: [axis title] [original %] [new %]. New column italic.
+    const rows = BARS.map(b => {
+      const orig = barPctCell(barState[b.id], b);
+      const neu  = hasNew ? barPctCell(parallelRows[0].states[b.id], b) : '';
+      return `<div class="pp-row">`
+        + `<div class="pp-axis">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`
+        + `<div class="pp-cell">${orig}</div>`
+        + (hasNew ? `<div class="pp-cell pp-cell-new">${neu}</div>` : '')
+        + `</div>`;
+    }).join('');
     return `<div class="perspectives-chosen">`
       + `<span class="pp-title">Perspectives</span>`
-      + `<div class="pp-cols">${origCol}${newCol}</div>`
+      + `<div class="pp-grid">${rows}</div>`
       + `</div>`;
   }
   // Per group: a row of words for the first play, then the second play below

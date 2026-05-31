@@ -2327,38 +2327,36 @@
   .flv-std .clause li b{color:var(--gold);font-weight:700}
 
   /* ---- two-play tables (First play vs Second play) inside the text area ---- */
-  .flv-std .play-tables{
-    display:flex;flex-direction:column;gap:20px;align-items:center;
+  /* Resume plays — per group: a "first" row then a "second" row below it.
+     e.g.  Journalism:  Why What How  (first)
+           second:      What How Why                     */
+  .flv-std .play-rows{display:flex;flex-direction:column;gap:.6rem;margin:.2rem 0 .4rem}
+  .flv-std .pr-group{border-bottom:1px solid var(--stroke);padding-bottom:.5rem}
+  .flv-std .pr-group:last-child{border-bottom:0}
+  .flv-std .pr-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:.22rem 0}
+  .flv-std .pr-label{
+    font:700 .8rem/1.1 ui-serif,Georgia,serif;color:var(--gold);
+    min-width:90px;text-align:left;
   }
-  /* Second play sits in its own row below the first; its text is italic. */
-  .flv-std .play-table[data-play="Second play"] td,
-  .flv-std .play-table[data-play="Second play"] caption{font-style:italic}
-  .flv-std .play-table{border-collapse:separate;border-spacing:4px;table-layout:fixed}
-  .flv-std .play-table caption{
-    caption-side:top;
-    font:700 .7rem/1 system-ui,sans-serif;color:var(--sky);
-    letter-spacing:.14em;text-transform:uppercase;margin-bottom:.5rem;
+  .flv-std .pr-second .pr-label{color:var(--accent)}
+  .flv-std .pr-cells{display:inline-flex;flex-wrap:wrap;gap:5px}
+  .flv-std .pr-second .pt-cell{font-style:italic}
+  .flv-std .pr-tag{
+    font:700 .62rem/1 system-ui,sans-serif;color:var(--muted);
+    letter-spacing:.1em;text-transform:uppercase;margin-left:.2rem;
   }
-  /* Uniform, same-size cells for every item. */
-  .flv-std .play-table td,
-  .flv-std .play-table th{
-    width:66px;height:36px;
-    border:1px solid var(--stroke);border-radius:7px;
-    font:600 .74rem/1.1 ui-serif,Georgia,serif;
-    color:var(--ink);text-align:center;vertical-align:middle;
-    padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  /* Word cells — also carry the match/diff highlight from the first Insight. */
+  .flv-std .pt-cell{
+    display:inline-block;padding:.22rem .55rem;border-radius:7px;
+    border:1px solid var(--stroke);
+    font:600 .76rem/1.1 ui-serif,Georgia,serif;color:var(--ink);
     background:linear-gradient(170deg,#3c3c54 0%,#2f2f44 100%);
   }
-  .flv-std .play-table th.pt-grp{
-    width:88px;text-align:left;color:var(--gold);
-    background:transparent;border-color:transparent;
-  }
-  /* Highlights surfaced by the first Insight click. */
-  .flv-std .play-table .pt-cell.pt-match{
+  .flv-std .pt-cell.pt-match{
     background:linear-gradient(170deg,rgba(0,247,167,.22),rgba(0,247,167,.08));
     border-color:var(--brand);color:#daffec;
   }
-  .flv-std .play-table .pt-cell.pt-diff{
+  .flv-std .pt-cell.pt-diff{
     background:linear-gradient(170deg,rgba(255,95,220,.22),rgba(255,95,220,.08));
     border-color:var(--accent);color:#ffe0f6;
   }
@@ -5010,6 +5008,10 @@
     renderSecondPlay();
     updatePlusBtn();
     updateInsightsBtn();
+    // The "+" takes you down to where the new perspective bars + the decks to
+    // reorder (second play) live, below the selected decks.
+    const $sp = document.getElementById('second-play');
+    if ($sp) setTimeout(() => $sp.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
 
   function updatePlusBtn(){
@@ -5576,16 +5578,6 @@
       return { id, title: deck.title, words };
     }).filter(Boolean);
   }
-  function playTableHTML(info, label, showTitle){
-    const rows = info.map(g => {
-      const cells = g.words.map((w, rank) =>
-        `<td class="pt-cell" data-group="${g.id}" data-rank="${rank}">${escapeHTML(w)}</td>`
-      ).join('');
-      const titleCell = showTitle ? `<th class="pt-grp">${escapeHTML(g.title)}</th>` : '';
-      return `<tr>${titleCell}${cells}</tr>`;
-    }).join('');
-    return `<table class="play-table" data-play="${label}"><caption>${escapeHTML(label)}</caption><tbody>${rows}</tbody></table>`;
-  }
   // Combos keywords (the Play-more picks) as clickable links to each word's
   // own app, plus the help line beneath them.
   function buildCombosKeysHTML(){
@@ -5598,18 +5590,26 @@
     return `<div class="combos-keys"><span class="combos-keys-title">Combos keywords</span>${links}</div>`
       + `<p class="combos-keys-help">Clicking on any of the words from the decks above will lead you to its app too.</p>`;
   }
+  // Per group: a "first" row (Title: w w w) and a "second" row below it
+  // (second: w w w), so each deck's two plays read top-to-bottom.
   function buildPlayTablesHTML(){
     const first = playOrderInfo('first');
     if (!first.length) return '';
-    const second = playOrderInfo('second');
-    // First play keeps the group titles on the left; the second play table
-    // drops them (the titles already label the row from the left table). The
-    // second play renders in its own row below the first (see .play-tables).
-    return `<div class="play-tables">`
-      + playTableHTML(first, 'First play', true)
-      + playTableHTML(second, 'Second play', false)
-      + `</div>`
-      + buildCombosKeysHTML();
+    const secondMap = playWordMap('second');
+    const cellsHTML = (id, words) => words.map((w, rank) =>
+      `<span class="pt-cell" data-group="${id}" data-rank="${rank}">${escapeHTML(w)}</span>`
+    ).join('');
+    const groups = first.map(g => {
+      const secondWords = secondMap[g.id] || g.words;
+      return `<div class="pr-group">`
+        + `<div class="pr-line"><span class="pr-label">${escapeHTML(g.title)}:</span>`
+        +   `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span>`
+        +   `<span class="pr-tag">(first)</span></div>`
+        + `<div class="pr-line pr-second"><span class="pr-label">second:</span>`
+        +   `<span class="pr-cells">${cellsHTML(g.id, secondWords)}</span></div>`
+        + `</div>`;
+    }).join('');
+    return `<div class="play-rows">${groups}</div>` + buildCombosKeysHTML();
   }
   // Word at each (group, rank) for quick lookups when comparing the plays.
   function playWordMap(which){
@@ -6082,6 +6082,14 @@
     updateInsightsBtn();
     // Fold the second-play result into the bottom std-summary recap.
     if (typeof renderBottomSummary === 'function') renderBottomSummary();
+    // Finishing the second play expands the (collapsed-by-default) Summary.
+    const $std = document.getElementById('std-summary');
+    const $stdToggle = document.getElementById('std-summary-toggle');
+    if ($std){
+      $std.classList.remove('is-collapsed');
+      if ($stdToggle) $stdToggle.setAttribute('aria-expanded', 'true');
+      setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
+    }
   }
 
   function movedDeckIds(){

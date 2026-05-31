@@ -5704,23 +5704,25 @@
       + `<div class="pp-grid">${rows}</div>`
       + `</div>`;
   }
-  // Per group: a row of words for the first play, then the second play below
-  // it (italic). Group title labels the pair; no "first"/"second" text.
+  // Per group: a row of words for the first play. The second play row below it
+  // (italic) only appears once a new perspective has been added (the "+"), so
+  // the list isn't duplicated by default.
   function buildPlayTablesHTML(){
     const first = playOrderInfo('first');
     if (!first.length) return '';
-    const secondMap = playWordMap('second');
+    const showSecond = parallelRows.length >= 1;
+    const secondMap = showSecond ? playWordMap('second') : {};
     const cellsHTML = (id, words) => words.map((w, rank) =>
       `<span class="pt-cell" data-group="${id}" data-rank="${rank}">${escapeHTML(w)}</span>`
     ).join('');
     const groups = first.map(g => {
-      const secondWords = secondMap[g.id] || g.words;
-      return `<div class="pr-group">`
-        + `<div class="pr-line"><span class="pr-label">${escapeHTML(g.title)}:</span>`
-        +   `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span></div>`
-        + `<div class="pr-line pr-second"><span class="pr-label"></span>`
-        +   `<span class="pr-cells">${cellsHTML(g.id, secondWords)}</span></div>`
-        + `</div>`;
+      const firstRow = `<div class="pr-line"><span class="pr-label">${escapeHTML(g.title)}:</span>`
+        + `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span></div>`;
+      const secondRow = showSecond
+        ? `<div class="pr-line pr-second"><span class="pr-label"></span>`
+          + `<span class="pr-cells">${cellsHTML(g.id, secondMap[g.id] || g.words)}</span></div>`
+        : '';
+      return `<div class="pr-group">${firstRow}${secondRow}</div>`;
     }).join('');
     return `<div class="play-rows">${groups}</div>`
       + buildPerspectivesHTML()

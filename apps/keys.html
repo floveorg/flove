@@ -3988,12 +3988,14 @@
   function renderSummaryGrid(){
     $triads.innerHTML = '';
     $fivys.innerHTML = '';
-    $triads.classList.toggle('with-extras', !!state.showExtras);
+    // Play more also surfaces the extra decks (as untapped, closed cards).
+    const showExtras = !!state.showExtras || (typeof _playMoreOn !== 'undefined' && _playMoreOn);
+    $triads.classList.toggle('with-extras', showExtras);
     const active = new Set(decksActiveSoFar(state.stageIdx));
 
     const placeTriad = (deckIdx) => {
       const deck = DECKS[deckIdx];
-      const extraId = state.showExtras ? EXTRA_PAIR[deck.id] : null;
+      const extraId = showExtras ? EXTRA_PAIR[deck.id] : null;
       if (extraId){
         const pair = document.createElement('div');
         pair.className = 'triad-pair';
@@ -6259,6 +6261,11 @@
       // Push the groups display to the top so the user works on the decks
       // first under this "play more" mode.
       $summary.classList.add('groups-on-top');
+      // Surface the extra decks as untapped (closed) cards while playing more.
+      if (typeof extraOpen !== 'undefined'){
+        Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; });
+      }
+      renderSummaryGrid();
       // Persistent strong border "click me click me" call on every group
       // item until the user actually clicks one.
       $summary.classList.add('click-me-call');
@@ -6280,6 +6287,9 @@
       const $triads = document.getElementById('summary-triads');
       if ($triads) setTimeout(() => $triads.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
     } else {
+      // Leaving play-more: re-render so the extras drop away again unless the
+      // user had revealed them via Analyze → Extras.
+      renderSummaryGrid();
       renderPlayMoreBtn();
     }
   }

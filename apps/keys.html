@@ -42,20 +42,29 @@
     position:relative;
   }
   /* Progress bar lives in the centre of the topbar regardless of brand /
-     menu widths. Falls back to inline placement on very narrow viewports. */
+     menu widths. Falls back to inline placement on very narrow viewports.
+     Two stacked rows: a parent (stage) bar and a smaller sub-steps bar. */
   .stage-progress.in-topbar{
     position:absolute;left:50%;top:50%;
     transform:translate(-50%,-50%);
-    padding:5px 9px;gap:5px;
+    flex-direction:column;align-items:center;
+    padding:4px 9px;gap:3px;
     pointer-events:none;
   }
-  .stage-progress.in-topbar .seg{width:32px;height:5px}
+  .stage-progress.in-topbar .sp-parent,
+  .stage-progress.in-topbar .sp-sub{display:flex;gap:5px}
+  .stage-progress.in-topbar .sp-sub:empty{display:none}
+  .stage-progress.in-topbar .sp-parent .seg{width:32px;height:5px}
+  /* The sub-steps bar is visibly smaller than the parent. */
+  .stage-progress.in-topbar .sp-sub .seg{width:18px;height:3px}
   @media (max-width:680px){
-    .stage-progress.in-topbar .seg{width:22px;height:4px}
+    .stage-progress.in-topbar .sp-parent .seg{width:22px;height:4px}
+    .stage-progress.in-topbar .sp-sub .seg{width:13px;height:3px}
   }
   @media (max-width:460px){
-    .stage-progress.in-topbar{position:static;transform:none;padding:3px 6px;gap:3px}
-    .stage-progress.in-topbar .seg{width:16px;height:3px}
+    .stage-progress.in-topbar{position:static;transform:none;padding:3px 6px;gap:2px}
+    .stage-progress.in-topbar .sp-parent .seg{width:16px;height:3px}
+    .stage-progress.in-topbar .sp-sub .seg{width:11px;height:2px}
     .brand-text{font-size:1.05rem}
   }
   .brand-link{
@@ -786,7 +795,7 @@
   .summary.groups-on-top .summary-triads-wrap{order:1}
   .summary.groups-on-top .summary-fivys{order:1}
   .summary.groups-on-top .summary-second-play{order:2}
-  .summary.groups-on-top .analyze-bars{order:5}
+  .summary.groups-on-top .analyze-bars{order:1}
   .summary.groups-on-top .second-play{order:6}
   /* Insights panel rides right under the summary button row (its trigger). */
   .summary.groups-on-top .insights-panel{order:0}
@@ -2577,11 +2586,8 @@
          tracks stage progress while playing and the dynamic Analyze labels in
          the summary. -->
     <div class="stage-progress in-topbar" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
-      <div class="seg"></div>
-      <div class="seg"></div>
-      <div class="seg"></div>
-      <div class="seg"></div>
-      <div class="seg"></div>
+      <div class="sp-parent"></div>
+      <div class="sp-sub"></div>
     </div>
     <span class="topbar-spacer"></span>
     <div class="menu-wrap">
@@ -2738,6 +2744,10 @@
     <!-- Play-more prompt: shown above the decks once "Play more" is engaged. -->
     <p class="play-more-hint" id="play-more-hint" hidden>Choose your favourite words from the decks and see what the Combos app will do next</p>
 
+    <!-- First-perspective bars (+ the "+") sit ABOVE the decks. The parallel
+         "new perspective" bars + reorder decks live below (in #second-play). -->
+    <div class="analyze-bars" id="analyze-bars" hidden></div>
+
     <div class="summary-triads-wrap">
       <div class="summary-triads" id="summary-triads"></div>
       <div class="analyze-arrows" id="analyze-arrows" aria-hidden="true">
@@ -2752,11 +2762,10 @@
     <!-- Second-play selections, shown as a row of decks below the first play. -->
     <div class="summary-second-play" id="summary-second-play" hidden></div>
 
-    <!-- Perspectives (the "declare your perspective" bars) + the second play
-         now sit BELOW the decks. -->
-    <div class="analyze-bars" id="analyze-bars" hidden></div>
-
     <section class="second-play" id="second-play" hidden>
+      <!-- The new (parallel) perspective bars render here, above the reorder
+           decks — both below the selected decks. -->
+      <div class="ab-parallel-rows" id="ab-parallel-rows"></div>
       <div class="sp-decks" id="sp-decks"></div>
       <div class="sp-actions">
         <button class="btn btn-primary" id="sp-finish-btn" type="button">Finish second play →</button>
@@ -3465,27 +3474,42 @@
     $progress.innerHTML = parts.join('');
   }
   function renderStageLabel(){
-    // While playing → 5-segment progress bar tracking state.stageIdx (0..3).
-    // In summary → dynamic labelled segments, one per "More" the user has
-    // touched (Analyze, Extras, Perspective, Gender, Stats). Checked when the
-    // section is currently on, unchecked (grey) when toggled back off.
+    // Two-row bar. While playing → parent row tracks the stages (state.stageIdx).
+    // In summary → the parent row keeps the played stages + 1 (for reaching
+    // results), and a smaller sub-steps row below grows by one segment for
+    // each Analyze / More the user touches.
     const isSummary = $summary.classList.contains('active');
+    let $parent = $progress.querySelector('.sp-parent');
+    let $sub    = $progress.querySelector('.sp-sub');
+    if (!$parent || !$sub){
+      $progress.innerHTML = '<div class="sp-parent"></div><div class="sp-sub"></div>';
+      $parent = $progress.querySelector('.sp-parent');
+      $sub    = $progress.querySelector('.sp-sub');
+    }
+    const seg = (cls) => `<div class="seg${cls ? ' ' + cls : ''}"></div>`;
     if (isSummary){
-      $progress.classList.add('dynamic');
-      renderDynamicTopbar();
+      // Parent: stages played (stageIdx + 1) + 1 for the results step.
+      const parentCount = (state.stageIdx + 1) + 1;
+      let ph = '';
+      for (let i = 0; i < parentCount; i++){
+        ph += seg(i === parentCount - 1 ? 'current' : 'done');
+      }
+      $parent.innerHTML = ph;
+      // Sub: 1 at landing, +1 per touched Analyze/More section.
+      const subCount = 1 + touchedSections.size;
+      let sh = '';
+      for (let i = 0; i < subCount; i++) sh += seg('done');
+      $sub.innerHTML = sh;
       $progress.setAttribute('aria-valuenow', String(1 + (state.analyzeLevel || 0)));
     } else {
-      // Restore the original 5-segment static bar if it was replaced.
-      $progress.classList.remove('dynamic');
-      if (!$progress.querySelector('.seg')){
-        $progress.innerHTML = '<div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>';
+      // Playing: parent row tracks the stages; no sub-steps row yet.
+      let ph = '';
+      for (let i = 0; i < STAGES.length; i++){
+        ph += seg(i < state.stageIdx ? 'done' : (i === state.stageIdx ? 'current' : ''));
       }
-      const cur = state.stageIdx;
-      $progress.querySelectorAll('.seg').forEach((s, i) => {
-        s.classList.toggle('done',    i < cur);
-        s.classList.toggle('current', i === cur);
-      });
-      $progress.setAttribute('aria-valuenow', String(cur + 1));
+      $parent.innerHTML = ph;
+      $sub.innerHTML = '';
+      $progress.setAttribute('aria-valuenow', String(state.stageIdx + 1));
     }
     // Treat "all sections done" as: every section has been touched AND the
     // analyzeLevel has reached 5 (Stats clicked). This is the gate for "See more".
@@ -4986,7 +5010,6 @@
       <h3 class="ab-title">Declare what has been your perspective</h3>
       <div class="ab-grid">${rows}</div>
       <p class="ab-help">Select a point or an area in the bars.</p>
-      <div class="ab-parallel-rows" id="ab-parallel-rows"></div>
       <div class="ab-plus-wrap">
         <button class="ab-plus-btn" id="ab-plus-btn" type="button" aria-label="Add a parallel perspective" title="Add a parallel perspective">+</button>
       </div>

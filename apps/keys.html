@@ -2811,13 +2811,13 @@
   }
   .flv-std .pp-col-head{
     text-align:center;
+    font:700 .64rem/1.2 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.08em;text-transform:uppercase;
+  }
+  .flv-std .pp-row-head{
+    text-align:left;
     font:700 .68rem/1 system-ui,sans-serif;color:var(--sky);
     letter-spacing:.14em;text-transform:uppercase;
-  }
-  .flv-std .pp-bar-name{
-    text-align:left;
-    font:700 .64rem/1.25 system-ui,sans-serif;color:var(--sky);
-    letter-spacing:.05em;text-transform:uppercase;
   }
   .flv-std .pp-bar-track{
     position:relative;height:20px;border-radius:999px;
@@ -4595,15 +4595,11 @@
     $row.innerHTML = `<span class="ssp-cap">Second play</span><div class="ssp-decks">${cards}</div>`;
   }
 
-  function showSummary(){
-    finalizeTiming();
-    stopTimer();
-    // Returning to the results from the embedded fivys flow: tear that UI down
-    state.embeddedFivysMode = false;
-    const $etc = document.getElementById('embedded-triads-collapse');
-    if ($etc) $etc.hidden = true;
-    // Reset all analyze-related state — the user re-enters at level 2 with
-    // every Analyze panel collapsed.
+  // Collapse the whole stage-3 cascade back to its base state: every Analyze
+  // panel closed, play-more / free-play torn down, parallel perspectives +
+  // second play cleared, gender icons + arrows removed. Used on summary entry
+  // and by the top "Go back" so leaving always leaves a clean stage 3.
+  function resetSummaryStage(){
     state.analyzeLevel = 0;
     state.showExtras = false;
     _analyzeOn = false;
@@ -4622,7 +4618,6 @@
       if (!el) return;
       el.textContent = cfg.text;
       el.hidden = cfg.hidden;
-      // Restore the button's initial style (toggles flip it to coloured/ghost).
       el.classList.remove('btn-soft','btn-primary','btn-ghost');
       el.classList.add(cfg.cls);
     });
@@ -4631,11 +4626,9 @@
       if (el) el.hidden = true;
     });
     _timeStatsOn = false;
-    // Re-close every extras "tap to reveal" deck on summary re-entry.
     if (typeof extraOpen !== 'undefined'){
       Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; });
     }
-    // Tear down free-play state on summary re-entry.
     _playMoreOn = false;
     if (typeof _fpSelectedWords !== 'undefined') _fpSelectedWords.clear();
     $summary.classList.remove('free-play');
@@ -4644,26 +4637,21 @@
     const $pmHint = document.getElementById('play-more-hint');
     if ($pmHint) $pmHint.hidden = true;
     renderPlayMoreBtn();
-    // Reset parallel perspectives + insights so the panel comes back clean.
     parallelRows.length = 0;
     _insightsOpen = false;
     _showPlayCompare = false;
-    // finishSecondPlay() relocates the insights panel below the second play —
-    // put it back above the decks (its authored position) on summary re-entry.
     const $insReset = document.getElementById('insights-panel');
     const $pmHintAnchor = document.getElementById('play-more-hint');
     if ($insReset && $pmHintAnchor && $pmHintAnchor.parentNode){
       $pmHintAnchor.parentNode.insertBefore($insReset, $pmHintAnchor);
     }
     updateInsightsBtn();
-    // Reset second-play state too — comes back fresh every summary entry.
     secondPlayOrder = null;
     secondPlayItemOrders = null;
     secondPlayFinished = false;
     const $secPlay = document.getElementById('second-play');
     if ($secPlay) $secPlay.hidden = true;
     updatePlusBtn();
-    // Collapsed summary decks reset too — every deck comes back expanded.
     if (typeof _summaryCollapsed !== 'undefined') _summaryCollapsed.clear();
     removeFinishIcons();
     const $arrowsOverlay = document.getElementById('analyze-arrows');
@@ -4672,6 +4660,16 @@
     if ($rel) $rel.hidden = true;
     const $smBtn = document.getElementById('btn-see-more');
     if ($smBtn) $smBtn.textContent = 'See more';
+  }
+
+  function showSummary(){
+    finalizeTiming();
+    stopTimer();
+    // Returning to the results from the embedded fivys flow: tear that UI down
+    state.embeddedFivysMode = false;
+    const $etc = document.getElementById('embedded-triads-collapse');
+    if ($etc) $etc.hidden = true;
+    resetSummaryStage();
 
     $summary.classList.add('active');
     document.querySelector('.wrap').classList.add('summary-mode');
@@ -5305,6 +5303,10 @@
       state.embeddedFivysMode = false;
       const $etc = document.getElementById('embedded-triads-collapse');
       if ($etc) $etc.hidden = true;
+      // Collapse the whole stage-3 cascade (Analyze panels, play-more / free
+      // play, second play…) so leaving the results always leaves a clean
+      // stage 3 — including when Play more was active.
+      resetSummaryStage();
       $summary.classList.remove('active');
       document.querySelector('.wrap').classList.remove('summary-mode');
       render();
@@ -5818,7 +5820,7 @@
     const extrasBtn= document.getElementById('btn-analyze-extras');
     const btn      = document.getElementById('btn-analyze');
     overlay.classList.toggle('is-on', _analyzeOn);
-    btn.textContent = _analyzeOn ? '✓ Arrows' : 'Arrows';
+    btn.textContent = _analyzeOn ? '✓ Ordinals' : 'Ordinals';
     // Reads as a checkable chip: coloured + checked when on, plain
     // (uncoloured) text when off. The label stays "Arrows" either way.
     btn.classList.remove('btn-soft');
@@ -6528,21 +6530,20 @@
     const origHasAny = BARS.some(b => { const s = barState[b.id]; return s && s.p1 != null; });
     if (!origHasAny && !parallelRows.length) return '';
     const hasNew = parallelRows.length > 0;
-    // Grid: a left column of bar titles, then a Main column and a New column
-    // (centred headers). Each column carries both bars as full-width tracks.
+    // Grid: Main / New are row starters down the left; each bar gets its own
+    // column with its title as the (centred) column header.
     const head = `<div class="pp-corner"></div>`
-      + `<div class="pp-col-head">Main</div>`
-      + `<div class="pp-col-head">New</div>`;
-    const rows = BARS.map(b => {
-      const o = barState[b.id];
-      const n = hasNew ? parallelRows[0].states[b.id] : null;
-      return `<div class="pp-bar-name">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`
-        + `<div class="pp-bar-track">${barMarkHTML(o, '')}</div>`
-        + `<div class="pp-bar-track">${n ? barMarkHTML(n, ' pp-mark-new') : ''}</div>`;
-    }).join('');
+      + BARS.map(b => `<div class="pp-col-head">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`).join('');
+    const mainRow = `<div class="pp-row-head">Main</div>`
+      + BARS.map(b => `<div class="pp-bar-track">${barMarkHTML(barState[b.id], '')}</div>`).join('');
+    const newRow = `<div class="pp-row-head">New</div>`
+      + BARS.map(b => {
+          const n = hasNew ? parallelRows[0].states[b.id] : null;
+          return `<div class="pp-bar-track">${n ? barMarkHTML(n, ' pp-mark-new') : ''}</div>`;
+        }).join('');
     return `<div class="perspectives-chosen">`
       + `<span class="pp-title">Perspectives</span>`
-      + `<div class="pp-cols">${head}${rows}</div>`
+      + `<div class="pp-cols">${head}${mainRow}${newRow}</div>`
       + `</div>`;
   }
   // Per group: a row of words for the first play. The second play row below it

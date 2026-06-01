@@ -550,51 +550,56 @@
     box-shadow:0 0 0 2px rgba(255,255,255,.2), 0 4px 12px rgba(0,0,0,.25);
   }
 
-  /* ---- Accumulation board: one bordered row of 5 per toggled set ---- */
-  .accum{
-    position:absolute;inset:10px;z-index:2;
-    display:flex;flex-direction:column;gap:8px;
-    overflow:auto;padding:2px;
+  /* ---- Simplex nodes: rank 1 centre, 2–5 corners; each toggled set
+          stacks one more placeholder under its rank parent ---- */
+  .node{
+    position:absolute;width:38%;
+    display:flex;flex-direction:column;gap:3px;z-index:2;
   }
-  .accum:empty::before{
-    content:"Toggle a deck or a category to drop its five placeholders here.";
-    margin:auto;max-width:60%;text-align:center;
-    color:var(--muted);font-size:.82rem;line-height:1.4;
+  .node .rank-badge{
+    display:inline-grid;place-items:center;
+    width:22px;height:22px;border-radius:7px;
+    font-weight:800;font-size:11px;color:#1a1a28;
+    background:linear-gradient(135deg,var(--gold),var(--accent));
+    align-self:flex-start;
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
   }
-  .fset{
-    flex:0 0 auto;
-    border:2px solid var(--c,var(--stroke));border-radius:14px;
-    background:rgba(255,255,255,.03);
-    padding:7px 8px;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 0 14px -5px var(--c,#000);
-    animation:fadein .2s ease;
-  }
-  .fset-label{
-    font:700 .7rem/1 ui-serif,Georgia,serif;letter-spacing:.45px;text-transform:uppercase;
-    color:var(--c,var(--gold));text-align:center;margin-bottom:6px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .ph-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
-  .ph{
-    min-height:46px;border-radius:9px;
+  .node .items{display:flex;flex-direction:column;gap:3px}
+  .node .item{
+    padding:3px 8px;border-radius:7px;
+    font:600 11px/1.15 system-ui,sans-serif;
     border:1.5px solid var(--c,var(--stroke));
-    background:rgba(255,255,255,.04);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-    padding:3px;text-align:center;overflow:hidden;
-  }
-  .ph.empty{opacity:.5;border-style:dashed}
-  .ph-rank{font:800 .58rem/1 system-ui,sans-serif;color:var(--c,var(--muted));opacity:.9}
-  .ph-word{
-    font:600 .74rem/1.12 system-ui,sans-serif;color:var(--ink);
+    background:color-mix(in srgb, var(--c,#888) 22%, var(--panel));
+    color:var(--ink);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+    animation:fadein .18s ease;
   }
-  .ph-input{
-    width:100%;min-width:0;border:0;background:transparent;color:var(--ink);
-    text-align:center;font:600 .74rem/1.12 system-ui,sans-serif;outline:none;
-    border-bottom:1px dashed var(--c,var(--accent));padding:2px 0;
+  .node .item.empty{opacity:.45;border-style:dashed}
+  .node .item-input{
+    width:100%;min-width:0;
+    padding:3px 6px;border-radius:7px;
+    font:600 11px/1.2 system-ui,sans-serif;
+    background:rgba(255,255,255,.06);
+    border:1.5px dashed var(--c,var(--accent));
+    color:var(--ink);outline:none;text-align:center;
   }
-  .ph-input::placeholder{color:var(--muted);opacity:.7}
-  .ph-input:focus{border-bottom-style:solid}
+  .node .item-input:focus{
+    border-style:solid;
+    box-shadow:0 0 0 2px color-mix(in srgb, var(--c,var(--accent)) 30%, transparent);
+  }
+
+  .node.n1{left:50%;top:50%;transform:translate(-50%,-50%);align-items:center}
+  .node.n1 .rank-badge{align-self:center}
+  .node.n1 .items{align-items:center}
+  .node.n2{left:8px;top:8px}
+  .node.n3{right:8px;top:8px;text-align:right}
+  .node.n3 .rank-badge{align-self:flex-end}
+  .node.n3 .items{align-items:flex-end}
+  .node.n4{left:8px;bottom:8px}
+  .node.n5{right:8px;bottom:8px;text-align:right}
+  .node.n5 .rank-badge{align-self:flex-end}
+  .node.n5 .items{align-items:flex-end}
+  .node.n2 .item,.node.n4 .item{width:fit-content;max-width:100%}
 
   .edges{position:absolute;inset:0;pointer-events:none;z-index:1}
   .edges .edge{
@@ -916,7 +921,11 @@
             <line id="g2"  class="edge green confluence" x1="860" y1="500" x2="500" y2="500"/>
           </svg>
 
-          <div class="accum" id="accum" aria-live="polite"></div>
+          <div class="node n1"><div class="rank-badge">1</div><div class="items" data-rank="0"></div></div>
+          <div class="node n2"><div class="rank-badge">2</div><div class="items" data-rank="1"></div></div>
+          <div class="node n3"><div class="rank-badge">3</div><div class="items" data-rank="2"></div></div>
+          <div class="node n4"><div class="rank-badge">4</div><div class="items" data-rank="3"></div></div>
+          <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
         </section>
       </main>
     </div>
@@ -1329,7 +1338,7 @@
   let creating = false;                           // building a new custom fivy
 
   const $square    = document.getElementById('square');
-  const $accum     = document.getElementById('accum');
+  const RANK_EL    = [...document.querySelectorAll('#square .items')];  // 5 rank parents (centre + 4 corners)
   const $ll        = document.getElementById('linear-list');
   const $deckStrip = document.getElementById('deck-strip');
   const $titleRow  = document.getElementById('cat-title-row');
@@ -1378,57 +1387,47 @@
   }
 
   // ----- Accumulation board: render one bordered row of 5 per active set -----
-  function renderAccum(){
-    $accum.innerHTML = '';
+  // Each toggled set drops one placeholder under each of the five rank nodes
+  // (its rank-r item under the rank-r parent), coloured by the set.
+  function renderNodes(){
+    RANK_EL.forEach(el => el.innerHTML = '');
     activeSets.forEach(id => {
       const s = getSource(id);
       if (!s) return;
-      const set = document.createElement('div');
-      set.className = 'fset';
-      set.dataset.src = id;
-      set.style.setProperty('--c', s.color);
-
-      const head = document.createElement('div');
-      head.className = 'fset-label';
-      head.textContent = s.label;
-      set.appendChild(head);
-
-      const row = document.createElement('div');
-      row.className = 'ph-row';
-      const editing = s.editable && !s.saved;     // unfilled category/custom → fill its placeholders inline
+      const editing = s.editable && !s.saved;     // unfilled category/custom → fill it inline
       for (let r = 0; r < 5; r++){
         const val = s.items[r] || '';
-        const cell = document.createElement('div');
-        cell.className = 'ph';
+        let el;
         if (editing){
-          const inp = document.createElement('input');
-          inp.className = 'ph-input';
-          inp.type = 'text';
-          inp.maxLength = 28;
-          inp.placeholder = 'rank ' + (r + 1);
-          inp.value = val;
-          inp.addEventListener('input', e => { s.items[r] = e.target.value; storeEdit(s); });
-          inp.addEventListener('blur', () => { if (s.items.every(v => (v||'').trim())) renderAccum(); });
-          inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); } });
-          cell.appendChild(inp);
+          el = document.createElement('input');
+          el.type = 'text';
+          el.className = 'item-input';
+          el.maxLength = 28;
+          el.placeholder = 'rank ' + (r + 1);
+          el.value = val;
+          el.addEventListener('input', e => { s.items[r] = e.target.value; storeEdit(s); });
+          el.addEventListener('blur', () => { if (s.items.every(v => (v||'').trim())) renderNodes(); });
+          el.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); } });
         } else {
-          if (!val) cell.classList.add('empty');
-          cell.innerHTML = `<span class="ph-rank">${r + 1}</span><span class="ph-word">${escapeHTML(val) || '·'}</span>`;
+          el = document.createElement('div');
+          el.className = 'item' + (val ? '' : ' empty');
+          el.textContent = val || '·';
         }
-        row.appendChild(cell);
+        el.dataset.cat = id;
+        el.title = s.label;
+        el.style.setProperty('--c', s.color);
+        RANK_EL[r].appendChild(el);
       }
-      set.appendChild(row);
-      $accum.appendChild(set);
     });
     applyGrowth();
     paintShow();
     paintList();
   }
 
-  // Each added set grows the square 5%, starting once a third row is dropped in.
+  // Each toggled set grows the square 5% (continuous, from the first added set);
+  // the square scales, so the overlaid cycle/confluence arrows scale with it.
   function applyGrowth(){
-    const n = activeSets.length;
-    const grow = n >= 3 ? 1 + 0.05 * (n - 2) : 1;
+    const grow = 1 + 0.05 * Math.max(0, activeSets.length - 1);
     $square.style.setProperty('--grow', grow.toFixed(4));
   }
 
@@ -1454,7 +1453,7 @@
     const i = activeSets.indexOf(id);
     if (i === -1){ activeSets.push(id); bumpCounter('selections'); }
     else { activeSets.splice(i, 1); }
-    renderAccum();
+    renderNodes();
     paintSummary();
   }
 
@@ -1529,7 +1528,7 @@
     bumpCounter('selections');
     cancelCreate();
     renderCustomsRow();
-    renderAccum();          // its row drops in with five empty inputs to fill
+    renderNodes();          // its five empty inputs drop under each rank node to fill
     paintSummary();
   }
   $btnSave.addEventListener('click', commitCustom);
@@ -1554,7 +1553,7 @@
           const oi = activeSets.indexOf(c.id);
           if (oi >= 0) activeSets.splice(oi, 1);
           renderCustomsRow();
-          renderAccum();
+          renderNodes();
           paintSummary();
           return;
         }
@@ -1615,7 +1614,7 @@
   // ----- Initial paint -----
   renderDeckStrip();
   renderCustomsRow();
-  renderAccum();
+  renderNodes();
   paintSummary();
   render();
 

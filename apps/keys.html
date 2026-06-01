@@ -182,17 +182,44 @@
   }
   .related-apps-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
   .related-apps-title{color:var(--muted);font:700 .68rem/1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em}
-  .related-apps-all{color:var(--sky);font:600 .74rem/1 system-ui,sans-serif;text-decoration:none}
-  .related-apps-all:hover{color:var(--accent)}
+  .related-apps-toggle{
+    background:transparent;border:0;cursor:pointer;
+    color:var(--sky);font:600 .74rem/1 system-ui,sans-serif;padding:0;
+    transition:color .15s ease;
+  }
+  .related-apps-toggle:hover{color:var(--accent)}
   .related-apps-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .related-apps-more{margin-top:6px}
+  .related-apps-more[hidden]{display:none}
   .related-apps-grid a{
     display:flex;flex-direction:column;align-items:center;gap:4px;padding:.55rem .2rem;
     border:1px solid var(--stroke);border-radius:10px;text-decoration:none;color:var(--ink);
     transition:border-color .15s ease,background .15s ease,transform .15s ease;
   }
   .related-apps-grid a:hover{border-color:var(--accent);background:var(--fx);transform:translateY(-1px)}
-  .related-app-logo{font-size:1.2rem;line-height:1}
+  .related-app-logo{font-size:1.2rem;line-height:1;height:22px;display:grid;place-items:center}
+  .related-app-logo svg{width:21px;height:21px;display:block}
   .related-app-name{font:600 .74rem/1 system-ui,sans-serif}
+
+  /* ===== Inline About (drops just below the topbar, collapsible) ===== */
+  .about-inline{
+    position:fixed;left:0;right:0;top:0;z-index:55;
+    background:rgba(37,37,56,.96);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--stroke);
+    box-shadow:0 14px 36px rgba(0,0,0,.45);
+    animation:aboutInlineDown .2s ease;
+  }
+  .about-inline[hidden]{display:none}
+  @keyframes aboutInlineDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .about-inline-inner{max-width:1100px;margin:0 auto;padding:16px 18px 18px}
+  .about-inline-inner h3{
+    margin:0 0 .5rem;font:600 1.1rem/1.1 ui-serif,Georgia,serif;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .about-inline-inner p{margin:0 0 .55rem;color:var(--ink);font-size:.92rem;line-height:1.55;max-width:70ch}
+  .about-inline-inner p:last-child{margin-bottom:0}
 
   /* ============== Layout ============== */
   .wrap{max-width:1100px;margin:auto;padding:28px 18px 80px;display:grid;gap:22px}
@@ -3178,30 +3205,15 @@
 
         <li class="menu-divider" role="separator" aria-hidden="true"></li>
 
-        <li class="menu-section-title menu-section-title--collapsible">
-          <button type="button" class="menu-section-toggle" id="menuNavToggle" aria-expanded="true">
-            <span>Navigate</span>
-            <span class="menu-section-plus" aria-hidden="true">+</span>
-          </button>
-        </li>
-        <li class="menu-nav-item"><a class="menu-item" href="keys.html" role="menuitem"><span class="glyph">↻</span> Restart keys</a></li>
-        <li class="menu-nav-item"><a class="menu-item" href="index.html" role="menuitem"><span class="glyph">⌂</span> flove home</a></li>
-        <li class="menu-nav-item"><a class="menu-item" href="souls.html" role="menuitem"><span class="glyph">✺</span> souls</a></li>
-        <li class="menu-nav-item"><a class="menu-item" href="sensy.html" role="menuitem"><span class="glyph">✺</span> sensy</a></li>
-        <li class="menu-nav-item"><a class="menu-item" href="worthing.html" role="menuitem"><span class="glyph">✺</span> worthing</a></li>
-
-        <li class="menu-divider" role="separator" aria-hidden="true"></li>
-
         <li class="related-apps-card">
           <div class="related-apps-head">
             <span class="related-apps-title">Related apps</span>
-            <a class="related-apps-all" href="index.html" title="All apps">All apps →</a>
+            <button type="button" class="related-apps-toggle" id="menuRelMoreBtn" aria-expanded="false">+ more</button>
           </div>
-          <ul class="related-apps-grid" role="menu">
-            <li><a href="souls.html" title="souls"><span class="related-app-logo">✺</span><span class="related-app-name">souls</span></a></li>
-            <li><a href="sensy.html" title="sensy"><span class="related-app-logo">🫧</span><span class="related-app-name">sensy</span></a></li>
-            <li><a href="worthing.html" title="worthing"><span class="related-app-logo">◍</span><span class="related-app-name">worthing</span></a></li>
-          </ul>
+          <!-- Same main + related apps as the summary's "See more" — populated
+               from RELATED_FIRST / RELATED_MORE so the two stay in sync. -->
+          <ul class="related-apps-grid" id="menuRelMain" role="menu"></ul>
+          <ul class="related-apps-grid related-apps-more" id="menuRelMore" role="menu" hidden></ul>
         </li>
 
         <li class="menu-divider" role="separator" aria-hidden="true"></li>
@@ -3210,10 +3222,22 @@
         <li><a class="menu-item" href="#" role="menuitem"><span class="glyph">◍</span> Profile</a></li>
         <li><a class="menu-item" href="#" role="menuitem"><span class="glyph">⌬</span> My Network</a></li>
         <li><a class="menu-item" href="#" role="menuitem"><span class="glyph">?</span> Help</a></li>
+        <li><a class="menu-item" href="index.html" role="menuitem"><span class="glyph">⌂</span> flove home</a></li>
       </ul>
     </div>
   </div>
 </header>
+
+<!-- Inline About: surfaced below the topbar by the menu's "About keys" item.
+     Collapses back when clicking anywhere outside it. -->
+<div class="about-inline" id="aboutInline" hidden>
+  <div class="about-inline-inner">
+    <h3>About keys</h3>
+    <p><b>keys</b> is a simple game for ordering ideas. Ten decks lie face down — five <b>triads</b> (3 cards each). You flip one, order its cards however you feel they should go, and (if you wish) record a short <i>why</i> behind that order.</p>
+    <p>The Keys belong to you: the order you choose and the reason you give become the artifact.</p>
+    <p>The more you tell your real views, the more you could learn about them with our tools at the end.</p>
+  </div>
+</div>
 
 <div class="wrap">
 
@@ -5531,8 +5555,30 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') setMenu(false);
     });
-    if (aboutBtn){
-      aboutBtn.addEventListener('click', () => { setMenu(false); setAboutOpen(true); });
+    // About → surface the inline panel below the topbar (not the modal) and
+    // close the menu. It collapses again on any outside click.
+    const aboutInline = document.getElementById('aboutInline');
+    const topbarEl    = document.querySelector('.topbar');
+    const setAboutInline = open => {
+      if (!aboutInline) return;
+      if (open && topbarEl){
+        // Sit flush under the (sticky) topbar regardless of scroll position.
+        aboutInline.style.top = topbarEl.getBoundingClientRect().bottom + 'px';
+      }
+      aboutInline.hidden = !open;
+    };
+    if (aboutBtn && aboutInline){
+      aboutBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        setMenu(false);
+        setAboutInline(aboutInline.hidden);
+      });
+      document.addEventListener('click', e => {
+        if (!aboutInline.hidden && !aboutInline.contains(e.target) && !aboutBtn.contains(e.target)){
+          setAboutInline(false);
+        }
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') setAboutInline(false); });
     }
 
     // ＋ in the search row reveals the quick-action row.
@@ -5547,17 +5593,16 @@
       });
     }
 
-    // Collapsible "Navigate" section.
-    const navToggle = document.getElementById('menuNavToggle');
-    if (navToggle){
-      const navItems = document.querySelectorAll('.menu-nav-item');
-      const plusEl   = navToggle.querySelector('.menu-section-plus');
-      navToggle.addEventListener('click', e => {
+    // Related apps "+ more" → reveal the other 6 (same set as See more).
+    const relMoreBtn = document.getElementById('menuRelMoreBtn');
+    const relMore    = document.getElementById('menuRelMore');
+    if (relMoreBtn && relMore){
+      relMoreBtn.addEventListener('click', e => {
         e.stopPropagation();
-        const open = navToggle.getAttribute('aria-expanded') !== 'true';
-        navToggle.setAttribute('aria-expanded', String(open));
-        if (plusEl) plusEl.textContent = open ? '+' : '×';
-        navItems.forEach(li => { li.hidden = !open; });
+        const show = relMore.hidden;
+        relMore.hidden = !show;
+        relMoreBtn.setAttribute('aria-expanded', String(show));
+        relMoreBtn.textContent = show ? '− less' : '+ more';
       });
     }
 
@@ -7836,6 +7881,26 @@
     fivys: "Open the five-pointed star of your keys.",
     pracsys: "A small graph of acts you can practise.",
   };
+
+  // Mirror the See-more app set (RELATED_FIRST main + RELATED_MORE) into the
+  // topbar menu's Related apps card, reusing the same icons so the two stay in
+  // sync. Apps without an SVG icon fall back to an emoji logo.
+  (function renderMenuRelatedApps(){
+    const $main = document.getElementById('menuRelMain');
+    const $more = document.getElementById('menuRelMore');
+    if (!$main || !$more) return;
+    const EMOJI = { souls:'✺', sensy:'🫧', worthing:'◍', realy:'◉', crafty:'✦' };
+    const logo  = key => `<span class="related-app-logo">${RELATED_ICONS[key] || EMOJI[key] || '✺'}</span>`;
+    const cell  = a => {
+      const key   = a.key || a.label;
+      const href  = a.href || (a.fivysTrigger ? 'fivy.html' : '#');
+      const ext   = a.external ? ' target="_blank" rel="noopener"' : '';
+      return `<li><a href="${href}"${ext} title="${escapeHTML(a.label)}">`
+        + `${logo(key)}<span class="related-app-name">${escapeHTML(a.label)}</span></a></li>`;
+    };
+    $main.innerHTML = RELATED_FIRST.map(cell).join('');
+    $more.innerHTML = RELATED_MORE.map(cell).join('');
+  })();
 
   let _seeMoreInit = false;
   function ensureRelatedAppsRendered(){

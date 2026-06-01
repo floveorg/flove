@@ -141,6 +141,70 @@
   }
   .back-btn:hover{color:var(--ink);border-color:#3a3a55;transform:translateX(-2px)}
 
+  /* ============== Intro slider (3 slides → Go play) ============== */
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  .intro-slider{
+    margin:0 auto;max-width:720px;width:100%;
+    border:1px solid var(--stroke);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.012)),var(--panel);
+    overflow:hidden;
+    box-shadow:0 18px 50px rgba(0,0,0,.4);
+  }
+  .intro-slider.hidden{display:none}
+  .intro-track{
+    display:flex;overflow-x:auto;
+    scroll-snap-type:x mandatory;scroll-behavior:smooth;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .intro-track::-webkit-scrollbar{display:none}
+  .intro-slide{
+    flex:0 0 100%;scroll-snap-align:center;
+    padding:34px 24px 28px;min-height:220px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px;
+  }
+  @media (max-width:520px){.intro-slide{padding:24px 16px 18px;min-height:180px}}
+  .intro-slide .step-num{
+    font:700 .78rem/1 system-ui,sans-serif;color:var(--muted);
+    letter-spacing:3px;text-transform:uppercase;
+  }
+  .intro-slide h2{
+    font:600 1.5rem/1.15 ui-serif,Georgia,serif;margin:0;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  @media (max-width:520px){.intro-slide h2{font-size:1.3rem}}
+  .intro-slide p{color:var(--ink);margin:0;font-size:.98rem;max-width:50ch;line-height:1.55}
+  .intro-slide b{color:var(--gold);font-weight:600}
+  .intro-arrows{
+    display:flex;gap:24px;justify-content:center;align-items:center;
+    padding:14px 16px 6px;border-top:1px dashed var(--stroke);
+  }
+  .intro-arrows button{
+    width:4rem;height:4rem;border-radius:50%;
+    background:var(--fx);border:1px solid var(--stroke);color:var(--ink);
+    cursor:pointer;display:grid;place-items:center;font:700 2rem/1 system-ui;
+    transition:color .2s ease, border-color .2s ease, transform .15s ease, background .2s ease;
+  }
+  .intro-arrows button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);background:rgba(255,95,220,.08)}
+  .intro-arrows button:disabled{opacity:.3;cursor:not-allowed;transform:none}
+  .intro-dots{display:flex;gap:8px;justify-content:center;padding:8px 16px 4px;flex-wrap:wrap}
+  .intro-dots button{
+    width:10px;height:10px;border-radius:50%;
+    background:#56566e;border:0;cursor:pointer;padding:0;
+    transition:background .2s ease, transform .25s ease;
+  }
+  .intro-dots button.active{background:linear-gradient(135deg,var(--brand),var(--accent));transform:scale(1.4)}
+  .intro-cta{
+    display:flex;justify-content:center;gap:.6rem;padding:6px 16px 18px;flex-wrap:wrap;
+    transition:opacity .25s ease;
+  }
+  .intro-cta.gated{opacity:0;pointer-events:none;height:0;padding:0;overflow:hidden}
+  .intro-cta #intro-start{animation:pulse 2.6s ease-in-out infinite}
+  @media (max-width:480px){
+    .intro-arrows button{width:3.4rem;height:3.4rem;font-size:1.7rem}
+    .intro-arrows{gap:18px}
+  }
+
   /* ============== Layout ============== */
   .wrap{max-width:1100px;margin:auto;padding:28px 18px 80px;display:grid;gap:22px}
   @media (max-width:520px){.wrap{padding:18px 12px 60px;gap:16px}}
@@ -829,6 +893,19 @@
 
 <div class="wrap">
 
+  <!-- Intro: 3 slides, last one reveals the Go play button -->
+  <section class="intro-slider" id="intro-slider" aria-label="How fivy works">
+    <div class="intro-track" id="intro-track"></div>
+    <div class="intro-arrows">
+      <button id="intro-prev" type="button" aria-label="Previous">←</button>
+      <button id="intro-next" type="button" aria-label="Next">→</button>
+    </div>
+    <div class="intro-dots" id="intro-dots" role="tablist" aria-label="Slides"></div>
+    <div class="intro-cta gated" id="intro-cta">
+      <button class="btn btn-primary" id="intro-start" type="button">Go play →</button>
+    </div>
+  </section>
+
   <!-- Stage 0: fivy ordering -->
   <section class="fivys-stage" id="fivys-stage">
     <div class="page-back-row">
@@ -1255,6 +1332,11 @@
     $cta.innerHTML = '';
     if (state.openDeckIdx !== null) return;
     if (!allDone()) return;
+    const back = document.createElement('button');     // back sits left of the next-stage button
+    back.className = 'btn btn-ghost';
+    back.textContent = '◂ back';
+    back.addEventListener('click', backToIntro);
+    $cta.appendChild(back);
     const next = document.createElement('button');
     next.className = 'btn btn-primary';
     next.textContent = 'Fields →';
@@ -1284,6 +1366,77 @@
   }
   document.getElementById('btn-back-to-fivys').addEventListener('click', leaveFields);
 
+  // ============== Intro slider (3 slides → Go play) ==============
+  const $introSlider = document.getElementById('intro-slider');
+  const $summarySec  = document.getElementById('summary-sec');
+  const INTRO_SLIDES = [
+    { t:'Four decks, five cards', b:'Flip each face-down deck and order its five cards however you feel they should go.' },
+    { t:'Say <b>why</b>, if you like', b:'Add a short note on your ordering — always optional, never required.' },
+    { t:'Then step into Fields', b:'Toggle your decks and categories; watch the same five-rank pattern read across domains.' },
+  ];
+  let introSlide = 0, introObserver = null;
+
+  function renderIntro(){
+    const $track = document.getElementById('intro-track');
+    const $dots  = document.getElementById('intro-dots');
+    $track.innerHTML = ''; $dots.innerHTML = '';
+    INTRO_SLIDES.forEach((s, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'intro-slide';
+      slide.dataset.idx = String(i);
+      slide.innerHTML = `<div class="step-num">${i+1} / ${INTRO_SLIDES.length}</div><h2>${s.t}</h2><p>${s.b}</p>`;
+      $track.appendChild(slide);
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.setAttribute('role','tab');
+      dot.setAttribute('aria-label', `Slide ${i+1}`);
+      dot.addEventListener('click', () => gotoSlide(i));
+      $dots.appendChild(dot);
+    });
+    if (introObserver) introObserver.disconnect();
+    introObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6){
+          introSlide = parseInt(entry.target.dataset.idx, 10);
+          updateIntroUI();
+        }
+      });
+    }, { root: $track, threshold: 0.6 });
+    $track.querySelectorAll('.intro-slide').forEach(s => introObserver.observe(s));
+    updateIntroUI();
+  }
+  function gotoSlide(i){
+    const $track = document.getElementById('intro-track');
+    introSlide = Math.max(0, Math.min(INTRO_SLIDES.length - 1, i));
+    const slide = $track.children[introSlide];
+    if (slide) $track.scrollTo({ left: slide.offsetLeft, behavior:'smooth' });
+    updateIntroUI();
+  }
+  function updateIntroUI(){
+    const $dots = document.getElementById('intro-dots');
+    Array.from($dots.children).forEach((d, i) => d.classList.toggle('active', i === introSlide));
+    document.getElementById('intro-prev').disabled = introSlide === 0;
+    document.getElementById('intro-next').disabled = introSlide === INTRO_SLIDES.length - 1;
+    // Go play only appears once the last slide is reached
+    document.getElementById('intro-cta').classList.toggle('gated', introSlide < INTRO_SLIDES.length - 1);
+  }
+  function startApp(){
+    $introSlider.classList.add('hidden');
+    $stage.style.display = '';
+    $summarySec.style.display = '';
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function backToIntro(){
+    $introSlider.classList.remove('hidden');
+    $stage.style.display = 'none';
+    $summarySec.style.display = 'none';
+    gotoSlide(INTRO_SLIDES.length - 1);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  document.getElementById('intro-prev').addEventListener('click', () => gotoSlide(introSlide - 1));
+  document.getElementById('intro-next').addEventListener('click', () => gotoSlide(introSlide + 1));
+  document.getElementById('intro-start').addEventListener('click', startApp);
+
   // ============== Brand menu ==============
   const $brandMenu = document.getElementById('brand-menu');
   const $appMenu   = document.getElementById('app-menu');
@@ -1305,8 +1458,8 @@
     setMenu(false);
     switch (btn.dataset.act){
       case 'restart': location.reload(); break;
-      case 'decks':   leaveFields(); window.scrollTo({ top:0, behavior:'smooth' }); break;
-      case 'fields':  if (allDone()) enterFields(); break;
+      case 'decks':   leaveFields(); startApp(); break;   // also dismisses the intro if open
+      case 'fields':  if (allDone()){ startApp(); enterFields(); } break;
       case 'summary': {
         const s = document.getElementById('summary-sec');
         s.open = true; s.scrollIntoView({ behavior:'smooth', block:'start' });
@@ -1617,6 +1770,11 @@
   renderNodes();
   paintSummary();
   render();
+
+  // Start on the intro: hide the board + summary until "Go play".
+  renderIntro();
+  $stage.style.display = 'none';
+  $summarySec.style.display = 'none';
 
   // Re-paint Summary whenever the fivys board changes (Done / reopen).
   new MutationObserver(() => paintSummary())

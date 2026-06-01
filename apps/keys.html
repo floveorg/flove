@@ -727,10 +727,27 @@
   /* When the extras are revealed, the standalone Service triad (no pair)
      stretches to match the width AND height of a triad-pair so the grid
      reads as a uniform block of "groups" — none narrower than the rest. */
-  .summary-triads.with-extras > .deck-done.in-summary{
+  .summary-triads.with-extras .triad-cell > .deck-done.in-summary{
     width:calc(var(--triad-block-w) * 2.2 + 10px);
     min-height:200px;
   }
+
+  /* Each deck + its "why" stack vertically; the why sits in its own row below
+     so it never compresses the deck's cards. */
+  .triad-cell{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0}
+  .deck-why-row{width:100%;display:flex}
+  .deck-why-row .pq-saved{
+    flex:1;margin:0;padding:.4rem .5rem;border-radius:8px;
+    background:rgba(168,228,255,.08);border:1px solid rgba(168,228,255,.22);
+    color:var(--ink);font-size:.72rem;line-height:1.35;
+    white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    transition:background .15s ease, border-color .15s ease;position:relative;
+  }
+  .deck-why-row .pq-saved:hover{background:rgba(168,228,255,.14);border-color:rgba(168,228,255,.35)}
+  .deck-why-row .pq-saved.expanded{-webkit-line-clamp:unset;overflow:visible}
+  .deck-why-row .pq-saved.stale{background:rgba(255,95,220,.07);border-color:rgba(255,95,220,.22);opacity:.7}
+  .deck-why-row .pq-saved.stale:hover{background:rgba(255,95,220,.14);border-color:rgba(255,95,220,.35);opacity:1}
 
   /* Play-more button — promoted into the summary-actions row by the last
      "More" click. Small header pill with a recalling pulse until used. */
@@ -1503,8 +1520,8 @@
   .ad-deck-closed .ad-back-3{transform:translate(-50%,-50%) rotate(-.5deg)}
   .ad-deck-closed .ad-closed-title{
     position:absolute;inset:0;display:grid;place-items:center;
-    text-align:center;padding:.6rem;
-    font:700 1rem/1.1 ui-serif,Georgia,serif;letter-spacing:.5px;
+    text-align:center;padding:.6rem;transform:translateX(-5px);
+    font:700 .75rem/1.1 ui-serif,Georgia,serif;letter-spacing:.5px;
     color:transparent;
     background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
     -webkit-background-clip:text;background-clip:text;
@@ -1512,9 +1529,10 @@
     text-transform:uppercase;
   }
   .ad-title{
-    font:600 .72rem/1 ui-serif,Georgia,serif;
+    font:600 .54rem/1 ui-serif,Georgia,serif;
     color:var(--gold);letter-spacing:.4px;
     text-align:center;margin-bottom:4px;text-transform:uppercase;
+    transform:translateX(-5px);
   }
   .ad-deck ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;flex:1}
   .ad-deck li{
@@ -1904,11 +1922,326 @@
     transition:opacity .25s ease;
   }
   .intro-cta.gated{opacity:0;pointer-events:none;height:0;padding:0;overflow:hidden}
-  .intro-cta .btn-primary{animation:pulse 2.6s ease-in-out infinite}
+  .intro-cta #intro-start{animation:pulse 2.6s ease-in-out infinite}
   @media (max-width:480px){
     .intro-arrows button{width:3.4rem;height:3.4rem;font-size:1.7rem}
     .intro-arrows{gap:18px}
   }
+
+  /* ============== Customize panel (ported from souls · last slide) ========
+     The markup below is the souls slide-3 panel kept class-for-class; the only
+     adaptation is the token map here, which paints souls' design variables in
+     keys' palette so the rules render natively without per-rule rewrites. */
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes customizePulse{
+    0%,100%{ box-shadow:0 4px 18px rgba(255,95,220,.28); transform:scale(1); }
+    50%    { box-shadow:0 6px 26px rgba(199,164,255,.45); transform:scale(1.03); }
+  }
+  .intro-cta, .newlanguage-modal{
+    --app-accent:var(--accent);
+    --rose:var(--plum);
+    --app-ink-on-accent:#221026;
+    --app-accent-soft:var(--sky);
+    --ink-soft:var(--ink);
+    --ink-dim:var(--muted);
+    --line:var(--stroke);
+    --field:var(--fx);
+    --field-focus:#44446a;
+    --panel-strong:#363650;
+  }
+  .intro-cta{flex-direction:column;align-items:center}
+  .intro-cta-row{display:flex;justify-content:center;gap:.6rem;flex-wrap:wrap}
+  /* the Customize button is the special call-to-action of this slide */
+  .customize-btn{
+    align-self:center;
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    color:#fff;
+    border:0; font-weight:700; letter-spacing:.02em;
+    padding:.8rem 1.6rem; font-size:1rem;
+    box-shadow:0 4px 18px rgba(255,95,220,.30);
+    animation: customizePulse 2.4s ease-in-out infinite;
+  }
+  .customize-btn:hover{ filter:brightness(1.06); background:linear-gradient(135deg, var(--app-accent), var(--rose)); }
+  @media (prefers-reduced-motion: reduce){ .customize-btn{ animation:none } }
+  .customize-btn[aria-expanded="true"]{
+    animation:none;
+    background:rgba(255,95,220,.16);
+    color:var(--ink);
+    box-shadow:inset 0 0 0 1px var(--app-accent), 0 0 0 2px rgba(255,95,220,.25);
+  }
+  .customize-panel{
+    width:100%; max-width:520px;
+    margin-top:.2rem;
+    padding:1rem 1.1rem;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--app-accent);
+    border-radius:14px;
+    color:var(--ink-soft);
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+    display:flex; flex-direction:column; gap:.9rem;
+    text-align:left;
+  }
+  .customize-panel[hidden]{ display:none }
+  .cust-group{ display:flex; flex-direction:column; gap:.4rem; }
+  .cust-group.cust-row{ flex-direction:row; align-items:center; gap:.7rem; }
+  .cust-label{
+    font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-dim);
+  }
+  .cust-radio{
+    display:flex; align-items:flex-start; gap:.55rem;
+    cursor:pointer; padding:.3rem 0;
+    line-height:1.4;
+  }
+  .cust-radio input[type="radio"]{
+    appearance:none; -webkit-appearance:none;
+    width:1.05rem; height:1.05rem; flex-shrink:0;
+    margin-top:.15rem;
+    border-radius:50%;
+    border:1.5px solid var(--line);
+    background:var(--field);
+    cursor:pointer;
+    position:relative;
+    transition: border-color .15s, background .15s;
+  }
+  .cust-radio input[type="radio"]:checked{ border-color:var(--app-accent); }
+  .cust-radio input[type="radio"]:checked::after{
+    content:''; position:absolute;
+    inset:.18rem;
+    border-radius:50%;
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+  }
+  .cust-radio-label{ font-size:.92rem; color:var(--ink-soft); }
+  .cust-radio-label b{ color:var(--ink); font-weight:600; }
+  .cust-radio-label em{ color:var(--app-accent-soft); font-style:normal; }
+  .cust-switch{
+    position:relative; display:inline-flex; cursor:pointer; user-select:none;
+  }
+  .cust-switch input{ position:absolute; opacity:0; width:0; height:0; }
+  .cust-switch-track{
+    width:7.2rem; height:1.95rem;
+    background:var(--field);
+    border:1px solid var(--line);
+    border-radius:999px;
+    position:relative;
+    transition: background .2s, border-color .2s;
+    display:flex; align-items:center;
+  }
+  .cust-switch-thumb{
+    position:absolute; top:50%; left:.27rem;
+    transform:translateY(-50%);
+    width:1.42rem; height:1.42rem;
+    border-radius:50%;
+    background:var(--ink-soft);
+    transition: left .25s cubic-bezier(.2,.8,.2,1), background .25s;
+    z-index:2;
+  }
+  .cust-switch-text{
+    position:absolute; top:50%; transform:translateY(-50%);
+    font: 700 .68rem/1 'Inter', system-ui, sans-serif;
+    letter-spacing:.16em;
+    pointer-events:none;
+    z-index:1;
+    transition: opacity .2s;
+  }
+  .cust-switch-on{ left:.85rem; color:var(--app-ink-on-accent); opacity:0; }
+  .cust-switch-off{ right:.85rem; color:var(--ink-dim); opacity:1; }
+  .cust-switch input:checked + .cust-switch-track{
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    border-color:transparent;
+  }
+  .cust-switch input:checked + .cust-switch-track .cust-switch-thumb{
+    left: calc(100% - 1.69rem); background:#fff;
+  }
+  .cust-switch input:checked + .cust-switch-track .cust-switch-on{ opacity:1; }
+  .cust-switch input:checked + .cust-switch-track .cust-switch-off{ opacity:0; }
+  .cust-certify-row{
+    flex:1; min-width: 220px; align-self: stretch;
+    padding-bottom: 1.1rem;
+    animation: rise .25s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .cust-certify-row[hidden]{ display:none }
+  .cert-track{
+    position:relative;
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 0 .35rem; height: 1.95rem;
+  }
+  .cert-track::before{
+    content:""; position:absolute;
+    left:.65rem; right:.65rem; top:50%;
+    height:3px; transform: translateY(-50%);
+    background: var(--field); border-radius:999px;
+  }
+  .cert-fill{
+    position:absolute; left:.65rem; top:50%;
+    height:3px; width: 0; transform: translateY(-50%);
+    background: linear-gradient(90deg, var(--app-accent), var(--rose));
+    border-radius:999px;
+    transition: width .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .cert-node{
+    appearance:none; cursor:pointer;
+    position:relative; z-index:1;
+    background:transparent; border:0; padding:0;
+    display:flex; flex-direction:column; align-items:center; gap:.25rem;
+    color:var(--ink-soft); font:inherit;
+  }
+  .cert-dot{
+    width:.9rem; height:.9rem; border-radius:50%;
+    background:var(--field); border:2px solid var(--line);
+    transition: background .2s, border-color .2s, transform .15s;
+  }
+  .cert-node:hover .cert-dot{ border-color: var(--app-accent-soft); transform: scale(1.12); }
+  .cert-node.is-on .cert-dot,
+  .cert-node.is-done .cert-dot{
+    background: linear-gradient(135deg, var(--app-accent), var(--rose));
+    border-color: transparent;
+  }
+  .cert-name{
+    position:absolute; top: 1.15rem;
+    font: 600 .62rem/1 'Inter', system-ui, sans-serif;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-dim); white-space:nowrap;
+    transition: color .15s;
+  }
+  .cert-node:hover .cert-name,
+  .cert-node.is-on .cert-name{ color: var(--ink); }
+  .cert-intro{
+    margin-top:.6rem; padding:.85rem 1rem;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--app-accent);
+    border-radius:12px;
+    color:var(--ink-soft);
+    font-size:.92rem; line-height:1.55;
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .cert-intro[hidden]{ display:none }
+  .cert-intro h4{
+    margin: 0 0 .35rem;
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-weight:600; font-size:1.1rem; color:var(--app-accent);
+  }
+  .cert-intro p{ margin: 0 0 .4rem; }
+  .cert-intro p:last-child{ margin: 0; }
+  .cert-intro em{ color:var(--app-accent-soft); font-style:normal; }
+  .cert-intro a{ color:var(--app-accent-soft); text-underline-offset:2px; }
+  .moreinfo-wrap{ margin:1rem 0 .2rem; width:100%; display:flex; flex-direction:column; align-items:center; gap:.5rem; }
+  .moreinfo-btn{ font-size:.85rem; padding:.4rem .9rem; }
+  .moreinfo-btn[aria-expanded="true"]{ background:rgba(255,95,220,.14); border-color:var(--app-accent); }
+  .moreinfo-box{ margin-top:.55rem; text-align:left; max-width:520px; }
+  .moreinfo-box[hidden]{ display:none }
+  .cert-fields{
+    margin-top:.6rem;
+    display:flex; flex-direction:column; gap:10px;
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .cert-fields[hidden]{ display:none }
+  .cert-fields .cf-label{
+    font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:-2px;
+  }
+  .cert-fields input[type="text"],
+  .cert-fields input[type="email"],
+  .cert-fields input[type="tel"]{
+    width:100%; padding:.7rem .9rem;
+    background:var(--field); border:1px solid var(--line);
+    border-radius:12px; color:var(--ink); font:inherit; font-size:.95rem;
+  }
+  .cert-fields input:focus{ outline:none; background:var(--field-focus); border-color:var(--app-accent); }
+  .cert-fields input::placeholder{ color:var(--ink-dim) }
+  .cert-fields .cf-btn{
+    align-self:flex-start; appearance:none; cursor:pointer;
+    background:rgba(255,255,255,.05); border:1px solid var(--line);
+    color:var(--ink-soft); padding:.55rem 1rem; border-radius:999px;
+    font:inherit; font-size:.88rem;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .cert-fields .cf-btn:hover{ color:var(--ink); border-color:var(--app-accent-soft); }
+  .cert-fields .cf-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .cert-fields .cf-row input{ flex:1; min-width:140px; }
+  .cert-fields .cf-note{ font-size:.82rem; color:var(--ink-dim); font-style:italic; }
+  .cert-node[data-cert="bio"] .cert-name{ font-size:.5rem; letter-spacing:.06em; }
+  .cust-collapse-btn{
+    appearance:none; background:transparent; border:0; cursor:pointer;
+    display:inline-flex; align-items:center; gap:.4rem; align-self:flex-start;
+    font: inherit; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-dim); padding:0; transition: color .15s;
+  }
+  .cust-collapse-btn::after{
+    content:'›'; font-size:1.1rem; color:var(--ink-dim);
+    transition: transform .2s ease;
+  }
+  .cust-collapse-btn:hover{ color:var(--ink-soft); }
+  .cust-collapse-btn[aria-expanded="true"]{ color:var(--ink); }
+  .cust-collapse-btn[aria-expanded="true"]::after{ transform: rotate(90deg); }
+  .cust-download{ margin: -.2rem 0 .2rem 1.6rem; animation: rise .25s cubic-bezier(.2,.8,.2,1) both; }
+  .cust-download[hidden]{ display:none }
+  .cust-download-btn{ display:inline-flex; align-items:center; gap:.4rem; text-decoration:none; }
+  .cust-lang-list{
+    list-style:none; padding:0; margin:.2rem 0 0;
+    display:flex; flex-wrap:wrap; gap:.35rem;
+  }
+  .cust-lang-list li{ display:flex; }
+  .cust-lang-list label{
+    display:inline-flex; align-items:center; gap:.45rem;
+    padding:.4rem .8rem;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--line); color:var(--ink-soft);
+    border-radius:999px; font:inherit; font-size:.88rem; cursor:pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .cust-lang-list label:hover{ color:var(--ink); border-color:var(--app-accent-soft); }
+  .cust-lang-list .lang-flag{ font-size:1.05rem; line-height:1; }
+  body:has(#ui-lang-en:checked) .cust-lang-list label[for="ui-lang-en"],
+  body:has(#ui-lang-es:checked) .cust-lang-list label[for="ui-lang-es"]{
+    background:linear-gradient(135deg, var(--app-accent), var(--rose));
+    color:#fff; border-color:transparent; font-weight:600;
+  }
+  .cust-lang-more label{ color:var(--ink-dim); border-style:dashed; }
+  .newlanguage-modal{
+    position:fixed; inset:0; z-index:200;
+    display:none; align-items:center; justify-content:center; padding:1rem;
+  }
+  body:has(#new-language-modal:checked) .newlanguage-modal{ display:flex; }
+  .newlanguage-backdrop{
+    position:absolute; inset:0;
+    background:rgba(8,5,20,.78); backdrop-filter: blur(4px); cursor:pointer;
+  }
+  .newlanguage-frame{
+    position:relative;
+    background:linear-gradient(180deg, #363650, #2a2a3e);
+    border:1px solid var(--line); border-radius:18px;
+    padding:1.3rem 1.4rem 1.2rem; max-width: 480px; width:100%;
+    color:var(--ink); box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .newlanguage-close{
+    position:absolute; top:.6rem; right:.7rem;
+    width:1.9rem; height:1.9rem; display:grid; place-items:center;
+    cursor:pointer; color:var(--ink-dim); font-size:1.2rem; border-radius:999px;
+    transition: color .15s, background .15s;
+  }
+  .newlanguage-close:hover{ color:var(--ink); background:rgba(255,255,255,.06); }
+  .newlanguage-h{
+    margin: 0 0 .4rem;
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-weight:600; font-size:1.4rem; color:var(--app-accent);
+  }
+  .newlanguage-sub{ margin: 0 0 1rem; color:var(--ink-soft); font-size:.95rem; }
+  .newlanguage-list{
+    list-style:none; padding:0; margin:0;
+    display:grid; gap:.4rem;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .newlanguage-list button{
+    appearance:none; cursor:pointer;
+    background:var(--panel); border:1px solid var(--line); color:var(--ink);
+    padding:.6rem .8rem; border-radius:12px; font:inherit; font-size:.92rem;
+    text-align:left; transition: background .15s, border-color .15s;
+  }
+  .newlanguage-list button:hover{ background:var(--panel-strong); border-color:var(--app-accent-soft); }
 
   /* ============== Step 0 · Prelude (15 cards → 5 groups → order) ============== */
   .prelude{
@@ -2682,10 +3015,101 @@
     </div>
     <div class="intro-dots" id="intro-dots" role="tablist" aria-label="Slides"></div>
     <div class="intro-cta gated" id="intro-cta">
-      <button class="btn btn-soft" id="intro-more" type="button">More info</button>
-      <button class="btn btn-primary" id="intro-start" type="button">Start →</button>
+      <div class="intro-cta-row">
+        <button class="btn customize-btn" id="customizeBtn" type="button" aria-expanded="false" aria-controls="customizePanel">⚙ Customize</button>
+        <button class="btn btn-primary" id="intro-start" type="button">Start →</button>
+      </div>
+      <div class="customize-panel" id="customizePanel" hidden>
+        <!-- hidden language radios drive the CSS-only selected state -->
+        <input type="radio" name="uiLang" id="ui-lang-en" checked hidden>
+        <input type="radio" name="uiLang" id="ui-lang-es" hidden>
+        <div class="cust-group">
+          <label class="cust-radio">
+            <input type="radio" name="custMode" value="private">
+            <span class="cust-radio-label"><b>Private</b> · Play keys completely privately on your device and upload results later</span>
+          </label>
+          <div class="cust-download" id="custDownload" hidden>
+            <a class="btn btn-primary cust-download-btn" id="custDownloadBtn" href="keys.html" download="keys.html">↓ Download Keys app</a>
+          </div>
+          <label class="cust-radio">
+            <input type="radio" name="custMode" value="open" checked>
+            <span class="cust-radio-label"><b>Open</b> · Play it directly here and publish it in more private or public ways at the end. <em>(Default)</em></span>
+          </label>
+        </div>
+        <div class="cust-group cust-row">
+          <span class="cust-label">Listen</span>
+          <label class="cust-switch" aria-label="Listen toggle">
+            <input type="checkbox" id="custListen">
+            <span class="cust-switch-track">
+              <span class="cust-switch-text cust-switch-on">ON</span>
+              <span class="cust-switch-text cust-switch-off">OFF</span>
+              <span class="cust-switch-thumb"></span>
+            </span>
+          </label>
+        </div>
+        <div class="cust-group">
+          <div class="cust-label">Play with</div>
+          <div class="cust-certify-row" id="custPlayRow">
+            <div class="cert-track" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" id="playTrack">
+              <div class="cert-fill" id="playFill"></div>
+              <button type="button" class="cert-node play-node is-on" data-play="text"    aria-label="Text"><span class="cert-dot"></span><span class="cert-name">Text</span></button>
+              <button type="button" class="cert-node play-node"       data-play="audio"   aria-label="Audio"><span class="cert-dot"></span><span class="cert-name">Audio</span></button>
+              <button type="button" class="cert-node play-node"       data-play="video"   aria-label="Video"><span class="cert-dot"></span><span class="cert-name">Video</span></button>
+              <button type="button" class="cert-node play-node"       data-play="perform" aria-label="Perform"><span class="cert-dot"></span><span class="cert-name">Perform</span></button>
+            </div>
+          </div>
+          <div class="cert-intro" id="custPlayIntro" hidden></div>
+        </div>
+        <div class="cust-group">
+          <div class="cust-label">Language</div>
+          <ul class="cust-lang-list" role="menu" aria-label="Language">
+            <li><label for="ui-lang-en" tabindex="0"><span class="lang-flag">🇬🇧</span>English</label></li>
+            <li><label for="ui-lang-es" tabindex="0"><span class="lang-flag">🇪🇸</span>Spanish</label></li>
+            <li class="cust-lang-more"><label for="new-language-modal" id="custLangPlus" tabindex="0" title="Add a language" aria-label="Add a language"><span class="lang-flag">＋</span>Add a language</label></li>
+          </ul>
+        </div>
+        <div class="cust-group">
+          <button type="button" class="cust-label cust-collapse-btn" id="custCertifyToggle" aria-expanded="false" aria-controls="custCertifyRow">Certify play</button>
+          <div class="cust-certify-row" id="custCertifyRow" hidden>
+            <div class="cert-track" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="certTrack">
+              <div class="cert-fill" id="certFill"></div>
+              <button type="button" class="cert-node" data-cert="trusts" aria-label="Trusts"><span class="cert-dot"></span><span class="cert-name">Trusts</span></button>
+              <button type="button" class="cert-node" data-cert="mail"   aria-label="Mail"><span class="cert-dot"></span><span class="cert-name">Mail</span></button>
+              <button type="button" class="cert-node" data-cert="telf"   aria-label="Phone"><span class="cert-dot"></span><span class="cert-name">Telf</span></button>
+              <button type="button" class="cert-node" data-cert="id"     aria-label="ID"><span class="cert-dot"></span><span class="cert-name">Id</span></button>
+              <button type="button" class="cert-node" data-cert="bio"    aria-label="Biometric"><span class="cert-dot"></span><span class="cert-name">Biometric</span></button>
+            </div>
+          </div>
+          <div class="cert-intro" id="custCertGeneral" hidden></div>
+          <div class="cert-intro" id="custCertIntro" hidden></div>
+          <div class="cert-fields" id="custCertFields" hidden></div>
+        </div>
+      </div>
+      <div class="moreinfo-wrap">
+        <button class="btn btn-soft moreinfo-btn" id="intro-more" type="button" aria-expanded="false" aria-controls="intro-more-box">ⓘ More info</button>
+        <div class="moreinfo-box cert-intro" id="intro-more-box" hidden></div>
+      </div>
     </div>
   </section>
+
+  <!-- New-language modal (pure-CSS toggle via the hidden checkbox) -->
+  <input type="checkbox" id="new-language-modal" hidden>
+  <div class="newlanguage-modal" aria-hidden="true">
+    <label class="newlanguage-backdrop" for="new-language-modal" aria-label="Close"></label>
+    <div class="newlanguage-frame" role="dialog" aria-modal="true" aria-label="Add a language">
+      <label class="newlanguage-close" for="new-language-modal" aria-label="Close">✕</label>
+      <h3 class="newlanguage-h">Add a language</h3>
+      <p class="newlanguage-sub">Pick a language you'd like to help bring keys into.</p>
+      <ul class="newlanguage-list" id="newLangList">
+        <li><button type="button">Français</button></li>
+        <li><button type="button">Deutsch</button></li>
+        <li><button type="button">Italiano</button></li>
+        <li><button type="button">Português</button></li>
+        <li><button type="button">العربية</button></li>
+        <li><button type="button">中文</button></li>
+      </ul>
+    </div>
+  </div>
 
   <section class="chooser" id="chooser" aria-label="Choose your start">
     <h2>Choose your start</h2>
@@ -3738,14 +4162,32 @@
 
     // why: matching or stale-last. When no whys exist at all, render nothing
     // (the user can tap the tile to reopen and add one from the spotlight).
-    const match = matchingPorQue(deck.id);
-    const last = lastPorQue(deck.id);
-    if (match) {
-      el.appendChild(makeExpandableWhy(match.text, false));
-    } else if (last) {
-      el.appendChild(makeExpandableWhy(last.text, true));
+    // In the summary grid the why is hoisted into its own row BELOW the deck
+    // (see buildWhyRow / renderSummaryGrid) so it never compresses the cards;
+    // opts.noWhy suppresses the in-deck copy there.
+    if (!opts.noWhy){
+      const match = matchingPorQue(deck.id);
+      const last = lastPorQue(deck.id);
+      if (match) {
+        el.appendChild(makeExpandableWhy(match.text, false));
+      } else if (last) {
+        el.appendChild(makeExpandableWhy(last.text, true));
+      }
     }
     return el;
+  }
+
+  // The saved "why" for a deck, wrapped in a row that sits below the deck in
+  // the summary grid (kept out of the deck's flex column so the cards keep
+  // their full height).
+  function buildWhyRow(deckId){
+    const match = matchingPorQue(deckId);
+    const last  = match ? null : lastPorQue(deckId);
+    if (!match && !last) return null;
+    const row = document.createElement('div');
+    row.className = 'deck-why-row';
+    row.appendChild(makeExpandableWhy(match ? match.text : last.text, !match));
+    return row;
   }
 
   function renderSpotlight(){
@@ -4000,18 +4442,26 @@
     const placeTriad = (deckIdx) => {
       const deck = DECKS[deckIdx];
       const extraId = showExtras ? EXTRA_PAIR[deck.id] : null;
+      // Each triad placement becomes a vertical cell: the deck (or deck+extra
+      // pair) on top, and the saved "why" in its own row below — so the why
+      // never steals height from the deck cards.
+      const cell = document.createElement('div');
+      cell.className = 'triad-cell';
       if (extraId){
         const pair = document.createElement('div');
         pair.className = 'triad-pair';
         const extra = EXTRA_DECKS.find(d => d.id === extraId);
         // Triad first, extra second → 10px space sits to the RIGHT of
         // Journalism / Psicosocial / Philosophy / Economy.
-        pair.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
+        pair.appendChild(renderDoneDeck(deckIdx, { inSummary:true, noWhy:true }));
         if (extra) pair.appendChild(makeExtraDeck(extra));
-        $triads.appendChild(pair);
+        cell.appendChild(pair);
       } else {
-        $triads.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
+        cell.appendChild(renderDoneDeck(deckIdx, { inSummary:true, noWhy:true }));
       }
+      const whyRow = buildWhyRow(deck.id);
+      if (whyRow) cell.appendChild(whyRow);
+      $triads.appendChild(cell);
     };
 
     TRIAD_DISPLAY_ORDER.forEach(deckIdx => {
@@ -4024,7 +4474,12 @@
       const deck = DECKS[deckIdx];
       if (deck.items.length !== 5) return;
       if (!state.done[deck.id]) return;
-      $fivys.appendChild(renderDoneDeck(deckIdx, { inSummary:true }));
+      const cell = document.createElement('div');
+      cell.className = 'triad-cell';
+      cell.appendChild(renderDoneDeck(deckIdx, { inSummary:true, noWhy:true }));
+      const whyRow = buildWhyRow(deck.id);
+      if (whyRow) cell.appendChild(whyRow);
+      $fivys.appendChild(cell);
     });
 
     if (_finishApplied) applyFinishIcons();
@@ -4071,16 +4526,19 @@
     touchedSections.clear();
     $summary.classList.remove('swap-design');
     [
-      ['btn-analyze',          {text:'Analyze →', hidden:false}],
-      ['btn-analyze-extras',   {text:'More',       hidden:true}],
-      ['btn-analyze-more-1',   {text:'More',       hidden:true}],
-      ['btn-analyze-more-2',   {text:'More',       hidden:true}],
-      ['btn-analyze-more-3',   {text:'More',       hidden:true}],
+      ['btn-analyze',          {text:'Analyze →', hidden:false, cls:'btn-soft'}],
+      ['btn-analyze-extras',   {text:'More',       hidden:true,  cls:'btn-primary'}],
+      ['btn-analyze-more-1',   {text:'More',       hidden:true,  cls:'btn-primary'}],
+      ['btn-analyze-more-2',   {text:'More',       hidden:true,  cls:'btn-primary'}],
+      ['btn-analyze-more-3',   {text:'More',       hidden:true,  cls:'btn-primary'}],
     ].forEach(([id, cfg]) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.textContent = cfg.text;
       el.hidden = cfg.hidden;
+      // Restore the button's initial style (toggles flip it to coloured/ghost).
+      el.classList.remove('btn-soft','btn-primary','btn-ghost');
+      el.classList.add(cfg.cls);
     });
     ['see-more-help','analyze-bars','time-stats'].forEach(id => {
       const el = document.getElementById(id);
@@ -4375,10 +4833,10 @@
   // ============== Intro slider ==============
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
-    { t:'We all have an own view of the Whole',     b:'…that gives us calm when we clear it.' },
-    { t:'Yes, the whole is big and complex',        b:'…while it can also be simplified.' },
-    { t:'Our Keys are well known words', b:'…you will just need to move them up or down.' },
-    { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also.' },
+    { t:'We all have an own view of the Whole',     b:'…gives us calm and joy when we clear it' },
+    { t:'Yes, the whole is big and complex',        b:'…while it can also be simplified' },
+    { t:'Keys are well known words', b:'…to be moved up and down' },
+    { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also' },
   ];
   let introSlide = 0;
   let introObserver = null;
@@ -4459,8 +4917,212 @@
   document.getElementById('intro-prev').addEventListener('click', () => gotoSlide(introSlide - 1));
   document.getElementById('intro-next').addEventListener('click', () => gotoSlide(introSlide + 1));
   document.getElementById('intro-start').addEventListener('click', () => dismissIntro());
-  document.getElementById('intro-more').addEventListener('click', () => setAboutOpen(true));
   document.getElementById('about-close').addEventListener('click', () => setAboutOpen(false));
+
+  // ── Customize panel + inline "More info" (ported from souls · last slide) ──
+  (function wireCustomize(){
+    const $ = (sel) => document.querySelector(sel);
+    // Local, non-persisted state (keys has no persistence layer like souls).
+    const cust = { mode:'open', tell:'text', certNode:null, listen:false, lang:'en' };
+    // Tiny TTS so the Listen switch does something self-contained.
+    const speakIfListening = (text) => {
+      if (!cust.listen || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(String(text).replace(/<[^>]+>/g,''));
+        u.lang = cust.lang === 'es' ? 'es-ES' : 'en-GB';
+        window.speechSynthesis.speak(u);
+      } catch (_) {}
+    };
+    const stopSpeak = () => { if ('speechSynthesis' in window) try { window.speechSynthesis.cancel(); } catch(_){} };
+
+    const btn   = $('#customizeBtn');
+    const panel = $('#customizePanel');
+    if (btn && panel){
+      btn.addEventListener('click', () => {
+        const open = panel.hidden;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+        if (open) syncPlayFill();
+      });
+    }
+
+    // mode radios → cust.mode; Private reveals the download button
+    const dl = $('#custDownload');
+    const refreshDl = () => { if (dl) dl.hidden = cust.mode !== 'private'; };
+    document.querySelectorAll('input[name="custMode"]').forEach(r => {
+      r.addEventListener('change', () => { if (r.checked){ cust.mode = r.value; refreshDl(); } });
+    });
+    refreshDl();
+
+    // listen switch → speech flag (speaks the next revealed info box)
+    const listen = $('#custListen');
+    if (listen) listen.addEventListener('change', () => {
+      cust.listen = listen.checked;
+      if (!cust.listen) stopSpeak();
+    });
+
+    // language radios → cust.lang (CSS handles the selected chip styling)
+    document.querySelectorAll('input[name="uiLang"]').forEach(r => {
+      r.addEventListener('change', () => { if (r.checked) cust.lang = r.id === 'ui-lang-es' ? 'es' : 'en'; });
+    });
+    // new-language modal: any choice just acknowledges + closes the modal
+    document.querySelectorAll('#newLangList button').forEach(b => {
+      b.addEventListener('click', () => {
+        const cb = document.getElementById('new-language-modal');
+        if (cb) cb.checked = false;
+      });
+    });
+
+    // shared helpers for the two progress-bar pickers (Play with + Certify play)
+    const renderIntro = (el, info) => {
+      if (!el || !info) return;
+      el.hidden = false;
+      el.innerHTML = `<h4>${info.h}</h4>` + info.body.map(p => `<p>${p}</p>`).join('');
+      speakIfListening([info.h, ...info.body].join('. '));
+    };
+    const setFill = (fillEl, trackEl, node, nodes) => {
+      if (!fillEl || !trackEl || !node) return;
+      const trackW = trackEl.clientWidth - 2 * 0.65 * 16; // minus .65rem padding each side
+      const nodeCenter = node.offsetLeft + node.offsetWidth/2 - 0.65 * 16;
+      const pct = trackW > 0 ? Math.max(0, Math.min(1, nodeCenter / trackW)) : 0;
+      fillEl.style.width = (pct * 100) + '%';
+      trackEl.setAttribute('aria-valuenow', String(nodes.indexOf(node) + 1));
+    };
+
+    // ── "Play with" progress bar → cust.tell, info box per node ──
+    const playRow   = $('#custPlayRow');
+    const playIntro = $('#custPlayIntro');
+    const playNodes = playRow ? [...playRow.querySelectorAll('.cert-node')] : [];
+    const playFill  = $('#playFill');
+    const playTrack = $('#playTrack');
+    const PLAY_INFO = {
+      text:    { h:'✎ Text · write it',
+                 body:['Tell your keys in writing — type freely at each step. The calmest, most private way to play.'] },
+      audio:   { h:'🎙 Audio · speak it',
+                 body:['Record your voice at each step instead of typing. Your tone carries what words alone can\'t.'] },
+      video:   { h:'🎬 Video · film it',
+                 body:['Capture yourself on camera at each step — face, gesture, surroundings. The fullest portrait.'] },
+      perform: { h:'✺ Perform · act it out',
+                 body:['Play it live, as a performance — alone or with others. The most embodied, ephemeral way to tell your keys.'] }
+    };
+    playNodes.forEach(n => {
+      n.addEventListener('click', () => {
+        playNodes.forEach(o => o.classList.toggle('is-on', o === n));
+        setFill(playFill, playTrack, n, playNodes);
+        cust.tell = n.dataset.play;
+        renderIntro(playIntro, PLAY_INFO[n.dataset.play]);
+      });
+    });
+    function syncPlayFill(){
+      const sel = playNodes.find(n => n.classList.contains('is-on')) || playNodes[0];
+      setFill(playFill, playTrack, sel, playNodes);
+    }
+
+    // ── "Certify play" — collapsible; general info on expand, node info on pick ──
+    const certToggle  = $('#custCertifyToggle');
+    const certRow     = $('#custCertifyRow');
+    const certGeneral = $('#custCertGeneral');
+    const certIntro   = $('#custCertIntro');
+    const certNodes   = certRow ? [...certRow.querySelectorAll('.cert-node')] : [];
+    const certFill    = $('#certFill');
+    const certTrack   = $('#certTrack');
+    const certFields  = $('#custCertFields');
+    const CERT_GENERAL = { h:'✦ Certify play · optional proof you\'re a real person',
+      body:['Certifying is optional.',
+            'Pick a step to see how it works. <em>Nothing leaves your device unless you choose it.</em>'] };
+    const CERT_INFO = {
+      trusts: { h:'✦ Trusts · vouching ring',
+        body:['Ask a few people who already know you to vouch for you here — a ring of witnesses. <em>No documents, no codes.</em> Just a thread of trust between people.',
+              'You hold the ring. You can untie it anytime.'] },
+      mail:   { h:'✉ Mail · single email',
+        body:['Type a working email. We send a one-time code; you type it back here.',
+              '<em>Nothing is stored beyond the moment of verifying.</em>'] },
+      telf:   { h:'☎ Telf · phone SMS',
+        body:['Type your phone number. A short SMS code arrives; you confirm it.'] },
+      id:     { h:'🪪 Id · signature or card check',
+        body:['Prove who you are by signing an official paper, or with a <em>void payment</em> — a tiny card charge that is refunded at once and never collected.',
+              'Only a yes/no proof is kept; no document or card number is stored.'] },
+      bio:    { h:'🖐 Biometric · a body signature',
+        body:['Confirm with a biometric trait — a fingerprint, your face, the iris, or a voiceprint. The reading is matched <em>on your device</em>; the raw biometric never leaves it.',
+              'Only a pass/fail proof is kept. The most personal layer — and entirely optional.'] }
+    };
+    const CERT_FIELDS = {
+      trusts: ['<div class="cf-label">Invite people who can vouch for you</div>',
+               '<input type="email" placeholder="email of a witness">',
+               '<input type="email" placeholder="email of another witness">',
+               '<input type="email" placeholder="email of another witness">',
+               '<button type="button" class="cf-btn">Send invitations</button>'],
+      mail:   ['<div class="cf-label">Your email</div>',
+               '<div class="cf-row"><input type="email" placeholder="you@example.com"><button type="button" class="cf-btn">Send code</button></div>',
+               '<input type="text" inputmode="numeric" placeholder="6-digit code">'],
+      telf:   ['<div class="cf-label">Your phone</div>',
+               '<div class="cf-row"><input type="tel" placeholder="+34 600 000 000"><button type="button" class="cf-btn">Send SMS</button></div>',
+               '<input type="text" inputmode="numeric" placeholder="SMS code">'],
+      id:     ['<div class="cf-label">Sign an official paper</div>',
+               '<button type="button" class="cf-btn">Open document to sign</button>',
+               '<div class="cf-label">…or a void card payment</div>',
+               '<div class="cf-row"><input type="text" inputmode="numeric" placeholder="card number"><button type="button" class="cf-btn">Verify with void payment</button></div>',
+               '<div class="cf-note">The charge is refunded immediately — nothing is collected or stored.</div>'],
+      bio:    ['<div class="cf-label">Biometric trait</div>',
+               '<div class="cf-row"><button type="button" class="cf-btn">Scan fingerprint</button><button type="button" class="cf-btn">Scan face</button></div>',
+               '<div class="cf-note">Matched locally — the raw biometric never leaves your device.</div>']
+    };
+    const renderCertFields = (key) => {
+      if (!certFields) return;
+      const f = CERT_FIELDS[key];
+      if (!f){ certFields.hidden = true; certFields.innerHTML = ''; return; }
+      certFields.hidden = false;
+      certFields.innerHTML = f.join('');
+    };
+    if (certToggle && certRow) certToggle.addEventListener('click', () => {
+      const open = certRow.hidden;
+      certRow.hidden = !open;
+      certToggle.setAttribute('aria-expanded', String(open));
+      if (open){
+        if (!certNodes.some(n => n.classList.contains('is-on'))) renderIntro(certGeneral, CERT_GENERAL);
+      } else {
+        if (certGeneral) certGeneral.hidden = true;
+        if (certIntro) certIntro.hidden = true;
+        if (certFields){ certFields.hidden = true; certFields.innerHTML = ''; }
+      }
+    });
+    certNodes.forEach(n => {
+      n.addEventListener('click', () => {
+        certNodes.forEach(o => o.classList.toggle('is-on', o === n));
+        setFill(certFill, certTrack, n, certNodes);
+        cust.certNode = n.dataset.cert;
+        if (certGeneral) certGeneral.hidden = true;
+        renderIntro(certIntro, CERT_INFO[n.dataset.cert]);
+        renderCertFields(n.dataset.cert);
+      });
+    });
+
+    // ── inline "More info": the about copy, revealed below (no modal) ──
+    const moreBtn = $('#intro-more');
+    const moreBox = $('#intro-more-box');
+    const ABOUT = { h:'ⓘ About keys',
+      body:['<b>keys</b> is a simple game for ordering ideas. Ten decks lie face down — five <b>triads</b> (3 cards each). You flip one, order its cards however you feel they should go, and (if you wish) record a short <em>why</em> behind that order.',
+            'The Keys belong to you: the order you choose and the reason you give become the artifact.',
+            'The more you tell your real views, the more you could learn about them with our tools at the end.'] };
+    if (moreBtn && moreBox){
+      let built = false;
+      moreBtn.addEventListener('click', () => {
+        const open = moreBox.hidden;
+        moreBox.hidden = !open;
+        moreBtn.setAttribute('aria-expanded', String(open));
+        if (open){
+          if (!built){
+            moreBox.innerHTML = `<h4>${ABOUT.h}</h4>` + ABOUT.body.map(p => `<p>${p}</p>`).join('');
+            built = true;
+          }
+          speakIfListening([ABOUT.h, ...ABOUT.body].join('. '));
+        } else {
+          stopSpeak();
+        }
+      });
+    }
+  })();
 
   // Topbar: title/logo click reloads the page
   (function initBrandLink(){
@@ -4984,11 +5646,12 @@
     const extrasBtn= document.getElementById('btn-analyze-extras');
     const btn      = document.getElementById('btn-analyze');
     overlay.classList.toggle('is-on', _analyzeOn);
-    btn.textContent = _analyzeOn ? 'Hide arrows' : 'Analyze →';
-    // "Hide …" variants render as a plain ghost button (uncoloured) — only
-    // the active "open" action (Analyze →) keeps the accent fill.
-    btn.classList.toggle('btn-soft',  !_analyzeOn);
-    btn.classList.toggle('btn-ghost',  _analyzeOn);
+    btn.textContent = _analyzeOn ? '✓ Arrows' : 'Arrows';
+    // Reads as a checkable chip: coloured + checked when on, plain
+    // (uncoloured) text when off. The label stays "Arrows" either way.
+    btn.classList.remove('btn-soft');
+    btn.classList.toggle('btn-primary', _analyzeOn);
+    btn.classList.toggle('btn-ghost',  !_analyzeOn);
     if (_analyzeOn){
       if (extrasBtn) extrasBtn.hidden = false;
     }
@@ -5013,13 +5676,13 @@
     if (_extrasOn){
       bumpAnalyzeLevel(2);
       markSectionTouched('extras');
-      $btn.textContent = 'Hide extras';
+      $btn.textContent = '✓ Extras';
       if ($btn1) $btn1.hidden = false;
     } else {
-      $btn.textContent = 'More';
+      $btn.textContent = 'Extras';
     }
-    $btn.classList.toggle('btn-primary', !_extrasOn);
-    $btn.classList.toggle('btn-ghost',    _extrasOn);
+    $btn.classList.toggle('btn-primary', _extrasOn);
+    $btn.classList.toggle('btn-ghost',   !_extrasOn);
     renderSummaryGrid();
     updateSilverArrows();
     renderStageLabel();
@@ -5327,13 +5990,13 @@
       markSectionTouched('perspective');
       renderBarsPanel();
       $panel.hidden = false;
-      $btn.textContent = 'Hide perspectives';
+      $btn.textContent = '✓ Perspectives';
       $btn2.hidden = false;
       // Re-show the second play if the user already added a parallel row.
       renderSecondPlay();
     } else {
       $panel.hidden = true;
-      $btn.textContent = 'More';
+      $btn.textContent = 'Perspectives';
       // Hiding perspectives also collapses the second play — they live inside
       // the same flow. The Insights button stays as-is if the user has data,
       // but the second-play UI itself is dependent on the bars being open.
@@ -5341,8 +6004,8 @@
       if ($secPlay) $secPlay.hidden = true;
       // Keep the second "More" visible once revealed; do not re-hide
     }
-    $btn.classList.toggle('btn-primary', !_barsOn);
-    $btn.classList.toggle('btn-ghost',    _barsOn);
+    $btn.classList.toggle('btn-primary', _barsOn);
+    $btn.classList.toggle('btn-ghost',   !_barsOn);
     renderStageLabel();
     if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
@@ -5696,7 +6359,6 @@
       const orig = barPctCell(barState[b.id], b);
       const neu  = hasNew ? barPctCell(parallelRows[0].states[b.id], b) : '';
       return `<div class="pp-row">`
-        + `<div class="pp-axis">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`
         + `<div class="pp-cell">${orig}</div>`
         + (hasNew ? `<div class="pp-cell pp-cell-new">${neu}</div>` : '')
         + `</div>`;
@@ -6585,9 +7247,30 @@
         nm.prepend(ic);
       });
     };
-    // Swap mapping: Yin → ♂ male, Yang → ♀ female
-    stamp(yinPos,  'male');
-    stamp(yangPos, 'female');
+    // Mapping: Yin → ♀ female, Yang → ♂ male
+    stamp(yinPos,  'female');
+    stamp(yangPos, 'male');
+    // Also echo the markers (at 50% opacity) on the Metaphysics deck (x2)
+    // itself, right where Yin / Yang sit, so the source of the ranking is
+    // visible alongside the keys it stamps.
+    const stampMeta = (pos, kind) => {
+      if (pos < 0) return;
+      const ad = document.querySelector('.summary-triads .ad-deck[data-deck-id="x2"] ol');
+      if (!ad) return;
+      const li = ad.children[pos];
+      if (!li) return;
+      if (li.querySelector('.gender-icon.' + kind)) return;
+      const nm = li.querySelector('.nm');
+      if (!nm) return;
+      const ic = document.createElement('span');
+      ic.className = 'gender-icon ' + kind;
+      ic.style.opacity = '.5';
+      ic.textContent = kind === 'female' ? '♀' : '♂';
+      ic.title = kind === 'female' ? 'Yin' : 'Yang';
+      nm.prepend(ic);
+    };
+    stampMeta(yinPos,  'female');
+    stampMeta(yangPos, 'male');
   }
 
   // 2nd "More" toggles the Yin/Yang gender icons across every key. Replaces
@@ -6597,7 +7280,7 @@
     const $btn  = document.getElementById('btn-analyze-more-2');
     if (_finishApplied){
       removeFinishIcons();
-      $btn.textContent = 'More';
+      $btn.textContent = 'Genders';
     } else {
       bumpAnalyzeLevel(4);
       markSectionTouched('gender');
@@ -6609,12 +7292,12 @@
       ['x1','x2','x4'].forEach(id => { extraOpen[id] = true; });
       renderSummaryGrid();
       applyFinishIcons();
-      $btn.textContent = 'Hide genders';
+      $btn.textContent = '✓ Genders';
       const $btn3 = document.getElementById('btn-analyze-more-3');
       if ($btn3) $btn3.hidden = false;
     }
-    $btn.classList.toggle('btn-primary', !_finishApplied);
-    $btn.classList.toggle('btn-ghost',    _finishApplied);
+    $btn.classList.toggle('btn-primary', _finishApplied);
+    $btn.classList.toggle('btn-ghost',   !_finishApplied);
     renderStageLabel();
   }
   document.getElementById('btn-analyze-more-2').addEventListener('click', toggleAnalyzeMore2);
@@ -6629,13 +7312,13 @@
     const $btn  = document.getElementById('btn-analyze-more-3');
     if (_timeStatsOn){
       if ($time) $time.hidden = true;
-      $btn.textContent = 'More';
+      $btn.textContent = 'Stats';
       _timeStatsOn = false;
     } else {
       if ($time && $time.dataset.populated === '1'){
         $time.hidden = false;
         _timeStatsOn = true;
-        $btn.textContent = 'Hide stats';
+        $btn.textContent = '✓ Stats';
         bumpAnalyzeLevel(5);
         markSectionTouched('stats');
         renderStageLabel();
@@ -6651,8 +7334,8 @@
         renderPlayMoreBtn();
       }
     }
-    $btn.classList.toggle('btn-primary', !_timeStatsOn);
-    $btn.classList.toggle('btn-ghost',    _timeStatsOn);
+    $btn.classList.toggle('btn-primary', _timeStatsOn);
+    $btn.classList.toggle('btn-ghost',   !_timeStatsOn);
   });
 
   // ============== See more · related flove apps ==============

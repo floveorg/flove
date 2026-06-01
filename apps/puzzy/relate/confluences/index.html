@@ -195,11 +195,17 @@
     .create-btn:hover{ filter:brightness(1.06); }
     .create-btn:focus-visible{ outline:2px solid var(--app-accent-soft); outline-offset:3px; }
 
-    /* Favourites hidden until "Top"; created rows always visible */
-    #favs{ display:none; }
-    body:has(#top-toggle:checked) #favs{ display:grid; gap:14px; }
+    /* Created rows always visible, above everything */
     #rows{ display:grid; gap:14px; }
     #rows:empty{ display:none; }
+    /* Favourites: hidden until "Top"; then only the rows whose item-count
+       matches a checked node (3 / 5 / 7) are shown. */
+    #favs{ display:none; }
+    body:has(#top-toggle:checked) #favs{ display:grid; gap:14px; }
+    body:has(#top-toggle:checked) #favs .list{ display:none; }
+    body:has(#top-toggle:checked):has(.node-cb[value="3"]:checked) #favs .list.len-3{ display:grid; }
+    body:has(#top-toggle:checked):has(.node-cb[value="5"]:checked) #favs .list.len-5{ display:grid; }
+    body:has(#top-toggle:checked):has(.node-cb[value="7"]:checked) #favs .list.len-7{ display:grid; }
 
     /* Created row = list + side controls (up / down / duplicate) */
     .crow{ display:flex; align-items:stretch; gap:8px; }
@@ -285,8 +291,12 @@
   <main class="wrap" data-flove-root data-flove-title="confluences">
     <section class="board">
 
-      <!-- Favourites — the canonical confluences, revealed by "Top",
-           pinned at the very top and never moved by the row arrows. -->
+      <!-- Created rows (newest on top) sit above everything. -->
+      <div class="rows" id="rows"></div>
+
+      <!-- Favourites — revealed by "Top" and filtered by the node sizes
+           (only rows whose item-count is checked show); never moved by the
+           row arrows. -->
       <div class="favs" id="favs">
 
       <!-- length = 1 (item centred on column 4; confluence centre) -->
@@ -367,9 +377,6 @@
 
       </div><!-- /#favs -->
 
-      <!-- Created rows (newest on top) sit just below the favourites. -->
-      <div class="rows" id="rows"></div>
-
     </section>
 
     <!-- Standard Summary (§13.12) — without the Views surface. -->
@@ -435,8 +442,8 @@
       return crow;
     }
 
-    // Create: one new row per checked size (ascending), prepended above the
-    // existing created rows (and below the fixed favourites).
+    // Create: one new row per checked size (ascending), prepended above all
+    // rows (the favourites sit below, revealed/filtered by Top + the nodes).
     createBtn.addEventListener('click', function(){
       const nums = Array.from(document.querySelectorAll('.node-cb:checked'))
         .map(cb => parseInt(cb.value, 10))

@@ -478,13 +478,85 @@
   .stage{display:flex;justify-content:center;align-items:flex-start;min-width:0}
   .square{
     position:relative;aspect-ratio:1/1;
-    width:min(85%,520px);
+    width:min(96%, calc(min(85%,520px) * var(--grow,1)));
     background:radial-gradient(100% 100% at 50% 50%, rgba(255,255,255,.08) 0%, rgba(255,255,255,.02) 70%);
     border:1px solid var(--stroke);
     border-radius:22px;
     box-shadow:0 18px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
     overflow:hidden;padding:10px;
+    transition:width .35s cubic-bezier(.2,1,.3,1);
   }
+
+  /* ---- Decks chosen in stage 1, as toggle buttons above the cats ---- */
+  .deck-strip{
+    display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+    padding:2px 4px;margin:0 0 12px;
+  }
+  .deck-strip:empty{display:none}
+  .deck-btn{
+    --c:var(--sky);
+    display:inline-flex;align-items:center;gap:7px;
+    padding:6px 14px;border-radius:999px;
+    border:1.5px solid var(--c);
+    background:color-mix(in srgb, var(--c) 16%, transparent);
+    color:var(--ink);
+    font:700 .82rem/1 system-ui,sans-serif;
+    cursor:pointer;user-select:none;white-space:nowrap;
+    opacity:.62;
+    transition:opacity .18s ease, transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .deck-btn::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+  .deck-btn:hover{transform:translateY(-1px)}
+  .deck-btn.is-on{
+    opacity:1;background:color-mix(in srgb, var(--c) 30%, transparent);
+    box-shadow:0 0 0 2px rgba(255,255,255,.2), 0 4px 12px rgba(0,0,0,.25);
+  }
+
+  /* ---- Accumulation board: one bordered row of 5 per toggled set ---- */
+  .accum{
+    position:absolute;inset:10px;z-index:2;
+    display:flex;flex-direction:column;gap:8px;
+    overflow:auto;padding:2px;
+  }
+  .accum:empty::before{
+    content:"Toggle a deck or a category to drop its five placeholders here.";
+    margin:auto;max-width:60%;text-align:center;
+    color:var(--muted);font-size:.82rem;line-height:1.4;
+  }
+  .fset{
+    flex:0 0 auto;
+    border:2px solid var(--c,var(--stroke));border-radius:14px;
+    background:rgba(255,255,255,.03);
+    padding:7px 8px;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 0 14px -5px var(--c,#000);
+    animation:fadein .2s ease;
+  }
+  .fset-label{
+    font:700 .7rem/1 ui-serif,Georgia,serif;letter-spacing:.45px;text-transform:uppercase;
+    color:var(--c,var(--gold));text-align:center;margin-bottom:6px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .ph-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .ph{
+    min-height:46px;border-radius:9px;
+    border:1.5px solid var(--c,var(--stroke));
+    background:rgba(255,255,255,.04);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    padding:3px;text-align:center;overflow:hidden;
+  }
+  .ph.empty{opacity:.5;border-style:dashed}
+  .ph-rank{font:800 .58rem/1 system-ui,sans-serif;color:var(--c,var(--muted));opacity:.9}
+  .ph-word{
+    font:600 .74rem/1.12 system-ui,sans-serif;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+  }
+  .ph-input{
+    width:100%;min-width:0;border:0;background:transparent;color:var(--ink);
+    text-align:center;font:600 .74rem/1.12 system-ui,sans-serif;outline:none;
+    border-bottom:1px dashed var(--c,var(--accent));padding:2px 0;
+  }
+  .ph-input::placeholder{color:var(--muted);opacity:.7}
+  .ph-input:focus{border-bottom-style:solid}
 
   .edges{position:absolute;inset:0;pointer-events:none;z-index:1}
   .edges .edge{
@@ -524,63 +596,6 @@
   .square.confluence .edges .green.confluence{animation:dash-flow 3.2s ease-in-out infinite}
   .square.confluence .edges #g1{animation-delay:0s}
   .square.confluence .edges #g2{animation-delay:1.6s}
-
-  .node{
-    position:absolute;width:38%;
-    display:flex;flex-direction:column;gap:3px;z-index:2;
-  }
-  .node .rank-badge{
-    display:inline-grid;place-items:center;
-    width:22px;height:22px;border-radius:7px;
-    font-weight:800;font-size:11px;color:#1a1a28;
-    background:linear-gradient(135deg,var(--gold),var(--accent));
-    align-self:flex-start;
-    box-shadow:0 2px 6px rgba(0,0,0,.3);
-  }
-  .node .items{display:flex;flex-direction:column;gap:3px}
-  .node .item{
-    display:none;padding:3px 7px;border-radius:7px;
-    font:600 11px/1.15 system-ui,sans-serif;
-    border:1px solid rgba(0,0,0,.1);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .node .item.show{display:block}
-  .node .item.cat-r{background:var(--cat-r);color:var(--cat-r-ink)}
-  .node .item.cat-o{background:var(--cat-o);color:var(--cat-o-ink)}
-  .node .item.cat-y{background:var(--cat-y);color:var(--cat-y-ink)}
-  .node .item.cat-g{background:var(--cat-g);color:var(--cat-g-ink)}
-  .node .item.cat-b{background:var(--cat-b);color:var(--cat-b-ink)}
-  .node .item.cat-i{background:var(--cat-i);color:var(--cat-i-ink)}
-
-  .node.n1{left:50%;top:50%;transform:translate(-50%,-50%);align-items:center}
-  .node.n1 .rank-badge{align-self:center}
-  .node.n1 .items{align-items:center}
-  .node.n2{left:8px;top:8px}
-  .node.n3{right:8px;top:8px;text-align:right}
-  .node.n3 .rank-badge{align-self:flex-end}
-  .node.n3 .items{align-items:flex-end}
-  .node.n4{left:8px;bottom:8px}
-  .node.n5{right:8px;bottom:8px;text-align:right}
-  .node.n5 .rank-badge{align-self:flex-end}
-  .node.n5 .items{align-items:flex-end}
-  .node.n2 .item,.node.n4 .item{width:fit-content;max-width:100%}
-
-  /* Editable inputs inside nodes (edit mode) */
-  .node .item-input{
-    width:100%;min-width:0;
-    padding:3px 6px;border-radius:7px;
-    font:600 11px/1.2 system-ui,sans-serif;
-    background:rgba(255,255,255,.06);
-    border:1px dashed var(--accent);
-    color:var(--ink);
-    outline:none;
-  }
-  .node .item-input:focus{
-    background:rgba(255,95,220,.14);
-    border-style:solid;
-    box-shadow:0 0 0 2px rgba(255,95,220,.25);
-  }
-  .node.n2 .item-input,.node.n4 .item-input{max-width:100%}
 
   /* Add (+) and Save buttons inside the cats nav */
   .cat-add,.cat-save{
@@ -781,6 +796,8 @@
       </div>
     </div>
 
+    <nav class="deck-strip" id="deck-strip" aria-label="Your decks from stage one"></nav>
+
     <nav class="cats" aria-label="Categories" id="cats">
       <button class="cat cat-rb-r" data-cat="cat-r" type="button">Metas</button>
       <button class="cat cat-rb-o" data-cat="cat-o" type="button">Sci</button>
@@ -853,11 +870,7 @@
             <line id="g2"  class="edge green confluence" x1="860" y1="500" x2="500" y2="500"/>
           </svg>
 
-          <div class="node n1"><div class="rank-badge">1</div><div class="items" data-rank="0"></div></div>
-          <div class="node n2"><div class="rank-badge">2</div><div class="items" data-rank="1"></div></div>
-          <div class="node n3"><div class="rank-badge">3</div><div class="items" data-rank="2"></div></div>
-          <div class="node n4"><div class="rank-badge">4</div><div class="items" data-rank="3"></div></div>
-          <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
+          <div class="accum" id="accum" aria-live="polite"></div>
         </section>
       </main>
     </div>
@@ -1183,6 +1196,7 @@
     $stage.style.display = 'none';
     $intro.style.display = 'none';
     $fields.classList.add('active');
+    renderDeckStrip();   // the decks just settled in stage 1 become toggle buttons here
     setProgress(1);
     window.scrollTo({ top:0, behavior:'smooth' });
   }
@@ -1201,7 +1215,7 @@
   }
   document.getElementById('btn-back-to-fivys').addEventListener('click', leaveFields);
 
-  // ----- Simplex data: only Social pre-filled. Others start empty. -----
+  // ----- Field data: only Social pre-filled. Others start empty. -----
   const SIMPLEX = {
     'cat-r': { label:'Metas',  items:['','','','',''], saved:false },
     'cat-o': { label:'Sci',    items:['','','','',''], saved:false },
@@ -1210,22 +1224,28 @@
     'cat-b': { label:'Psico',  items:['','','','',''], saved:false },
     'cat-i': { label:'Social', items:['Media','Political','Economical','Judiciary','Militar'], saved:true },
   };
-  const customCats = [];                          // [{id,label,items:[5]}]
-  const catOrder = ['cat-i'];                     // Social selected by default
-  const toggles = { list:false, cycle:false, confluence:false };
-  let editingId = null;                           // null | 'cat-r'..'cat-b' | 'new' | 'custom:<n>'
-  let editingDraft = { label:'', items:['','','','',''] };
-  let customSeq = 0;
+  const CAT_COLOR = {
+    'cat-r':'var(--cat-r)', 'cat-o':'var(--cat-o)', 'cat-y':'var(--cat-y)',
+    'cat-g':'var(--cat-g)', 'cat-b':'var(--cat-b)', 'cat-i':'var(--cat-i)',
+  };
+  // The four stage-1 decks get their own border colour when dropped in the square.
+  const DECK_COLOR = { p1:'var(--sky)', p2:'var(--brand)', p3:'var(--gold)', p4:'var(--accent)' };
 
-  const RANK_EL = [...document.querySelectorAll('#square .items')];
-  const $square = document.getElementById('square');
-  const $ll = document.getElementById('linear-list');
-  const $cats = document.getElementById('cats');
-  const $titleRow = document.getElementById('cat-title-row');
-  const $titleInput = document.getElementById('cat-title-input');
-  const $btnAdd = document.getElementById('btn-add-cat');
-  const $btnSave = document.getElementById('btn-save-cat');
-  const $customsRow = document.getElementById('saved-customs');
+  const customCats = [];                          // [{id,label,items:[5],starred}]
+  const activeSets = ['cat-i'];                   // toggled sets shown in the square (Social by default)
+  const toggles = { list:false, cycle:false, confluence:false };
+  let customSeq = 0;
+  let creating = false;                           // building a new custom fivy
+
+  const $square    = document.getElementById('square');
+  const $accum     = document.getElementById('accum');
+  const $ll        = document.getElementById('linear-list');
+  const $deckStrip = document.getElementById('deck-strip');
+  const $titleRow  = document.getElementById('cat-title-row');
+  const $titleInput= document.getElementById('cat-title-input');
+  const $btnAdd    = document.getElementById('btn-add-cat');
+  const $btnSave   = document.getElementById('btn-save-cat');
+  const $customsRow= document.getElementById('saved-customs');
 
   // ----- Counters -----
   const counters = { clicks:0, selections:0, stars:0 };
@@ -1246,58 +1266,117 @@
   }
   document.addEventListener('click', () => bumpCounter('clicks'));
 
-  // ----- Lookup helpers -----
-  function getCat(id){
-    if (SIMPLEX[id]) return SIMPLEX[id];
+  // ----- Source lookup: a "set" is a category, a custom fivy, or a stage-1 deck -----
+  function getSource(id){
+    if (SIMPLEX[id]){
+      const c = SIMPLEX[id];
+      return { kind:'cat', id, label:c.label, items:c.items, color:CAT_COLOR[id], editable:true, saved:c.saved };
+    }
     if (id && id.startsWith('custom:')){
-      return customCats.find(c => c.id === id);
+      const c = customCats.find(x => x.id === id);
+      return c && { kind:'custom', id, label:c.label, items:c.items, color:'var(--plum)', editable:true, saved:true };
+    }
+    if (id && id.startsWith('deck:')){
+      const did = id.slice(5);
+      const d = DECKS.find(x => x.id === did);
+      if (!d) return null;
+      const order = state.orders[did] || d.items.map((_,i)=>i);
+      return { kind:'deck', id, label:d.title, items:order.map(i => d.items[i]), color:DECK_COLOR[did], editable:false, saved:true };
     }
     return null;
   }
-  function isFilled(id){
-    const c = getCat(id);
-    return !!(c && c.saved !== false);
-  }
 
-  // ----- Build node items DOM for one category (filled & saved) -----
-  function appendItemsFor(id){
-    const c = getCat(id);
-    if (!c) return;
-    const cls = id.startsWith('custom:') ? 'custom' : id;
-    c.items.forEach((word, rank) => {
-      if (!word) return;
-      const it = document.createElement('div');
-      it.className = `item ${cls}`;
-      it.dataset.cat = id;
-      it.textContent = word;
-      if (id.startsWith('custom:')){
-        it.style.background = 'var(--plum)';
-        it.style.color = '#1a1a28';
-        it.style.borderColor = 'var(--plum)';
+  // ----- Accumulation board: render one bordered row of 5 per active set -----
+  function renderAccum(){
+    $accum.innerHTML = '';
+    activeSets.forEach(id => {
+      const s = getSource(id);
+      if (!s) return;
+      const set = document.createElement('div');
+      set.className = 'fset';
+      set.dataset.src = id;
+      set.style.setProperty('--c', s.color);
+
+      const head = document.createElement('div');
+      head.className = 'fset-label';
+      head.textContent = s.label;
+      set.appendChild(head);
+
+      const row = document.createElement('div');
+      row.className = 'ph-row';
+      const editing = s.editable && !s.saved;     // unfilled category/custom → fill its placeholders inline
+      for (let r = 0; r < 5; r++){
+        const val = s.items[r] || '';
+        const cell = document.createElement('div');
+        cell.className = 'ph';
+        if (editing){
+          const inp = document.createElement('input');
+          inp.className = 'ph-input';
+          inp.type = 'text';
+          inp.maxLength = 28;
+          inp.placeholder = 'rank ' + (r + 1);
+          inp.value = val;
+          inp.addEventListener('input', e => { s.items[r] = e.target.value; storeEdit(s); });
+          inp.addEventListener('blur', () => { if (s.items.every(v => (v||'').trim())) renderAccum(); });
+          inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); } });
+          cell.appendChild(inp);
+        } else {
+          if (!val) cell.classList.add('empty');
+          cell.innerHTML = `<span class="ph-rank">${r + 1}</span><span class="ph-word">${escapeHTML(val) || '·'}</span>`;
+        }
+        row.appendChild(cell);
       }
-      RANK_EL[rank].appendChild(it);
+      set.appendChild(row);
+      $accum.appendChild(set);
     });
+    applyGrowth();
+    paintShow();
+    paintList();
   }
 
-  function rebuildNodes(){
-    RANK_EL.forEach(el => el.innerHTML = '');
-    Object.keys(SIMPLEX).forEach(id => appendItemsFor(id));
-    customCats.forEach(c => appendItemsFor(c.id));
-    if (editingId) renderEditInputs();
-    paintShow();
+  // Each added set grows the square 5%, starting once a third row is dropped in.
+  function applyGrowth(){
+    const n = activeSets.length;
+    const grow = n >= 3 ? 1 + 0.05 * (n - 2) : 1;
+    $square.style.setProperty('--grow', grow.toFixed(4));
+  }
+
+  // Persist inline edits without re-rendering (keeps input focus). A completed
+  // five marks the category saved and surfaces it in the list / summary.
+  function storeEdit(s){
+    const complete = s.items.every(v => (v||'').trim());
+    if (s.kind === 'cat'){
+      const c = SIMPLEX[s.id];
+      const was = c.saved;
+      c.saved = complete;
+      if (complete && !was) bumpCounter('stars');
+    } else if (s.kind === 'custom'){
+      const c = customCats.find(x => x.id === s.id);
+      if (c && complete && !c.starred){ c.starred = true; bumpCounter('stars'); }
+    }
+    paintList();
+    paintSummary();
+  }
+
+  // ----- Toggle a set in / out of the square (expand / collapse) -----
+  function toggleSet(id){
+    const i = activeSets.indexOf(id);
+    if (i === -1){ activeSets.push(id); bumpCounter('selections'); }
+    else { activeSets.splice(i, 1); }
+    renderAccum();
+    paintSummary();
   }
 
   function paintShow(){
-    document.querySelectorAll('#square .item').forEach(el => {
-      el.classList.toggle('show', catOrder.includes(el.dataset.cat));
-    });
     document.querySelectorAll('#cats .cat:not(.cat-add):not(.cat-save)').forEach(btn => {
-      btn.classList.toggle('is-on', catOrder.includes(btn.dataset.cat));
+      btn.classList.toggle('is-on', activeSets.includes(btn.dataset.cat));
     });
     document.querySelectorAll('.saved-custom').forEach(el => {
-      el.classList.toggle('is-on', catOrder.includes(el.dataset.cat));
+      el.classList.toggle('is-on', activeSets.includes(el.dataset.cat));
     });
-    paintList();
+    document.querySelectorAll('.deck-btn').forEach(el => {
+      el.classList.toggle('is-on', activeSets.includes(el.dataset.src));
+    });
   }
 
   function paintList(){
@@ -1305,149 +1384,70 @@
     const $title = document.getElementById('ll-title');
     let src = ['','','','',''];
     let title = '';
-    if (editingId){
-      src = editingDraft.items;
-      title = editingId === 'new'
-        ? (editingDraft.label || $titleInput.value || '')
-        : (SIMPLEX[editingId] ? SIMPLEX[editingId].label : '');
-    } else if (catOrder.length){
-      const c = getCat(catOrder[0]);
-      if (c){ src = c.items; title = c.label; }
+    if (activeSets.length){
+      const s = getSource(activeSets[0]);
+      if (s){ src = s.items; title = s.label; }
     }
     lis.forEach((sp, i) => sp.textContent = src[i] || '');
     if ($title) $title.textContent = title;
   }
 
-  // ----- Edit mode -----
-  function enterEdit(id){
-    editingId = id;
-    const c = (id === 'new') ? null : getCat(id);
-    editingDraft = {
-      label: c ? c.label : '',
-      items: c ? c.items.slice() : ['','','','',''],
-    };
-    // Title row only for 'new' custom categories
-    if (id === 'new'){
-      $titleRow.classList.add('active');
-      $titleInput.value = '';
-      setTimeout(() => $titleInput.focus(), 30);
-    } else {
-      $titleRow.classList.remove('active');
-    }
-    paintList();
+  // ----- Deck strip: the decks ordered back in stage 1, as toggle buttons -----
+  function renderDeckStrip(){
+    $deckStrip.innerHTML = '';
+    DECKS.forEach(d => {
+      if (!state.done[d.id]) return;          // only decks the player actually settled
+      const b = document.createElement('button');
+      b.className = 'deck-btn';
+      b.type = 'button';
+      b.dataset.src = 'deck:' + d.id;
+      b.style.setProperty('--c', DECK_COLOR[d.id]);
+      b.textContent = d.title;
+      b.addEventListener('click', () => toggleSet('deck:' + d.id));
+      $deckStrip.appendChild(b);
+    });
+    paintShow();
+  }
+
+  // ----- Cat clicks: toggle that category's 5 placeholders in the square -----
+  document.querySelectorAll('#cats .cat:not(.cat-add):not(.cat-save)').forEach(btn => {
+    btn.addEventListener('click', () => toggleSet(btn.dataset.cat));
+  });
+
+  // ----- New custom fivy (+ Add → title → Save) -----
+  $btnAdd.addEventListener('click', () => {
+    if (creating) return;
+    creating = true;
+    $titleRow.classList.add('active');
+    $titleInput.value = '';
     $btnAdd.hidden = true;
     $btnSave.hidden = false;
-    $cats.classList.add('is-editing');
-    document.querySelectorAll('#cats .cat:not(.cat-add):not(.cat-save)').forEach(b => {
-      b.classList.toggle('is-editing', b.dataset.cat === id);
-    });
-    rebuildNodes();
-  }
-  function exitEdit(){
-    editingId = null;
-    editingDraft = { label:'', items:['','','','',''] };
+    setTimeout(() => $titleInput.focus(), 30);
+  });
+  function cancelCreate(){
+    creating = false;
     $titleRow.classList.remove('active');
     $btnAdd.hidden = false;
     $btnSave.hidden = true;
-    $cats.classList.remove('is-editing');
-    document.querySelectorAll('#cats .cat.is-editing').forEach(b => b.classList.remove('is-editing'));
-    rebuildNodes();
-    paintSummary();
   }
-
-  function renderEditInputs(){
-    RANK_EL.forEach((node, rank) => {
-      const inp = document.createElement('input');
-      inp.type = 'text';
-      inp.className = 'item-input';
-      inp.dataset.rank = String(rank);
-      inp.placeholder = `rank ${rank + 1}…`;
-      inp.value = editingDraft.items[rank] || '';
-      inp.maxLength = 28;
-      inp.addEventListener('input', e => {
-        editingDraft.items[rank] = e.target.value;
-        liveStore();      // persist as you type — a complete five surfaces in the lists
-        paintList();
-      });
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter'){ e.preventDefault(); commitSave(); }
-        if (e.key === 'Escape'){ e.preventDefault(); exitEdit(); }
-      });
-      node.appendChild(inp);
-    });
-  }
-
-  // Live-store the in-progress fields into an existing category (no Save needed).
-  // When all five are filled the category is marked complete, joins the shown set,
-  // and therefore surfaces in the list displays / summary. Does NOT rebuild the
-  // nodes (would drop input focus) — only updates data + the list/summary/buttons.
-  function liveStore(){
-    if (!editingId || editingId === 'new') return;
-    const c = getCat(editingId);
-    if (!c) return;
-    const wasComplete = c.items.every(v => (v||'').trim());
-    c.items = editingDraft.items.slice();
-    const nowComplete = c.items.every(v => (v||'').trim());
-    c.saved = nowComplete;
-    const oi = catOrder.indexOf(editingId);
-    if (nowComplete && oi === -1) catOrder.push(editingId);
-    if (!nowComplete && oi !== -1) catOrder.splice(oi, 1);
-    if (nowComplete && !wasComplete) bumpCounter('stars');
-    paintShow();      // reflect button is-on state (safe: leaves the inputs intact)
-    paintSummary();
-  }
-
-  function commitSave(){
-    if (!editingId) return;
-    const hasAny = editingDraft.items.some(v => v.trim());
-    if (!hasAny){ exitEdit(); return; }
-
-    if (editingId === 'new'){
-      const label = ($titleInput.value || '').trim() || `Fivy ${customCats.length + 1}`;
-      const id = 'custom:' + (++customSeq);
-      const cat = { id, label, items: editingDraft.items.slice() };
-      customCats.push(cat);
-      if (!catOrder.includes(id)) catOrder.push(id);
-      bumpCounter('selections');
-      bumpCounter('stars');
-    } else {
-      const c = SIMPLEX[editingId];
-      c.items = editingDraft.items.slice();
-      c.saved = true;
-      if (!catOrder.includes(editingId)) catOrder.push(editingId);
-      bumpCounter('selections');
-      bumpCounter('stars');
-    }
-    exitEdit();
+  function commitCustom(){
+    const label = ($titleInput.value || '').trim() || `Fivy ${customCats.length + 1}`;
+    const id = 'custom:' + (++customSeq);
+    customCats.push({ id, label, items:['','','','',''], starred:false });
+    activeSets.push(id);
+    bumpCounter('selections');
+    cancelCreate();
     renderCustomsRow();
-    rebuildNodes();
+    renderAccum();          // its row drops in with five empty inputs to fill
     paintSummary();
   }
-
-  $btnSave.addEventListener('click', commitSave);
-  $btnAdd.addEventListener('click', () => {
-    if (editingId) return;
-    enterEdit('new');
-  });
-  $titleInput.addEventListener('input', () => {
-    editingDraft.label = $titleInput.value;
-    paintList();
-  });
+  $btnSave.addEventListener('click', commitCustom);
   $titleInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter'){ e.preventDefault(); commitSave(); }
-    if (e.key === 'Escape'){ e.preventDefault(); exitEdit(); }
+    if (e.key === 'Enter'){ e.preventDefault(); commitCustom(); }
+    if (e.key === 'Escape'){ e.preventDefault(); cancelCreate(); }
   });
 
-  // ----- Cat clicks: each button expands / collapses its 5 fields in the nodes -----
-  document.querySelectorAll('#cats .cat:not(.cat-add):not(.cat-save)').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cid = btn.dataset.cat;
-      if (editingId === cid){ exitEdit(); return; }   // click again → hide the fields
-      enterEdit(cid);                                   // expand 5 fields (pre-filled) in the nodes
-    });
-  });
-
-  // ----- Customs row -----
+  // ----- Customs row (toggle / delete saved custom fivys) -----
   function renderCustomsRow(){
     $customsRow.innerHTML = '';
     customCats.forEach(c => {
@@ -1457,23 +1457,17 @@
       btn.dataset.cat = c.id;
       btn.innerHTML = `<span>${escapeHTML(c.label)}</span><span class="x" role="button" aria-label="delete">✕</span>`;
       btn.addEventListener('click', e => {
-        if (editingId) return;
         if (e.target.closest('.x')){
-          // delete
           const i = customCats.findIndex(x => x.id === c.id);
           if (i >= 0) customCats.splice(i, 1);
-          const oi = catOrder.indexOf(c.id);
-          if (oi >= 0) catOrder.splice(oi, 1);
+          const oi = activeSets.indexOf(c.id);
+          if (oi >= 0) activeSets.splice(oi, 1);
           renderCustomsRow();
-          rebuildNodes();
+          renderAccum();
           paintSummary();
           return;
         }
-        const idx = catOrder.indexOf(c.id);
-        if (idx === -1){ catOrder.push(c.id); bumpCounter('selections'); }
-        else catOrder.splice(idx, 1);
-        paintShow();
-        paintSummary();
+        toggleSet(c.id);
       });
       $customsRow.appendChild(btn);
     });
@@ -1528,9 +1522,9 @@
   }
 
   // ----- Initial paint -----
-  rebuildNodes();
-  paintShow();
+  renderDeckStrip();
   renderCustomsRow();
+  renderAccum();
   paintSummary();
   render();
 

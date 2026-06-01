@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>flove · keys</title>
+<title>FLOVE · KEYS</title>
 <style>
   :root{
     --bg:#252538; --panel:#2f2f44; --ink:#f6f7fb; --muted:#c4c7d2;
@@ -2803,17 +2803,34 @@
     min-width:96px;text-align:left;
   }
   .flv-std .pp-cell-new{font-style:italic;color:var(--accent)}
-  /* Two pole cells per row: the % sits only in the pole it leans to. */
-  .flv-std .pp-pole-cell{
-    min-width:84px;min-height:1.7rem;
-    display:flex;align-items:center;justify-content:center;gap:.4rem;
-    border:1px solid var(--stroke);border-radius:8px;
-    padding:.25rem .5rem;
-    font:700 .92rem/1.1 ui-serif,Georgia,serif;color:var(--gold);
+  /* Full-width perspective bars (poles labelled above each track). */
+  .flv-std .pp-bars{display:flex;flex-direction:column;gap:14px;margin-top:.5rem}
+  .flv-std .pp-bar-row{display:flex;flex-direction:column;gap:.35rem}
+  .flv-std .pp-bar-title{
+    display:flex;justify-content:space-between;
+    font:700 .66rem/1 system-ui,sans-serif;color:var(--sky);
+    letter-spacing:.12em;text-transform:uppercase;
   }
-  .flv-std .pp-pole-cell.pp-left{text-align:right}
-  .flv-std .pp-pole-cell.pp-right{text-align:left}
-  .flv-std .pp-val-new{font-style:italic;color:var(--accent)}
+  .flv-std .pp-bar-track{
+    position:relative;height:20px;border-radius:999px;
+    background:linear-gradient(90deg,rgba(0,247,167,.16),rgba(168,228,255,.16),rgba(255,95,220,.16));
+    border:1px solid var(--stroke);
+  }
+  .flv-std .pp-bar-fill{
+    position:absolute;top:0;bottom:0;border-radius:999px;
+    background:linear-gradient(90deg,var(--brand),var(--accent));opacity:.55;
+  }
+  .flv-std .pp-bar-fill.pp-mark-new{background:linear-gradient(90deg,var(--accent),var(--plum));opacity:.5}
+  .flv-std .pp-bar-node{
+    position:absolute;top:50%;width:16px;height:16px;border-radius:50%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 35% 30%,#fff,#ffe082 60%,#caa256);
+    border:2px solid var(--gold);box-shadow:0 0 10px rgba(250,220,146,.5);
+  }
+  .flv-std .pp-bar-node.pp-mark-new{
+    background:radial-gradient(circle at 35% 30%,#fff,#ffb3ec 60%,#ff5fdc);
+    border-color:var(--accent);box-shadow:0 0 10px rgba(255,95,220,.5);
+  }
   .flv-std .pp-pole{
     font:600 .68rem/1 system-ui,sans-serif;color:var(--muted);
     text-transform:none;letter-spacing:0;
@@ -4300,6 +4317,14 @@
 
     const $text = $spotlight.querySelector('#pq-text');
     $text.addEventListener('input', () => { state.porQueDraft = $text.value; });
+    // When the why panel is open, drop the typing cursor straight into the box.
+    if (state.porQuePanelOpen){
+      requestAnimationFrame(() => {
+        $text.focus();
+        const n = $text.value.length;
+        try { $text.setSelectionRange(n, n); } catch(_){}
+      });
+    }
 
     $spotlight.querySelector('#pq-cancel').addEventListener('click', () => {
       stopRecording();
@@ -4829,6 +4854,8 @@
         $tsCycle.innerHTML = cyclePool.slice(0, c * 2)
           .map(h => `<div class="ts-hint ts-further-hint ts-cycle-hint">${h}</div>`)
           .join('');
+        // At the last expansion the next click hides everything → label it so.
+        $tsMore.textContent = (c === 2) ? 'Hide insights' : 'More';
       });
     }
     // Stay hidden — the Stats "more" button reveals the panel. We just mark
@@ -6485,42 +6512,35 @@
   // so a point at 30/70 reads 40%, and a range can read e.g. 20-80%.
   // A percentage cell that also names the pole it leans toward, so "20%" is
   // never ambiguous between (e.g.) Subjective and Objective.
-  // Returns { side:'left'|'right', pct } for a bar state, or null. The side is
-  // the pole the value leans toward (left pole < 50 ≤ right pole), so the
-  // percentage can sit in the matching cell only.
-  function barCellInfo(s){
-    if (!s || s.p1 == null) return null;
-    const toPct = (p) => Math.round(Math.abs(p - 50) * 2);
-    const rep = (s.phase === 2 && s.p2 != null) ? (s.p1 + s.p2) / 2 : s.p1;
-    const pct = (s.phase === 2 && s.p2 != null)
-      ? (() => { const a = toPct(s.p1), c = toPct(s.p2); return `${Math.min(a, c)}-${Math.max(a, c)}%`; })()
-      : `${toPct(s.p1)}%`;
-    return { side: rep < 50 ? 'left' : 'right', pct };
+  // Renders a bar state {phase,p1,p2} as a node (single point) or a fill
+  // (range), positioned along a 0–100 track. cls marks the new perspective.
+  function barMarkHTML(s, cls){
+    if (!s || s.p1 == null) return '';
+    const clamp = (v) => Math.max(0, Math.min(100, v));
+    if (s.phase === 2 && s.p2 != null){
+      const lo = clamp(Math.min(s.p1, s.p2)), hi = clamp(Math.max(s.p1, s.p2));
+      return `<div class="pp-bar-fill${cls}" style="left:${lo}%;width:${hi - lo}%"></div>`;
+    }
+    return `<div class="pp-bar-node${cls}" style="left:${clamp(s.p1)}%"></div>`;
   }
   function buildPerspectivesHTML(){
     const origHasAny = BARS.some(b => { const s = barState[b.id]; return s && s.p1 != null; });
     if (!origHasAny && !parallelRows.length) return '';
     const hasNew = parallelRows.length > 0;
-    // One row per bar: [axis title] [left-pole cell] [right-pole cell]. The %
-    // shows only in the pole it leans to — when Objective/General is chosen,
-    // the Subjective/Momentual cell stays empty. New perspective shown italic.
+    // One full-width bar per perspective, with its poles labelled above it.
+    // The original selection is the gold node/fill; a new perspective overlays
+    // a pink one.
     const rows = BARS.map(b => {
-      const o = barCellInfo(barState[b.id]);
-      const n = hasNew ? barCellInfo(parallelRows[0].states[b.id]) : null;
-      const cell = (side) => {
-        const parts = [];
-        if (o && o.side === side) parts.push(`<span class="pp-val">${o.pct}</span>`);
-        if (n && n.side === side) parts.push(`<span class="pp-val pp-val-new">${n.pct}</span>`);
-        return `<div class="pp-pole-cell pp-${side}">${parts.join(' ')}</div>`;
-      };
-      return `<div class="pp-row">`
-        + `<div class="pp-axis">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`
-        + cell('left') + cell('right')
+      const o = barState[b.id];
+      const n = hasNew ? parallelRows[0].states[b.id] : null;
+      return `<div class="pp-bar-row">`
+        + `<div class="pp-bar-title"><b>${escapeHTML(b.leftLabel)}</b><b>${escapeHTML(b.rightLabel)}</b></div>`
+        + `<div class="pp-bar-track">${barMarkHTML(o, '')}${n ? barMarkHTML(n, ' pp-mark-new') : ''}</div>`
         + `</div>`;
     }).join('');
     return `<div class="perspectives-chosen">`
       + `<span class="pp-title">Perspectives</span>`
-      + `<div class="pp-grid">${rows}</div>`
+      + `<div class="pp-bars">${rows}</div>`
       + `</div>`;
   }
   // Per group: a row of words for the first play. The second play row below it
@@ -7427,7 +7447,8 @@
     const addArrow = (pos, kind) => {
       if (pos < 0 || !lis[pos]) return;
       const liRect = lis[pos].getBoundingClientRect();
-      const top = (liRect.top + liRect.height/2) - wrapRect.top;
+      // Sit ~10px below the green Analyze arrows (which are at row-centre +6).
+      const top = (liRect.top + liRect.height/2) - wrapRect.top + 16;
       const a = document.createElement('div');
       a.className = 'g-arrow ' + kind;
       a.style.left  = leftPx + 'px';

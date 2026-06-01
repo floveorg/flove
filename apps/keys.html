@@ -1661,6 +1661,33 @@
   .triad-pair .deck-done li:has(.gender-icon),
   .triad-pair .ad-deck li:has(.gender-icon){padding-left:1.8rem}
 
+  /* Gender row (Genders "more"): a 2×-big icon sitting on its Yin / Yang cell,
+     with coloured arrows running out to both sides of the row. */
+  .ad-deck li:has(.gender-row){padding-left:2px;padding-right:2px}
+  .ad-deck li:has(.gender-row) .nm{opacity:.22}
+  .gender-row{
+    position:absolute;inset:0;pointer-events:none;z-index:3;
+    color:#ed8aa6;
+  }
+  .gender-row.male{color:#7ea0ff}
+  .gender-row .ga{
+    position:absolute;top:50%;height:0;
+    border-top:2px dashed currentColor;transform:translateY(-50%);
+  }
+  .gender-row .ga-left{left:5px;right:calc(50% + 12px)}
+  .gender-row .ga-right{left:calc(50% + 12px);right:5px}
+  .gender-row .ga-head{
+    position:absolute;top:50%;width:0;height:0;
+    border-top:5px solid transparent;border-bottom:5px solid transparent;
+  }
+  .gender-row .ga-left .ga-head{left:-1px;transform:translateY(-50%);border-right:8px solid currentColor}
+  .gender-row .ga-right .ga-head{right:-1px;transform:translateY(-50%);border-left:8px solid currentColor}
+  .gender-row .gender-icon.big{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:2.4rem;line-height:1;
+    filter:drop-shadow(0 0 5px rgba(0,0,0,.55));
+  }
+
   /* Analyze arrows overlay (3 horizontal arrows across the rows of ordinals) */
   .analyze-arrows{
     position:absolute;inset:0;pointer-events:none;z-index:2;
@@ -1771,12 +1798,12 @@
   }
   .analyze-arrows .arrow{
     position:absolute;left:8px;right:8px;height:0;
-    border-top:2px dashed var(--accent);
-    filter:drop-shadow(0 0 8px rgba(255,95,220,.4));
+    border-top:2px dashed var(--brand);
+    filter:drop-shadow(0 0 8px rgba(0,247,167,.45));
   }
   .analyze-arrows .arrow::after{
     content:"";position:absolute;right:-2px;top:-7px;
-    width:0;height:0;border-left:12px solid var(--accent);
+    width:0;height:0;border-left:12px solid var(--brand);
     border-top:7px solid transparent;border-bottom:7px solid transparent;
   }
 
@@ -1847,6 +1874,7 @@
   /* Secondary row of smaller "More …" alternatives. Sits below the main two
      chooser opts with reduced padding + smaller heading + 60% width cap. */
   .chooser-actions-sm{margin-top:14px}
+  .chooser-back{display:flex;justify-content:center;margin-top:18px}
   .chooser-actions .opt.opt-sm{
     flex:1 1 200px;max-width:230px;
     padding:11px 11px;border-radius:12px;
@@ -1979,10 +2007,17 @@
     border-radius:14px;
     color:var(--ink-soft);
     animation: rise .3s cubic-bezier(.2,.8,.2,1) both;
-    display:flex; flex-direction:column; gap:.9rem;
+    display:flex; flex-direction:column; gap:10px;
     text-align:left;
   }
   .customize-panel[hidden]{ display:none }
+  /* Revealed info (Play-with / Certify / More info) renders as plain text —
+     no boxed border or background. */
+  .intro-cta .cert-intro,
+  .intro-cta .moreinfo-box{
+    background:none; border:0; border-left:0; border-radius:0;
+    padding:0; margin-top:.35rem;
+  }
   .cust-group{ display:flex; flex-direction:column; gap:.4rem; }
   .cust-group.cust-row{ flex-direction:row; align-items:center; gap:.7rem; }
   .cust-label{
@@ -3137,6 +3172,9 @@
         <div class="desc">The last two items of every deck are blank — name them before you order.</div>
       </button>
     </div>
+    <div class="chooser-back">
+      <button class="btn btn-ghost btn-back" id="chooser-back" type="button">← Back</button>
+    </div>
   </section>
 
   <section class="prelude" id="prelude">
@@ -3208,7 +3246,6 @@
       <button class="btn btn-primary" id="btn-analyze-more-3" type="button" hidden>More</button>
     </div>
 
-    <div class="insights-panel" id="insights-panel" hidden></div>
 
     <!-- Play-more prompt: shown above the decks once "Play more" is engaged. -->
     <p class="play-more-hint" id="play-more-hint" hidden>Choose your favourite words from the decks and see what the Combos app will do next</p>
@@ -4631,6 +4668,31 @@
       <span class="muted">A fast pick often means you were already sure about it.</span>`;
   }
 
+  // Further insight #2 (Analyze): the deck whose "why" you reflected on longest.
+  function buildWhyTimeHintHTML(){
+    const perWhy = state.timing.perWhy || {};
+    const entries = Object.entries(perWhy)
+      .filter(([id, ms]) => ms > 0 && DECKS.find(d => d.id === id && state.done[id]));
+    if (entries.length === 0) return '';
+    entries.sort((a, b) => b[1] - a[1]);
+    const d = DECKS.find(dk => dk.id === entries[0][0]);
+    const name = d ? escapeHTML(d.title) : entries[0][0];
+    return `You reflected longest writing your <b>why</b> for <b>${name}</b>.
+      <span class="muted">The order you can explain at length is the one you hold most consciously.</span>`;
+  }
+
+  // Further insight #3 (Analyze): your average pace across the decks.
+  function buildPaceHintHTML(){
+    const perDeck = state.timing.perDeck || {};
+    const entries = Object.entries(perDeck)
+      .filter(([id, ms]) => ms > 0 && DECKS.find(d => d.id === id && state.done[id]));
+    if (entries.length < 2) return '';
+    const total = entries.reduce((s, [, ms]) => s + ms, 0);
+    const avg = Math.round(total / entries.length);
+    return `On average you spent <b>${fmtDuration(avg)}</b> per key across ${entries.length} decks.
+      <span class="muted">A steady pace suggests you read every section with similar care.</span>`;
+  }
+
   function renderTimeStats(){
     const $panel = document.getElementById('time-stats');
     if (!$panel) return;
@@ -4667,8 +4729,15 @@
         `${stepRows ? `<div class="ts-group"><div class="ts-cap">Steps</div>${stepRows}</div>` : ''}`
       + `${stageRows ? `<div class="ts-group"><div class="ts-cap">Stages</div>${stageRows}</div>` : ''}`
       + `${deckRows ? `<div class="ts-group"><div class="ts-cap">Decks · why</div>${deckRows}</div>` : ''}`;
-    const furtherHint = buildFastDeckHintHTML();
-    const hasFurther = !!(furtherHint || breakdown);
+    const furtherHints = [
+      buildFastDeckHintHTML(),
+      buildWhyTimeHintHTML(),
+      buildPaceHintHTML(),
+    ].filter(Boolean);
+    const furtherHintsHTML = furtherHints
+      .map(h => `<div class="ts-hint ts-further-hint">${h}</div>`)
+      .join('');
+    const hasFurther = !!(furtherHints.length || breakdown);
     const hasContent = !!(totalText || hintHTML || hasFurther);
 
     // First insight + the expanded stats show immediately. The Analyze button
@@ -4679,11 +4748,9 @@
       ${totalText ? `<div class="ts-total">Total time · <b>${escapeHTML(totalText)}</b></div>` : ''}
       ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
       ${breakdown ? `<div class="ts-stats">${breakdown}</div>` : ''}
-      ${furtherHint ? `<div class="ts-expanded">
+      ${furtherHints.length ? `<div class="ts-expanded">
         <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze</button>
-        <div class="ts-further" id="ts-further" hidden>
-          <div class="ts-hint ts-further-hint">${furtherHint}</div>
-        </div>
+        <div class="ts-further" id="ts-further" hidden>${furtherHintsHTML}</div>
       </div>` : ''}
     `;
     // Analyze reveals the further insights below it.
@@ -5192,6 +5259,10 @@
     initPrelude();
     setUIMode('prelude');
     renderPrelude();
+  });
+  document.getElementById('chooser-back').addEventListener('click', () => {
+    state.introActive = true;
+    setUIMode('intro');
   });
   document.getElementById('chooser-step1').addEventListener('click', () => {
     applyGameMode('normal');
@@ -6340,15 +6411,13 @@
   // so a point at 30/70 reads 40%, and a range can read e.g. 20-80%.
   // A percentage cell that also names the pole it leans toward, so "20%" is
   // never ambiguous between (e.g.) Subjective and Objective.
-  function barPctCell(s, b){
+  function barPctCell(s){
     if (!s || s.p1 == null) return '—';
     const toPct = (p) => Math.round(Math.abs(p - 50) * 2);
-    const rep = (s.phase === 2 && s.p2 != null) ? (s.p1 + s.p2) / 2 : s.p1;
-    const pole = rep < 50 ? b.leftLabel : (rep > 50 ? b.rightLabel : '');
     const pct = (s.phase === 2 && s.p2 != null)
       ? (() => { const a = toPct(s.p1), c = toPct(s.p2); return `${Math.min(a, c)}-${Math.max(a, c)}%`; })()
       : `${toPct(s.p1)}%`;
-    return `${pct}${pole ? ` <span class="pp-pole">${escapeHTML(pole)}</span>` : ''}`;
+    return `${pct}`;
   }
   function buildPerspectivesHTML(){
     const origHasAny = BARS.some(b => { const s = barState[b.id]; return s && s.p1 != null; });
@@ -6359,6 +6428,7 @@
       const orig = barPctCell(barState[b.id], b);
       const neu  = hasNew ? barPctCell(parallelRows[0].states[b.id], b) : '';
       return `<div class="pp-row">`
+        + `<div class="pp-axis">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`
         + `<div class="pp-cell">${orig}</div>`
         + (hasNew ? `<div class="pp-cell pp-cell-new">${neu}</div>` : '')
         + `</div>`;
@@ -7206,13 +7276,13 @@
 
   function removeFinishIcons(){
     _finishApplied = false;
-    document.querySelectorAll('.gender-icon').forEach(n => n.remove());
+    document.querySelectorAll('.gender-row, .gender-icon').forEach(n => n.remove());
   }
 
   function applyFinishIcons(){
     _finishApplied = true;
-    // Wipe any previous icons across summary decks + extra decks
-    document.querySelectorAll('.gender-icon').forEach(n => n.remove());
+    // Wipe any previous markers
+    document.querySelectorAll('.gender-row, .gender-icon').forEach(n => n.remove());
     // Find Yin/Yang positions in the Metaphysics deck (x2)
     const tao = EXTRA_DECKS.find(d => d.id === 'x2');
     if (!tao) return;
@@ -7222,55 +7292,26 @@
       if (tao.items[itemIdx] === 'Yin')  yinPos  = pos;
       if (tao.items[itemIdx] === 'Yang') yangPos = pos;
     });
-    // Stamp directly on the Journalism (t5) and Economy (t4) groups — the
-    // main triad decks themselves, not their paired extras. Every other deck
-    // stays clean.
-    const GENDER_DECK_IDS = new Set(['t4','t5']);
-    const stamp = (pos, kind) => {
+    // Mark ONLY the Yin / Yang cells of the Metaphysics deck: a 2×-big gender
+    // icon (Yin → ♀ female, Yang → ♂ male) with coloured arrows running out to
+    // both sides of its row.
+    const ad = document.querySelector('.summary-triads .ad-deck[data-deck-id="x2"] ol');
+    if (!ad) return;
+    const mark = (pos, kind) => {
       if (pos < 0) return;
-      const targets = [];
-      document.querySelectorAll('.summary-triads .deck-done.in-summary').forEach(dd => {
-        if (!GENDER_DECK_IDS.has(dd.dataset.deckId)) return;
-        const ol = dd.querySelector('ol');
-        if (ol) targets.push(ol);
-      });
-      targets.forEach(ol => {
-        const li = ol.children[pos];
-        if (!li) return;
-        if (li.querySelector('.gender-icon.' + kind)) return;
-        const nm = li.querySelector('.nm');
-        if (!nm) return;
-        const ic = document.createElement('span');
-        ic.className = 'gender-icon ' + kind;
-        ic.textContent = kind === 'female' ? '♀' : '♂';
-        ic.title = kind === 'female' ? 'Yin (this ordinal)' : 'Yang (this ordinal)';
-        nm.prepend(ic);
-      });
-    };
-    // Mapping: Yin → ♀ female, Yang → ♂ male
-    stamp(yinPos,  'female');
-    stamp(yangPos, 'male');
-    // Also echo the markers (at 50% opacity) on the Metaphysics deck (x2)
-    // itself, right where Yin / Yang sit, so the source of the ranking is
-    // visible alongside the keys it stamps.
-    const stampMeta = (pos, kind) => {
-      if (pos < 0) return;
-      const ad = document.querySelector('.summary-triads .ad-deck[data-deck-id="x2"] ol');
-      if (!ad) return;
       const li = ad.children[pos];
-      if (!li) return;
-      if (li.querySelector('.gender-icon.' + kind)) return;
-      const nm = li.querySelector('.nm');
-      if (!nm) return;
-      const ic = document.createElement('span');
-      ic.className = 'gender-icon ' + kind;
-      ic.style.opacity = '.5';
-      ic.textContent = kind === 'female' ? '♀' : '♂';
-      ic.title = kind === 'female' ? 'Yin' : 'Yang';
-      nm.prepend(ic);
+      if (!li || li.querySelector('.gender-row')) return;
+      const row = document.createElement('span');
+      row.className = 'gender-row ' + kind;
+      row.title = (kind === 'female' ? 'Yin · ♀' : 'Yang · ♂');
+      row.innerHTML =
+          '<span class="ga ga-left"><span class="ga-head"></span></span>'
+        + '<span class="ga ga-right"><span class="ga-head"></span></span>'
+        + '<span class="gender-icon big ' + kind + '">' + (kind === 'female' ? '♀' : '♂') + '</span>';
+      li.appendChild(row);
     };
-    stampMeta(yinPos,  'female');
-    stampMeta(yangPos, 'male');
+    mark(yinPos,  'female');
+    mark(yangPos, 'male');
   }
 
   // 2nd "More" toggles the Yin/Yang gender icons across every key. Replaces

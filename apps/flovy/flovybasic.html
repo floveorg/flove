@@ -6,26 +6,25 @@
 <meta name="theme-color" content="#d32f2f">
 <meta name="color-scheme" content="light">
 <title>FlovyBasic</title>
-<meta name="description" content="FlovyBasic — the basic tier of flovy: the standardised elements (topbar, menu, content, summary) at their plainest, simple-complexity standard. Pure CSS, no JavaScript. Tiers: mini · basic · normal · advanced · super.">
+<meta name="description" content="FlovyBasic — the basic tier of flovy: topbar with compass + magic labelers, an entry field with wizard suggesters, a heart rater, a mic, and a summary with insights, Copy and Share. Single page, pure CSS, no JavaScript. Tiers: mini · basic · normal · advanced · super.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d32f2f' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-3A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3C/svg%3E">
 <style>
 /* ============================================================
-   FLOVYBASIC — the BASIC tier of flovy (simple-complexity standard)
+   FLOVYBASIC — the BASIC tier of flovy
    tiers:  mini → basic → normal → advanced → super
 
-   The plainest standard set of flovy elements — the reference for a
-   "simple frontend". Pure CSS, no JavaScript — state lives in hidden
-   .ctl inputs read with :has().
+   Single-page (no stepper) but fully interactive — pure CSS, no
+   JavaScript; state lives in hidden .ctl inputs read with :has().
 
-   Elements shown (basic / simple-complexity level):
-     · Topbar     — heart mark + title + tier-switcher + ☰ menu
-     · Menu       — language swap + About, click-outside to close
-     · Content    — one entry field + Add (no stepper, no bots)
-     · Summary    — a static phrase + Copy hint
+   Elements shown (basic level):
+     · Topbar   — heart mark + title + COMPASS (3 layouts)
+                  + MAGIC labelers (3 rays) + tier-switcher + ☰ menu
+     · Content  — entry field + ✦ WIZARDS + ♥ HEART RATER + 🎤 MIC + Add
+     · Summary  — phrase + INSIGHTS (4) + Copy + SHARE
 
-   Deliberately ABSENT at this tier (added in normal / advanced):
-     compass, magic ray-switcher, rater, bot suggester, stepper,
-     charts, insight cycle, modals.
+   No intro title/tagline at this tier — the page leads straight with
+   the working elements. Stepper, charts and modals live in normal/
+   advanced.
    ============================================================ */
 
 :root{
@@ -69,7 +68,7 @@ body{
 label[for]{ cursor: pointer; user-select: none; }
 .ctl{ position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; }
 
-/* i18n: every translatable string is a .l-en / .l-es pair. */
+/* i18n */
 .l-es{ display: none; }
 body:has(#lang-es:checked) .l-en{ display: none; }
 body:has(#lang-es:checked) .l-es{ display: inline; }
@@ -79,54 +78,113 @@ body:has(#lang-es:checked) .l-es{ display: inline; }
   position: sticky; top: 0; z-index: 10;
   background: rgba(255,255,255,.82);
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .topbar-inner{
   position: relative;
-  max-width: 420px; margin: 0 auto;
+  max-width: 460px; margin: 0 auto;
   display: flex; align-items: center; gap: .4rem;
   padding: .6rem .9rem;
 }
 .mark{
-  font-size: 1.7rem; color: var(--accent);
+  font-size: 1.7rem; line-height: 1; color: var(--accent);
   filter: drop-shadow(0 0 8px var(--accent-glow));
-  line-height: 1;
   transition: transform var(--fast);
 }
 .mark:hover{ transform: scale(1.08); }
+.mark .mk{ display: none; }
+.mark .mk-default{ display: inline; }
+body:has([name="ray"]:checked:not(#ray-none)) .mark .mk-default{ display: none; }
+body:has(#ray-formal:checked)   .mark .mk-formal{ display: inline; }
+body:has(#ray-informal:checked) .mark .mk-informal{ display: inline; }
+body:has(#ray-hotter:checked)   .mark .mk-hotter{ display: inline; }
 .title{
   font-family: var(--font-display); font-weight: 700;
   font-size: 1.25rem; letter-spacing: -.01em; line-height: 1;
   background: linear-gradient(90deg, var(--accent), #ff8a65 60%, var(--accent));
-  background-clip: text; -webkit-background-clip: text;
-  color: transparent;
+  background-clip: text; -webkit-background-clip: text; color: transparent;
 }
-/* the spacer pushes the level-switcher + menu to the right edge */
 .topbar-spacer{ flex: 1; }
 
-/* ── level-switcher: this file's place on the complexity axis.
-   Three nodes — Simple (current) · Medium · Advanced — fanned out to
-   the LEFT of the icon, hidden until #level-open is checked. The same
-   visual language as the product tier-pop, repurposed for the
-   simple/medium/advanced standard axis. ─────────────────────────── */
-.level-pop{ position: relative; display: inline-flex; align-items: center; flex-shrink: 0; }
-.level-pop-btn{
-  position: relative; z-index: 2; flex-shrink: 0;
+.topbar-btn{
   display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 0; background: transparent; color: var(--ink-soft);
-  cursor: pointer;
-  transition: background var(--fast), color var(--fast);
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 0; background: transparent; cursor: pointer;
+  transition: background var(--fast), color var(--fast), transform var(--fast);
 }
+
+/* compass — 3 layout modes for the ray chips + entry field */
+.compass-wrap{ position: relative; display: inline-flex; align-items: center; flex-shrink: 0; }
+.compass-btn{ color: rgba(var(--accent-rgb),.6); }
+.compass-btn svg{ display: block; transition: transform var(--fast); }
+.compass-btn:hover, .compass-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
+body:has(#compass-open:checked) .compass-btn{ color: #fff; background: var(--accent); }
+body:has(#compass-open:checked) .compass-btn svg{ transform: rotate(45deg); }
+.mode-buttons{
+  position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%);
+  display: none; align-items: center; gap: .55rem; white-space: nowrap; z-index: 12;
+}
+body:has(#compass-open:checked) .mode-buttons{ display: inline-flex; }
+.mode-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: transparent; color: var(--ink-mute);
+  cursor: pointer; transition: color var(--fast), transform var(--fast);
+}
+.mode-btn svg{ display: block; width: 22px; height: 22px; }
+.mode-btn:hover, .mode-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
+body:has(#disp-list:checked)    .mode-btn[for="disp-list"],
+body:has(#disp-cloud:checked)   .mode-btn[for="disp-cloud"],
+body:has(#disp-bubbles:checked) .mode-btn[for="disp-bubbles"]{ color: var(--accent); transform: scale(1.25); }
+.ray, .entry-field{ transition: transform .5s var(--bounce); }
+body:has(#disp-cloud:checked) .ray,
+body:has(#disp-cloud:checked) .entry-field{ animation: compass-drift 6.5s ease-in-out infinite; }
+body:has(#disp-cloud:checked) .ray:nth-child(2){ animation-delay: -2s; }
+body:has(#disp-cloud:checked) .ray:nth-child(3){ animation-delay: -4s; }
+@keyframes compass-drift{
+  0%,100%{ transform: translate(0,0) rotate(0); }
+  25%{ transform: translate(4px,-3px) rotate(3deg); }
+  50%{ transform: translate(-3px,3px) rotate(-2deg); }
+  75%{ transform: translate(3px,3px) rotate(2deg); }
+}
+body:has(#disp-bubbles:checked) .ray{ animation: compass-float 4.5s ease-in-out infinite; }
+body:has(#disp-bubbles:checked) .ray:nth-child(2){ animation-delay: -1.5s; }
+body:has(#disp-bubbles:checked) .ray:nth-child(3){ animation-delay: -3s; }
+@keyframes compass-float{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-5px);} }
+
+/* magic labelers — ✨ toggles a 3-chip personality (ray) row */
+.magic-wrap{ position: relative; display: inline-flex; align-items: center; gap: .3rem; flex-shrink: 0; }
+.magic-btn{ color: var(--accent-deep); font-size: 1.5rem; }
+.magic-btn:hover, .magic-btn:focus-visible{ background: rgba(var(--accent-rgb),.5); color: #fff; }
+body:has(#magic-open:checked) .magic-btn{ background: var(--accent); color: #fff; }
+.rays{
+  display: flex; align-items: center; gap: .3rem;
+  max-width: 0; overflow: hidden; opacity: 0; pointer-events: none;
+  transition: max-width .35s var(--bounce), opacity .2s var(--bounce);
+}
+body:has(#magic-open:checked) .rays{ max-width: 150px; opacity: 1; pointer-events: auto; }
+.ray{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  font-size: 1rem; line-height: 1;
+  background: #fff; border: 1px solid var(--line);
+  transition: transform var(--fast), background var(--fast), border-color var(--fast), box-shadow var(--fast);
+}
+.ray:hover{ background: var(--fill-soft); border-color: var(--accent); transform: translateY(-1px); }
+body:has(#ray-formal:checked)   .ray[for="ray-formal"],
+body:has(#ray-informal:checked) .ray[for="ray-informal"],
+body:has(#ray-hotter:checked)   .ray[for="ray-hotter"]{
+  background: var(--accent); border-color: var(--accent-deep); color: #fff;
+  transform: scale(1.12); box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* level/tier-switcher */
+.level-pop{ position: relative; display: inline-flex; align-items: center; flex-shrink: 0; }
+.level-pop-btn{ color: var(--ink-soft); }
 .level-pop-btn svg{ display: block; }
 .level-pop-btn:hover, .level-pop-btn:focus-visible,
-body:has(#level-open:checked) .level-pop-btn{
-  color: #fff; background: var(--accent);
-}
+body:has(#level-open:checked) .level-pop-btn{ color: #fff; background: var(--accent); }
 .level-pop-rays{
-  position: absolute; right: calc(100% + 8px); top: 50%;
-  transform: translateY(-50%);
+  position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%);
   display: none; align-items: center; gap: 1.1rem;
   margin: 0; padding: .3rem .55rem; list-style: none;
   background: var(--panel-bg); border: 1px solid var(--panel-border);
@@ -138,8 +196,7 @@ body:has(#level-open:checked) .level-pop-rays{ display: flex; }
 .level-pop-step{
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; gap: .2rem;
-  padding: .2rem .4rem; border-radius: 8px;
-  text-decoration: none; color: inherit;
+  padding: .2rem .4rem; border-radius: 8px; text-decoration: none; color: inherit;
   transition: background var(--fast);
 }
 .level-pop-step:hover{ background: var(--fill-soft); }
@@ -161,26 +218,17 @@ body:has(#level-open:checked) .level-pop-rays{ display: flex; }
 }
 .level-pop-step--current .level-pop-label{ color: var(--accent-deep); font-weight: 700; }
 
-/* ── menu button + overlay ─────────────────────────────────── */
-.menu-btn{
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; border-radius: 10px;
-  font-size: 1.2rem; color: var(--ink);
-  transition: background var(--fast);
-}
+/* menu button + overlay */
+.menu-btn{ width: 34px; height: 34px; border-radius: 10px; font-size: 1.2rem; color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center; transition: background var(--fast); }
 .menu-btn:hover, .menu-btn:focus-visible{ background: var(--fill-mid); }
 .menu-btn--close{ display: none; }
 body:has(#m:checked) .menu-btn--open{ display: none; }
 body:has(#m:checked) .menu-btn--close{ display: inline-flex; }
-
-.menu-overlay{
-  position: fixed; inset: 0; z-index: 8;
-  background: transparent; opacity: 0; pointer-events: none;
-  transition: opacity var(--fast);
-}
+.menu-overlay{ position: fixed; inset: 0; z-index: 8; background: transparent; opacity: 0; pointer-events: none; transition: opacity var(--fast); }
 body:has(#m:checked) .menu-overlay{ opacity: 1; pointer-events: auto; }
 
-/* ── 2. MENU — a small dropdown panel anchored under the ☰ ───── */
+/* ── 2. MENU panel ─────────────────────────────────────────── */
 .menu-panel{
   position: absolute; top: calc(100% + .5rem); right: .9rem;
   width: 220px; max-width: calc(100vw - 1.8rem);
@@ -188,156 +236,285 @@ body:has(#m:checked) .menu-overlay{ opacity: 1; pointer-events: auto; }
   background: var(--panel-bg); border: 1px solid var(--panel-border);
   border-radius: var(--radius); box-shadow: var(--panel-shadow);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  z-index: 12;
-  opacity: 0; transform: translateY(-6px); pointer-events: none;
+  z-index: 12; opacity: 0; transform: translateY(-6px); pointer-events: none;
   transition: opacity var(--fast), transform var(--fast);
 }
 body:has(#m:checked) .menu-panel{ opacity: 1; transform: none; pointer-events: auto; }
 .menu-row{
   display: flex; align-items: center; gap: .6rem;
   padding: .55rem .65rem; border-radius: 10px;
-  color: var(--ink); font: 500 .92rem var(--font-ui);
-  transition: background var(--fast);
+  color: var(--ink); font: 500 .92rem var(--font-ui); transition: background var(--fast);
 }
 .menu-row:hover{ background: var(--fill-soft); }
 .menu-row .mi{ font-size: 1.05rem; color: var(--accent-deep); width: 1.3em; text-align: center; }
 .menu-row-state{ margin-left: auto; font-size: .82rem; color: var(--ink-soft); }
 .menu-divider{ height: 1px; margin: .3rem .4rem; background: var(--line); }
 
-/* ── 3. CONTENT — one card, one field, one Add ─────────────── */
-main{ max-width: 420px; margin: 1.2rem auto 2rem; padding: 0 .9rem; }
-.card{
-  display: flex; flex-direction: column;
-  padding: 1.1rem 1rem 1.2rem;
-  animation: card-in .55s var(--bounce) both;
-}
+/* ── 3. CONTENT ────────────────────────────────────────────── */
+main{ max-width: 460px; margin: 1.2rem auto 2rem; padding: 0 .9rem; }
+.card{ display: flex; flex-direction: column; padding: 1.1rem 1rem 1.2rem; animation: card-in .55s var(--bounce) both; }
 @keyframes card-in{ from{ opacity: 0; transform: translateY(8px);} to{ opacity: 1; transform: none;} }
-.card-title{
-  margin: 0 0 .15rem;
-  font-family: var(--font-display); font-weight: 700;
-  font-size: 1.2rem; letter-spacing: -.005em; color: var(--ink);
-}
-.tagline{ margin: 0 0 1rem; font-size: .85rem; color: var(--ink-soft); }
 
 .entry-form{ display: flex; flex-direction: column; gap: .7rem; }
 .entry-field{
-  position: relative;
-  border: 2px solid var(--line-strong); border-radius: 12px;
-  padding: .8rem .9rem;
-  transition: border-color var(--fast), box-shadow var(--fast);
+  position: relative; border: 2px solid var(--line-strong); border-radius: 12px;
+  padding: .8rem .9rem; transition: border-color var(--fast), box-shadow var(--fast);
 }
 .entry-field:focus-within{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .entry-textarea{
-  display: block; width: 100%; min-height: 5em;
-  margin: 0; padding: 0; border: 0; resize: vertical;
-  font-family: inherit; font-size: 1.15rem; line-height: 1.4;
-  color: var(--ink); background: transparent;
+  display: block; width: 100%; min-height: 5em; margin: 0; padding: 0; border: 0; resize: vertical;
+  font-family: inherit; font-size: 1.15rem; line-height: 1.4; color: var(--ink); background: transparent; position: relative; z-index: 1;
 }
 .entry-textarea:focus-visible{ outline: none; }
-.ghost-placeholder{
-  position: absolute; top: .8rem; left: .9rem; pointer-events: none;
-  color: var(--ink-mute); font-size: 1.15rem; line-height: 1.4; display: none;
-}
+.ghost-placeholder{ position: absolute; top: .8rem; left: .9rem; pointer-events: none; color: var(--ink-mute); font-size: 1.15rem; line-height: 1.4; display: none; }
 .entry-field:has(.entry-textarea:placeholder-shown) .ghost-placeholder{ display: block; }
+/* wizard suggestion — inline ghost text overlay, shown when a bot is picked and field empty */
+.suggestion{
+  position: absolute; top: calc(.8rem + 1.45em); left: .9rem; right: .9rem;
+  margin: 0; color: var(--ink-mute); font-size: 1.05rem; line-height: 1.4; pointer-events: none; display: none; z-index: 0;
+}
+.suggestion > span{ display: none; }
+body:has([name="bot"]:checked:not(#bot-none)) .entry-field:has(.entry-textarea:placeholder-shown) .suggestion{ display: block; }
+body:has(#bot-formal:checked)   .sg-formal,
+body:has(#bot-informal:checked) .sg-informal,
+body:has(#bot-hotter:checked)   .sg-hotter{ display: inline; }
 
-.entry-row{ display: flex; align-items: center; }
+.entry-tools{ display: flex; align-items: center; gap: .4rem; margin-top: .55rem; }
+.tool-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--fill-soft); border: 1px solid transparent; color: var(--accent-deep);
+  font-size: 1rem; cursor: pointer;
+  transition: background var(--fast), border-color var(--fast), transform var(--fast);
+}
+.tool-btn:hover{ background: var(--fill-mid); border-color: var(--accent); }
+.tool-cell{ position: relative; display: inline-flex; }
+.tool-pop{
+  position: absolute; bottom: calc(100% + .4rem); left: 0;
+  display: none; align-items: center; gap: .3rem; padding: .3rem .4rem; list-style: none; margin: 0;
+  background: var(--panel-bg); border: 1px solid var(--panel-border);
+  border-radius: 999px; box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; z-index: 6;
+}
+body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop,
+body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
+.chip{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; font-size: 1rem;
+  background: #fff; border: 1px solid var(--line);
+  transition: transform var(--fast), background var(--fast), border-color var(--fast);
+}
+.chip:hover{ background: var(--fill-soft); border-color: var(--accent); transform: translateY(-1px); }
+body:has(#bot-formal:checked)   .chip[for="bot-formal"],
+body:has(#bot-informal:checked) .chip[for="bot-informal"],
+body:has(#bot-hotter:checked)   .chip[for="bot-hotter"],
+body:has(#rate-1:checked) .chip[for="rate-1"],
+body:has(#rate-2:checked) .chip[for="rate-2"],
+body:has(#rate-3:checked) .chip[for="rate-3"],
+body:has(#rate-4:checked) .chip[for="rate-4"]{
+  background: var(--accent); border-color: var(--accent-deep);
+  transform: scale(1.1); box-shadow: 0 0 0 2px var(--accent-glow);
+}
+/* heart rater — the ♥ trigger fills red once a reaction is chosen */
+body:has([name="rate"]:checked:not(#rate-none)) .rate-btn{ background: var(--accent); color: #fff; }
+/* mic — toggles a pulsing "listening" state (visual only; no audio JS at this tier) */
+body:has(#mic-on:checked) .mic-btn{ background: var(--accent); color: #fff; animation: mic-pulse 1.3s ease-in-out infinite; }
+@keyframes mic-pulse{ 0%,100%{ box-shadow: 0 0 0 0 var(--accent-glow);} 50%{ box-shadow: 0 0 0 6px rgba(var(--accent-rgb),0);} }
+.mic-hint{ display: none; margin: .1rem 0 0; font: 500 .76rem var(--font-ui); color: var(--accent-deep); }
+body:has(#mic-on:checked) .mic-hint{ display: block; }
+
 .add-btn{
-  margin-left: auto;
-  display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
-  padding: .55rem 1.15rem; border: 0; border-radius: var(--radius-pill);
-  font: 600 .95rem var(--font-ui); color: #fff;
+  margin-left: auto; display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+  padding: .5rem 1.1rem; border: 0; border-radius: var(--radius-pill);
+  font: 600 .92rem var(--font-ui); color: #fff;
   background: linear-gradient(150deg, var(--accent), var(--accent-deep));
-  box-shadow: 0 6px 16px rgba(var(--accent-rgb),.35);
-  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb),.35); cursor: pointer;
   transition: transform var(--fast), box-shadow var(--fast), filter var(--fast);
 }
-.add-btn:hover{ transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 8px 20px rgba(var(--accent-rgb),.45); }
+.add-btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
 .add-btn:active{ transform: translateY(0) scale(.98); }
 
-/* ── 4. SUMMARY — a static phrase + a Copy hint ───────────────
-   The simple summary is read-only text: no insight cycle, no charts,
-   no magic swap. It just restates the contract and offers a Copy
-   hint (a pure-CSS tooltip — no clipboard JS at this level). ───── */
+/* ── 4. SUMMARY — phrase + insights + Copy + Share ──────────── */
 .summary{
   margin-top: 1.6rem; padding: 1.1rem 1rem 1.2rem;
   border: 1px solid var(--panel-border); border-radius: var(--radius);
   background: var(--panel-bg); box-shadow: var(--panel-shadow);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
-.summary-title{
-  margin: 0 0 .6rem; font-family: var(--font-display); font-weight: 700;
-  font-size: 1.05rem; color: var(--ink);
-}
+.summary-title{ margin: 0 0 .6rem; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: var(--ink); }
 .summary-title::before{ content: "✦ "; color: var(--accent); }
-.clause{
-  display: block; margin: 0;
-  font-size: 1rem; line-height: 1.55; color: var(--ink-soft);
+.clause{ display: block; margin: 0; font-size: 1rem; line-height: 1.55; color: var(--ink-soft); }
+.clause code{ font: .85em ui-monospace,Menlo,Consolas,monospace; background: var(--fill-soft); color: var(--accent-deep); padding: .05em .35em; border-radius: 5px; }
+
+/* insights — 4 tabs (Who/What/Where/Why) reveal one panel each */
+.insight-tabs{ display: flex; flex-wrap: wrap; gap: .35rem; margin: .9rem 0 .2rem; }
+.insight-tab{
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .3rem .7rem; border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
+  font: 600 .78rem var(--font-ui); color: var(--ink-soft); background: transparent;
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
 }
-.clause code{
-  font: .85em ui-monospace,'SF Mono',Menlo,Consolas,monospace;
-  background: var(--fill-soft); color: var(--accent-deep);
-  padding: .05em .35em; border-radius: 5px;
+.insight-tab:hover{ background: var(--fill-soft); }
+body:has(#insight-who:checked)   .insight-tab[for="insight-who"],
+body:has(#insight-what:checked)  .insight-tab[for="insight-what"],
+body:has(#insight-where:checked) .insight-tab[for="insight-where"],
+body:has(#insight-why:checked)   .insight-tab[for="insight-why"]{
+  background: var(--accent); color: #fff; border-color: var(--accent-deep);
 }
-.summary-actions{ display: flex; justify-content: flex-end; margin-top: .9rem; }
-.copy-btn{
+.insight-panel{ display: none; margin-top: .5rem; padding: .7rem .8rem; border-left: 3px solid var(--accent); background: var(--fill-soft); border-radius: 0 10px 10px 0; font-size: .92rem; line-height: 1.5; color: var(--ink); animation: card-in .35s var(--bounce); }
+.insight-panel strong{ color: var(--accent-deep); }
+body:has(#insight-who:checked)   .insight-panel--who,
+body:has(#insight-what:checked)  .insight-panel--what,
+body:has(#insight-where:checked) .insight-panel--where,
+body:has(#insight-why:checked)   .insight-panel--why{ display: block; }
+
+.summary-actions{ display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+.btn-ghost{
   position: relative;
   display: inline-flex; align-items: center; gap: .35rem;
-  padding: .45rem 1rem; border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill); background: transparent;
-  font: 600 .85rem var(--font-ui); color: var(--ink);
+  padding: .45rem 1rem; border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
+  background: transparent; font: 600 .85rem var(--font-ui); color: var(--ink); cursor: pointer;
   transition: background var(--fast), border-color var(--fast), color var(--fast);
 }
-.copy-btn:hover, .copy-btn:focus-visible{ background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep); }
-/* pure-CSS "Copy by hand" hint bubble — no clipboard JS at simple level */
-.copy-btn .copy-tip{
-  position: absolute; bottom: calc(100% + .45rem); right: 0;
+.btn-ghost:hover, .btn-ghost:focus-visible{ background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep); }
+.tip{
+  position: absolute; bottom: calc(100% + .45rem); left: 50%; transform: translateX(-50%) translateY(4px);
   padding: .4rem .6rem; border-radius: 8px; white-space: nowrap;
   background: var(--ink); color: #fff; font: 500 .72rem var(--font-ui);
-  opacity: 0; transform: translateY(4px); pointer-events: none;
-  transition: opacity var(--fast), transform var(--fast);
+  opacity: 0; pointer-events: none; transition: opacity var(--fast), transform var(--fast);
 }
-.copy-btn:hover .copy-tip, .copy-btn:focus-visible .copy-tip{ opacity: 1; transform: none; }
-
-/* tiny "showcase" footer caption so the file reads as a reference page */
-.showcase-note{
-  max-width: 420px; margin: 1.6rem auto 2.4rem; padding: 0 .9rem;
-  font: 400 .78rem/1.5 var(--font-ui); color: var(--ink-mute); text-align: center;
+.btn-ghost:hover .tip, .btn-ghost:focus-visible .tip{ opacity: 1; transform: translateX(-50%); }
+/* share — opens a small CSS popover of share targets (mailto / hint) */
+.share-cell{ position: relative; display: inline-flex; }
+.share-pop{
+  position: absolute; bottom: calc(100% + .45rem); right: 0; display: none; flex-direction: column; gap: .15rem;
+  margin: 0; padding: .35rem; list-style: none; min-width: 150px;
+  background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 12px; box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 6;
 }
-.showcase-note a{ color: var(--accent-deep); text-decoration: underline; text-underline-offset: 2px; }
+body:has(#share-open:checked) .share-pop{ display: flex; }
+.share-pop a, .share-pop label{
+  display: flex; align-items: center; gap: .5rem; padding: .45rem .55rem; border-radius: 8px;
+  font: 500 .85rem var(--font-ui); color: var(--ink); text-decoration: none; transition: background var(--fast);
+}
+.share-pop a:hover, .share-pop label:hover{ background: var(--fill-soft); }
+body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-color: var(--accent); color: var(--accent-deep); }
 
-@media (max-width: 380px){
-  .topbar-inner{ padding: .55rem .65rem; gap: .3rem; }
+.showcase-note{ max-width: 460px; margin: 1.6rem auto 2.4rem; padding: 0 .9rem; font: 400 .78rem/1.5 var(--font-ui); color: var(--ink-mute); text-align: center; }
+.showcase-note code{ font: .9em ui-monospace,Menlo,Consolas,monospace; color: var(--accent-deep); }
+
+@media (max-width: 400px){
+  .topbar-inner{ padding: .55rem .6rem; gap: .25rem; }
   main{ padding: 0 .65rem; }
-  .card{ padding: .9rem .8rem 1rem; }
-  .title{ font-size: 1.1rem; }
-  .mark{ font-size: 1.4rem; }
 }
 @media (prefers-reduced-motion: reduce){
-  *, *::before, *::after{
-    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
-  }
+  *, *::before, *::after{ animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 </style>
 </head>
 <body>
 
 <!-- ── state controls ─────────────────────────────────────────── -->
-<input type="checkbox" id="m"          class="ctl"><!-- menu open -->
-<input type="checkbox" id="level-open" class="ctl"><!-- level-switcher open -->
+<input type="checkbox" id="m"          class="ctl"><!-- menu -->
+<input type="checkbox" id="level-open" class="ctl"><!-- tier-switcher -->
 <input type="radio" name="lang" id="lang-en" class="ctl" checked>
 <input type="radio" name="lang" id="lang-es" class="ctl">
+
+<!-- compass: 3 layout modes -->
+<input type="checkbox" id="compass-open" class="ctl">
+<input type="radio" name="disp-mode" id="disp-list"    class="ctl" checked>
+<input type="radio" name="disp-mode" id="disp-cloud"   class="ctl">
+<input type="radio" name="disp-mode" id="disp-bubbles" class="ctl">
+
+<!-- magic labelers: 3 rays (formal/informal/hotter) + none -->
+<input type="checkbox" id="magic-open" class="ctl">
+<input type="radio" name="ray" id="ray-none"     class="ctl" checked>
+<input type="radio" name="ray" id="ray-formal"   class="ctl">
+<input type="radio" name="ray" id="ray-informal" class="ctl">
+<input type="radio" name="ray" id="ray-hotter"   class="ctl">
+
+<!-- wizards: bot suggester (single suggestion per bot) -->
+<input type="checkbox" id="bot-open" class="ctl">
+<input type="radio" name="bot" id="bot-none"     class="ctl" checked>
+<input type="radio" name="bot" id="bot-formal"   class="ctl">
+<input type="radio" name="bot" id="bot-informal" class="ctl">
+<input type="radio" name="bot" id="bot-hotter"   class="ctl">
+
+<!-- heart rater: 4 heart reactions, single-select -->
+<input type="checkbox" id="rate-open" class="ctl">
+<input type="radio" name="rate" id="rate-none" class="ctl" checked>
+<input type="radio" name="rate" id="rate-1" class="ctl">
+<input type="radio" name="rate" id="rate-2" class="ctl">
+<input type="radio" name="rate" id="rate-3" class="ctl">
+<input type="radio" name="rate" id="rate-4" class="ctl">
+
+<!-- mic toggle + share popover -->
+<input type="checkbox" id="mic-on"     class="ctl">
+<input type="checkbox" id="share-open" class="ctl">
+
+<!-- insights: 4 panels, one shown at a time -->
+<input type="radio" name="insight" id="insight-none"  class="ctl" checked>
+<input type="radio" name="insight" id="insight-who"   class="ctl">
+<input type="radio" name="insight" id="insight-what"  class="ctl">
+<input type="radio" name="insight" id="insight-where" class="ctl">
+<input type="radio" name="insight" id="insight-why"   class="ctl">
 
 <!-- ── 1. TOPBAR ─────────────────────────────────────────────── -->
 <header class="topbar">
   <div class="topbar-inner">
 
-    <label class="mark" for="m" title="Menu" aria-label="Menu" tabindex="0">♡</label>
+    <label class="mark" for="m" title="Menu" aria-label="Menu" tabindex="0">
+      <span class="mk mk-default">♡</span>
+      <span class="mk mk-formal">🎩</span>
+      <span class="mk mk-informal">👋</span>
+      <span class="mk mk-hotter">🔥</span>
+    </label>
     <h1 style="margin:0"><label class="title" for="m" title="flovy — basic" tabindex="0">flovy</label></h1>
+
+    <!-- compass -->
+    <div class="compass-wrap">
+      <label class="compass-btn topbar-btn" for="compass-open" title="Layout modes" aria-label="Layout modes" tabindex="0">
+        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.9" fill="#fff"/>
+        </svg>
+      </label>
+      <div class="mode-buttons" role="group" aria-label="Layout modes">
+        <label class="mode-btn" for="disp-list" title="List — ordered" aria-label="List" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <circle cx="4" cy="6"  r="2.3"/><rect x="9" y="4.2"  width="13" height="3.6" rx="1.8"/>
+            <circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/>
+            <circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/>
+          </g></svg>
+        </label>
+        <label class="mode-btn" for="disp-cloud" title="Cloud — drift" aria-label="Cloud" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/>
+            <rect x="6.5" y="13" width="12.5" height="6" rx="3"/>
+          </g></svg>
+        </label>
+        <label class="mode-btn" for="disp-bubbles" title="Bubbles — float" aria-label="Bubbles" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/>
+          </g></svg>
+        </label>
+      </div>
+    </div>
 
     <span class="topbar-spacer"></span>
 
-    <!-- tier-switcher (Mini · Basic · Normal · Advanced · Super) -->
+    <!-- magic labelers -->
+    <div class="magic-wrap">
+      <div class="rays" role="radiogroup" aria-label="Personality (ray)">
+        <label class="ray" for="ray-formal"   title="Formal"   aria-label="Formal"   tabindex="0">🎩</label>
+        <label class="ray" for="ray-informal" title="Informal" aria-label="Informal" tabindex="0">👋</label>
+        <label class="ray" for="ray-hotter"   title="Hotter"   aria-label="Hotter"   tabindex="0">🔥</label>
+      </div>
+      <label class="magic-btn topbar-btn" for="magic-open" title="Magic" aria-label="Magic labelers" tabindex="0">✨</label>
+    </div>
+
+    <!-- tier-switcher -->
     <div class="level-pop">
       <ul class="level-pop-rays" role="menu" aria-label="flovy tiers">
         <li><a class="level-pop-step" href="flovymini.html" title="Mini tier"><span class="level-pop-node" aria-hidden="true"></span><span class="level-pop-label"><span class="l-en">Mini</span><span class="l-es">Mini</span></span></a></li>
@@ -346,11 +523,9 @@ main{ max-width: 420px; margin: 1.2rem auto 2rem; padding: 0 .9rem; }
         <li><a class="level-pop-step" href="flovyadvanced.html" title="Advanced tier"><span class="level-pop-node" aria-hidden="true"></span><span class="level-pop-label"><span class="l-en">Advanced</span><span class="l-es">Avanzado</span></span></a></li>
         <li><a class="level-pop-step" href="flovysuper.html" title="Super tier"><span class="level-pop-node" aria-hidden="true"></span><span class="level-pop-label"><span class="l-en">Super</span><span class="l-es">Súper</span></span></a></li>
       </ul>
-      <label class="level-pop-btn" for="level-open" title="Tiers" aria-label="Show tiers" tabindex="0">
+      <label class="level-pop-btn topbar-btn" for="level-open" title="Tiers" aria-label="Show tiers" tabindex="0">
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3 21 7.5 12 12 3 7.5z"/>
-          <path d="M3 12l9 4.5L21 12"/>
-          <path d="M3 16.5 12 21l9-4.5"/>
+          <path d="M12 3 21 7.5 12 12 3 7.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/>
         </svg>
       </label>
     </div>
@@ -377,21 +552,45 @@ main{ max-width: 420px; margin: 1.2rem auto 2rem; padding: 0 .9rem; }
 
 <label class="menu-overlay" for="m" aria-hidden="true"></label>
 
-<!-- ── 3. CONTENT ────────────────────────────────────────────── -->
+<!-- ── 3. CONTENT (no intro title/text — leads with the field) ── -->
 <main>
   <section class="card">
-    <h2 class="card-title"><span class="l-en">Add a little love</span><span class="l-es">Añade un poco de amor</span></h2>
-    <p class="tagline"><span class="l-en">One field, one button. The simple standard.</span><span class="l-es">Un campo, un botón. El estándar simple.</span></p>
-
-    <!-- enctype="text/plain" makes the mail body read «field=value». -->
     <form class="entry-form" action="mailto:publish@flove.org" method="post" enctype="text/plain">
       <div class="entry-field">
         <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
         <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
+        <output class="suggestion">
+          <span class="sg-formal"><span class="l-en">With care and respect, I share the following for your consideration.</span><span class="l-es">Con cuidado y respeto, comparto lo siguiente para tu consideración.</span></span>
+          <span class="sg-informal"><span class="l-en">Hey! Here's a little something, just between us. 👋</span><span class="l-es">¡Eh! Aquí va algo, entre tú y yo. 👋</span></span>
+          <span class="sg-hotter"><span class="l-en">Where the air leans and the silence writes, there beats what has no name. 🔥</span><span class="l-es">Donde el aire se inclina y el silencio escribe, late lo que no tiene nombre. 🔥</span></span>
+        </output>
       </div>
-      <div class="entry-row">
+
+      <div class="entry-tools">
+        <!-- ✦ wizards -->
+        <span class="tool-cell tool-cell--bot">
+          <ul class="tool-pop" role="radiogroup" aria-label="Wizard suggestions">
+            <li><label class="chip" for="bot-formal"   title="Formal"   aria-label="Formal wizard"   tabindex="0">🎩</label></li>
+            <li><label class="chip" for="bot-informal" title="Informal" aria-label="Informal wizard" tabindex="0">👋</label></li>
+            <li><label class="chip" for="bot-hotter"   title="Hotter"   aria-label="Hotter wizard"   tabindex="0">🔥</label></li>
+          </ul>
+          <label class="tool-btn" for="bot-open" title="Wizards" aria-label="Wizard suggestions" tabindex="0">✦</label>
+        </span>
+        <!-- ♥ heart rater -->
+        <span class="tool-cell tool-cell--rate">
+          <ul class="tool-pop" role="radiogroup" aria-label="Heart rater">
+            <li><label class="chip" for="rate-1" title="Heart"   aria-label="Heart"   tabindex="0">❤️</label></li>
+            <li><label class="chip" for="rate-2" title="Sparkle" aria-label="Sparkle" tabindex="0">💖</label></li>
+            <li><label class="chip" for="rate-3" title="Two"     aria-label="Two hearts" tabindex="0">💞</label></li>
+            <li><label class="chip" for="rate-4" title="Warm"    aria-label="Warm"    tabindex="0">🧡</label></li>
+          </ul>
+          <label class="tool-btn rate-btn" for="rate-open" title="Heart rater" aria-label="Heart rater" tabindex="0">♥</label>
+        </span>
+        <!-- 🎤 mic -->
+        <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
         <button class="add-btn" type="submit" title="Add and send by email">＋ <span class="l-en">Add</span><span class="l-es">Añadir</span></button>
       </div>
+      <p class="mic-hint" aria-live="polite"><span class="l-en">🎤 Listening… (dictation is wired in the advanced tier)</span><span class="l-es">🎤 Escuchando… (el dictado se activa en el tier avanzado)</span></p>
     </form>
   </section>
 
@@ -399,22 +598,40 @@ main{ max-width: 420px; margin: 1.2rem auto 2rem; padding: 0 .9rem; }
   <section class="summary" aria-label="Summary">
     <h2 class="summary-title"><span class="l-en">Summary</span><span class="l-es">Resumen</span></h2>
     <output class="clause">
-      <span class="l-en">A summary of what you added will show up here. At the simple level it stays plain text — no charts, no insights, no magic re-tellings.</span><span class="l-es">Un resumen de lo que has añadido aparecerá aquí. En el nivel simple se queda como texto plano — sin gráficos, sin insights, sin reescrituras mágicas.</span>
-      <br><br>
-      <span class="l-en">Need richer summaries? Step up to <code>flovynormal.html</code> or <code>flovyadvanced.html</code>.</span><span class="l-es">¿Quieres resúmenes más ricos? Sube a <code>flovynormal.html</code> o <code>flovyadvanced.html</code>.</span>
+      <span class="l-en">A summary of what you added shows up here. Pick a tone with ✨, suggest with ✦, react with ♥, and read the insights below.</span><span class="l-es">Aquí aparece un resumen de lo que añadiste. Elige un tono con ✨, sugiere con ✦, reacciona con ♥ y lee los insights de abajo.</span>
     </output>
+
+    <!-- insights -->
+    <div class="insight-tabs" role="radiogroup" aria-label="Insights">
+      <label class="insight-tab" for="insight-who"   tabindex="0">💡 <span class="l-en">Who</span><span class="l-es">Quién</span></label>
+      <label class="insight-tab" for="insight-what"  tabindex="0">💡 <span class="l-en">What</span><span class="l-es">Qué</span></label>
+      <label class="insight-tab" for="insight-where" tabindex="0">💡 <span class="l-en">Where</span><span class="l-es">Dónde</span></label>
+      <label class="insight-tab" for="insight-why"   tabindex="0">💡 <span class="l-en">Why</span><span class="l-es">Por qué</span></label>
+    </div>
+    <div class="insight-panel insight-panel--who"><strong><span class="l-en">Who</span><span class="l-es">Quién</span></strong> — <span class="l-en">who is involved, and at what distance? The relations you can name are the ones you can tune.</span><span class="l-es">¿quién está implicado, y a qué distancia? Las relaciones que sabes nombrar son las que puedes afinar.</span></div>
+    <div class="insight-panel insight-panel--what"><strong><span class="l-en">What</span><span class="l-es">Qué</span></strong> — <span class="l-en">what is being asked, offered or proposed? Naming the move clarifies what you want back.</span><span class="l-es">¿qué se pide, se ofrece o se propone? Nombrar el gesto aclara qué quieres a cambio.</span></div>
+    <div class="insight-panel insight-panel--where"><strong><span class="l-en">Where</span><span class="l-es">Dónde</span></strong> — <span class="l-en">where do the boundaries sit, and what stays uncertain on purpose?</span><span class="l-es">¿dónde están los límites, y qué queda incierto a propósito?</span></div>
+    <div class="insight-panel insight-panel--why"><strong><span class="l-en">Why</span><span class="l-es">Por qué</span></strong> — <span class="l-en">why does this framing matter? The form of the sentence is already half the answer.</span><span class="l-es">¿por qué importa este encuadre? La forma de la frase ya es la mitad de la respuesta.</span></div>
+
     <div class="summary-actions">
-      <button type="button" class="copy-btn" title="Copy">
-        <span class="l-en">Copy</span><span class="l-es">Copiar</span>
-        <span class="copy-tip" role="tooltip"><span class="l-en">Select the text and press Ctrl/⌘+C</span><span class="l-es">Selecciona el texto y pulsa Ctrl/⌘+C</span></span>
+      <button type="button" class="btn-ghost"><span class="l-en">Copy</span><span class="l-es">Copiar</span>
+        <span class="tip" role="tooltip"><span class="l-en">Select the text and press Ctrl/⌘+C</span><span class="l-es">Selecciona el texto y pulsa Ctrl/⌘+C</span></span>
       </button>
+      <!-- share -->
+      <span class="share-cell">
+        <ul class="share-pop" aria-label="Share to">
+          <li><a href="mailto:?subject=flovy&body=A%20little%20love%20from%20flovy"><span>✉️</span><span class="l-en">Email</span><span class="l-es">Correo</span></a></li>
+          <li><label for="share-open"><span>🔗</span><span class="l-en">Copy link</span><span class="l-es">Copiar enlace</span></label></li>
+        </ul>
+        <label class="btn-ghost share-btn" for="share-open" tabindex="0"><span class="l-en">Share</span><span class="l-es">Compartir</span></label>
+      </span>
     </div>
   </section>
 </main>
 
 <p class="showcase-note">
-  <span class="l-en">FlovyBasic · the basic tier — the plainest standard set of flovy elements. Switch tiers from the ◆ button in the topbar.</span>
-  <span class="l-es">FlovyBasic · el tier básico — el conjunto de elementos de flove más sencillo. Cambia de tier desde el botón ◆ de la barra superior.</span>
+  <span class="l-en">FlovyBasic · the basic tier — compass, magic labelers, wizards, a heart rater, a mic and insights, all in pure CSS. Switch tiers from the ◆ button.</span>
+  <span class="l-es">FlovyBasic · el tier básico — compás, labelers mágicos, wizards, un heart rater, un micro e insights, todo en CSS puro. Cambia de tier con el botón ◆.</span>
 </p>
 
 </body>

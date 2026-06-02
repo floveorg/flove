@@ -615,11 +615,14 @@
       return card;
     }
 
-    function systemsGrid() {
-      const grid = document.createElement('div');
-      grid.className = 'systems-grid';
-      SYSTEMS.forEach(s => grid.appendChild(makeCard(s, 'system')));
-      return grid;
+    // Systems always sit fixed in three rows: 5 · 1 · 5 (never repositioned).
+    function systemRows() {
+      return [SYSTEMS.slice(0,5), SYSTEMS.slice(5,6), SYSTEMS.slice(6,11)].map(group => {
+        const row = document.createElement('div');
+        row.className = 'frame-row';
+        group.forEach(s => row.appendChild(makeCard(s, 'system')));
+        return row;
+      });
     }
 
     // ===== render state =====
@@ -629,31 +632,39 @@
     function renderLists() {
       listsRender.innerHTML = '';
 
-      if (systemsOn && emotionsOn) {
-        // emotions frame the systems: 5 above · (systems | 1 right) · 5 below
+      if (systemsOn) {
+        // systems are fixed in three rows; when emotions are on too they frame them:
+        //   5 above · [row1: 5] · [row2: 1 | 1 right] · [row3: 5] · 5 below
         const frame = document.createElement('div');
         frame.className = 'frame';
+        const [sRow1, sRow2, sRow3] = systemRows();
 
-        const rowTop = document.createElement('div');
-        rowTop.className = 'frame-row';
-        EMOTIONS.slice(0, 5).forEach(e => rowTop.appendChild(makeCard(e, 'emotion')));
+        if (emotionsOn) {
+          const eTop = document.createElement('div'); eTop.className = 'frame-row';
+          EMOTIONS.slice(0, 5).forEach(e => eTop.appendChild(makeCard(e, 'emotion')));
+          frame.appendChild(eTop);
+        }
 
-        const mid = document.createElement('div');
-        mid.className = 'frame-mid';
-        const center = document.createElement('div'); center.className = 'frame-systems';
-        center.appendChild(systemsGrid());
-        const asideR = document.createElement('div'); asideR.className = 'frame-aside';
-        EMOTIONS.slice(5, 6).forEach(e => asideR.appendChild(makeCard(e, 'emotion')));
-        mid.append(center, asideR);
+        frame.appendChild(sRow1);
 
-        const rowBot = document.createElement('div');
-        rowBot.className = 'frame-row';
-        EMOTIONS.slice(6, 11).forEach(e => rowBot.appendChild(makeCard(e, 'emotion')));
+        const mid = document.createElement('div'); mid.className = 'frame-mid';
+        mid.appendChild(sRow2);
+        if (emotionsOn) {
+          const eRight = document.createElement('div'); eRight.className = 'frame-aside';
+          EMOTIONS.slice(5, 6).forEach(e => eRight.appendChild(makeCard(e, 'emotion')));
+          mid.appendChild(eRight);
+        }
+        frame.appendChild(mid);
 
-        frame.append(rowTop, mid, rowBot);
+        frame.appendChild(sRow3);
+
+        if (emotionsOn) {
+          const eBot = document.createElement('div'); eBot.className = 'frame-row';
+          EMOTIONS.slice(6, 11).forEach(e => eBot.appendChild(makeCard(e, 'emotion')));
+          frame.appendChild(eBot);
+        }
+
         listsRender.appendChild(frame);
-      } else if (systemsOn) {
-        listsRender.appendChild(systemsGrid());
       } else if (emotionsOn) {
         const grid = document.createElement('div');
         grid.className = 'emotion-grid';

@@ -246,7 +246,12 @@ body:has(#bot-formal:checked)   .sg-formal,
 body:has(#bot-informal:checked) .sg-informal,
 body:has(#bot-hotter:checked)   .sg-hotter{ display: inline; }
 
-.entry-tools{ display: flex; align-items: center; gap: .4rem; margin-top: .55rem; }
+/* field on the left · ✦ and ♥ stacked to its right (each its own row) ·
+   mic centred on the field's bottom border */
+.field-wrap{ display: flex; align-items: flex-start; gap: .5rem; margin-bottom: 1rem; }
+.field-wrap .entry-field{ flex: 1; min-width: 0; padding-bottom: 1.4rem; }
+.field-side{ display: flex; flex-direction: column; gap: .45rem; flex-shrink: 0; }
+.entry-actions{ display: flex; }
 .tool-btn{
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 50%;
@@ -267,6 +272,8 @@ body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop,
 body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
 /* heart rater — its reactions open BELOW the ♥ button */
 .tool-cell--rate .tool-pop{ top: calc(100% + .4rem); bottom: auto; }
+/* side-column popovers align to the right edge so they don't overflow */
+.field-side .tool-pop{ left: auto; right: 0; }
 .chip{
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%; font-size: 1rem;
@@ -286,6 +293,12 @@ body:has(#rate-4:checked) .chip[for="rate-4"]{
 }
 /* heart rater — the ♥ trigger fills red once a reaction is chosen */
 body:has([name="rate"]:checked:not(#rate-none)) .rate-btn{ background: var(--accent); color: #fff; }
+/* mic — sits as a small button centred ON the field's bottom border */
+.mic-btn{
+  position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); z-index: 2;
+  background: #fff; border: 1px solid var(--line-strong); box-shadow: 0 3px 10px rgba(0,0,0,.12);
+}
+.mic-btn:hover{ background: var(--fill-soft); border-color: var(--accent); }
 /* mic — toggles a pulsing "listening" state (visual only; no audio JS at this tier) */
 body:has(#mic-on:checked) .mic-btn{ background: var(--accent); color: #fff; animation: mic-pulse 1.3s ease-in-out infinite; }
 @keyframes mic-pulse{ 0%,100%{ box-shadow: 0 0 0 0 var(--accent-glow);} 50%{ box-shadow: 0 0 0 6px rgba(var(--accent-rgb),0);} }
@@ -486,41 +499,46 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
 <main>
   <section class="card">
     <form class="entry-form" action="mailto:publish@flove.org" method="post" enctype="text/plain">
-      <div class="entry-field">
-        <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
-        <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
-        <output class="suggestion">
-          <span class="sg-formal"><span class="l-en">With care and respect, I share the following for your consideration.</span><span class="l-es">Con cuidado y respeto, comparto lo siguiente para tu consideración.</span></span>
-          <span class="sg-informal"><span class="l-en">Hey! Here's a little something, just between us. 👋</span><span class="l-es">¡Eh! Aquí va algo, entre tú y yo. 👋</span></span>
-          <span class="sg-hotter"><span class="l-en">Where the air leans and the silence writes, there beats what has no name. 🔥</span><span class="l-es">Donde el aire se inclina y el silencio escribe, late lo que no tiene nombre. 🔥</span></span>
-        </output>
+      <div class="field-wrap">
+        <div class="entry-field">
+          <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
+          <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
+          <output class="suggestion">
+            <span class="sg-formal"><span class="l-en">With care and respect, I share the following for your consideration.</span><span class="l-es">Con cuidado y respeto, comparto lo siguiente para tu consideración.</span></span>
+            <span class="sg-informal"><span class="l-en">Hey! Here's a little something, just between us. 👋</span><span class="l-es">¡Eh! Aquí va algo, entre tú y yo. 👋</span></span>
+            <span class="sg-hotter"><span class="l-en">Where the air leans and the silence writes, there beats what has no name. 🔥</span><span class="l-es">Donde el aire se inclina y el silencio escribe, late lo que no tiene nombre. 🔥</span></span>
+          </output>
+          <!-- 🎤 mic — centred on the field's bottom border -->
+          <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
+        </div>
+
+        <!-- ✦ and ♥ to the right of the field, each in its own row -->
+        <div class="field-side">
+          <span class="tool-cell tool-cell--bot">
+            <ul class="tool-pop" role="radiogroup" aria-label="Wizard suggestions">
+              <li><label class="chip" for="bot-formal"   title="Formal"   aria-label="Formal wizard"   tabindex="0">🎩</label></li>
+              <li><label class="chip" for="bot-informal" title="Informal" aria-label="Informal wizard" tabindex="0">👋</label></li>
+              <li><label class="chip" for="bot-hotter"   title="Hotter"   aria-label="Hotter wizard"   tabindex="0">🔥</label></li>
+            </ul>
+            <label class="tool-btn" for="bot-open" title="Wizards" aria-label="Wizard suggestions" tabindex="0">✦</label>
+          </span>
+          <span class="tool-cell tool-cell--rate">
+            <ul class="tool-pop" role="radiogroup" aria-label="Heart rater">
+              <li><label class="chip" for="rate-1" title="Heart"   aria-label="Heart"   tabindex="0">❤️</label></li>
+              <li><label class="chip" for="rate-2" title="Sparkle" aria-label="Sparkle" tabindex="0">💖</label></li>
+              <li><label class="chip" for="rate-3" title="Two"     aria-label="Two hearts" tabindex="0">💞</label></li>
+              <li><label class="chip" for="rate-4" title="Warm"    aria-label="Warm"    tabindex="0">🧡</label></li>
+            </ul>
+            <label class="tool-btn rate-btn" for="rate-open" title="Heart rater" aria-label="Heart rater" tabindex="0">♥</label>
+          </span>
+        </div>
       </div>
 
-      <div class="entry-tools">
-        <!-- ✦ wizards -->
-        <span class="tool-cell tool-cell--bot">
-          <ul class="tool-pop" role="radiogroup" aria-label="Wizard suggestions">
-            <li><label class="chip" for="bot-formal"   title="Formal"   aria-label="Formal wizard"   tabindex="0">🎩</label></li>
-            <li><label class="chip" for="bot-informal" title="Informal" aria-label="Informal wizard" tabindex="0">👋</label></li>
-            <li><label class="chip" for="bot-hotter"   title="Hotter"   aria-label="Hotter wizard"   tabindex="0">🔥</label></li>
-          </ul>
-          <label class="tool-btn" for="bot-open" title="Wizards" aria-label="Wizard suggestions" tabindex="0">✦</label>
-        </span>
-        <!-- ♥ heart rater -->
-        <span class="tool-cell tool-cell--rate">
-          <ul class="tool-pop" role="radiogroup" aria-label="Heart rater">
-            <li><label class="chip" for="rate-1" title="Heart"   aria-label="Heart"   tabindex="0">❤️</label></li>
-            <li><label class="chip" for="rate-2" title="Sparkle" aria-label="Sparkle" tabindex="0">💖</label></li>
-            <li><label class="chip" for="rate-3" title="Two"     aria-label="Two hearts" tabindex="0">💞</label></li>
-            <li><label class="chip" for="rate-4" title="Warm"    aria-label="Warm"    tabindex="0">🧡</label></li>
-          </ul>
-          <label class="tool-btn rate-btn" for="rate-open" title="Heart rater" aria-label="Heart rater" tabindex="0">♥</label>
-        </span>
-        <!-- 🎤 mic -->
-        <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
+      <p class="mic-hint" aria-live="polite"><span class="l-en">🎤 Listening… (dictation is wired in the advanced tier)</span><span class="l-es">🎤 Escuchando… (el dictado se activa en el tier avanzado)</span></p>
+
+      <div class="entry-actions">
         <button class="add-btn" type="submit" title="Add and send by email">＋ <span class="l-en">Add</span><span class="l-es">Añadir</span></button>
       </div>
-      <p class="mic-hint" aria-live="polite"><span class="l-en">🎤 Listening… (dictation is wired in the advanced tier)</span><span class="l-es">🎤 Escuchando… (el dictado se activa en el tier avanzado)</span></p>
     </form>
   </section>
 

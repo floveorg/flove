@@ -868,6 +868,66 @@
   .related-card:hover{transform:translateY(-2px);border-color:var(--accent);background:rgba(255,95,220,.08)}
   .related-card .rc-mark{font:700 1.3rem/1 ui-serif,Georgia,serif;color:var(--gold)}
   .related-card .rc-name{font:600 .82rem/1 system-ui,sans-serif}
+  /* related apps: 3 first, then ＋ reveals 6 more (full-width rows force wrap) */
+  .ra-more-row{display:flex;justify-content:center;width:100%;margin-top:.2rem}
+  .ra-more-btn{
+    width:34px;height:34px;border-radius:999px;cursor:pointer;
+    font:700 1rem/1 system-ui,sans-serif;
+    border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--sky);
+    transition:border-color .2s ease, color .2s ease, transform .15s ease;
+  }
+  .ra-more-btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+  .related-more{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%}
+  .related-more[hidden]{display:none}
+
+  /* ---- Ordinals: selected decks with order arrows within each ---- */
+  .ord-decks{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .ord-deck{
+    min-width:118px;padding:.5rem .6rem;border:1px solid var(--stroke);border-radius:12px;
+    background:rgba(255,255,255,.03);
+  }
+  .ord-deck .od-title{
+    font:700 .74rem/1 ui-serif,Georgia,serif;color:var(--gold);text-align:center;
+    margin:0 0 .4rem;text-transform:uppercase;letter-spacing:.4px;
+  }
+  .ord-deck ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;align-items:center}
+  .ord-deck li{font-size:.82rem;color:var(--ink);text-align:center;padding:.14rem .3rem}
+  .ord-deck li:not(:first-child)::before{
+    content:"↓";display:block;color:var(--accent);font-size:.78rem;opacity:.7;line-height:1.1;
+  }
+
+  /* ---- Perspective: bar(s) above the decks (+ add), selection below ---- */
+  .persp-above{display:flex;flex-direction:column;gap:7px;align-items:center;margin-bottom:.7rem}
+  .persp-bar{
+    display:flex;align-items:center;gap:8px;width:100%;max-width:440px;
+    padding:.4rem .6rem;border:1px solid var(--stroke);border-radius:10px;
+    background:rgba(168,228,255,.06);
+  }
+  .persp-bar .pb-tag{font:700 .72rem/1 system-ui,sans-serif;color:var(--sky);white-space:nowrap}
+  .persp-bar input{
+    flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid var(--stroke);
+    color:var(--ink);font:inherit;font-size:.84rem;padding:.2rem 0;
+  }
+  .persp-bar input:focus{outline:none;border-color:var(--accent)}
+  .persp-add{
+    align-self:center;cursor:pointer;font:700 .78rem/1 system-ui,sans-serif;
+    padding:.4rem .9rem;border-radius:999px;border:1px dashed var(--stroke);
+    background:transparent;color:var(--sky);
+  }
+  .persp-add:hover{border-color:var(--accent);color:var(--accent)}
+  .persp-below{margin-top:.7rem;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .persp-below .pb-cap{
+    font:700 .66rem/1 system-ui,sans-serif;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.12em;
+  }
+  .psel-deck{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .psel-chip{
+    cursor:pointer;font-size:.78rem;padding:.32rem .65rem;border-radius:999px;
+    border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--ink);
+    transition:border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .psel-chip:hover{border-color:var(--accent)}
+  .psel-chip.sel{background:var(--accent);border-color:var(--accent);color:#1a1a28}
 
   /* ============== Floating arcade counters (bottom-left) ============== */
   .float-counters{
@@ -996,13 +1056,15 @@
       </div>
       <div class="analysis" id="analysis-ordinals" hidden>
         <h4>Ordinals</h4>
-        <div class="sum-table-wrap" id="ord-table"></div>
-        <p class="note">Read across a row to see what each fivy placed at that position.</p>
+        <div class="ord-decks" id="ord-decks"></div>
+        <p class="note">Arrows show the order within each selected deck, top to bottom.</p>
       </div>
       <div class="analysis" id="analysis-perspective" hidden>
         <h4>Perspective</h4>
-        <div class="sum-table-wrap" id="persp-table"></div>
-        <p class="note">Each lens you have open ranks the same five positions its own way.</p>
+        <div class="persp-above" id="persp-above"></div>
+        <div class="ord-decks" id="persp-decks"></div>
+        <div class="persp-below" id="persp-below"></div>
+        <p class="note">Add your perspective above, then re-pick the items below the decks.</p>
       </div>
       <div class="analysis" id="analysis-timer" hidden>
         <h4>Timer</h4>
@@ -1010,7 +1072,7 @@
         <p class="note">Not a race — just a useful fact about the play.</p>
       </div>
       <div class="summary-bottom-actions">
-        <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
+        <button class="btn btn-soft" id="btn-see-more" type="button" hidden>Related apps</button>
       </div>
       <div class="related-apps" id="related-apps" hidden></div>
     </div>
@@ -1959,29 +2021,70 @@
     renderTimerTable();
   }
 
-  // Ordinals: transpose — rows are positions, columns are every source.
-  function renderOrdinals(){
-    const $t = document.getElementById('ord-table');
-    if (!$t) return;
-    const sources = [
-      ...settledDecks().map(d => ({ label:d.title, ranked:deckRanked(d) })),
-      ...filledFields().map(f => ({ label:f.label, ranked:f.items })),
-    ];
-    $t.innerHTML = sources.length
-      ? tableHTML('Rank', sources.map(s=>s.label),
-          ORD.map((lbl,r) => ({ label:lbl, cells:sources.map(s=>({ v:s.ranked[r]||'' })) })))
-      : '<div class="empty-line">Nothing to rank yet.</div>';
+  // Selected decks rendered as cards with order arrows running within each.
+  function deckCardsHTML(){
+    const decks = settledDecks();
+    if (!decks.length) return '';
+    return decks.map(d =>
+      `<div class="ord-deck"><div class="od-title">${escapeHTML(d.title)}</div>`
+      + `<ol>${deckRanked(d).map(v => `<li>${escapeHTML(v || '·')}</li>`).join('')}</ol></div>`
+    ).join('');
   }
 
-  // Perspective: the lenses currently open on the simplex (rank × lens), top row lit.
+  // Ordinals: the selected decks, with ↓ arrows showing the order within each.
+  function renderOrdinals(){
+    const $d = document.getElementById('ord-decks');
+    if (!$d) return;
+    $d.innerHTML = deckCardsHTML() || '<div class="empty-line">No decks settled yet.</div>';
+  }
+
+  // Perspective: a perspective bar (+ Add) ABOVE the selected decks, the decks
+  // themselves, and a decks-selection strip BELOW them.
+  let perspCount = 0;
+  function perspBarHTML(n){
+    return `<div class="persp-bar"><span class="pb-tag">Perspective ${n}</span>`
+      + `<input type="text" placeholder="name this perspective…" aria-label="Perspective ${n}"></div>`;
+  }
   function renderPerspective(){
-    const $t = document.getElementById('persp-table');
-    if (!$t) return;
-    const lenses = stackOrder().map(getSource).filter(s => s && s.items.some(Boolean));
-    $t.innerHTML = lenses.length
-      ? tableHTML('Rank', lenses.map(s=>s.label),
-          ORD.map((lbl,r) => ({ label:lbl, cells:lenses.map(s=>({ v:s.items[r]||'', cls:r===0?'top':'' })) })))
-      : '<div class="empty-line">Open a field or deck to compare lenses.</div>';
+    const $above = document.getElementById('persp-above');
+    const $decks = document.getElementById('persp-decks');
+    const $below = document.getElementById('persp-below');
+    if (!$above || !$decks || !$below) return;
+
+    // Above: one perspective to start + a ＋ that appends another. Built once
+    // so typed names / added perspectives survive summary repaints.
+    if (!$above.dataset.init){
+      perspCount = 1;
+      $above.innerHTML = perspBarHTML(1)
+        + `<button class="persp-add" id="persp-add" type="button">＋ Add perspective</button>`;
+      $above.dataset.init = '1';
+      $above.addEventListener('click', e => {
+        if (!e.target.closest('#persp-add')) return;
+        perspCount++;
+        const add = $above.querySelector('#persp-add');
+        const tmp = document.createElement('div');
+        tmp.innerHTML = perspBarHTML(perspCount);
+        $above.insertBefore(tmp.firstElementChild, add);
+      });
+    }
+
+    // Decks (same cards as Ordinals).
+    $decks.innerHTML = deckCardsHTML();
+
+    // Below: decks selection — each deck's items as toggle chips. Built once so
+    // selections aren't wiped on repaint.
+    if (!$below.dataset.init){
+      const decks = settledDecks();
+      $below.innerHTML = `<span class="pb-cap">Decks selection</span>`
+        + decks.map(d => `<div class="psel-deck">`
+            + deckRanked(d).map(v => `<button type="button" class="psel-chip">${escapeHTML(v || '·')}</button>`).join('')
+          + `</div>`).join('');
+      $below.dataset.init = '1';
+      $below.addEventListener('click', e => {
+        const chip = e.target.closest('.psel-chip');
+        if (chip) chip.classList.toggle('sel');
+      });
+    }
   }
 
   function renderTimerTable(){
@@ -2021,17 +2124,36 @@
   }
   $btnAnalyze.addEventListener('click', revealAnalyze);
 
-  const RELATED = [
+  // Related apps: 3 shown first, then ＋ reveals 6 more.
+  const RELATED_MAIN = [
     { href:'keys.html',  mark:'⬠', name:'keys'  },
+    { href:'souls.html', mark:'✷', name:'souls' },
     { href:'sensy.html', mark:'✺', name:'sensy' },
-    { href:'lovy.html',  mark:'♥', name:'lovy'  },
-    { href:'daty.html',  mark:'◷', name:'daty'  },
   ];
+  const RELATED_MORE = [
+    { href:'worthing.html', mark:'◍', name:'worthing' },
+    { href:'realy.html',    mark:'◉', name:'realy'    },
+    { href:'crafty.html',   mark:'✦', name:'crafty'   },
+    { href:'lovy.html',     mark:'♥', name:'lovy'     },
+    { href:'daty.html',     mark:'◷', name:'daty'     },
+    { href:'puzzy/relate/confluences/index.html', mark:'✶', name:'confluences' },
+  ];
+  const relCardHTML = a =>
+    `<a class="related-card" href="${a.href}"><span class="rc-mark">${a.mark}</span><span class="rc-name">${escapeHTML(a.name)}</span></a>`;
   $btnSeeMore.addEventListener('click', () => {
     if (!$related.children.length){
-      $related.innerHTML = RELATED.map(a =>
-        `<a class="related-card" href="${a.href}"><span class="rc-mark">${a.mark}</span><span class="rc-name">${escapeHTML(a.name)}</span></a>`
-      ).join('');
+      $related.innerHTML =
+          RELATED_MAIN.map(relCardHTML).join('')
+        + `<div class="ra-more-row"><button class="ra-more-btn" id="ra-more-btn" type="button" aria-expanded="false" aria-label="Show more apps">＋</button></div>`
+        + `<div class="related-more" id="related-more" hidden>${RELATED_MORE.map(relCardHTML).join('')}</div>`;
+      const moreBtn = document.getElementById('ra-more-btn');
+      const moreBox = document.getElementById('related-more');
+      moreBtn.addEventListener('click', () => {
+        const show = moreBox.hidden;
+        moreBox.hidden = !show;
+        moreBtn.setAttribute('aria-expanded', String(show));
+        moreBtn.textContent = show ? '×' : '＋';
+      });
     }
     $related.hidden = false;
     $btnSeeMore.hidden = true;

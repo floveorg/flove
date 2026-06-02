@@ -993,6 +993,14 @@
   .pc-time.is-collapsed .pc-time-num{display:none}
   .pc-time.is-collapsed .pc-time-display{padding:7px 10px}
   .pc-time.is-collapsed .pc-label{display:none}
+  /* Embedded mode (loaded as keys.html Stage 5 via #embed): hide the menu and
+     fivy's own summary; keep the decks selection + ordering. */
+  body.embed .topbar,
+  body.embed .flove-bar,
+  body.embed #summary-sec,
+  body.embed .summary-sec,
+  body.embed .analyze-panel{ display:none !important; }
+  body.embed{ background:transparent; }
 </style>
 </head>
 <body>
@@ -1216,6 +1224,11 @@
 
 <script>
 (() => {
+  // Embedded inside keys.html Stage 5 (loaded with #embed): hides the menu and
+  // fivy's own summary, and turns the post-decks "Fields →" into "Next →" which
+  // hands the ordered decks back to the parent (keys) instead of opening fields.
+  const EMBED = location.hash.indexOf('embed') !== -1;
+  if (EMBED) document.body.classList.add('embed');
   // ============== Fivy decks (pathologies excluded) ==============
   const DECKS = [
     { id:'p1', title:'Senses',   items:['Taste','Smell','Hearing','Touch','Sight'] },
@@ -1516,9 +1529,20 @@
     if (!allDone()) return;
     const next = document.createElement('button');     // go-back now lives above the summary
     next.className = 'btn btn-primary';
-    next.textContent = 'Fields →';
-    next.addEventListener('click', enterFields);
+    if (EMBED){
+      // Stage 5 inside keys: "Next" hands the ordered decks back to the parent.
+      next.textContent = 'Next →';
+      next.addEventListener('click', sendDecksToParent);
+    } else {
+      next.textContent = 'Fields →';
+      next.addEventListener('click', enterFields);
+    }
     $cta.appendChild(next);
+  }
+  // Post the settled, ordered decks up to keys.html (Stage 5).
+  function sendDecksToParent(){
+    const decks = settledDecks().map(d => ({ title: d.title, items: deckRanked(d) }));
+    try { parent.postMessage({ type: 'fivy-next', decks }, '*'); } catch (e) {}
   }
 
   // ============== Fields stage (simplex) ==============

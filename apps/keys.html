@@ -3248,13 +3248,30 @@
   #stage4 .fav-love:hover{ opacity:.85; transform:scale(1.08); }
   #stage4 .fav-love[aria-pressed="true"]{ opacity:1; }
   /* Stage-4 (Confluences) phrase, surfaced inside the main keys summary */
-  /* Results tables (My confluences / My fivys) inside the main summary */
-  .s4-summary-out, .s5-summary-out{ margin:1.4rem auto; max-width:680px; }
-  .s4-summary-out[hidden], .s5-summary-out[hidden]{ display:none; }
-  .s4-summary-out h3, .s5-summary-out h3{ margin:0 0 .6rem; text-align:center; font:600 1.15rem/1.1 ui-serif,Georgia,serif; color:var(--gold); }
-  .s4-conf-table, .s5-fivy-table{ width:100%; border-collapse:collapse; }
-  .s4-conf-table td, .s5-fivy-table td{ padding:.5rem .7rem; border:1px solid var(--stroke); color:var(--ink); text-align:center; font-size:.9rem; }
-  .s4-conf-table tr:nth-child(odd) td, .s5-fivy-table tr:nth-child(odd) td{ background:rgba(255,255,255,.03); }
+  /* Results tables inside the summary text area (below the keys). 7 columns,
+     items placed on the confluence positions, the centre swelling outward:
+     col 1/7 base · 2/6 +25% · 3/5 +50% · 4 +75%. */
+  .conf-results{ margin:1rem 0 .2rem; }
+  .conf-results[hidden]{ display:none; }
+  .conf-results h4{ margin:.6rem 0 .4rem; text-align:center; color:var(--gold); font:700 .85rem/1 ui-serif,Georgia,serif; letter-spacing:.4px; }
+  .conf-grid-table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  .conf-grid-table td{ text-align:center; padding:.3rem .15rem; color:var(--ink); line-height:1.2; word-break:break-word; }
+  .conf-grid-table td:nth-child(1), .conf-grid-table td:nth-child(7){ font-size:.8rem; }
+  .conf-grid-table td:nth-child(2), .conf-grid-table td:nth-child(6){ font-size:1rem; }
+  .conf-grid-table td:nth-child(3), .conf-grid-table td:nth-child(5){ font-size:1.2rem; }
+  .conf-grid-table td:nth-child(4){ font-size:1.4rem; }
+  .conf-grid-table tr + tr td{ border-top:1px solid var(--stroke); }
+
+  /* Stage 5 iframe (embedded fivy) + the 6th highlighted/moving progress bar */
+  .s5-frame{ width:100%; height:80vh; border:0; border-radius:14px; background:transparent; }
+  .stage-progress .seg.seg-new{
+    animation:segNew 1s ease-in-out infinite;
+    box-shadow:0 0 10px var(--accent), 0 0 4px var(--accent);
+  }
+  @keyframes segNew{
+    0%,100%{ transform:translateX(0); opacity:1; }
+    50%{ transform:translateX(4px); opacity:.55; }
+  }
   /* End actions: [Go back · Continue to Stage 5] row, with Finish below */
   #stage4 .stage4-end{ display:flex; flex-direction:column; align-items:center; gap:10px; margin:1.4rem 0 2rem; }
   #stage4 .stage4-end[hidden]{ display:none }
@@ -3633,20 +3650,6 @@
       <div class="gender-arrows" id="gender-arrows" aria-hidden="true"></div>
     </div>
 
-    <!-- Stage 4 (Confluences) results — saved confluences + loved Top ones,
-         as a table below the decks results. -->
-    <div class="s4-summary-out" id="s4-summary-out" hidden>
-      <h3>My confluences</h3>
-      <table class="s4-conf-table"><tbody id="s4-conf-tbody"></tbody></table>
-    </div>
-
-    <!-- Stage 5 (Fivys) results — the five decks, as a table below the
-         confluences one. -->
-    <div class="s5-summary-out" id="s5-summary-out" hidden>
-      <h3>My fivys</h3>
-      <table class="s5-fivy-table"><tbody id="s5-fivy-tbody"></tbody></table>
-    </div>
-
     <div class="summary-fivys" id="summary-fivys"></div>
 
     <section class="second-play" id="second-play" hidden>
@@ -3763,6 +3766,17 @@
       <output class="clause clause-magic" spellcheck="false" aria-label="Magic phrase">
         ✨ A warmer retelling of the same keys will show up here.
       </output>
+
+      <!-- Stage 4 / 5 results, inside the summary text area, below the keys.
+           Confluences read as a 7-column table with the centre swelling. -->
+      <div class="conf-results" id="s4-conf-block" hidden>
+        <h4>My confluences</h4>
+        <table class="conf-grid-table"><tbody id="s4-conf-tbody"></tbody></table>
+      </div>
+      <div class="conf-results" id="s5-fivy-block" hidden>
+        <h4>My fivys</h4>
+        <table class="conf-grid-table"><tbody id="s5-fivy-tbody"></tbody></table>
+      </div>
 
       <!-- Insight cards — shown above the row of buttons, one at a time via
            the insight cycle (0..4). -->
@@ -4011,8 +4025,7 @@
 
   <!-- ===== Stage 5: fivy-style deck fill (revealed by "Continue to Stage 5") ===== -->
   <section class="stage5" id="stage5" hidden aria-label="Stage 5 · Fivys">
-    <p class="s5-head">Order the four untapped decks, and fill the void one with five of your own.</p>
-    <div class="s5-decks" id="s5-decks"></div>
+    <iframe class="s5-frame" id="s5-frame" title="Fivys — decks selection and ordering" loading="lazy"></iframe>
     <div class="s5-end" id="s5-end" hidden>
       <button class="s5-finish" id="s5-finish" type="button">Finish</button>
     </div>
@@ -4443,8 +4456,13 @@
       // Parent: stages 1-3 done; a 4th bar fills on entering Stage 4; a 5th on
       // entering Stage 5.
       let ph = seg('done') + seg('done') + seg('done');
-      if (state.s5Entered){ ph += seg('done') + seg('current'); }
-      else { ph += seg(state.s4Entered ? 'current' : ''); }
+      if (state.s5Entered){
+        ph += seg('done');                                              // 4th
+        ph += seg(state.s5Next ? 'done' : 'current');                   // 5th
+        if (state.s5Next) ph += seg(state.s6Pulse ? 'current seg-new' : 'current'); // 6th
+      } else {
+        ph += seg(state.s4Entered ? 'current' : '');
+      }
       $parent.innerHTML = ph;
       // Sub: each stage resets the sub bar to 1. Stage 4 then adds one per
       // distinct row type (3/5/7) created; otherwise it tracks Analyze/More.
@@ -8432,8 +8450,6 @@
     const s4create = document.getElementById('s4-create');
     const s4anim   = document.getElementById('s4-anim');
     const s4top    = document.getElementById('s4-top');
-    const s4out    = document.getElementById('s4-summary-out');
-    const s4tbody  = document.getElementById('s4-conf-tbody');
     const stage5   = document.getElementById('stage5');
     const s4end    = document.getElementById('s4-end');
     const s4back   = document.getElementById('s4-back');
@@ -8485,15 +8501,26 @@
       });
     }
     const itemsOf = el => Array.from(el.querySelectorAll('.list > li')).map(li => (li.textContent || '').trim());
-    // Results = saved created confluences + loved Top (favourite) confluences,
-    // rendered as the "My confluences" table in the main summary.
+    // One confluence as a 7-cell row: 3-item → cols 3-5, 5-item → cols 2-6,
+    // 7-item → all. Empty cells elsewhere; the centre swells via CSS.
+    function confRowHTML(items){
+      const n = items.length, cols = ['', '', '', '', '', '', ''];
+      if (n === 1) cols[3] = items[0];
+      else if (n === 3){ cols[2] = items[0]; cols[3] = items[1]; cols[4] = items[2]; }
+      else if (n === 5){ cols[1] = items[0]; cols[2] = items[1]; cols[3] = items[2]; cols[4] = items[3]; cols[5] = items[4]; }
+      else if (n === 7){ for (let i = 0; i < 7; i++) cols[i] = items[i]; }
+      else items.forEach((v, i) => { if (i < 7) cols[i] = v; });
+      return '<tr>' + cols.map(v => '<td>' + (v ? escapeHTML(v) : '') + '</td>').join('') + '</tr>';
+    }
+    // Results = saved created confluences + loved Top confluences, rendered as
+    // the "My confluences" table inside the existing summary text area.
     function updateSummary(){
       const rows = savedEntries().map(itemsOf)
         .concat(Array.from(stage4.querySelectorAll('#s4-favs .fav-entry.loved')).map(itemsOf));
-      if (s4tbody) s4tbody.innerHTML = rows
-        .map(items => '<tr>' + items.map(v => '<td>' + escapeHTML(v || '·') + '</td>').join('') + '</tr>')
-        .join('');
-      if (s4out) s4out.hidden = rows.length === 0;
+      const tbody = document.getElementById('s4-conf-tbody');
+      const block = document.getElementById('s4-conf-block');
+      if (tbody) tbody.innerHTML = rows.map(confRowHTML).join('');
+      if (block) block.hidden = rows.length === 0;
     }
     // Wrap every Top confluence with a big transparent love; filling it adds
     // that confluence to the My-confluences table.
@@ -8592,8 +8619,13 @@
 
     // Finish (below the row) → surface the confluences in the main summary, run
     // the wave, and scroll up there. (The former "Next" behaviour.)
+    function expandSummary(){
+      const ss = document.getElementById('std-summary');
+      if (ss) ss.classList.remove('is-collapsed');
+    }
     function finishToSummary(){
       updateSummary();
+      expandSummary();
       if (!stage4.classList.contains('is-animating')){
         stage4.classList.add('is-animating');
         s4anim.setAttribute('aria-pressed', 'true');
@@ -8604,69 +8636,57 @@
     const s4finish = document.getElementById('s4-finish');
     if (s4finish) s4finish.addEventListener('click', finishToSummary);
 
-    // ===== Stage 5 — fivy-style deck fill (4 untapped decks + 1 void) =====
-    let s5Built = false;
-    function checkS5Filled(){
-      const vd = stage5.querySelector('.s5-deck.void'); if (!vd) return;
-      const full = Array.from(vd.querySelectorAll('li')).every(li => (li.textContent || '').trim() !== '');
-      const end = document.getElementById('s5-end');
-      if (end) end.hidden = !full;   // no Analyze here — just Finish once full
-    }
-    function buildS5Decks(){
-      if (s5Built) return; s5Built = true;
-      const $d = document.getElementById('s5-decks');
-      const PRESET = [
-        { title:'Senses',   items:['View','Hear','Smell','Taste','Touch'] },
-        { title:'Elements', items:['Fire','Air','Plasma','Water','Earth'] },
-        { title:'Vowels',   items:['A','E','I','O','U'] },
-        { title:'Tastes',   items:['Sweet','Sour','Salty','Bitter','Umami'] },
-      ];
-      let html = PRESET.map(d =>
-        `<div class="s5-deck"><h4>${escapeHTML(d.title)}</h4><ol>`
-        + d.items.map(v => `<li>${escapeHTML(v)}</li>`).join('') + `</ol></div>`).join('');
-      html += `<div class="s5-deck void"><h4>New</h4><ol>`
-        + Array.from({length:5}).map(() => '<li class="ph" contenteditable="true"></li>').join('')
-        + `</ol></div>`;
-      $d.innerHTML = html;
-      $d.addEventListener('input', checkS5Filled);
-      checkS5Filled();
-    }
-    function renderFivysTable(){
-      const tbody = document.getElementById('s5-fivy-tbody');
-      const out   = document.getElementById('s5-summary-out');
-      if (!tbody) return;
-      const decks = Array.from(stage5.querySelectorAll('.s5-deck'));
-      tbody.innerHTML = decks.map(d => {
-        const items = Array.from(d.querySelectorAll('li')).map(li => (li.textContent || '').trim());
-        return '<tr>' + items.map(v => '<td>' + escapeHTML(v || '·') + '</td>').join('') + '</tr>';
-      }).join('');
-      if (out) out.hidden = decks.length === 0;
-    }
-    // Continue to Stage 5: add a 5th parent bar, reset sub bars, hide all
-    // content above, and show the fivy-style deck steps.
+    // ===== Stage 5 — embeds fivy.html (full decks selection + ordering) =====
+    const s5frame = document.getElementById('s5-frame');
+    // Continue to Stage 5: add a 5th parent bar, reset the sub bar, hide all
+    // content above, and show the embedded fivy decks.
     function enterStage5(){
       state.s5Entered = true;
       const sum = document.getElementById('summary');
       if (sum) sum.style.display = 'none';
       stage4.hidden = true;
       stage5.hidden = false;
-      buildS5Decks();
+      if (s5frame && !s5frame.getAttribute('src')) s5frame.setAttribute('src', 'fivy.html#embed');
       if (typeof renderStageLabel === 'function') renderStageLabel();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    function renderFivysTable(){
+      const tbody = document.getElementById('s5-fivy-tbody');
+      const block = document.getElementById('s5-fivy-block');
+      const decks = state.s5Decks || [];
+      if (tbody) tbody.innerHTML = decks.map(d => confRowHTML(d.items || [])).join('');
+      if (block) block.hidden = decks.length === 0;
+    }
     // Finish Stage 5: bring the content above back, add the fivys table below
-    // the confluences one, and return to the summary.
+    // the confluences one (the common summary), and return to it.
     function finishStage5(){
       const sum = document.getElementById('summary');
       if (sum) sum.style.display = '';
       stage4.hidden = false;
       stage5.hidden = true;
       renderFivysTable();
+      expandSummary();
       if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
     }
     s4next.addEventListener('click', enterStage5);
     const s5finish = document.getElementById('s5-finish');
     if (s5finish) s5finish.addEventListener('click', finishStage5);
+
+    // Embedded fivy → its "Next" (was "Fields") posts its ordered decks. Add a
+    // 6th, highlighted, moving parent bar for 5s, stash the decks, show Finish.
+    window.addEventListener('message', function(e){
+      const d = e.data;
+      if (!d || d.type !== 'fivy-next') return;
+      state.s5Decks = Array.isArray(d.decks) ? d.decks : [];
+      state.s5Next = true; state.s6Pulse = true;
+      if (typeof renderStageLabel === 'function') renderStageLabel();
+      setTimeout(function(){
+        state.s6Pulse = false;
+        if (typeof renderStageLabel === 'function') renderStageLabel();
+      }, 5000);
+      const end = document.getElementById('s5-end');
+      if (end) end.hidden = false;
+    });
 
     updateSummary();
   })();

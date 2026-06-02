@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#d32f2f">
 <meta name="color-scheme" content="light">
 <title>FlovyBasic</title>
-<meta name="description" content="FlovyBasic — the basic tier of flovy: topbar with compass + magic labelers, an entry field with wizard suggesters, a heart rater, a mic, and a summary with insights, Copy and Share. Single page, pure CSS, no JavaScript. Tiers: mini · basic · normal · advanced · super.">
+<meta name="description" content="FlovyBasic — the basic tier of flovy: topbar with magic labelers, an entry field with wizard suggesters, a heart rater and a mic, and a summary with cycling insights, Copy and Share. Single page, pure CSS, no JavaScript. Tiers: mini · basic · normal · advanced · super.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d32f2f' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-3A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3C/svg%3E">
 <style>
 /* ============================================================
@@ -17,14 +17,16 @@
    JavaScript; state lives in hidden .ctl inputs read with :has().
 
    Elements shown (basic level):
-     · Topbar   — heart mark + title + COMPASS (3 layouts)
-                  + MAGIC labelers (3 rays) + tier-switcher + ☰ menu
-     · Content  — entry field + ✦ WIZARDS + ♥ HEART RATER + 🎤 MIC + Add
-     · Summary  — phrase + INSIGHTS (4) + Copy + SHARE
+     · Topbar   — heart mark + title + MAGIC labelers (3 rays)
+                  + tier-switcher + ☰ menu (opens below the title)
+     · Content  — entry field + ✦ WIZARDS + ♥ HEART RATER (reactions
+                  open below the ♥) + 🎤 MIC + Add
+     · Summary  — phrase + INSIGHTS (one cycling button, looping the
+                  4 info boxes + reset) + Copy + SHARE
+     · Menu     — Language · About flovy · Flove home (separate sections)
 
    No intro title/tagline at this tier — the page leads straight with
-   the working elements. Stepper, charts and modals live in normal/
-   advanced.
+   the working elements. No compass here (it lives in normal/advanced).
    ============================================================ */
 
 :root{
@@ -113,43 +115,7 @@ body:has(#ray-hotter:checked)   .mark .mk-hotter{ display: inline; }
   transition: background var(--fast), color var(--fast), transform var(--fast);
 }
 
-/* compass — 3 layout modes for the ray chips + entry field */
-.compass-wrap{ position: relative; display: inline-flex; align-items: center; flex-shrink: 0; }
-.compass-btn{ color: rgba(var(--accent-rgb),.6); }
-.compass-btn svg{ display: block; transition: transform var(--fast); }
-.compass-btn:hover, .compass-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
-body:has(#compass-open:checked) .compass-btn{ color: #fff; background: var(--accent); }
-body:has(#compass-open:checked) .compass-btn svg{ transform: rotate(45deg); }
-.mode-buttons{
-  position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%);
-  display: none; align-items: center; gap: .55rem; white-space: nowrap; z-index: 12;
-}
-body:has(#compass-open:checked) .mode-buttons{ display: inline-flex; }
-.mode-btn{
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 0; border: 0; background: transparent; color: var(--ink-mute);
-  cursor: pointer; transition: color var(--fast), transform var(--fast);
-}
-.mode-btn svg{ display: block; width: 22px; height: 22px; }
-.mode-btn:hover, .mode-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
-body:has(#disp-list:checked)    .mode-btn[for="disp-list"],
-body:has(#disp-cloud:checked)   .mode-btn[for="disp-cloud"],
-body:has(#disp-bubbles:checked) .mode-btn[for="disp-bubbles"]{ color: var(--accent); transform: scale(1.25); }
-.ray, .entry-field{ transition: transform .5s var(--bounce); }
-body:has(#disp-cloud:checked) .ray,
-body:has(#disp-cloud:checked) .entry-field{ animation: compass-drift 6.5s ease-in-out infinite; }
-body:has(#disp-cloud:checked) .ray:nth-child(2){ animation-delay: -2s; }
-body:has(#disp-cloud:checked) .ray:nth-child(3){ animation-delay: -4s; }
-@keyframes compass-drift{
-  0%,100%{ transform: translate(0,0) rotate(0); }
-  25%{ transform: translate(4px,-3px) rotate(3deg); }
-  50%{ transform: translate(-3px,3px) rotate(-2deg); }
-  75%{ transform: translate(3px,3px) rotate(2deg); }
-}
-body:has(#disp-bubbles:checked) .ray{ animation: compass-float 4.5s ease-in-out infinite; }
-body:has(#disp-bubbles:checked) .ray:nth-child(2){ animation-delay: -1.5s; }
-body:has(#disp-bubbles:checked) .ray:nth-child(3){ animation-delay: -3s; }
-@keyframes compass-float{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-5px);} }
+.ray{ transition: transform .5s var(--bounce); }
 
 /* magic labelers — ✨ toggles a 3-chip personality (ray) row */
 .magic-wrap{ position: relative; display: inline-flex; align-items: center; gap: .3rem; flex-shrink: 0; }
@@ -229,8 +195,9 @@ body:has(#m:checked) .menu-btn--close{ display: inline-flex; }
 body:has(#m:checked) .menu-overlay{ opacity: 1; pointer-events: auto; }
 
 /* ── 2. MENU panel ─────────────────────────────────────────── */
+/* menu panel sits below the title, anchored to the LEFT edge */
 .menu-panel{
-  position: absolute; top: calc(100% + .5rem); right: .9rem;
+  position: absolute; top: calc(100% + .5rem); left: .9rem;
   width: 220px; max-width: calc(100vw - 1.8rem);
   margin: 0; padding: .4rem; list-style: none;
   background: var(--panel-bg); border: 1px solid var(--panel-border);
@@ -298,6 +265,8 @@ body:has(#bot-hotter:checked)   .sg-hotter{ display: inline; }
 }
 body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop,
 body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
+/* heart rater — its reactions open BELOW the ♥ button */
+.tool-cell--rate .tool-pop{ top: calc(100% + .4rem); bottom: auto; }
 .chip{
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%; font-size: 1rem;
@@ -346,21 +315,14 @@ body:has(#mic-on:checked) .mic-hint{ display: block; }
 .clause{ display: block; margin: 0; font-size: 1rem; line-height: 1.55; color: var(--ink-soft); }
 .clause code{ font: .85em ui-monospace,Menlo,Consolas,monospace; background: var(--fill-soft); color: var(--accent-deep); padding: .05em .35em; border-radius: 5px; }
 
-/* insights — 4 tabs (Who/What/Where/Why) reveal one panel each */
-.insight-tabs{ display: flex; flex-wrap: wrap; gap: .35rem; margin: .9rem 0 .2rem; }
-.insight-tab{
-  display: inline-flex; align-items: center; gap: .3rem;
-  padding: .3rem .7rem; border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
-  font: 600 .78rem var(--font-ui); color: var(--ink-soft); background: transparent;
-  transition: background var(--fast), color var(--fast), border-color var(--fast);
-}
-.insight-tab:hover{ background: var(--fill-soft); }
-body:has(#insight-who:checked)   .insight-tab[for="insight-who"],
-body:has(#insight-what:checked)  .insight-tab[for="insight-what"],
-body:has(#insight-where:checked) .insight-tab[for="insight-where"],
-body:has(#insight-why:checked)   .insight-tab[for="insight-why"]{
-  background: var(--accent); color: #fff; border-color: var(--accent-deep);
-}
+/* insights — ONE cycling button: none→who→what→where→why→none(reset) */
+.insight-cycle{ margin: .9rem 0 .2rem; }
+.insight-cycle .insight-step{ display: none; }    /* only the current-state label shows */
+body:has(#insight-none:checked)  .insight-step--0,
+body:has(#insight-who:checked)   .insight-step--1,
+body:has(#insight-what:checked)  .insight-step--2,
+body:has(#insight-where:checked) .insight-step--3,
+body:has(#insight-why:checked)   .insight-step--4{ display: inline-flex; }
 .insight-panel{ display: none; margin-top: .5rem; padding: .7rem .8rem; border-left: 3px solid var(--accent); background: var(--fill-soft); border-radius: 0 10px 10px 0; font-size: .92rem; line-height: 1.5; color: var(--ink); animation: card-in .35s var(--bounce); }
 .insight-panel strong{ color: var(--accent-deep); }
 body:has(#insight-who:checked)   .insight-panel--who,
@@ -420,12 +382,6 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
 <input type="radio" name="lang" id="lang-en" class="ctl" checked>
 <input type="radio" name="lang" id="lang-es" class="ctl">
 
-<!-- compass: 3 layout modes -->
-<input type="checkbox" id="compass-open" class="ctl">
-<input type="radio" name="disp-mode" id="disp-list"    class="ctl" checked>
-<input type="radio" name="disp-mode" id="disp-cloud"   class="ctl">
-<input type="radio" name="disp-mode" id="disp-bubbles" class="ctl">
-
 <!-- magic labelers: 3 rays (formal/informal/hotter) + none -->
 <input type="checkbox" id="magic-open" class="ctl">
 <input type="radio" name="ray" id="ray-none"     class="ctl" checked>
@@ -471,37 +427,6 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
     </label>
     <h1 style="margin:0"><label class="title" for="m" title="flovy — basic" tabindex="0">flovy</label></h1>
 
-    <!-- compass -->
-    <div class="compass-wrap">
-      <label class="compass-btn topbar-btn" for="compass-open" title="Layout modes" aria-label="Layout modes" tabindex="0">
-        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
-          <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
-          <circle cx="12" cy="12" r="1.9" fill="#fff"/>
-        </svg>
-      </label>
-      <div class="mode-buttons" role="group" aria-label="Layout modes">
-        <label class="mode-btn" for="disp-list" title="List — ordered" aria-label="List" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="4" cy="6"  r="2.3"/><rect x="9" y="4.2"  width="13" height="3.6" rx="1.8"/>
-            <circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/>
-            <circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-cloud" title="Cloud — drift" aria-label="Cloud" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/>
-            <rect x="6.5" y="13" width="12.5" height="6" rx="3"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-bubbles" title="Bubbles — float" aria-label="Bubbles" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/>
-          </g></svg>
-        </label>
-      </div>
-    </div>
-
     <span class="topbar-spacer"></span>
 
     <!-- magic labelers -->
@@ -541,9 +466,14 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
         <span class="menu-row-state"><span class="l-en">English ▸ Español</span><span class="l-es">Español ▸ English</span></span>
       </label></li>
       <li class="menu-divider" role="separator" aria-hidden="true"></li>
-      <li><a class="menu-row" href="https://flove.org" target="_blank" rel="noopener" role="menuitem">
+      <li><a class="menu-row" href="https://flove.org/flovy" target="_blank" rel="noopener" role="menuitem">
         <span class="mi">♡</span>
-        <span class="l-en">About flove</span><span class="l-es">Acerca de flove</span>
+        <span class="l-en">About flovy</span><span class="l-es">Acerca de flovy</span>
+      </a></li>
+      <li class="menu-divider" role="separator" aria-hidden="true"></li>
+      <li><a class="menu-row" href="https://flove.org" target="_blank" rel="noopener" role="menuitem">
+        <span class="mi">✺</span>
+        <span class="l-en">Flove home</span><span class="l-es">Inicio de flove</span>
       </a></li>
     </ul>
 
@@ -602,11 +532,14 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
     </output>
 
     <!-- insights -->
-    <div class="insight-tabs" role="radiogroup" aria-label="Insights">
-      <label class="insight-tab" for="insight-who"   tabindex="0">💡 <span class="l-en">Who</span><span class="l-es">Quién</span></label>
-      <label class="insight-tab" for="insight-what"  tabindex="0">💡 <span class="l-en">What</span><span class="l-es">Qué</span></label>
-      <label class="insight-tab" for="insight-where" tabindex="0">💡 <span class="l-en">Where</span><span class="l-es">Dónde</span></label>
-      <label class="insight-tab" for="insight-why"   tabindex="0">💡 <span class="l-en">Why</span><span class="l-es">Por qué</span></label>
+    <!-- insights — ONE cycling button; each click advances the loop and
+         reveals the matching panel (none→who→what→where→why→reset) -->
+    <div class="insight-cycle" aria-label="Insights">
+      <label class="btn-ghost insight-step insight-step--0" for="insight-who"   tabindex="0">💡 <span class="l-en">Insight</span><span class="l-es">Insight</span></label>
+      <label class="btn-ghost insight-step insight-step--1" for="insight-what"  tabindex="0">💡 <span class="l-en">Insight · 1/4 · Who</span><span class="l-es">Insight · 1/4 · Quién</span></label>
+      <label class="btn-ghost insight-step insight-step--2" for="insight-where" tabindex="0">💡 <span class="l-en">Insight · 2/4 · What</span><span class="l-es">Insight · 2/4 · Qué</span></label>
+      <label class="btn-ghost insight-step insight-step--3" for="insight-why"   tabindex="0">💡 <span class="l-en">Insight · 3/4 · Where</span><span class="l-es">Insight · 3/4 · Dónde</span></label>
+      <label class="btn-ghost insight-step insight-step--4" for="insight-none"  tabindex="0">💡 <span class="l-en">Insight · 4/4 · Why ↺</span><span class="l-es">Insight · 4/4 · Por qué ↺</span></label>
     </div>
     <div class="insight-panel insight-panel--who"><strong><span class="l-en">Who</span><span class="l-es">Quién</span></strong> — <span class="l-en">who is involved, and at what distance? The relations you can name are the ones you can tune.</span><span class="l-es">¿quién está implicado, y a qué distancia? Las relaciones que sabes nombrar son las que puedes afinar.</span></div>
     <div class="insight-panel insight-panel--what"><strong><span class="l-en">What</span><span class="l-es">Qué</span></strong> — <span class="l-en">what is being asked, offered or proposed? Naming the move clarifies what you want back.</span><span class="l-es">¿qué se pide, se ofrece o se propone? Nombrar el gesto aclara qué quieres a cambio.</span></div>
@@ -630,8 +563,8 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
 </main>
 
 <p class="showcase-note">
-  <span class="l-en">FlovyBasic · the basic tier — compass, magic labelers, wizards, a heart rater, a mic and insights, all in pure CSS. Switch tiers from the ◆ button.</span>
-  <span class="l-es">FlovyBasic · el tier básico — compás, labelers mágicos, wizards, un heart rater, un micro e insights, todo en CSS puro. Cambia de tier con el botón ◆.</span>
+  <span class="l-en">FlovyBasic · the basic tier — magic labelers, wizards, a heart rater, a mic and cycling insights, all in pure CSS. Switch tiers from the ◆ button.</span>
+  <span class="l-es">FlovyBasic · el tier básico — labelers mágicos, wizards, un heart rater, un micro e insights cíclicos, todo en CSS puro. Cambia de tier con el botón ◆.</span>
 </p>
 
 </body>

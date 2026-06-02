@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#d32f2f">
 <meta name="color-scheme" content="light">
 <title>FlovyNormal</title>
-<meta name="description" content="FlovyNormal — the normal tier of flovy: topbar with compass + magic rays, a 3-step stepper, a bot suggester and rater, and a summary with a magic-phrase swap and a Bars chart. Medium-complexity standard. Pure CSS, no JavaScript. Tiers: mini · basic · normal · advanced · super.">
+<meta name="description" content="FlovyNormal — the normal tier of flovy: topbar with magic labelers, a Who/Summary stepper, a ✦ wizard that injects text and a ★ rater, icon counters, and a summary with a magic-phrase swap and the full action row. Medium-complexity standard. CSS-driven, with one small inline script for the wizard text-insert. Tiers: mini · basic · normal · advanced · super.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d32f2f' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-3A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3C/svg%3E">
 <style>
 /* ============================================================
@@ -14,27 +14,28 @@
    tiers:  mini → basic → normal → advanced → super
 
    Renders every standardised flovy element at a middle complexity,
-   between flovybasic.html and flovyadvanced.html. Pure CSS, no
-   JavaScript — state lives in hidden .ctl inputs read with :has().
+   between flovybasic.html and flovyadvanced.html. CSS-driven (state in
+   hidden .ctl inputs read with :has()), plus ONE small inline script at
+   the end of the body for the wizard text-insert (CSS can't write into
+   a <textarea>).
 
    Elements shown (normal / medium-complexity level):
-     · Topbar    — mark + title + COMPASS (3 layouts) + MAGIC labels (3)
-                   + tier badge + tier-switcher + ☰ menu
+     · Topbar    — mark + title + MAGIC labels (3) + tier badge
+                   + tier-switcher + ☰ menu  (no compass)
      · Menu      — About flovy (opens an info box below the topbar) ·
                    Language (dropdown) · Related apps (flovyadvanced card) ·
                    Flove home — no underlines, subicons bare
                    (same menu as flovybasic)
-     · Content   — entry field + ✦ bot suggester + ★ rater (sub-reactions
-                   open in a popover BELOW the ★) + counters
+     · Content   — field with the 🎤 mic on its bottom border, and the
+                   ✦ wizard + ★ rater stacked to its right (basic layout);
+                   icon counters (👆 clicks · 💞 selections · ⭐ stars).
+                   The ✦ wizard INJECTS text into the field: same wizard
+                   cycles 3 texts, 4th resets; editing keeps the text and
+                   the next wizard click appends after it.
      · Stepper   — 2 steps (Who · Summary), nav bar at the BOTTOM
      · Summary   — phrase + magic-phrase swap + INSIGHTS (one cycling
                    button) + Magic·Copy (left) / Save·Share·Publish (right)
      · Modal     — New label
-
-   No intro titles/taglines and no footer — leads with the elements.
-   Stepped UP from basic: stepper, modal, Bars chart, full button row.
-   Still SIMPLER than advanced: no sub-bot fan-out, no All toggle,
-   single-suggestion bots, one chart view.
    ============================================================ */
 
 :root{
@@ -136,47 +137,7 @@ body:has(#ray-hotter:checked)   .tm-hotter{ display: inline; }
   transition: background var(--fast), color var(--fast), transform var(--fast);
 }
 
-/* ── compass — 3 layout modes for the ray chips + entry field ── */
-.compass-wrap{ position: relative; display: inline-flex; align-items: center; flex-shrink: 0; }
-.compass-btn{ color: rgba(var(--accent-rgb),.6); }
-.compass-btn svg{ display: block; transition: transform var(--fast); }
-.compass-btn:hover, .compass-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
-body:has(#compass-open:checked) .compass-btn{ color: #fff; background: var(--accent); }
-body:has(#compass-open:checked) .compass-btn svg{ transform: rotate(45deg); }
-.mode-buttons{
-  position: absolute; top: calc(100% + 14px); left: 50%;
-  transform: translateX(-50%);
-  display: none; align-items: center; gap: .55rem;
-  white-space: nowrap; z-index: 12;
-}
-body:has(#compass-open:checked) .mode-buttons{ display: inline-flex; }
-.mode-btn{
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 0; border: 0; background: transparent; color: var(--ink-mute);
-  cursor: pointer; transition: color var(--fast), transform var(--fast);
-}
-.mode-btn svg{ display: block; width: 22px; height: 22px; }
-.mode-btn:hover, .mode-btn:focus-visible{ color: var(--accent-deep); transform: translateY(-1px); }
-body:has(#disp-list:checked)    .mode-btn[for="disp-list"],
-body:has(#disp-cloud:checked)   .mode-btn[for="disp-cloud"],
-body:has(#disp-bubbles:checked) .mode-btn[for="disp-bubbles"]{ color: var(--accent); transform: scale(1.25); }
-
-/* layout-mode effects — applied to ray chips + entry field */
-.ray, .entry-field{ transition: transform .5s var(--bounce); }
-body:has(#disp-cloud:checked) .ray,
-body:has(#disp-cloud:checked) .entry-field{ animation: compass-drift 6.5s ease-in-out infinite; }
-body:has(#disp-cloud:checked) .ray:nth-child(2){ animation-delay: -2s; }
-body:has(#disp-cloud:checked) .ray:nth-child(3){ animation-delay: -4s; }
-@keyframes compass-drift{
-  0%,100%{ transform: translate(0,0) rotate(0); }
-  25%{ transform: translate(4px,-3px) rotate(3deg); }
-  50%{ transform: translate(-3px,3px) rotate(-2deg); }
-  75%{ transform: translate(3px,3px) rotate(2deg); }
-}
-body:has(#disp-bubbles:checked) .ray{ animation: compass-float 4.5s ease-in-out infinite; }
-body:has(#disp-bubbles:checked) .ray:nth-child(2){ animation-delay: -1.5s; }
-body:has(#disp-bubbles:checked) .ray:nth-child(3){ animation-delay: -3s; }
-@keyframes compass-float{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-5px);} }
+.ray{ transition: transform var(--fast); }
 
 /* ── magic rays — ✨ toggles a 3-chip personality row ────────── */
 .magic-wrap{ position: relative; display: inline-flex; align-items: center; gap: .3rem; flex-shrink: 0; }
@@ -349,28 +310,20 @@ body:has(#ray-none:checked)     .slogan-none{ display: inline; }
 .entry-textarea:focus-visible{ outline: none; }
 .ghost-placeholder{ position: absolute; top: .8rem; left: .9rem; pointer-events: none; color: var(--ink-mute); font-size: 1.15rem; line-height: 1.4; display: none; }
 .entry-field:has(.entry-textarea:placeholder-shown) .ghost-placeholder{ display: block; }
-/* bot suggestion — inline ghost text overlay, shown when a bot is picked and field empty */
-.suggestion{
-  position: absolute; top: calc(.8rem + 1.45em); left: .9rem; right: .9rem;
-  margin: 0; color: var(--ink-mute); font-size: 1.05rem; line-height: 1.4;
-  pointer-events: none; display: none; z-index: 0;
-}
-.suggestion > span{ display: none; }
-body:has([name="bot"]:checked:not(#bot-none)) .entry-field:has(.entry-textarea:placeholder-shown) .suggestion{ display: block; }
-body:has(#bot-formal:checked)   .sg-formal,
-body:has(#bot-informal:checked) .sg-informal,
-body:has(#bot-hotter:checked)   .sg-hotter{ display: inline; }
-
-.entry-tools{ display: flex; align-items: center; gap: .4rem; margin-top: .55rem; }
+/* field on the left · ✦/★ stacked to its right · mic on the field's
+   bottom border — the same arrangement as flovybasic */
+.field-wrap{ display: flex; align-items: flex-start; gap: .5rem; margin-bottom: 1.6rem; }
+.field-wrap .entry-field{ flex: 1; min-width: 0; padding-bottom: 1.4rem; }
+.field-side{ display: flex; flex-direction: column; gap: .45rem; flex-shrink: 0; }
+.entry-actions{ display: flex; }
 .tool-btn{
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 50%;
-  background: var(--fill-soft); border: 1px solid transparent; color: var(--accent-deep);
+  background: transparent; border: 0; color: var(--accent-deep);
   font-size: 1rem; cursor: pointer;
   transition: background var(--fast), border-color var(--fast), transform var(--fast);
 }
-.tool-btn:hover{ background: var(--fill-mid); border-color: var(--accent); }
-/* bot/rater popovers anchored above the tools */
+.tool-btn:hover{ background: var(--fill-mid); }
 .tool-cell{ position: relative; display: inline-flex; }
 .tool-pop{
   position: absolute; bottom: calc(100% + .4rem); left: 0;
@@ -382,16 +335,15 @@ body:has(#bot-hotter:checked)   .sg-hotter{ display: inline; }
 }
 body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop,
 body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
+/* side-column popovers align to the right edge so they don't overflow */
+.field-side .tool-pop{ left: auto; right: 0; }
 .chip{
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%; font-size: 1rem;
-  background: #fff; border: 1px solid var(--line);
+  background: transparent; border: 0; color: inherit; cursor: pointer;
   transition: transform var(--fast), background var(--fast), border-color var(--fast);
 }
-.chip:hover{ background: var(--fill-soft); border-color: var(--accent); transform: translateY(-1px); }
-body:has(#bot-formal:checked)   .chip[for="bot-formal"],
-body:has(#bot-informal:checked) .chip[for="bot-informal"],
-body:has(#bot-hotter:checked)   .chip[for="bot-hotter"],
+.chip:hover{ background: var(--fill-soft); transform: translateY(-1px); }
 body:has(#rate-h:checked) .chip[for="rate-h"],
 body:has(#rate-f:checked) .chip[for="rate-f"],
 body:has(#rate-l:checked) .chip[for="rate-l"],
@@ -399,6 +351,16 @@ body:has(#rate-t:checked) .chip[for="rate-t"]{
   background: var(--accent); border-color: var(--accent-deep);
   transform: scale(1.1); box-shadow: 0 0 0 2px var(--accent-glow);
 }
+/* mic — bare, centred on the field's bottom border */
+.mic-btn{ position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%); z-index: 2; background: transparent; border: 0; }
+.mic-btn:hover{ background: var(--fill-soft); }
+body:has(#mic-on:checked) .mic-btn{ background: var(--accent); color: #fff; animation: mic-pulse 1.3s ease-in-out infinite; }
+@keyframes mic-pulse{ 0%,100%{ box-shadow: 0 0 0 0 var(--accent-glow);} 50%{ box-shadow: 0 0 0 6px rgba(var(--accent-rgb),0);} }
+.mic-hint{ display: none; margin: .1rem 0 0; font: 500 .76rem var(--font-ui); color: var(--accent-deep); }
+body:has(#mic-on:checked) .mic-hint{ display: block; }
+/* wizard chip — a tiny pulse when it injects text */
+.chip.just-injected{ animation: pop .35s var(--bounce); }
+@keyframes pop{ 0%{ transform: scale(1);} 50%{ transform: scale(1.25);} 100%{ transform: scale(1);} }
 .add-btn{
   margin-left: auto; display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
   padding: .5rem 1.1rem; border: 0; border-radius: var(--radius-pill);
@@ -465,9 +427,11 @@ body:has(#insight-why:checked)   .insight-panel--why{ display: block; }
 .actions-right{ display: inline-flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
 
 /* counters */
-.counters{ display: flex; flex-wrap: wrap; gap: .9rem; margin-top: .6rem; padding-top: .55rem; border-top: 1px dashed var(--line); }
-.counter{ display: inline-flex; align-items: baseline; gap: .3rem; font: 500 .8rem var(--font-ui); color: var(--ink-soft); }
-.counter b{ font: 700 .95rem var(--font-ui); color: var(--accent-deep); }
+/* counters — icon chips (like flovyadvanced's arcade counters) */
+.counters{ display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
+.counter{ display: inline-flex; align-items: center; gap: .35rem; padding: .28rem .6rem; border-radius: 999px; background: var(--fill-soft); font: 700 .82rem var(--font-ui); }
+.counter .counter-ico{ font-size: .95rem; }
+.counter b{ color: var(--accent-deep); }
 
 /* language — current language with a ▾ caret that opens a dropdown */
 .menu-lang{ display: flex; align-items: center; gap: .6rem; padding: .55rem .65rem; border-radius: 10px; cursor: pointer; transition: background var(--fast); }
@@ -575,11 +539,6 @@ body:has(#newlabel-open:checked) .modal-overlay--label{ display: flex; animation
 <input type="radio" name="lang" id="lang-en" class="ctl" checked>
 <input type="radio" name="lang" id="lang-es" class="ctl">
 
-<!-- compass: 3 layout modes -->
-<input type="checkbox" id="compass-open" class="ctl">
-<input type="radio" name="disp-mode" id="disp-list"    class="ctl" checked>
-<input type="radio" name="disp-mode" id="disp-cloud"   class="ctl">
-<input type="radio" name="disp-mode" id="disp-bubbles" class="ctl">
 
 <!-- magic rays: 3 personalities (formal/informal/hotter) + none -->
 <input type="checkbox" id="magic-open" class="ctl">
@@ -592,12 +551,10 @@ body:has(#newlabel-open:checked) .modal-overlay--label{ display: flex; animation
 <input type="radio" name="step" id="step-who"     class="ctl" checked>
 <input type="radio" name="step" id="step-summary" class="ctl">
 
-<!-- bot suggester: single suggestion per bot -->
+<!-- wizard suggester popover toggle (chips inject text via the inline script) -->
 <input type="checkbox" id="bot-open" class="ctl">
-<input type="radio" name="bot" id="bot-none"     class="ctl" checked>
-<input type="radio" name="bot" id="bot-formal"   class="ctl">
-<input type="radio" name="bot" id="bot-informal" class="ctl">
-<input type="radio" name="bot" id="bot-hotter"   class="ctl">
+<!-- mic listening toggle -->
+<input type="checkbox" id="mic-on" class="ctl">
 
 <!-- rater: 4 emoji, single-select -->
 <input type="checkbox" id="rate-open" class="ctl">
@@ -643,37 +600,6 @@ body:has(#newlabel-open:checked) .modal-overlay--label{ display: flex; animation
         <span class="tm-informal">· informal</span>
         <span class="tm-hotter">· hotter</span>
       </span>
-    </div>
-
-    <!-- compass -->
-    <div class="compass-wrap">
-      <label class="compass-btn topbar-btn" for="compass-open" title="Layout modes" aria-label="Layout modes" tabindex="0">
-        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
-          <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
-          <circle cx="12" cy="12" r="1.9" fill="#fff"/>
-        </svg>
-      </label>
-      <div class="mode-buttons" role="group" aria-label="Layout modes">
-        <label class="mode-btn" for="disp-list" title="List — ordered" aria-label="List" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="4" cy="6"  r="2.3"/><rect x="9" y="4.2"  width="13" height="3.6" rx="1.8"/>
-            <circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/>
-            <circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-cloud" title="Cloud — drift" aria-label="Cloud" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/>
-            <rect x="6.5" y="13" width="12.5" height="6" rx="3"/>
-          </g></svg>
-        </label>
-        <label class="mode-btn" for="disp-bubbles" title="Bubbles — float" aria-label="Bubbles" tabindex="0">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
-            <circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/>
-          </g></svg>
-        </label>
-      </div>
     </div>
 
     <span class="topbar-spacer"></span>
@@ -773,8 +699,8 @@ body:has(#newlabel-open:checked) .modal-overlay--label{ display: flex; animation
     <label class="about-close" for="about-open" tabindex="0" aria-label="Close">×</label>
     <h2><span class="l-en">About flovy</span><span class="l-es">Acerca de flovy</span></h2>
     <p>
-      <span class="l-en">flovy is a tiny pure-CSS love journal: write what's in your love, shape its tone with the magic labelers, let a wizard suggest a phrasing, and react with a heart. This is the <strong>normal</strong> tier — the medium standard, with a compass, a stepper and a fuller summary.</span>
-      <span class="l-es">flovy es un pequeño diario de amor en CSS puro: escribe lo que hay en tu amor, dale tono con los labelers mágicos, deja que un wizard sugiera una frase y reacciona con un corazón. Este es el tier <strong>normal</strong> — el estándar medio, con compás, stepper y un resumen más completo.</span>
+      <span class="l-en">flovy is a tiny love journal: write what's in your love, shape its tone with the magic labelers, let a wizard inject a phrasing, and react with a heart. This is the <strong>normal</strong> tier — the medium standard, with a stepper and a fuller summary.</span>
+      <span class="l-es">flovy es un pequeño diario de amor: escribe lo que hay en tu amor, dale tono con los labelers mágicos, deja que un wizard inserte una frase y reacciona con un corazón. Este es el tier <strong>normal</strong> — el estándar medio, con stepper y un resumen más completo.</span>
     </p>
   </div>
 </section>
@@ -785,45 +711,47 @@ body:has(#newlabel-open:checked) .modal-overlay--label{ display: flex; animation
   <!-- STEP · Who -->
   <section class="step-panel step-panel--who card">
     <form class="entry-form" action="mailto:publish@flove.org" method="post" enctype="text/plain">
-      <div class="entry-field">
-        <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
-        <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
-        <output class="suggestion">
-          <span class="sg-formal"><span class="l-en">With care and respect, I share the following for your consideration.</span><span class="l-es">Con cuidado y respeto, comparto lo siguiente para tu consideración.</span></span>
-          <span class="sg-informal"><span class="l-en">Hey! Here's a little something, just between us. 👋</span><span class="l-es">¡Eh! Aquí va algo, entre tú y yo. 👋</span></span>
-          <span class="sg-hotter"><span class="l-en">Where the air leans and the silence writes, there beats what has no name. 🔥</span><span class="l-es">Donde el aire se inclina y el silencio escribe, late lo que no tiene nombre. 🔥</span></span>
-        </output>
+      <div class="field-wrap">
+        <div class="entry-field">
+          <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
+          <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
+          <!-- 🎤 mic — centred on the field's bottom border -->
+          <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
+        </div>
+
+        <!-- ✦ wizard + ★ rater stacked to the right, each in its own row -->
+        <div class="field-side">
+          <span class="tool-cell tool-cell--bot">
+            <ul class="tool-pop" role="group" aria-label="Wizard suggestions">
+              <li><button type="button" class="chip" data-wiz="formal"   title="Formal"   aria-label="Formal wizard"   tabindex="0">🎩</button></li>
+              <li><button type="button" class="chip" data-wiz="informal" title="Informal" aria-label="Informal wizard" tabindex="0">👋</button></li>
+              <li><button type="button" class="chip" data-wiz="hotter"   title="Hotter"   aria-label="Hotter wizard"   tabindex="0">🔥</button></li>
+            </ul>
+            <label class="tool-btn" for="bot-open" title="Wizards — click a chip to add text" aria-label="Wizard suggestions" tabindex="0">✦</label>
+          </span>
+          <span class="tool-cell tool-cell--rate">
+            <ul class="tool-pop" role="radiogroup" aria-label="Rate">
+              <li><label class="chip" for="rate-h" title="Heart"    aria-label="Heart"    tabindex="0">❤️</label></li>
+              <li><label class="chip" for="rate-f" title="Fun"      aria-label="Fun"      tabindex="0">😆</label></li>
+              <li><label class="chip" for="rate-l" title="Love"     aria-label="Love"     tabindex="0">😍</label></li>
+              <li><label class="chip" for="rate-t" title="Thoughts" aria-label="Thoughts" tabindex="0">🤔</label></li>
+            </ul>
+            <label class="tool-btn" for="rate-open" title="Rate" aria-label="Rate" tabindex="0">★</label>
+          </span>
+        </div>
       </div>
 
-      <div class="entry-tools">
-        <!-- ✦ bot suggester -->
-        <span class="tool-cell tool-cell--bot">
-          <ul class="tool-pop" role="radiogroup" aria-label="Bot suggestions">
-            <li><label class="chip" for="bot-formal"   title="Formal"   aria-label="Formal bot"   tabindex="0">🎩</label></li>
-            <li><label class="chip" for="bot-informal" title="Informal" aria-label="Informal bot" tabindex="0">👋</label></li>
-            <li><label class="chip" for="bot-hotter"   title="Hotter"   aria-label="Hotter bot"   tabindex="0">🔥</label></li>
-          </ul>
-          <label class="tool-btn" for="bot-open" title="Suggest" aria-label="Bot suggestions" tabindex="0">✦</label>
-        </span>
-        <!-- ★ rater -->
-        <span class="tool-cell tool-cell--rate">
-          <ul class="tool-pop" role="radiogroup" aria-label="Rate">
-            <li><label class="chip" for="rate-h" title="Heart"    aria-label="Heart"    tabindex="0">❤️</label></li>
-            <li><label class="chip" for="rate-f" title="Fun"      aria-label="Fun"      tabindex="0">😆</label></li>
-            <li><label class="chip" for="rate-l" title="Love"     aria-label="Love"     tabindex="0">😍</label></li>
-            <li><label class="chip" for="rate-t" title="Thoughts" aria-label="Thoughts" tabindex="0">🤔</label></li>
-          </ul>
-          <label class="tool-btn" for="rate-open" title="Rate" aria-label="Rate" tabindex="0">★</label>
-        </span>
-        <button class="add-btn" type="submit" title="Add and send by email">＋ <span class="l-en">Add</span><span class="l-es">Añadir</span></button>
-      </div>
-      <!-- the rater's sub-reactions now open in a popover BELOW the ★ button (see .tool-cell--rate) -->
+      <p class="mic-hint" aria-live="polite"><span class="l-en">🎤 Listening… (dictation is wired in the advanced tier)</span><span class="l-es">🎤 Escuchando… (el dictado se activa en el tier avanzado)</span></p>
 
-      <!-- counters (display-only at this CSS-pure tier; live counts are wired in advanced) -->
+      <!-- counters — icon chips (Clicks · Selections · Stars), like flovyadvanced -->
       <div class="counters" aria-label="Counters">
-        <span class="counter"><b>1</b> <span class="l-en">entry</span><span class="l-es">entrada</span></span>
-        <span class="counter"><b>0</b> <span class="l-en">words</span><span class="l-es">palabras</span></span>
-        <span class="counter"><b>0</b>/1000 <span class="l-en">chars</span><span class="l-es">caracteres</span></span>
+        <span class="counter" title="Clicks"><span class="counter-ico">👆</span><b id="c-clicks">0</b></span>
+        <span class="counter" title="Selections"><span class="counter-ico">💞</span><b id="c-sel">0</b></span>
+        <span class="counter" title="Stars — filled textareas"><span class="counter-ico">⭐</span><b id="c-stars">0</b></span>
+      </div>
+
+      <div class="entry-actions">
+        <button class="add-btn" type="submit" title="Add and send by email">＋ <span class="l-en">Add</span><span class="l-es">Añadir</span></button>
       </div>
     </form>
   </section>
@@ -921,7 +849,89 @@ body:has(#newlabel-open:checked) .modal-overlay--label{ display: flex; animation
   </div>
 </div>
 
+<!-- ============================================================
+     Wizard text-insert — the ONLY JavaScript in this tier.
+     CSS cannot write into a <textarea>, so this small script handles
+     the ✦ wizard chips:
+       · click a wizard → inserts its suggestion text
+       · click the SAME wizard again → cycles 3 different texts
+       · 4th click → resets (removes that wizard's contribution)
+       · if the user edits the field (even adds a space), the inserted
+         text is kept and the next wizard click APPENDS after it.
+     ============================================================ -->
+<script>
+(function(){
+  var ta = document.querySelector('.entry-textarea');
+  if(!ta) return;
+  var WIZ = {
+    formal: [
+      {en:"With care and respect, I share the following for your consideration.", es:"Con cuidado y respeto, comparto lo siguiente para tu consideración."},
+      {en:"I hope this finds you well; I write to offer a thought.",               es:"Espero que estés bien; escribo para ofrecerte una idea."},
+      {en:"Thank you for your time and attention.",                                es:"Gracias por tu tiempo y atención."}
+    ],
+    informal: [
+      {en:"Hey! Here's a little something, just between us.",  es:"¡Eh! Aquí va algo, entre tú y yo."},
+      {en:"Ok so — quick thought, hear me out.",               es:"Vale, una idea rápida, escúchame."},
+      {en:"No pressure, just wanted to say this.",             es:"Sin presión, solo quería decir esto."}
+    ],
+    hotter: [
+      {en:"Where the air leans and the silence writes, there beats what has no name.", es:"Donde el aire se inclina y el silencio escribe, late lo que no tiene nombre."},
+      {en:"Come closer — the night is long and we are awake.",                          es:"Acércate — la noche es larga y estamos despiertos."},
+      {en:"Say it with your whole chest; I'm listening.",                               es:"Dilo con todo el pecho; te escucho."}
+    ]
+  };
+  var esOn = function(){ var es = document.getElementById('lang-es'); return es && es.checked; };
+  var pick = function(bot, step){ var t = WIZ[bot][step]; return esOn() ? t.es : t.en; };
 
+  var base = '';        // committed content before the active suggestion
+  var inserted = '';    // the suggestion segment we last wrote
+  var activeBot = null; // which wizard is currently cycling
+  var step = 0;         // index into the 3 texts
+
+  function set(v){
+    ta.value = v;
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+    ta.focus();
+  }
+  function pristine(bot){ return activeBot === bot && ta.value === (base + inserted); }
+
+  document.querySelectorAll('.tool-cell--bot .chip[data-wiz]').forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var bot = btn.getAttribute('data-wiz');
+      if(pristine(bot)){
+        step += 1;
+        if(step >= 3){                 // 4th click → reset this wizard
+          inserted = ''; activeBot = null; step = 0;
+          set(base);
+        } else {                        // cycle to a different text in place
+          inserted = pick(bot, step);
+          set(base + inserted);
+        }
+      } else {                          // field was edited (or other wizard) → append
+        base = ta.value + (ta.value && !/\s$/.test(ta.value) ? ' ' : '');
+        inserted = pick(bot, 0);
+        activeBot = bot; step = 0;
+        set(base + inserted);
+      }
+      btn.classList.remove('just-injected'); void btn.offsetWidth; btn.classList.add('just-injected');
+    });
+  });
+
+  /* light counters — Clicks (any tool click) · Selections (rater) · Stars (1 if the field is non-empty) */
+  var cClicks = document.getElementById('c-clicks'),
+      cSel    = document.getElementById('c-sel'),
+      cStars  = document.getElementById('c-stars');
+  var clicks = 0;
+  document.querySelectorAll('.tool-cell .chip, .tool-btn').forEach(function(el){
+    el.addEventListener('click', function(){ if(cClicks){ cClicks.textContent = ++clicks; } });
+  });
+  document.querySelectorAll('.tool-cell--rate .chip').forEach(function(el){
+    el.addEventListener('click', function(){ if(cSel){ cSel.textContent = '1'; } });
+  });
+  ta.addEventListener('input', function(){ if(cStars){ cStars.textContent = ta.value.trim() ? '1' : '0'; } });
+})();
+</script>
 
 </body>
 </html>

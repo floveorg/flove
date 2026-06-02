@@ -157,9 +157,7 @@
     .frame-row{ display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center }
     .frame-mid{ display:flex; gap:.6rem; align-items:center; justify-content:center; flex-wrap:wrap }
     .frame-aside{ display:grid; gap:.5rem; align-content:center }
-    .frame-systems{ flex:1 1 260px; min-width:240px; display:grid; gap:.5rem; justify-items:center }
-    .frame-systems > .lcard{ min-width:120px }     /* flove card centred above the systems */
-    .frame-systems .systems-grid{ width:100% }
+    .frame-systems{ flex:1 1 260px; min-width:240px }
     .frame .lcard, .frame-row .lcard{ min-width:96px }
     .emotion-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem }
 
@@ -368,10 +366,6 @@
           <button id="btnSystems" class="list-choice btn" type="button" aria-pressed="false"><span class="t-en">Systems</span><span class="t-es">Sistemas</span></button>
           <button id="btnEmotions" class="list-choice btn" type="button" aria-pressed="false"><span class="t-en">Emotions</span><span class="t-es">Emociones</span></button>
         </div>
-        <!-- plus below the two buttons → upload more lists as .csv -->
-        <div class="senses-add">
-          <button id="moreListsPlus" class="round-plus" type="button" aria-label="Upload a list (.csv)">+</button>
-        </div>
         <input id="csvInput" type="file" accept=".csv,text/csv" hidden>
         <div id="csvNote" class="action-note" aria-live="polite"></div>
 
@@ -461,7 +455,6 @@
     // further-list pickers (Systems / Emotions) + CSV upload
     const btnSystems = document.getElementById('btnSystems');
     const btnEmotions = document.getElementById('btnEmotions');
-    const moreListsPlus = document.getElementById('moreListsPlus');
     const csvInput = document.getElementById('csvInput');
     const csvNote = document.getElementById('csvNote');
     const listsRender = document.getElementById('listsRender');
@@ -637,32 +630,25 @@
       listsRender.innerHTML = '';
 
       if (systemsOn && emotionsOn) {
-        // emotions frame the systems symmetrically, with flove at the true centre:
-        //   top 3 · [left 2 | flove + systems | right 2] · bottom 3   (10 ring + flove)
-        const flove = EMOTIONS.find(e => e.center);
-        const ring  = EMOTIONS.filter(e => !e.center);
-
+        // emotions frame the systems: 5 above · (systems | 1 right) · 5 below
         const frame = document.createElement('div');
         frame.className = 'frame';
 
         const rowTop = document.createElement('div');
         rowTop.className = 'frame-row';
-        ring.slice(0, 3).forEach(e => rowTop.appendChild(makeCard(e, 'emotion')));
+        EMOTIONS.slice(0, 5).forEach(e => rowTop.appendChild(makeCard(e, 'emotion')));
 
         const mid = document.createElement('div');
         mid.className = 'frame-mid';
-        const asideL = document.createElement('div'); asideL.className = 'frame-aside';
-        ring.slice(3, 5).forEach(e => asideL.appendChild(makeCard(e, 'emotion')));
         const center = document.createElement('div'); center.className = 'frame-systems';
-        if (flove) center.appendChild(makeCard(flove, 'emotion'));   // flove sits at the centre
         center.appendChild(systemsGrid());
         const asideR = document.createElement('div'); asideR.className = 'frame-aside';
-        ring.slice(5, 7).forEach(e => asideR.appendChild(makeCard(e, 'emotion')));
-        mid.append(asideL, center, asideR);
+        EMOTIONS.slice(5, 6).forEach(e => asideR.appendChild(makeCard(e, 'emotion')));
+        mid.append(center, asideR);
 
         const rowBot = document.createElement('div');
         rowBot.className = 'frame-row';
-        ring.slice(7, 10).forEach(e => rowBot.appendChild(makeCard(e, 'emotion')));
+        EMOTIONS.slice(6, 11).forEach(e => rowBot.appendChild(makeCard(e, 'emotion')));
 
         frame.append(rowTop, mid, rowBot);
         listsRender.appendChild(frame);
@@ -708,7 +694,6 @@
       csvNote.textContent = msg;
       csvNote.className = `action-note ${kind}`;
     }
-    moreListsPlus.addEventListener('click', () => csvInput.click());
     csvInput.addEventListener('change', () => {
       const file = csvInput.files && csvInput.files[0];
       if (!file) return;

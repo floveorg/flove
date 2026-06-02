@@ -3135,7 +3135,7 @@
   }
   #stage4 .list > li{
     justify-self:stretch; align-self:center; text-align:center;
-    padding:.85rem 1.1rem; font-weight:700; font-size:1.05rem; border-radius:12px; border:none;
+    padding:.85rem 2px; font-weight:700; font-size:1.05rem; border-radius:12px; border:none;
     background:var(--col, #888); color:var(--fg, var(--app-ink-on-accent));
     box-shadow:0 10px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -3204,6 +3204,13 @@
   #stage4 .anim-btn{ font-size:.85rem; font-weight:700; padding:6px 16px; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--muted); cursor:pointer; }
   #stage4 .anim-btn[aria-pressed="true"]{ background:var(--accent2); border-color:var(--accent2); color:var(--app-ink-on-accent); }
   #stage4 .create-btn{ font:inherit; font-weight:700; font-size:1rem; padding:.7rem 1.5rem; border-radius:12px; border:none; background:var(--app-accent); color:var(--app-ink-on-accent); cursor:pointer; box-shadow:0 8px 20px rgba(141,137,255,.3); }
+  /* Progressive reveal: bar + numbers first; See some/Create on a checked node;
+     Animate once See some is on or a row exists. */
+  #stage4 .top-btn, #stage4 .create-btn, #stage4 .anim-btn{ display:none; }
+  #stage4:has(.node-cb:checked) .top-btn{ display:inline-block; }
+  #stage4:has(.node-cb:checked) .create-btn{ display:inline-block; }
+  #stage4:has(#s4-top:checked) .anim-btn,
+  #stage4:has(.s4-entry) .anim-btn{ display:inline-block; }
   #stage4 .create-btn:hover{ filter:brightness(1.06); }
   #stage4 #s4-rows{ display:grid; gap:14px; }
   #stage4 #s4-rows:empty{ display:none; }
@@ -3233,7 +3240,14 @@
   /* Up/down arrows only appear once a row is saved; unsaved shows just ＋ */
   #stage4 .cr-up, #stage4 .cr-down{ display:none; }
   #stage4 .s4-entry.saved .cr-up, #stage4 .s4-entry.saved .cr-down{ display:grid; }
-  #stage4 .s4-entry.saved .cr-dup{ display:none; }
+  /* "add" button below each row's list (replaces the old ＋); hidden once saved */
+  #stage4 .crow-add{
+    display:block; margin:.45rem auto 0; padding:.32rem .9rem; cursor:pointer;
+    border-radius:999px; border:1px dashed var(--line); background:transparent;
+    color:var(--app-accent-soft); font-weight:700; font-size:.78rem;
+  }
+  #stage4 .crow-add:hover{ border-color:var(--app-accent); color:var(--app-accent); }
+  #stage4 .s4-entry.saved .crow-add{ display:none; }
   #stage4 .s4-entry.saved .cr-del{ display:grid; color:#ff8a8a; }
   #stage4 .s4-entry.saved .cr-del:hover{ border-color:#ff8a8a; color:#ff8a8a; }
   #stage4 #s4-saved:empty{ display:none; }
@@ -3277,8 +3291,14 @@
   #stage4 .stage4-end[hidden]{ display:none }
   #stage4 .s4-end-row{ display:flex; justify-content:center; gap:12px; }
   #stage4 .stage4-end .btn{ font:inherit; font-weight:700; padding:.6rem 1.3rem; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; }
-  #stage4 .stage4-end .btn-primary{ background:var(--accent2); border-color:var(--accent2); color:var(--app-ink-on-accent); }
-  #stage4 .stage4-end .s4-finish{ border-color:var(--gold); color:var(--gold); }
+  /* Continue to Stage 5 + Finish share the app-accent look + hover of Create. */
+  #stage4 .stage4-end .btn-primary,
+  #stage4 .stage4-end .s4-finish{
+    background:var(--app-accent); border-color:var(--app-accent); color:var(--app-ink-on-accent);
+    box-shadow:0 8px 20px rgba(141,137,255,.3);
+  }
+  #stage4 .stage4-end .btn-primary:hover,
+  #stage4 .stage4-end .s4-finish:hover{ filter:brightness(1.06); }
 
   /* ===== Stage 5 — fivy-style deck fill (4 untapped decks + 1 void) ===== */
   #stage5{ max-width:1100px; margin:1.4rem auto 0; }
@@ -7165,7 +7185,11 @@
   function renderBottomSummary(){
     const $sec = document.getElementById('std-summary');
     if (!$sec) return;
-    const hasContent = !!buildBottomSummaryHTML().trim();
+    // Stage 4/5 results (confluences + fivys) keep the summary open even when
+    // the base play recap is empty — that was the bug: selections were rendered
+    // into a panel that this function had hidden.
+    const extra = !!(document.querySelector('#s4-conf-tbody tr') || document.querySelector('#s5-fivy-tbody tr'));
+    const hasContent = !!buildBottomSummaryHTML().trim() || extra;
     $sec.hidden = !hasContent;
     if (!hasContent) return;
     const $def = $sec.querySelector('.clause-default');
@@ -8474,15 +8498,18 @@
       }
       const side = document.createElement('div');
       side.className = 'crow-side';
+      // No ＋ here — duplication moves to an "add" button below the list.
+      // Arrows show only once the row is saved (CSS).
       side.innerHTML =
           '<button class="cr-up"   type="button" title="Move up"   aria-label="Move up">↑</button>'
         + '<button class="cr-down" type="button" title="Move down" aria-label="Move down">↓</button>'
-        + '<button class="cr-dup"  type="button" title="Duplicate" aria-label="Duplicate this row">＋</button>'
         + '<button class="cr-del"  type="button" title="Delete"    aria-label="Delete this row">✕</button>';
       crow.appendChild(ul); crow.appendChild(side);
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'crow-add'; add.textContent = '+ add';
       const save = document.createElement('button');
       save.type = 'button'; save.className = 'crow-save'; save.textContent = 'Save';
-      entry.appendChild(crow); entry.appendChild(save);
+      entry.appendChild(crow); entry.appendChild(add); entry.appendChild(save);
       return entry;
     }
     function rowText(entry){
@@ -8521,6 +8548,12 @@
       const block = document.getElementById('s4-conf-block');
       if (tbody) tbody.innerHTML = rows.map(confRowHTML).join('');
       if (block) block.hidden = rows.length === 0;
+      // Make sure the summary actually surfaces the selections (it can have been
+      // left hidden/collapsed by the base recap renderer).
+      if (rows.length){
+        const ss = document.getElementById('std-summary');
+        if (ss){ ss.hidden = false; ss.classList.remove('is-collapsed'); }
+      }
     }
     // Wrap every Top confluence with a big transparent love; filling it adds
     // that confluence to the My-confluences table.
@@ -8575,10 +8608,13 @@
         const p = entry.previousElementSibling; if (p) zone.insertBefore(entry, p);
       } else if (btn.classList.contains('cr-down')){
         const nx = entry.nextElementSibling; if (nx) zone.insertBefore(nx, entry);
-      } else if (btn.classList.contains('cr-dup')){
-        entry.after(entry.cloneNode(true)); refreshFillable();
+      } else if (btn.classList.contains('crow-add')){
+        // "add" (below the list) clones the row right after it.
+        const clone = entry.cloneNode(true);
+        clone.classList.remove('saved');
+        entry.after(clone); refreshFillable();
       } else if (btn.classList.contains('crow-save')){
-        // Save: lift the row above (into the saved zone), swap ＋ for ✕.
+        // Save: lift the row into the saved zone; arrows + ✕ appear, add hides.
         entry.classList.add('saved'); entry.classList.remove('fillable');
         s4saved.appendChild(entry);
       } else if (btn.classList.contains('cr-del')){

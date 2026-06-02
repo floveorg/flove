@@ -202,8 +202,23 @@
     .toggle-all input{ width:1.05rem; height:1.05rem; accent-color:var(--app-accent) }
     .toggle-all[hidden]{ display:none }
 
+    /* "See combos": button when collapsed, section-title look when open */
+    .see-combos{
+      appearance:none; cursor:pointer; user-select:none; font-family:inherit;
+      padding:.6rem .9rem; border-radius:var(--flove-radius-sm); border:1px solid var(--line);
+      background:#121733; color:var(--ink); font-weight:700;
+      transition:box-shadow var(--flove-fast), border-color var(--flove-fast), background var(--flove-fast), color var(--flove-fast);
+    }
+    .see-combos:hover{ border-color:var(--app-accent); box-shadow:0 0 12px rgba(141,137,255,.45) }
+    .see-combos .sc-open{ display:none }
+    .see-combos.is-open{
+      background:transparent; border-color:transparent; box-shadow:none;
+      padding:.1rem 0; font-size:1.05rem; letter-spacing:.6px; color:var(--accent2);
+    }
+    .see-combos.is-open .sc-collapsed{ display:none }
+    .see-combos.is-open .sc-open{ display:inline }
+
     .combos{ margin-top:1rem }
-    .combos-hdr{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem }
     .combos-list{ display:grid; grid-template-columns:repeat(2,minmax(260px,1fr)); gap:.45rem }
     .combo{
       display:flex; gap:.55rem; align-items:center; border:1px solid var(--line);
@@ -369,29 +384,28 @@
     <section class="card">
 
       <div class="actions">
-        <label class="toggle-all">
-          <input id="combosToggle" type="checkbox">
-          <span><span class="t-en">Combinations</span><span class="t-es">Combinaciones</span></span>
-        </label>
+        <!-- "See combos": a button that, on click, expands the combos and turns
+             into the section title; clicking it again collapses back to a button -->
+        <button id="seeCombosBtn" class="see-combos" type="button" aria-expanded="false">
+          <span class="sc-collapsed"><span class="t-en">See combos</span><span class="t-es">Ver combos</span></span>
+          <span class="sc-open"><span class="t-en">All possible combinations</span><span class="t-es">Todas las combinaciones posibles</span></span>
+        </button>
 
-        <!-- Select all: only visible once Combinations is checked -->
+        <!-- Select all: only visible once combos are shown -->
         <label class="toggle-all" id="selectAllWrap" hidden>
           <input id="toggleAll" type="checkbox">
           <span><span class="t-en">Select all</span><span class="t-es">Seleccionar todo</span></span>
         </label>
       </div>
 
-      <!-- Combinations (built after Next) -->
+      <!-- Combinations (built when "See combos" is opened) -->
       <div id="combosWrap" class="combos" hidden>
-        <div class="combos-hdr">
-          <h3><span class="t-en">All possible combinations</span><span class="t-es">Todas las combinaciones posibles</span></h3>
-        </div>
         <div id="combosList" class="combos-list"></div>
       </div>
 
       <!-- WISE IT (below combos, collapsed by default) -->
       <details id="wiseDetails" class="wise-panel">
-        <summary><span class="t-en">Wise it</span><span class="t-es">Wise it</span></summary>
+        <summary><span class="t-en">Wiser combos</span><span class="t-es">Combos sabios</span></summary>
         <div class="wise-grid">
           <label class="wise"><input type="checkbox" value="Ethical"    class="wise-check"> <span class="t-en">Evidence</span><span class="t-es">Evidencia</span></label>
           <label class="wise"><input type="checkbox" value="Pragmatic"  class="wise-check"> <span class="t-en">Axiom</span><span class="t-es">Axioma</span></label>
@@ -434,7 +448,7 @@
     const addMoreBtn = document.getElementById('addMoreBtn');
     const customTokens = document.getElementById('customTokens');
 
-    const combosToggle = document.getElementById('combosToggle');
+    const seeCombosBtn = document.getElementById('seeCombosBtn');
     const selectAllWrap = document.getElementById('selectAllWrap');
     const combosWrap = document.getElementById('combosWrap');
     const combosList = document.getElementById('combosList');
@@ -755,13 +769,21 @@
       return true;
     }
 
-    // Combinations toggle: build & show combos, and reveal "Select all" only when checked
-    combosToggle.addEventListener('change', () => {
-      if (combosToggle.checked) {
+    // "See combos": click to build & expand the combos (the button turns into the
+    // section title) and reveal "Select all"; click again to collapse back.
+    let combosOpen = false;
+    seeCombosBtn.addEventListener('click', () => {
+      if (!combosOpen) {
         const built = buildCombos();
-        selectAllWrap.hidden = !built;
-        if (!built) combosToggle.checked = false; // nothing to combine yet
+        if (!built) return;                 // nothing to combine yet — stay collapsed
+        combosOpen = true;
+        seeCombosBtn.classList.add('is-open');
+        seeCombosBtn.setAttribute('aria-expanded', 'true');
+        selectAllWrap.hidden = false;
       } else {
+        combosOpen = false;
+        seeCombosBtn.classList.remove('is-open');
+        seeCombosBtn.setAttribute('aria-expanded', 'false');
         combosWrap.hidden = true;
         selectAllWrap.hidden = true;
         toggleAll.checked = false;

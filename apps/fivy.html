@@ -480,16 +480,13 @@
   }
   @media (max-width:640px){.fields-lower{grid-template-columns:1fr}}
   .cats-col{min-width:0;display:flex;flex-direction:column;align-items:center}
-  .cats{
-    display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
-    max-width:270px;padding:8px 4px;margin-bottom:6px;
-  }
-  /* deck sub-buttons row, sitting below the category rows */
-  .cat-subs{
-    display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
-    max-width:270px;padding:0 4px;margin-bottom:12px;
-  }
+  .cats{display:flex;flex-direction:column;gap:8px;align-items:center;padding:8px 4px;margin:0}
+  .cat-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  /* deck sub-button rows (above / below the category rows) */
+  .cat-subs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 4px}
   .cat-subs:empty{display:none}
+  #cat-subs-top{margin-bottom:6px}
+  #cat-subs-bottom{margin:6px 0 8px}
   .cat{
     display:inline-flex;align-items:center;gap:5px;
     padding:6px 14px;border-radius:999px;
@@ -578,6 +575,19 @@
   .linear-list.confluence li:nth-child(2),
   .linear-list.confluence li:nth-child(4){transform:scale(1.3)}
   .linear-list.confluence li:nth-child(3){transform:scale(1.6)}
+
+  /* List + Confluence: animate the items like the confluence arrows — a green
+     pulse that flows down the list and swells toward the centre (winner). */
+  @keyframes listConflow{
+    0%,100%{transform:scale(var(--cs,1));box-shadow:0 1px 0 rgba(0,0,0,.2)}
+    50%{transform:scale(calc(var(--cs,1) + .18));box-shadow:0 0 12px rgba(36,206,122,.55);border-color:#18ce7a}
+  }
+  .linear-list.confluence li{animation:listConflow 3.2s ease-in-out infinite}
+  .linear-list.confluence li:nth-child(1){--cs:1;   animation-delay:0s}
+  .linear-list.confluence li:nth-child(2){--cs:1.3; animation-delay:.32s}
+  .linear-list.confluence li:nth-child(3){--cs:1.6; animation-delay:.64s}
+  .linear-list.confluence li:nth-child(4){--cs:1.3; animation-delay:.96s}
+  .linear-list.confluence li:nth-child(5){--cs:1;   animation-delay:1.28s}
 
   @keyframes listMorph-r1{0%,41.67%{transform:scale(1)}50%,91.67%{transform:scale(1.6)}100%{transform:scale(1)}}
   @keyframes listMorph-r2{0%,41.67%{transform:scale(1.3)}50%,91.67%{transform:scale(1)}100%{transform:scale(1.3)}}
@@ -987,11 +997,17 @@
   .pc-time .pc-time-display{
     display:flex;align-items:center;gap:5px;
     background:#3a3a52;border:1px solid var(--stroke);
-    padding:7px 12px;border-radius:999px;cursor:default;color:var(--ink);
+    padding:7px 12px;border-radius:999px;cursor:pointer;color:var(--ink);
     filter:drop-shadow(0 2px 6px rgba(0,0,0,.45));
+    transition:padding .15s ease;
   }
+  .pc-time .pc-time-display:hover{border-color:var(--sky)}
   .pc-time .pc-time-icon{font-size:1rem}
   .pc-time .pc-time-num{font:800 1rem/1 Georgia,serif;color:var(--sky)}
+  /* collapsed (default): just the ⏱ icon; click to reveal/hide the time */
+  .pc-time.is-collapsed .pc-time-num{display:none}
+  .pc-time.is-collapsed .pc-time-display{padding:7px 10px}
+  .pc-time.is-collapsed .pc-label{display:none}
 </style>
 </head>
 <body>
@@ -1096,55 +1112,29 @@
   <!-- Stage 1: Fields (simplex) -->
   <section class="fields" id="fields" aria-label="Fields">
 
-    <!-- square docked at the top, just under the topbar -->
-    <div class="square-dock">
-      <section class="square" id="square">
-        <svg class="edges" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <defs>
-            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z"/>
-            </marker>
-            <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z"/>
-            </marker>
-            <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z"/>
-            </marker>
-          </defs>
-          <line id="e12" class="edge cycle"     x1="500" y1="500" x2="140" y2="140"/>
-          <line id="e23" class="edge cycle"     x1="140" y1="140" x2="860" y2="140"/>
-          <line id="e34" class="edge cycle"     x1="860" y1="140" x2="140" y2="860"/>
-          <line id="e45" class="edge cycle"     x1="140" y1="860" x2="860" y2="860"/>
-          <line id="e51" class="edge cycle"     x1="860" y1="860" x2="500" y2="500"/>
-          <line id="e52" class="edge cycle red" x1="860" y1="860" x2="140" y2="140"/>
-          <line id="g1"  class="edge green confluence" x1="140" y1="500" x2="500" y2="500"/>
-          <line id="g2"  class="edge green confluence" x1="860" y1="500" x2="500" y2="500"/>
-        </svg>
-
-        <div class="node n1"><div class="rank-badge">1</div><div class="items" data-rank="0"></div></div>
-        <div class="node n2"><div class="rank-badge">2</div><div class="items" data-rank="1"></div></div>
-        <div class="node n3"><div class="rank-badge">3</div><div class="items" data-rank="2"></div></div>
-        <div class="node n4"><div class="rank-badge">4</div><div class="items" data-rank="3"></div></div>
-        <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
-      </section>
-    </div>
-
-    <!-- two columns: [category buttons (2 rows) + deck sub-buttons below] | [List/Cycle/Confluence] -->
+    <!-- two columns ABOVE the square: [cat buttons in two rows + sub-buttons] | [List/Cycle/Confluence] -->
     <div class="fields-lower">
       <div class="cats-col">
+        <!-- subs of the FIRST-row buttons sit above them -->
+        <div class="cat-subs" id="cat-subs-top"></div>
+
         <nav class="cats" aria-label="Categories" id="cats">
-          <button class="cat cat-rb-r" data-cat="cat-r" type="button">Metas</button>
-          <button class="cat cat-rb-o" data-cat="cat-o" type="button">Sci</button>
-          <button class="cat cat-rb-y" data-cat="cat-y" type="button">Bio</button>
-          <button class="cat cat-rb-g" data-cat="cat-g" type="button">Lang</button>
-          <button class="cat cat-rb-b" data-cat="cat-b" type="button">Psico</button>
-          <button class="cat cat-rb-i" data-cat="cat-i" type="button">Social</button>
-          <button class="cat cat-add" id="btn-add-cat" type="button" aria-label="Add a new fivy" title="Add a new fivy">+</button>
-          <button class="cat cat-save" id="btn-save-cat" type="button" hidden>Save</button>
+          <div class="cat-row">
+            <button class="cat cat-rb-r" data-cat="cat-r" type="button">Metas</button>
+            <button class="cat cat-rb-o" data-cat="cat-o" type="button">Sci</button>
+            <button class="cat cat-rb-g" data-cat="cat-g" type="button">Lang</button>
+          </div>
+          <div class="cat-row">
+            <button class="cat cat-rb-y" data-cat="cat-y" type="button">Bio</button>
+            <button class="cat cat-rb-b" data-cat="cat-b" type="button">Psico</button>
+            <button class="cat cat-rb-i" data-cat="cat-i" type="button">Social</button>
+            <button class="cat cat-add" id="btn-add-cat" type="button" aria-label="Add a new fivy" title="Add a new fivy">+</button>
+            <button class="cat cat-save" id="btn-save-cat" type="button" hidden>Save</button>
+          </div>
         </nav>
 
-        <!-- deck sub-buttons, displayed below the category rows (coloured by parent) -->
-        <div class="cat-subs" id="cat-subs"></div>
+        <!-- subs of the SECOND-row buttons sit below them -->
+        <div class="cat-subs" id="cat-subs-bottom"></div>
 
         <div class="cat-title-row" id="cat-title-row">
           <input id="cat-title-input" type="text" placeholder="Title of your fivy…" maxlength="32"/>
@@ -1184,6 +1174,39 @@
       </aside>
     </div>
 
+    <!-- square below the two columns -->
+    <div class="square-dock">
+      <section class="square" id="square">
+        <svg class="edges" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z"/>
+            </marker>
+            <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z"/>
+            </marker>
+            <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z"/>
+            </marker>
+          </defs>
+          <line id="e12" class="edge cycle"     x1="500" y1="500" x2="140" y2="140"/>
+          <line id="e23" class="edge cycle"     x1="140" y1="140" x2="860" y2="140"/>
+          <line id="e34" class="edge cycle"     x1="860" y1="140" x2="140" y2="860"/>
+          <line id="e45" class="edge cycle"     x1="140" y1="860" x2="860" y2="860"/>
+          <line id="e51" class="edge cycle"     x1="860" y1="860" x2="500" y2="500"/>
+          <line id="e52" class="edge cycle red" x1="860" y1="860" x2="140" y2="140"/>
+          <line id="g1"  class="edge green confluence" x1="140" y1="500" x2="500" y2="500"/>
+          <line id="g2"  class="edge green confluence" x1="860" y1="500" x2="500" y2="500"/>
+        </svg>
+
+        <div class="node n1"><div class="rank-badge">1</div><div class="items" data-rank="0"></div></div>
+        <div class="node n2"><div class="rank-badge">2</div><div class="items" data-rank="1"></div></div>
+        <div class="node n3"><div class="rank-badge">3</div><div class="items" data-rank="2"></div></div>
+        <div class="node n4"><div class="rank-badge">4</div><div class="items" data-rank="3"></div></div>
+        <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
+      </section>
+    </div>
+
   </section>
 
   <details class="summary-sec" id="summary-sec">
@@ -1199,11 +1222,11 @@
 </div>
 
 <div class="float-counters" aria-live="polite">
-  <div class="pc pc-time is-empty" id="chipTime" title="Total elapsed time">
-    <div class="pc-time-display">
+  <div class="pc pc-time is-empty is-collapsed" id="chipTime" title="Total elapsed time">
+    <button class="pc-time-display" type="button" id="timeToggle" aria-label="Show / hide elapsed time">
       <span class="pc-time-icon" aria-hidden="true">⏱</span>
       <span class="pc-time-num" id="pointsTime">0:00</span>
-    </div>
+    </button>
     <span class="pc-label">Time</span>
   </div>
   <div class="pc pc-clicks is-empty" id="chipClicks" title="Total clicks">
@@ -1598,6 +1621,10 @@
     paintTime();
     timer.handle = setInterval(paintTime, 1000);
   }
+  // hidden by default; click toggles the time open / closed
+  document.getElementById('timeToggle').addEventListener('click', () => {
+    document.getElementById('chipTime').classList.toggle('is-collapsed');
+  });
 
   // ============== Intro slider (3 slides → Go play) ==============
   const $introSlider = document.getElementById('intro-slider');
@@ -1723,6 +1750,8 @@
   // p3 (Social, ex-Powers) has no parent → not shown as a sub-button.
   const DECK_PARENT = { p1:'cat-y', p2:'cat-y', p4:'cat-o' };  // Senses,Flavors→Bio · Elements→Sci
   const deckColor = did => CAT_COLOR[DECK_PARENT[did]] || DECK_COLOR[did];
+  // which row each category button sits in (row 1 → subs above, row 2 → subs below)
+  const CAT_ROW = { 'cat-r':1, 'cat-o':1, 'cat-g':1, 'cat-y':2, 'cat-b':2, 'cat-i':2 };
 
   const customCats = [];                          // [{id,label,items:[5],starred}]
   const activeSets = ['cat-i'];                   // toggled sets shown in the square (Social by default)
@@ -1897,15 +1926,17 @@
     if ($title) $title.textContent = title;
   }
 
-  // ----- Sub-buttons: each settled deck shows below the category rows,
-  //       coloured by its parent category. -----
+  // ----- Sub-buttons: each settled deck, coloured by its parent. Subs of
+  //       first-row parents sit above the buttons; second-row parents, below. -----
   function renderNested(){
-    const subs = document.getElementById('cat-subs');
-    if (!subs) return;
-    subs.innerHTML = '';
+    const top = document.getElementById('cat-subs-top');
+    const bot = document.getElementById('cat-subs-bottom');
+    if (!top || !bot) return;
+    top.innerHTML = ''; bot.innerHTML = '';
     DECKS.forEach(d => {
       if (!state.done[d.id]) return;          // only decks the player actually settled
-      if (!DECK_PARENT[d.id]) return;         // Social/Powers has no sub-button here
+      const parent = DECK_PARENT[d.id];
+      if (!parent) return;                    // Social/Powers has no sub-button here
       const b = document.createElement('button');
       b.className = 'deck-btn is-child';
       b.type = 'button';
@@ -1913,7 +1944,7 @@
       b.style.setProperty('--c', deckColor(d.id));   // same colour as its parent category
       b.textContent = d.title;
       b.addEventListener('click', () => toggleSet('deck:' + d.id));
-      subs.appendChild(b);
+      (CAT_ROW[parent] === 1 ? top : bot).appendChild(b);
     });
     paintShow();
   }

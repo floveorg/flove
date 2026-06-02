@@ -101,7 +101,9 @@
       transition:transform .12s ease, border-color var(--flove-fast), box-shadow var(--flove-fast);
     }
     .round-plus:hover{ transform:translateY(-1px); border-color:var(--app-accent); box-shadow:0 0 12px rgba(141,137,255,.45) }
-    .list-choices{ display:flex; flex-wrap:wrap; justify-content:center; gap:.5rem; margin-top:.7rem }
+    /* column layout so the Systems/Emotions buttons stay centred ABOVE the
+       rendered lists (a wide list was pulling them to the left otherwise) */
+    .list-choices{ display:flex; flex-direction:column; align-items:center; gap:.7rem; margin-top:.7rem }
     .list-choices[hidden]{ display:none }
 
     /* Systems / Emotions pickers */
@@ -237,10 +239,16 @@
     .wise-panel > summary{ cursor:pointer; font-weight:800; color:var(--app-accent-soft); padding:.5rem 0 }
     .wise-grid{ display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:.5rem }
     .wise{
-      display:flex; gap:.45rem; align-items:center; border:1px solid var(--line);
-      background:var(--field); padding:.5rem .7rem; border-radius:var(--flove-radius-sm); cursor:pointer;
+      appearance:none; font-family:inherit; cursor:pointer; user-select:none;
+      border:1px solid var(--line); background:var(--field); color:var(--ink);
+      padding:.5rem .7rem; border-radius:var(--flove-radius-sm); font-weight:700; text-align:center;
+      transition:border-color var(--flove-fast), box-shadow var(--flove-fast), background var(--flove-fast), color var(--flove-fast);
     }
-    .wise input{ accent-color:var(--app-accent) }
+    .wise:hover{ border-color:var(--app-accent); box-shadow:0 0 8px rgba(141,137,255,.4) }
+    .wise[aria-pressed="true"]{
+      background:linear-gradient(180deg,var(--accent2),var(--app-accent));
+      color:var(--app-ink-on-accent); border-color:var(--app-accent);
+    }
 
     /* footer actions (JS-driven) */
     .footer-actions{ display:flex; gap:.6rem; flex-wrap:wrap }
@@ -399,19 +407,22 @@
 
       <!-- WISE IT (below combos, collapsed by default) -->
       <details id="wiseDetails" class="wise-panel">
-        <summary><span class="t-en">Wiser combos</span><span class="t-es">Combos sabios</span></summary>
+        <summary><span class="t-en">Wiser</span><span class="t-es">Más sabio</span></summary>
         <div class="wise-grid">
-          <label class="wise"><input type="checkbox" value="Ethical"    class="wise-check"> <span class="t-en">Evidence</span><span class="t-es">Evidencia</span></label>
-          <label class="wise"><input type="checkbox" value="Pragmatic"  class="wise-check"> <span class="t-en">Axiom</span><span class="t-es">Axioma</span></label>
-          <label class="wise"><input type="checkbox" value="Aesthetic"  class="wise-check"> <span class="t-en">Prediction</span><span class="t-es">Predicción</span></label>
-          <label class="wise"><input type="checkbox" value="Social"     class="wise-check"> <span class="t-en">Proposal</span><span class="t-es">Propuesta</span></label>
-          <label class="wise"><input type="checkbox" value="Spiritual"  class="wise-check"> <span class="t-en">Challenge</span><span class="t-es">Reto</span></label>
+          <button type="button" class="wise" data-value="Ethical"   aria-pressed="false"><span class="t-en">Evidence</span><span class="t-es">Evidencia</span></button>
+          <button type="button" class="wise" data-value="Pragmatic" aria-pressed="false"><span class="t-en">Axiom</span><span class="t-es">Axioma</span></button>
+          <button type="button" class="wise" data-value="Aesthetic" aria-pressed="false"><span class="t-en">Prediction</span><span class="t-es">Predicción</span></button>
+          <button type="button" class="wise" data-value="Social"    aria-pressed="false"><span class="t-en">Proposal</span><span class="t-es">Propuesta</span></button>
+          <button type="button" class="wise" data-value="Spiritual" aria-pressed="false"><span class="t-en">Challenge</span><span class="t-es">Reto</span></button>
         </div>
       </details>
     </section>
 
     <!-- ACTIONS (now JS-driven) -->
     <section class="card">
+      <div class="footer-actions" style="margin-bottom:.6rem">
+        <button id="downloadFormBtn" class="mega-btn"><span class="t-en">Download my combos form</span><span class="t-es">Descargar mi formulario de combos</span></button>
+      </div>
       <div class="footer-actions">
         <button id="saveBtn" class="mega-btn save"><span class="t-en">Save</span><span class="t-es">Guardar</span></button>
         <button id="shareBtn" class="mega-btn send"><span class="t-en">Share</span><span class="t-es">Compartir</span></button>
@@ -459,6 +470,7 @@
     const csvNote = document.getElementById('csvNote');
     const listsRender = document.getElementById('listsRender');
 
+    const downloadFormBtn = document.getElementById('downloadFormBtn');
     const saveBtn = document.getElementById('saveBtn');
     const shareBtn = document.getElementById('shareBtn');
     const publishBtn = document.getElementById('publishBtn');
@@ -792,8 +804,14 @@
     });
 
     // ===== Wise it selections =====
+    // Wise pickers are now toggle buttons (aria-pressed)
+    document.querySelectorAll('.wise').forEach(b => {
+      b.addEventListener('click', () => {
+        b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+      });
+    });
     function getWiseSelections() {
-      return Array.from(document.querySelectorAll('.wise-check:checked')).map(i => i.value);
+      return Array.from(document.querySelectorAll('.wise[aria-pressed="true"]')).map(b => b.dataset.value);
     }
 
     // ===== Build data snapshot =====
@@ -875,6 +893,39 @@
     }
 
     saveBtn.addEventListener('click', renderEditor);
+
+    // ===== Download my combos form (a fillable .html form of the selected combos) =====
+    function handleDownloadForm() {
+      const combos = collectSelectedCombos();
+      const wise = getWiseSelections();
+      if (combos.length === 0) { showNote('Select at least one combination first.', 'warn'); return; }
+      const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const blocks = combos.map((combo, i) => {
+        const tags = combo.map(v => `<span class="tag">${esc(v)}</span>`).join(' ');
+        const wiseFields = wise.map(w =>
+          `<label>${esc(w)}<input type="text" name="wise-${i}-${esc(w)}"></label>`).join('');
+        return `<fieldset><legend>${tags}</legend>` +
+          `<label>Note<textarea name="note-${i}" rows="3"></textarea></label>${wiseFields}</fieldset>`;
+      }).join('\n');
+      const html =
+        `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+        `<meta name="viewport" content="width=device-width,initial-scale=1"><title>My combos form</title>` +
+        `<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#13131a}` +
+        `h1{font-size:1.4rem}fieldset{border:1px solid #ccc;border-radius:10px;margin:1rem 0;padding:.8rem 1rem}` +
+        `legend{font-weight:800}.tag{display:inline-block;background:#eef;border-radius:6px;padding:.1rem .45rem;font-weight:700;margin:.1rem}` +
+        `label{display:block;margin:.6rem 0;font-weight:600}input,textarea{width:100%;padding:.5rem;border:1px solid #ccc;border-radius:8px;font:inherit;margin-top:.2rem}` +
+        `</style></head><body><h1>My combos form</h1><form>${blocks}` +
+        `<p><button type="button" onclick="window.print()">Print / Save as PDF</button></p></form></body></html>`;
+      const blob = new Blob([html], { type:'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flove-combos-form-${new Date().toISOString().replace(/[:.]/g,'-')}.html`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      showNote('Your combos form was downloaded.', 'ok');
+    }
+    downloadFormBtn.addEventListener('click', handleDownloadForm);
 
     // ===== Share =====
     async function handleShare() {

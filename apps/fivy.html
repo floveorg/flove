@@ -470,10 +470,10 @@
   .fields.active{display:block;animation:fadein .25s ease}
 
   /* Fields lower area: two columns — buttons | toolbar */
-  /* Fields: [compact toolbar | main]; the square fills the rest of the width */
+  /* Fields: [left menu (toolbar + buttons) | square]; the square fills the rest */
   .fields-grid{
-    display:grid;grid-template-columns:138px 1fr;gap:14px;align-items:start;
-    max-width:840px;margin:0 auto;
+    display:grid;grid-template-columns:172px 1fr;gap:14px;align-items:start;
+    max-width:860px;margin:0 auto;
   }
   @media (max-width:560px){.fields-grid{grid-template-columns:1fr}}
   .fields-main{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:8px}
@@ -640,15 +640,45 @@
   }
   .node .items{display:flex;flex-direction:column;gap:3px}
   .node .item{
-    padding:3px 8px;border-radius:7px;
-    font:600 11px/1.15 system-ui,sans-serif;
+    padding:3px 6px;border-radius:7px;max-width:100%;
     border:1.5px solid var(--c,var(--stroke));
     background:color-mix(in srgb, var(--c,#888) 22%, var(--panel));
     color:var(--ink);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+    display:flex;flex-direction:column;gap:3px;
     animation:fadein .18s ease;
   }
-  .node .item.empty{opacity:.45;border-style:dashed}
+  .node .item.empty{
+    opacity:.45;border-style:dashed;padding:3px 8px;
+    font:600 11px/1.15 system-ui,sans-serif;
+  }
+  .node .item-row{display:flex;align-items:center;gap:4px;font:600 11px/1.15 system-ui,sans-serif}
+  .node .item-word{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .node .item-star{
+    flex:none;border:0;background:transparent;color:var(--gold);cursor:pointer;
+    font-size:11px;line-height:1;padding:0;
+  }
+  .node .item-next{
+    flex:none;width:16px;height:16px;border-radius:5px;border:0;cursor:pointer;
+    background:rgba(255,255,255,.14);color:var(--ink);
+    font-size:13px;line-height:1;display:grid;place-items:center;
+  }
+  .node .item-next:hover{background:var(--c,var(--accent));color:#1a1a28}
+  .node .item-next:disabled{opacity:.3;cursor:default}
+  .node .item-reason{display:flex;gap:3px;align-items:center}
+  .node .item-reason[hidden],.node .item-reason-view[hidden]{display:none}
+  .node .rsn-input{
+    flex:1;min-width:54px;font-size:10px;padding:2px 5px;border-radius:5px;
+    background:rgba(255,255,255,.1);border:1px solid var(--stroke);color:var(--ink);outline:none;
+  }
+  .node .rsn-mic,.node .rsn-save,.node .rsn-close{
+    flex:none;border:0;cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px;
+    background:rgba(255,255,255,.14);color:var(--ink);line-height:1.1;
+  }
+  .node .rsn-mic.recording{background:var(--fuzzy-red);color:#fff}
+  .node .rsn-save{background:var(--brand);color:#1a1a28;font-weight:700}
+  .node .item-reason-view{display:flex;gap:4px;align-items:flex-start;font-size:10px;color:var(--muted);line-height:1.25}
+  .node .rsn-text{flex:1;white-space:normal;overflow-wrap:anywhere}
+  .node .rsn-close{align-self:flex-start}
   .node .item-input{
     width:100%;min-width:0;
     padding:3px 6px;border-radius:7px;
@@ -1127,10 +1157,8 @@
             <li><span></span></li>
           </ol>
         </aside>
-      </aside>
 
-      <div class="fields-main">
-        <!-- one row of category buttons -->
+        <!-- category buttons + subs moved below the List/Cycle/Confluence menu -->
         <nav class="cats" aria-label="Categories" id="cats">
           <button class="cat cat-rb-r" data-cat="cat-r" type="button">Metas</button>
           <button class="cat cat-rb-o" data-cat="cat-o" type="button">Sci</button>
@@ -1141,17 +1169,14 @@
           <button class="cat cat-add" id="btn-add-cat" type="button" aria-label="Add a new fivy" title="Add a new fivy">+</button>
           <button class="cat cat-save" id="btn-save-cat" type="button" hidden>Save</button>
         </nav>
-
-        <!-- sub-buttons in one row, shown only for the categories you click -->
         <div class="cat-subs" id="cat-subs"></div>
-
         <div class="cat-title-row" id="cat-title-row">
           <input id="cat-title-input" type="text" placeholder="Title of your fivy…" maxlength="32"/>
         </div>
-
         <div class="saved-customs" id="saved-customs"></div>
+      </aside>
 
-        <!-- square below the buttons -->
+      <div class="fields-main">
         <div class="square-dock">
       <section class="square" id="square">
         <svg class="edges" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -1722,6 +1747,7 @@
   const customCats = [];                          // [{id,label,items:[5],starred}]
   const activeSets = ['cat-i'];                   // toggled sets shown in the square (Social by default)
   let lastSet = 'cat-i';                          // last set toggled on — drives the List view
+  const reasons = {};                             // setId -> [reason per rank]  (square-item "Reason")
   const toggles = { list:false, cycle:false, confluence:false };
   let customSeq = 0;
   let creating = false;                           // building a new custom fivy
@@ -1813,20 +1839,122 @@
           el.addEventListener('input', e => { s.items[r] = e.target.value; storeEdit(s); });
           el.addEventListener('blur', () => { if (s.items.every(v => (v||'').trim())) renderNodes(); });
           el.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); } });
-        } else {
+          el.dataset.cat = id; el.title = s.label; el.style.setProperty('--c', s.color);
+        } else if (!val){
           el = document.createElement('div');
-          el.className = 'item' + (val ? '' : ' empty');
-          el.textContent = val || '·';
+          el.className = 'item empty';
+          el.textContent = '·';
+          el.dataset.cat = id; el.title = s.label; el.style.setProperty('--c', s.color);
+        } else {
+          el = makeSquareItem(id, s, r, val);
         }
-        el.dataset.cat = id;
-        el.title = s.label;
-        el.style.setProperty('--c', s.color);
         RANK_EL[r].appendChild(el);
       }
     });
     applyGrowth();
     paintShow();
     paintList();
+  }
+
+  // ----- A filled square item: word + next-arrow, plus a click-to-add Reason
+  //       (with mic dictation) and a star that expands the saved reason. -----
+  function makeSquareItem(id, s, r, val){
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.dataset.cat = id; item.dataset.rank = String(r);
+    item.title = s.label; item.style.setProperty('--c', s.color);
+    const saved = (reasons[id] && reasons[id][r]) || '';
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    const star = document.createElement('button');
+    star.type = 'button'; star.className = 'item-star'; star.textContent = '★';
+    star.title = 'show reason'; star.hidden = !saved.trim();
+    const word = document.createElement('span');
+    word.className = 'item-word'; word.textContent = val;
+    const next = document.createElement('button');
+    next.type = 'button'; next.className = 'item-next'; next.textContent = '›';
+    next.title = 'move to next position'; next.disabled = r >= 4;
+    row.append(star, word, next);
+
+    const edit = document.createElement('div');
+    edit.className = 'item-reason'; edit.hidden = true;
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'rsn-input'; input.placeholder = 'Reason';
+    input.value = saved;
+    const mic = document.createElement('button');
+    mic.type = 'button'; mic.className = 'rsn-mic'; mic.textContent = '🎤'; mic.title = 'record';
+    const save = document.createElement('button');
+    save.type = 'button'; save.className = 'rsn-save'; save.textContent = 'Save';
+    edit.append(input, mic, save);
+
+    const view = document.createElement('div');
+    view.className = 'item-reason-view'; view.hidden = true;
+    const vtext = document.createElement('span'); vtext.className = 'rsn-text';
+    const close = document.createElement('button');
+    close.type = 'button'; close.className = 'rsn-close'; close.textContent = '✕'; close.title = 'hide';
+    view.append(vtext, close);
+
+    item.append(row, edit, view);
+
+    word.addEventListener('click', () => { edit.hidden = !edit.hidden; if (!edit.hidden) input.focus(); });
+    next.addEventListener('click', e => { e.stopPropagation(); moveItemNext(id, r); });
+    mic.addEventListener('click', e => { e.stopPropagation(); toggleReasonMic(input, mic); });
+    save.addEventListener('click', e => {
+      e.stopPropagation();
+      const txt = input.value.trim();
+      if (!txt) return;                       // only saves if text added
+      reasons[id] = reasons[id] || ['','','','',''];
+      const had = (reasons[id][r] || '').trim();
+      reasons[id][r] = txt;
+      edit.hidden = true;
+      star.hidden = false;
+      if (!had) bumpCounter('stars');
+    });
+    star.addEventListener('click', e => {
+      e.stopPropagation();
+      if (view.hidden){ vtext.textContent = (reasons[id] && reasons[id][r]) || ''; view.hidden = false; }
+      else view.hidden = true;
+    });
+    close.addEventListener('click', e => { e.stopPropagation(); view.hidden = true; });
+    return item;
+  }
+
+  // Move an item to the next rank position (swap with the one below it).
+  function moveItemNext(setId, r){
+    if (r >= 4) return;
+    if (setId.startsWith('deck:')){
+      const ord = state.orders[setId.slice(5)];
+      if (ord) [ord[r], ord[r+1]] = [ord[r+1], ord[r]];
+    } else {
+      const s = getSource(setId);
+      if (!s) return;
+      [s.items[r], s.items[r+1]] = [s.items[r+1], s.items[r]];
+    }
+    if (reasons[setId]){ const rs = reasons[setId]; [rs[r], rs[r+1]] = [rs[r+1], rs[r]]; }
+    renderNodes();
+    paintList();
+    paintSummary();
+  }
+
+  // ----- Voice dictation into a reason field (Web Speech API) -----
+  let _rec = null, _recOn = false, _recMic = null;
+  function toggleReasonMic(input, mic){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR){ input.placeholder = 'no voice support'; return; }
+    if (_recOn){ try { _rec.stop(); } catch(_){} return; }
+    _rec = new SR();
+    _rec.lang = 'en-US'; _rec.continuous = true; _rec.interimResults = true;
+    _recMic = mic;
+    const base = input.value ? input.value.replace(/\s+$/,'') + ' ' : '';
+    _rec.onresult = ev => {
+      let t = '';
+      for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+      input.value = base + t;
+    };
+    _rec.onend   = () => { _recOn = false; if (_recMic) _recMic.classList.remove('recording'); };
+    _rec.onerror = () => { _recOn = false; if (_recMic) _recMic.classList.remove('recording'); };
+    try { _rec.start(); _recOn = true; mic.classList.add('recording'); } catch(_){}
   }
 
   // Each toggled set grows the square 5% (continuous, from the first added set);

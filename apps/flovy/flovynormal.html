@@ -376,6 +376,12 @@ body:has(#rate-more1:checked):has(#rate-more2:checked) .rate-x2{ display: flex; 
 }
 .rate-chip:hover{ background: var(--fill-soft); transform: translateY(-1px); }
 .rate-chip.picked{ transform: scale(1.2); background: rgba(var(--accent-rgb),.18); }   /* selected — slight red tone */
+/* ♥ trigger fills red while any reaction is picked (transparent otherwise) */
+body:has(.rate-chip.picked) .rate-trigger{ background: var(--accent); color: #fff; }
+/* ✦ wizard fills red while the field holds wizard-inserted text */
+body.wiz-text .tool-cell--bot > .tool-btn{ background: var(--accent); color: #fff; }
+/* the active wizard chip keeps a slight reddish fill */
+.chip.wiz-active{ background: rgba(var(--accent-rgb),.18); }
 .rate-more{
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; border-radius: 50%; align-self: center;
@@ -1018,6 +1024,17 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
   }
   function pristine(bot){ return activeBot === bot && ta.value === (base + inserted); }
 
+  function markWizState(){
+    /* the field holds wizard text while there's a live suggestion or
+       committed wizard base; flag the body + the active chip */
+    var has = !!(inserted || (activeBot && base));
+    document.body.classList.toggle('wiz-text', has);
+    document.querySelectorAll('.chip[data-wiz].wiz-active').forEach(function(c){ c.classList.remove('wiz-active'); });
+    if(activeBot){
+      var c = document.querySelector('.chip[data-wiz="' + activeBot + '"]');
+      if(c) c.classList.add('wiz-active');
+    }
+  }
   function wireWizard(btn){
     btn.addEventListener('click', function(ev){
       ev.preventDefault();
@@ -1038,6 +1055,7 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
         activeBot = bot; step = 0;
         set(base + inserted);
       }
+      markWizState();
       btn.classList.remove('just-injected'); void btn.offsetWidth; btn.classList.add('just-injected');
     });
   }
@@ -1088,7 +1106,8 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
   /* ---- rater — multi-select reaction palette to the right of the ♥ ----
      base 4 · ＋ reveals 20 · ＋ reveals 30. Picks feed the summary. */
   var RAY  = {'ray-formal':'🎩','ray-informal':'👋','ray-hotter':'🔥'};
-  var REACT_BASE = ['❤️','😆','😍','🤔'];
+  var REACT_BASE = ['❤️','😆','🤔','🔥'];   /* heart · fun · thoughts · fire (subheart removed) */
+  var HEART = REACT_BASE[0];
   var REACT_X1 = ['🥰','😘','😎','🤗','😇','🥳','😈','🙂','😅','😌','🤩','😋','🤭','😏','🥲','😴','🤝','👏','🙌','🙏'];
   var REACT_X2 = ['💞','💖','💘','💗','💓','💕','💌','🌹','🌸','🌻','🍀','⭐','🌟','⚡','🌈','🔥','🌙','🌊','🍃','☕','🍷','🎈','🎉','🎁','🕊️','🔮','🎨','🎵','📖','🧭'];
   var picked = new Set();
@@ -1121,8 +1140,8 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
   /* phrase output: ❤️ heart · text · the other picked emojis (subemojis) */
   function updateSummary(){
     var v = ta.value;
-    var heart = picked.has('❤️') ? '❤️' : '';
-    var subs  = Array.from(picked).filter(function(e){ return e !== '❤️'; }).join(' ');
+    var heart = picked.has(HEART) ? HEART : '';
+    var subs  = Array.from(picked).filter(function(e){ return e !== HEART; }).join(' ');
     if(rxEl)     rxEl.textContent     = heart;   /* heart → before the text */
     if(phraseEl) phraseEl.textContent = v;       /* the added text */
     if(afterEl)  afterEl.textContent  = subs;    /* subemojis → at the end */
@@ -1159,7 +1178,24 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
   document.querySelectorAll('.tool-cell .chip, .rate-chip, .rate-more, .tool-btn, .add-btn, .ray, .level-pop-btn, .magic-btn').forEach(function(el){
     el.addEventListener('click', function(){ clicks++; if(cClicks) cClicks.textContent = clicks; checkUnlock(); });
   });
-  ta.addEventListener('input', function(){ refresh(); updateSummary(); });
+  ta.addEventListener('input', function(){
+    if(!ta.value){ base = ''; inserted = ''; activeBot = null; step = 0; }  /* field cleared → no wizard text */
+    markWizState();
+    refresh(); updateSummary();
+  });
+  /* ♥ second click (collapse) → unselect every reaction + reset the lists */
+  var rateOpen = document.getElementById('rate-open');
+  if(rateOpen){
+    rateOpen.addEventListener('change', function(){
+      if(!rateOpen.checked){
+        picked.clear();
+        document.querySelectorAll('.rate-chip.picked').forEach(function(c){ c.classList.remove('picked'); });
+        if(more1) more1.checked = false;
+        if(more2) more2.checked = false;
+        refresh(); updateSummary();
+      }
+    });
+  }
   /* ray / language changes refresh the counters + summary */
   document.addEventListener('change', function(ev){
     if(ev.target && /^(ray|lang)-/.test(ev.target.id || '')){ refresh(); updateSummary(); }

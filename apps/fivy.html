@@ -477,13 +477,15 @@
   }
   @media (max-width:560px){.fields-grid{grid-template-columns:1fr}}
   .fields-main{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:8px}
-  .cats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:4px;margin:0}
-  /* deck sub-buttons in one row, only for the categories you click */
-  .cat-subs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 4px}
-  .cat-subs:empty{display:none}
+  /* one category per row; its sub-buttons drop in below it when checked */
+  .cats{display:flex;flex-direction:column;gap:6px;padding:4px;margin:0}
+  .cat-group{display:flex;flex-direction:column;gap:4px}
+  .cat-children{display:flex;flex-direction:column;gap:4px;padding-left:10px}
+  .cat-children:empty{display:none}
   .cat{
-    display:inline-flex;align-items:center;gap:5px;
-    padding:6px 14px;border-radius:999px;
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    width:100%;
+    padding:6px 12px;border-radius:999px;
     border:1.5px solid var(--stroke);
     background:rgba(255,255,255,.06);
     color:var(--ink);
@@ -621,7 +623,7 @@
     box-shadow:0 0 0 2px rgba(255,255,255,.2), 0 4px 12px rgba(0,0,0,.25);
   }
   /* child decks read a touch smaller than their parent category pill */
-  .deck-btn.is-child{padding:5px 11px;font-size:.76rem}
+  .deck-btn.is-child{width:100%;justify-content:center;padding:5px 11px;font-size:.76rem}
   .deck-btn.is-child::before{width:7px;height:7px}
 
   /* ---- Simplex nodes: rank 1 centre, 2–5 corners; each toggled set
@@ -655,12 +657,12 @@
   .node .item-word{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
   .node .item-star{
     flex:none;border:0;background:transparent;color:var(--gold);cursor:pointer;
-    font-size:11px;line-height:1;padding:0;
+    font-size:22px;line-height:1;padding:0;
   }
   .node .item-next{
-    flex:none;width:16px;height:16px;border-radius:5px;border:0;cursor:pointer;
+    flex:none;width:32px;height:32px;border-radius:8px;border:0;cursor:pointer;
     background:rgba(255,255,255,.14);color:var(--ink);
-    font-size:13px;line-height:1;display:grid;place-items:center;
+    font-size:26px;line-height:1;display:grid;place-items:center;
   }
   .node .item-next:hover{background:var(--c,var(--accent));color:#1a1a28}
   .node .item-next:disabled{opacity:.3;cursor:default}
@@ -1158,18 +1160,36 @@
           </ol>
         </aside>
 
-        <!-- category buttons + subs moved below the List/Cycle/Confluence menu -->
+        <!-- category buttons (one per row) below the List/Cycle/Confluence menu;
+             each parent's sub-buttons drop in below it when it's checked -->
         <nav class="cats" aria-label="Categories" id="cats">
-          <button class="cat cat-rb-r" data-cat="cat-r" type="button">Metas</button>
-          <button class="cat cat-rb-o" data-cat="cat-o" type="button">Sci</button>
-          <button class="cat cat-rb-y" data-cat="cat-y" type="button">Bio</button>
-          <button class="cat cat-rb-g" data-cat="cat-g" type="button">Lang</button>
-          <button class="cat cat-rb-b" data-cat="cat-b" type="button">Psico</button>
-          <button class="cat cat-rb-i" data-cat="cat-i" type="button">Social</button>
+          <div class="cat-group">
+            <button class="cat cat-rb-r" data-cat="cat-r" type="button">Metas</button>
+            <div class="cat-children" data-for="cat-r"></div>
+          </div>
+          <div class="cat-group">
+            <button class="cat cat-rb-o" data-cat="cat-o" type="button">Sci</button>
+            <div class="cat-children" data-for="cat-o"></div>
+          </div>
+          <div class="cat-group">
+            <button class="cat cat-rb-y" data-cat="cat-y" type="button">Bio</button>
+            <div class="cat-children" data-for="cat-y"></div>
+          </div>
+          <div class="cat-group">
+            <button class="cat cat-rb-g" data-cat="cat-g" type="button">Lang</button>
+            <div class="cat-children" data-for="cat-g"></div>
+          </div>
+          <div class="cat-group">
+            <button class="cat cat-rb-b" data-cat="cat-b" type="button">Psico</button>
+            <div class="cat-children" data-for="cat-b"></div>
+          </div>
+          <div class="cat-group">
+            <button class="cat cat-rb-i" data-cat="cat-i" type="button">Social</button>
+            <div class="cat-children" data-for="cat-i"></div>
+          </div>
           <button class="cat cat-add" id="btn-add-cat" type="button" aria-label="Add a new fivy" title="Add a new fivy">+</button>
           <button class="cat cat-save" id="btn-save-cat" type="button" hidden>Save</button>
         </nav>
-        <div class="cat-subs" id="cat-subs"></div>
         <div class="cat-title-row" id="cat-title-row">
           <input id="cat-title-input" type="text" placeholder="Title of your fivy…" maxlength="32"/>
         </div>
@@ -2021,17 +2041,17 @@
     if ($title) $title.textContent = title;
   }
 
-  // ----- Sub-buttons: one row, showing only the subs of the categories you've
-  //       clicked (active). Each is coloured by its parent. -----
+  // ----- Sub-buttons: drop below each parent category, but only while that
+  //       parent is checked (active). Each is coloured by its parent. -----
   function renderNested(){
-    const subs = document.getElementById('cat-subs');
-    if (!subs) return;
-    subs.innerHTML = '';
+    document.querySelectorAll('#cats .cat-children').forEach(el => el.innerHTML = '');
     DECKS.forEach(d => {
       if (!state.done[d.id]) return;          // only decks the player actually settled
       const parent = DECK_PARENT[d.id];
       if (!parent) return;                    // Social/Powers has no sub-button here
-      if (!activeSets.includes(parent)) return;   // shown only on click of the parent
+      if (!activeSets.includes(parent)) return;   // shown only when the parent is checked
+      const slot = document.querySelector(`#cats .cat-children[data-for="${parent}"]`);
+      if (!slot) return;
       const b = document.createElement('button');
       b.className = 'deck-btn is-child';
       b.type = 'button';
@@ -2039,7 +2059,7 @@
       b.style.setProperty('--c', deckColor(d.id));   // same colour as its parent category
       b.textContent = d.title;
       b.addEventListener('click', () => toggleSet('deck:' + d.id));
-      subs.appendChild(b);
+      slot.appendChild(b);
     });
     paintShow();
   }

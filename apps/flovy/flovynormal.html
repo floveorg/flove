@@ -414,8 +414,10 @@ body:has(#mic-on:checked) .mic-hint{ display: block; }
   background: var(--panel-bg); box-shadow: var(--panel-shadow);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
-.summary-title{ margin: 0 0 .6rem; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: var(--ink); }
-.summary-title::before{ content: "✦ "; color: var(--accent); }
+/* summary title — above the box, centered, no icon */
+.summary-title{ margin: 0 0 .6rem; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: var(--ink); text-align: center; }
+/* Save opens its submenu below — grow the box's white area one row down */
+body:has(#save-open:checked) .summary-box{ padding-bottom: 3.2rem; }
 .clause{ display: block; margin: 0; font-size: 1rem; line-height: 1.55; color: var(--ink-soft); }
 .clause code{ font: .85em ui-monospace,Menlo,Consolas,monospace; background: var(--fill-soft); color: var(--accent-deep); padding: .05em .35em; border-radius: 5px; }
 .summary-phrase{ color: var(--ink); white-space: pre-wrap; }
@@ -850,8 +852,8 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
 
   <!-- STEP · Summary -->
   <section class="step-panel step-panel--summary">
+    <h2 class="summary-title"><span class="l-en">Summary</span><span class="l-es">Resumen</span></h2>
     <div class="summary-box">
-      <h2 class="summary-title"><span class="l-en">Summary</span><span class="l-es">Resumen</span></h2>
       <output class="clause clause-default">
         <span class="summary-empty"><span class="l-en">A summary of what you added shows up here — your words and the reactions you picked.</span><span class="l-es">Aquí aparece un resumen de lo que añadiste — tus palabras y las reacciones que elegiste.</span></span>
         <span class="summary-rx" aria-label="Reaction"></span>
@@ -1116,13 +1118,15 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
       afterEl  = document.querySelector('.summary-after'),
       emptyEl  = document.querySelector('.summary-empty');
   function rayPick(){ for(var id in RAY){ var e = document.getElementById(id); if(e && e.checked) return RAY[id]; } return ''; }
-  function reactStr(){ return Array.from(picked).join(' '); }
+  /* phrase output: ❤️ heart · text · the other picked emojis (subemojis) */
   function updateSummary(){
-    var v = ta.value, rx = reactStr(), labeler = rayPick();
-    if(rxEl)     rxEl.textContent     = rx;        /* rater reactions → before the text */
-    if(phraseEl) phraseEl.textContent = v;
-    if(afterEl)  afterEl.textContent  = labeler;   /* labeler → at the end */
-    if(emptyEl)  emptyEl.style.display = (v.trim() || rx || labeler) ? 'none' : '';
+    var v = ta.value;
+    var heart = picked.has('❤️') ? '❤️' : '';
+    var subs  = Array.from(picked).filter(function(e){ return e !== '❤️'; }).join(' ');
+    if(rxEl)     rxEl.textContent     = heart;   /* heart → before the text */
+    if(phraseEl) phraseEl.textContent = v;       /* the added text */
+    if(afterEl)  afterEl.textContent  = subs;    /* subemojis → at the end */
+    if(emptyEl)  emptyEl.style.display = (v.trim() || heart || subs) ? 'none' : '';
   }
 
   /* ---- counters (👆 clicks · 💞 selections · ⭐ stars) + Advanced unlock ----

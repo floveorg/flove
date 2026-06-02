@@ -789,12 +789,20 @@
     transition:background .15s ease, color .15s ease;
   }
   .summary-sec > summary::-webkit-details-marker{display:none}
-  .summary-sec > summary::before{
-    content:"▸";display:inline-block;color:var(--accent);
-    transition:transform .2s ease;
-  }
-  .summary-sec[open] > summary::before{transform:rotate(90deg)}
   .summary-sec > summary:hover{background:rgba(250,220,146,.06);color:var(--ink)}
+
+  /* go-back row above the summary */
+  .summary-back-row{display:flex;justify-content:center;margin-top:18px}
+  .summary-back-row[hidden]{display:none}
+
+  /* Analyze panel — sits above the decks once all four are settled */
+  .analyze-panel{
+    max-width:560px;margin:0 auto 6px;padding:10px 14px 4px;
+    border:1px solid var(--stroke);border-radius:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01)),var(--panel);
+    animation:fadein .25s ease;
+  }
+  .analyze-panel[hidden]{display:none}
   .summary-body{padding:0 1rem 1rem;color:var(--ink)}
   .summary-body h3{
     margin:.9rem 0 .4rem;text-align:center;
@@ -980,6 +988,36 @@
 
   <!-- Stage 0: fivy ordering -->
   <section class="fivys-stage" id="fivys-stage">
+
+    <!-- Analyze sits above the decks; appears once all four decks are settled -->
+    <div class="analyze-panel" id="analyze-panel" hidden>
+      <div class="analyze-row">
+        <button class="btn btn-soft" id="btn-analyze" type="button">Analyze ▸</button>
+        <div class="analyze-sub" id="analyze-sub" aria-hidden="true">
+          <span class="aseg"></span><span class="aseg"></span><span class="aseg"></span>
+        </div>
+      </div>
+      <div class="analysis" id="analysis-ordinals" hidden>
+        <h4>Ordinals</h4>
+        <div class="sum-table-wrap" id="ord-table"></div>
+        <p class="note">Read across a row to see what each fivy placed at that position.</p>
+      </div>
+      <div class="analysis" id="analysis-perspective" hidden>
+        <h4>Perspective</h4>
+        <div class="sum-table-wrap" id="persp-table"></div>
+        <p class="note">Each lens you have open ranks the same five positions its own way.</p>
+      </div>
+      <div class="analysis" id="analysis-timer" hidden>
+        <h4>Timer</h4>
+        <div class="sum-table-wrap" id="timer-table"></div>
+        <p class="note">Not a race — just a useful fact about the play.</p>
+      </div>
+      <div class="summary-bottom-actions">
+        <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
+      </div>
+      <div class="related-apps" id="related-apps" hidden></div>
+    </div>
+
     <div class="play-area">
       <div class="spotlight" id="spotlight" aria-live="polite"></div>
       <div class="board" id="board"></div>
@@ -1086,6 +1124,11 @@
 
   </section>
 
+  <!-- go back sits above the summary; both appear once the 4 decks are done -->
+  <div class="summary-back-row" id="summary-back-row" hidden>
+    <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
+  </div>
+
   <details class="summary-sec" id="summary-sec">
     <summary>✦ Summary</summary>
     <div class="summary-body" id="summary-body">
@@ -1093,34 +1136,6 @@
       <div id="summary-fivys"></div>
       <h3>Fields</h3>
       <div id="summary-fields"></div>
-
-      <!-- progressive analyses: Ordinals → Perspective → Timer -->
-      <div class="analyze-row">
-        <button class="btn btn-soft" id="btn-analyze" type="button">Analyze ▸</button>
-        <div class="analyze-sub" id="analyze-sub" aria-hidden="true">
-          <span class="aseg"></span><span class="aseg"></span><span class="aseg"></span>
-        </div>
-      </div>
-      <div class="analysis" id="analysis-ordinals" hidden>
-        <h4>Ordinals</h4>
-        <div class="sum-table-wrap" id="ord-table"></div>
-        <p class="note">Read across a row to see what each fivy placed at that position.</p>
-      </div>
-      <div class="analysis" id="analysis-perspective" hidden>
-        <h4>Perspective</h4>
-        <div class="sum-table-wrap" id="persp-table"></div>
-        <p class="note">Each lens you have open ranks the same five positions its own way.</p>
-      </div>
-      <div class="analysis" id="analysis-timer" hidden>
-        <h4>Timer</h4>
-        <div class="sum-table-wrap" id="timer-table"></div>
-        <p class="note">Not a race — just a useful fact about the play.</p>
-      </div>
-
-      <div class="summary-bottom-actions">
-        <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
-      </div>
-      <div class="related-apps" id="related-apps" hidden></div>
     </div>
   </details>
 
@@ -1189,17 +1204,28 @@
     renderSpotlight();
     renderCTA();
     updateDeckProgress();
+    updateStep4();
   }
 
-  // Sub progress bar: one segment per deck (done = settled, current = open).
+  // Sub progress bar: fills left→right, one more segment per deck settled.
   function updateDeckProgress(){
     const segs = $deckProg.querySelectorAll('.dseg');
-    DECKS.forEach((d, i) => {
-      const seg = segs[i];
-      if (!seg) return;
-      seg.classList.toggle('done', !!state.done[d.id]);
-      seg.classList.toggle('current', state.openDeckIdx === i);
+    const doneCount = DECKS.filter(d => state.done[d.id]).length;
+    segs.forEach((seg, i) => {
+      seg.classList.toggle('done', i < doneCount);
+      seg.classList.toggle('current', i === doneCount && state.openDeckIdx !== null);
     });
+  }
+
+  // Step 4 = all four decks settled. Only then do the Analyze panel (above the
+  // decks) and the Summary (+ its go-back) become available.
+  function updateStep4(){
+    const ready = allDone();
+    const ap = document.getElementById('analyze-panel');
+    const sb = document.getElementById('summary-back-row');
+    if (ap) ap.hidden = !ready;
+    if (sb) sb.hidden = !ready;
+    if ($summarySec) $summarySec.style.display = ready ? '' : 'none';
   }
 
   function renderBoard(){
@@ -1444,12 +1470,7 @@
     $cta.innerHTML = '';
     if (state.openDeckIdx !== null) return;
     if (!allDone()) return;
-    const back = document.createElement('button');     // back sits left of the next-stage button
-    back.className = 'btn btn-ghost btn-back';
-    back.textContent = '← Go back';
-    back.addEventListener('click', backToIntro);
-    $cta.appendChild(back);
-    const next = document.createElement('button');
+    const next = document.createElement('button');     // go-back now lives above the summary
     next.className = 'btn btn-primary';
     next.textContent = 'Fields →';
     next.addEventListener('click', enterFields);
@@ -1557,13 +1578,15 @@
   function startApp(){
     $introSlider.classList.add('hidden');
     $stage.style.display = '';
-    $summarySec.style.display = '';
     startTimer();
+    updateStep4();        // summary/analyze stay gated until the 4 decks are done
     window.scrollTo({ top:0, behavior:'smooth' });
   }
   function backToIntro(){
     $introSlider.classList.remove('hidden');
     $stage.style.display = 'none';
+    document.getElementById('analyze-panel').hidden = true;
+    document.getElementById('summary-back-row').hidden = true;
     $summarySec.style.display = 'none';
     gotoSlide(INTRO_SLIDES.length - 1);
     window.scrollTo({ top:0, behavior:'smooth' });
@@ -1571,6 +1594,7 @@
   document.getElementById('intro-prev').addEventListener('click', () => gotoSlide(introSlide - 1));
   document.getElementById('intro-next').addEventListener('click', () => gotoSlide(introSlide + 1));
   document.getElementById('intro-start').addEventListener('click', startApp);
+  document.getElementById('btn-go-back').addEventListener('click', backToIntro);
 
   // ============== Brand menu ==============
   const $brandMenu = document.getElementById('brand-menu');

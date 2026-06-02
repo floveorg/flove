@@ -171,7 +171,7 @@ body:has(#ray-hotter:checked)   .ray[for="ray-hotter"]{
 .labeler-reset{ color: var(--ink-soft); font-size: 1.05rem; }
 .labeler-reset:hover{ background: var(--fill-soft); color: var(--accent-deep); }
 /* per-labeler intro — a different title + text shows for each ray */
-.ray-intro > div{ display: none; margin: 0 0 .9rem; padding-left: .7rem; border-left: 3px solid var(--accent); }
+.ray-intro > div{ display: none; margin: 0 0 .9rem; }
 .ray-intro h3{ margin: 0 0 .2rem; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--ink); }
 .ray-intro p{ margin: 0; font-size: .9rem; line-height: 1.5; color: var(--ink-soft); }
 body:has(#ray-formal:checked)   .ray-intro-formal,
@@ -346,8 +346,7 @@ body:has(#ray-none:checked)     .slogan-none{ display: inline; }
   border-radius: 999px; box-shadow: var(--panel-shadow);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; z-index: 6;
 }
-body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop,
-body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
+body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop{ display: inline-flex; }
 /* side-column popovers align to the right edge so they don't overflow */
 .field-side .tool-pop{ left: auto; right: 0; }
 /* wizard (sub-wizards) popover — nudged 5px down, no background */
@@ -359,13 +358,32 @@ body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
   transition: transform var(--fast), background var(--fast), border-color var(--fast);
 }
 .chip:hover{ background: var(--fill-soft); transform: translateY(-1px); }
-/* selected reaction — grows (no circle/background), like flovyadvanced */
-body:has(#rate-h:checked) .chip[for="rate-h"],
-body:has(#rate-f:checked) .chip[for="rate-f"],
-body:has(#rate-l:checked) .chip[for="rate-l"],
-body:has(#rate-t:checked) .chip[for="rate-t"]{
-  background: transparent; transform: scale(1.35);
+
+/* ── rater — reactions open to the RIGHT of the ♥ (multi-select) ─────
+   the panel sits in the flex-shrink:0 field-side, so the flex:1 field
+   on its left shrinks to make room. ＋ reveals 20 more, then 30 more. */
+.tool-cell--rate{ display: flex; align-items: flex-start; gap: .25rem; }
+.rate-panel{ display: none; flex-direction: column; gap: .25rem; }
+body:has(#rate-open:checked) .rate-panel{ display: flex; }
+.rate-set{ display: flex; flex-wrap: wrap; gap: .15rem; max-width: 168px; }   /* ~5 per row */
+.rate-x1, .rate-more2, .rate-x2{ display: none; }
+body:has(#rate-more1:checked) .rate-x1{ display: flex; }
+body:has(#rate-more1:checked) .rate-more2{ display: inline-flex; }
+body:has(#rate-more2:checked) .rate-x2{ display: flex; }
+.rate-chip{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; font-size: .95rem;
+  background: transparent; border: 0; cursor: pointer;
+  transition: transform var(--fast), background var(--fast);
 }
+.rate-chip:hover{ background: var(--fill-soft); transform: translateY(-1px); }
+.rate-chip.picked{ transform: scale(1.3); }    /* selected — grows, no fill */
+.rate-more{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; align-self: flex-start;
+  color: var(--accent); font-size: 1rem; cursor: pointer; transition: background var(--fast), color var(--fast);
+}
+.rate-more:hover{ background: rgba(var(--accent-rgb),.5); color: #fff; }
 /* mic — bare, centred on the field's bottom border */
 /* mic + file cluster, centred on the field's bottom border */
 .field-fab{ position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; gap: .4rem; }
@@ -428,9 +446,6 @@ body:has(#magic-toggle:checked) .magic-summary-btn{ background: var(--accent); c
 .magic-summary-btn .l-on{ display: none; }
 body:has(#magic-toggle:checked) .magic-summary-btn .l-off{ display: none; }
 body:has(#magic-toggle:checked) .magic-summary-btn .l-on{ display: inline; }
-
-/* rater popover opens BELOW its ★ button (the sub-reactions sit under it) */
-.tool-cell--rate .tool-pop{ top: calc(100% + .4rem); bottom: auto; background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
 
 /* ── insights — ONE cycling button: none→who→what→where→why→none ── */
 .insight-cycle .insight-step{ display: none; }   /* only the current-state label shows */
@@ -618,12 +633,9 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
 <input type="checkbox" id="mic-on" class="ctl">
 
 <!-- rater: 4 emoji, single-select -->
-<input type="checkbox" id="rate-open" class="ctl">
-<input type="radio" name="rate" id="rate-none" class="ctl" checked>
-<input type="radio" name="rate" id="rate-h" class="ctl">
-<input type="radio" name="rate" id="rate-f" class="ctl">
-<input type="radio" name="rate" id="rate-l" class="ctl">
-<input type="radio" name="rate" id="rate-t" class="ctl">
+<input type="checkbox" id="rate-open"  class="ctl"><!-- rater panel -->
+<input type="checkbox" id="rate-more1" class="ctl"><!-- +20 reactions -->
+<input type="checkbox" id="rate-more2" class="ctl"><!-- +30 reactions -->
 
 <!-- insights: a single cycle — none → who → what → where → why → none -->
 <input type="radio" name="insight" id="insight-none"  class="ctl" checked>
@@ -812,13 +824,16 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
             <label class="tool-btn" for="bot-open" title="Wizards — click a chip to add text" aria-label="Wizard suggestions" tabindex="0">✦</label>
           </span>
           <span class="tool-cell tool-cell--rate">
-            <ul class="tool-pop" role="radiogroup" aria-label="Rate">
-              <li><label class="chip" for="rate-h" title="Heart"    aria-label="Heart"    tabindex="0">❤️</label></li>
-              <li><label class="chip" for="rate-f" title="Fun"      aria-label="Fun"      tabindex="0">😆</label></li>
-              <li><label class="chip" for="rate-l" title="Love"     aria-label="Love"     tabindex="0">😍</label></li>
-              <li><label class="chip" for="rate-t" title="Thoughts" aria-label="Thoughts" tabindex="0">🤔</label></li>
-            </ul>
-            <label class="tool-btn" for="rate-open" title="Rate" aria-label="Rate" tabindex="0">♥</label>
+            <label class="tool-btn rate-trigger" for="rate-open" title="Rate" aria-label="Rate" tabindex="0">♥</label>
+            <!-- reactions open to the RIGHT of the heart (multi-select);
+                 ＋ reveals 20 more, then another ＋ reveals 30 more -->
+            <div class="rate-panel" role="group" aria-label="Reactions">
+              <div class="rate-set rate-base" data-rate-set></div>
+              <label class="rate-more" for="rate-more1" title="More reactions" aria-label="More reactions" tabindex="0">＋</label>
+              <div class="rate-set rate-x1" data-rate-set aria-label="More reactions"></div>
+              <label class="rate-more rate-more2" for="rate-more2" title="Even more" aria-label="Even more reactions" tabindex="0">＋</label>
+              <div class="rate-set rate-x2" data-rate-set aria-label="Even more reactions"></div>
+            </div>
           </span>
         </div>
       </div>
@@ -1073,26 +1088,43 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
     });
   }
 
-  /* ---- live summary: mirror the field text + the selections made ---- */
-  var RATE = {'rate-h':'❤️','rate-f':'😆','rate-l':'😍','rate-t':'🤔'};
+  /* ---- rater — multi-select reaction palette to the right of the ♥ ----
+     base 4 · ＋ reveals 20 · ＋ reveals 30. Picks feed the summary. */
   var RAY  = {'ray-formal':'🎩','ray-informal':'👋','ray-hotter':'🔥'};
+  var REACT_BASE = ['❤️','😆','😍','🤔'];
+  var REACT_X1 = ['🥰','😘','😎','🤗','😇','🥳','😈','🙂','😅','😌','🤩','😋','🤭','😏','🥲','😴','🤝','👏','🙌','🙏'];
+  var REACT_X2 = ['💞','💖','💘','💗','💓','💕','💌','🌹','🌸','🌻','🍀','⭐','🌟','⚡','🌈','🔥','🌙','🌊','🍃','☕','🍷','🎈','🎉','🎁','🕊️','🔮','🎨','🎵','📖','🧭'];
+  var picked = new Set();
+  function fillRateSet(sel, list){
+    var box = document.querySelector(sel); if(!box) return;
+    list.forEach(function(em){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'rate-chip'; b.textContent = em; b.setAttribute('aria-label', em);
+      b.addEventListener('click', function(){
+        if(picked.has(em)){ picked.delete(em); b.classList.remove('picked'); }
+        else { picked.add(em); b.classList.add('picked'); }
+        refresh(); updateSummary();
+      });
+      box.appendChild(b);
+    });
+  }
+  fillRateSet('.rate-base', REACT_BASE);
+  fillRateSet('.rate-x1',   REACT_X1);
+  fillRateSet('.rate-x2',   REACT_X2);
+
+  /* ---- live summary: field text + the selections made ---- */
   var phraseEl = document.querySelector('.summary-phrase'),
       rxEl     = document.querySelector('.summary-rx'),
       afterEl  = document.querySelector('.summary-after'),
       emptyEl  = document.querySelector('.summary-empty');
-  function pickFrom(map){ for(var id in map){ var e = document.getElementById(id); if(e && e.checked) return map[id]; } return ''; }
-  function selections(){
-    var out = [], id;
-    for(id in RAY){  var e = document.getElementById(id); if(e && e.checked) out.push(RAY[id]); }
-    for(id in RATE){ var r = document.getElementById(id); if(r && r.checked) out.push(RATE[id]); }
-    return out;
-  }
+  function rayPick(){ for(var id in RAY){ var e = document.getElementById(id); if(e && e.checked) return RAY[id]; } return ''; }
+  function reactStr(){ return Array.from(picked).join(' '); }
   function updateSummary(){
-    var v = ta.value, rater = pickFrom(RATE), labeler = pickFrom(RAY);
-    if(rxEl)     rxEl.textContent     = rater;     /* rater reaction → before the text */
+    var v = ta.value, rx = reactStr(), labeler = rayPick();
+    if(rxEl)     rxEl.textContent     = rx;        /* rater reactions → before the text */
     if(phraseEl) phraseEl.textContent = v;
     if(afterEl)  afterEl.textContent  = labeler;   /* labeler → at the end */
-    if(emptyEl)  emptyEl.style.display = (v.trim() || rater || labeler) ? 'none' : '';
+    if(emptyEl)  emptyEl.style.display = (v.trim() || rx || labeler) ? 'none' : '';
   }
 
   /* ---- counters (👆 clicks · 💞 selections · ⭐ stars) + Advanced unlock ----
@@ -1102,7 +1134,7 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
       cSel    = document.getElementById('c-sel'),
       cStars  = document.getElementById('c-stars');
   var clicks = 0, unlocked = false;
-  function selCount(){ return selections().length + ((activeBot || inserted) ? 1 : 0); }
+  function selCount(){ return picked.size + (rayPick() ? 1 : 0) + ((activeBot || inserted) ? 1 : 0); }
   function starCount(){ return ta.value.trim() ? 1 : 0; }
   function refresh(){
     if(cSel)   cSel.textContent   = selCount();
@@ -1122,13 +1154,13 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
     var msg = document.querySelector('.unlock-msg');
     if(msg){ msg.classList.add('show'); setTimeout(function(){ msg.classList.remove('show'); }, 5000); }
   }
-  document.querySelectorAll('.tool-cell .chip, .tool-btn, .add-btn, .ray, .level-pop-btn, .magic-btn, .menu-btn').forEach(function(el){
+  document.querySelectorAll('.tool-cell .chip, .rate-chip, .rate-more, .tool-btn, .add-btn, .ray, .level-pop-btn, .magic-btn').forEach(function(el){
     el.addEventListener('click', function(){ clicks++; if(cClicks) cClicks.textContent = clicks; checkUnlock(); });
   });
   ta.addEventListener('input', function(){ refresh(); updateSummary(); });
-  /* rater / ray / language changes refresh the counters + summary */
+  /* ray / language changes refresh the counters + summary */
   document.addEventListener('change', function(ev){
-    if(ev.target && /^(rate|ray|lang)-/.test(ev.target.id || '')){ refresh(); updateSummary(); }
+    if(ev.target && /^(ray|lang)-/.test(ev.target.id || '')){ refresh(); updateSummary(); }
   });
   refresh(); updateSummary();
 })();

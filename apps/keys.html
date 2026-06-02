@@ -3192,7 +3192,7 @@
   #stage4 .controls{ display:flex; flex-direction:column; align-items:center; gap:16px; margin:0 auto 1rem; }
   #stage4 .controls-row{ display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; }
   #stage4 .nodebar{ position:relative; display:flex; align-items:center; flex:1 1 320px; max-width:440px; }
-  #stage4 .nodebar::before{ content:""; position:absolute; left:9%; right:9%; top:24px; height:3px; background:var(--line); border-radius:2px; z-index:0; }
+  #stage4 .nodebar::before{ content:""; position:absolute; left:9%; right:calc(9% + 10px); top:24px; height:3px; background:var(--line); border-radius:2px; z-index:0; }
   #stage4 .node{ position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 4px 4px; cursor:pointer; }
   #stage4 .node input{ position:absolute; opacity:0; pointer-events:none; }
   #stage4 .node-dot{ width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:var(--field); transition:background .15s,border-color .15s,box-shadow .15s; }
@@ -3588,7 +3588,7 @@
 
 
     <!-- Play-more prompt: shown above the decks once "Play more" is engaged. -->
-    <p class="play-more-hint" id="play-more-hint" hidden>Choose your favourite words from the decks and see what the Combos app will do next</p>
+    <p class="play-more-hint" id="play-more-hint" hidden></p>
 
     <!-- First-perspective bars (+ the "+") sit ABOVE the decks. The parallel
          "new perspective" bars + reorder decks live below (in #second-play). -->
@@ -3602,6 +3602,12 @@
         <div class="arrow" data-row="2"></div>
       </div>
       <div class="gender-arrows" id="gender-arrows" aria-hidden="true"></div>
+    </div>
+
+    <!-- Stage 4 (Confluences) results — only saved confluences, below the table. -->
+    <div class="s4-summary-out" id="s4-summary-out" hidden>
+      <h3>✦ Confluences</h3>
+      <output class="s4-clause" id="s4-clause" data-flove-phrase spellcheck="false"></output>
     </div>
 
     <div class="summary-fivys" id="summary-fivys"></div>
@@ -3904,20 +3910,17 @@
       </div>
     </section>
 
-    <!-- Stage 4 (Confluences) phrase, surfaced into this main summary. -->
-    <div class="s4-summary-out" id="s4-summary-out" hidden>
-      <h3>✦ Confluences</h3>
-      <output class="s4-clause" id="s4-clause" data-flove-phrase spellcheck="false"></output>
-    </div>
-
-    <!-- Continue to Stage 4 — sits two rows above the See more button. -->
+    <!-- Continue to Stage 4 — two rows above See more. Hidden until three
+         favourite keywords are picked in Play more. -->
     <div class="stage4-cta">
-      <button class="btn btn-primary" id="btn-stage4" type="button">Continue to Stage 4 →</button>
+      <button class="btn btn-primary" id="btn-stage4" type="button" hidden>Continue to Stage 4 →</button>
     </div>
 
-    <!-- See more + related apps now sit BELOW the Summary section. -->
+    <!-- See more + related apps now sit BELOW the Summary section. The duplicate
+         Continue/Go-back lives to the right of See more. -->
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
+      <button class="btn btn-primary" id="btn-stage4-2" type="button" hidden>Continue to Stage 4 →</button>
     </div>
 
     <div class="related-apps" id="related-apps" hidden>
@@ -4388,10 +4391,10 @@
     // The main (parent) bar always shows exactly three bars.
     const PARENT = 3;
     if (isSummary){
-      // Parent: stages 1-3 done, plus a 4th bar that fills once the Stage-4
-      // board holds its first created row.
+      // Parent: stages 1-3 done, plus a 4th bar that fills once the user has
+      // continued into Stage 4.
       let ph = seg('done') + seg('done') + seg('done')
-             + seg(state.s4HasRows ? 'current' : '');
+             + seg(state.s4Entered ? 'current' : '');
       $parent.innerHTML = ph;
       // Sub: 1 at landing, +1 per touched Analyze/More section, +1 for each
       // Stage-4 row type (3 / 5 / 7) whose first row has been created.
@@ -7545,6 +7548,8 @@
         $summary.classList.remove('groups-on-top');
         const $hint = document.getElementById('play-more-hint');
         if ($hint) $hint.hidden = true;
+        _fpSelectedWords.clear();
+        if (typeof refreshStage4CTA === 'function') refreshStage4CTA();
       }
       $btn.textContent = 'Play more';
       return;
@@ -7590,16 +7595,28 @@
       const $triads = document.getElementById('summary-triads');
       if ($triads) setTimeout(() => $triads.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
     } else {
-      // Leaving play-more: re-render so the extras drop away again unless the
-      // user had revealed them via Analyze → Extras.
+      // Leaving play-more: drop the keyword picks (so the Stage-4 CTAs hide
+      // again) and re-render so the extras drop away unless revealed by Analyze.
+      _fpSelectedWords.clear();
+      $summary.querySelectorAll('.fp-selected').forEach(el => el.classList.remove('fp-selected'));
       renderSummaryGrid();
       renderPlayMoreBtn();
     }
+    refreshStage4CTA();
   }
   // Multiselect: each click toggles whether a card is selected. The set of
   // selected words drives the "more apps" surfaced via the See more "+"
   // button — those apps point to flove.org/{word} for every selected key.
   const _fpSelectedWords = new Set();
+  // The "Continue to Stage 4" buttons appear only once exactly three favourite
+  // keywords have been picked in Play more.
+  function refreshStage4CTA(){
+    const ready = _fpSelectedWords.size === 3;
+    ['btn-stage4', 'btn-stage4-2'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.hidden = !ready;
+    });
+  }
   function wireFreePlayHandlers(){
     document.querySelectorAll('.summary.free-play .deck-done.in-summary, .summary.free-play .ad-deck').forEach(deck => {
       const id = deck.dataset.deckId;
@@ -7626,11 +7643,21 @@
             _fpSelectedWords.delete(w);
             li.classList.remove('fp-selected');
           } else {
+            // Force exactly three: a 4th pick evicts the oldest (FIFO).
+            if (_fpSelectedWords.size >= 3){
+              const oldest = _fpSelectedWords.values().next().value;
+              _fpSelectedWords.delete(oldest);
+              document.querySelectorAll('.summary .fp-selected').forEach(el => {
+                const ew = (el.dataset.word || el.querySelector('.nm')?.textContent || '').trim();
+                if (ew === oldest) el.classList.remove('fp-selected');
+              });
+            }
             _fpSelectedWords.add(w);
             li.classList.add('fp-selected');
           }
           // Reflect the picked keys in the bottom std-summary recap.
           if (typeof renderBottomSummary === 'function') renderBottomSummary();
+          if (typeof refreshStage4CTA === 'function') refreshStage4CTA();
         });
       });
     });
@@ -8357,9 +8384,11 @@
     const s4end    = document.getElementById('s4-end');
     const s4back   = document.getElementById('s4-back');
     const s4next   = document.getElementById('s4-next');
-    const PH = '…';
+    const btnStage4b = document.getElementById('btn-stage4-2');
+    const PH = '';   // new cells start empty (no placeholder glyph)
 
-    const allEntries = () => Array.from(stage4.querySelectorAll('.s4-entry'));
+    const allEntries   = () => Array.from(stage4.querySelectorAll('.s4-entry'));
+    const savedEntries = () => Array.from(stage4.querySelectorAll('.s4-entry.saved'));
 
     function makeRow(n){
       const entry = document.createElement('div');
@@ -8401,8 +8430,9 @@
         en.classList.toggle('fillable', allFilled(en));
       });
     }
+    // Only SAVED confluences become results in the main summary.
     function updateSummary(){
-      const txt = allEntries().map(en => '[ ' + rowText(en) + ' ]').join('\n');
+      const txt = savedEntries().map(en => '[ ' + rowText(en) + ' ]').join('\n');
       if (s4clause) s4clause.textContent = txt;
       if (s4out) s4out.hidden = !txt;
     }
@@ -8458,22 +8488,32 @@
       s4anim.setAttribute('aria-pressed', String(on));
     });
 
-    // Continue to Stage 4 → reveal the panel and scroll to it.
-    btnStage4.addEventListener('click', function(){
+    // Entering Stage 4 adds the 4th parent bar (state.s4Entered) and reveals
+    // the panel. Both Continue buttons trigger it.
+    function enterStage4(){
+      state.s4Entered = true;
       stage4.hidden = false;
       refreshEnd();
+      if (typeof renderStageLabel === 'function') renderStageLabel();
+      if (btnStage4b) btnStage4b.textContent = '← Go back';
       stage4.scrollIntoView({ behavior:'smooth', block:'start' });
-    });
-    // Go back → hide the panel, return to the summary.
-    s4back.addEventListener('click', function(){
+    }
+    function exitStage4(){
       stage4.hidden = true;
+      if (btnStage4b) btnStage4b.textContent = 'Continue to Stage 4 →';
       const sum = document.getElementById('summary');
       if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+    btnStage4.addEventListener('click', enterStage4);
+    // Duplicate (right of See more) toggles between Continue and Go back.
+    if (btnStage4b) btnStage4b.addEventListener('click', function(){
+      if (stage4.hidden) enterStage4(); else exitStage4();
     });
-    // Next → surface the phrase in the main summary, run the wave, scroll there.
+    s4back.addEventListener('click', exitStage4);
+    // Next → surface the saved confluences in the main summary, run the wave,
+    // and scroll up to the summary.
     s4next.addEventListener('click', function(){
       updateSummary();
-      if (s4out) s4out.hidden = false;
       if (!stage4.classList.contains('is-animating')){
         stage4.classList.add('is-animating');
         s4anim.setAttribute('aria-pressed', 'true');

@@ -298,7 +298,7 @@ body:has(#ray-none:checked)     .slogan-none{ display: inline; }
 }
 .entry-field:focus-within{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .entry-textarea{
-  display: block; width: 100%; min-height: 5em; margin: 0; padding: 0; border: 0; resize: vertical;
+  display: block; width: 100%; min-height: 5em; margin: 0; padding: 0; border: 0; resize: none;
   font-family: inherit; font-size: 1.15rem; line-height: 1.4; color: var(--ink); background: transparent; position: relative; z-index: 1;
 }
 .entry-textarea:focus-visible{ outline: none; }
@@ -349,8 +349,12 @@ body:has(#rate-t:checked) .chip[for="rate-t"]{
   background: transparent; transform: scale(1.35);
 }
 /* mic — bare, centred on the field's bottom border */
-.mic-btn{ position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%); z-index: 2; background: transparent; border: 0; }
-.mic-btn:hover{ background: var(--fill-soft); }
+/* mic + file cluster, centred on the field's bottom border */
+.field-fab{ position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; gap: .4rem; }
+.mic-btn, .file-btn{ background: transparent; border: 0; }
+.mic-btn:hover, .file-btn:hover{ background: var(--fill-soft); }
+.file-btn{ position: relative; overflow: hidden; }
+.file-input{ position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 body:has(#mic-on:checked) .mic-btn{ background: var(--accent); color: #fff; animation: mic-pulse 1.3s ease-in-out infinite; }
 @keyframes mic-pulse{ 0%,100%{ box-shadow: 0 0 0 0 var(--accent-glow);} 50%{ box-shadow: 0 0 0 6px rgba(var(--accent-rgb),0);} }
 .mic-hint{ display: none; margin: .1rem 0 0; font: 500 .76rem var(--font-ui); color: var(--accent-deep); }
@@ -437,6 +441,27 @@ body:has(#insight-why:checked)   .insight-panel--why{ display: block; }
 .counter .counter-ico{ font-size: .95rem; }
 .counter b{ color: var(--accent-deep); }
 
+/* ── Advanced-unlock gamification ───────────────────────────── */
+/* message above the field — shown for 5s when the threshold is reached */
+.unlock-msg{
+  display: none; margin: 0 0 .8rem; padding: .6rem .8rem; border-radius: 10px;
+  background: var(--grad-active, linear-gradient(150deg, var(--accent), var(--accent-deep)));
+  color: #fff; font: 700 .92rem var(--font-ui); text-align: center;
+  box-shadow: 0 8px 22px rgba(var(--accent-rgb),.4);
+}
+.unlock-msg.show{ display: block; animation: unlock-pop .4s var(--bounce); }
+@keyframes unlock-pop{ from{ opacity:0; transform: translateY(-6px) scale(.96);} to{ opacity:1; transform:none;} }
+/* counters celebrate for 3s */
+.counters.celebrate .counter{ animation: counter-party .6s ease-in-out 5; }
+@keyframes counter-party{ 0%,100%{ transform: none; } 25%{ transform: translateY(-4px) scale(1.15) rotate(-4deg);} 75%{ transform: translateY(-2px) scale(1.1) rotate(4deg);} }
+.counters.celebrate .counter{ background: var(--fill-mid); box-shadow: 0 0 0 2px var(--accent-glow); }
+/* unlocked Advanced tier step + its parent ◆ icon — permanent glow */
+.level-pop-step.is-unlocked{ opacity: 1; pointer-events: auto; cursor: pointer; }
+.level-pop-step.is-unlocked .level-pop-node{ background: var(--accent); border-color: var(--accent-deep); box-shadow: 0 0 0 3px var(--accent-glow); }
+.level-pop-step.is-unlocked .level-pop-label{ color: var(--accent-deep); font-weight: 700; }
+.level-pop-btn.is-unlocked{ color: #fff; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); animation: unlock-glow 1.8s ease-in-out infinite; }
+@keyframes unlock-glow{ 0%,100%{ box-shadow: 0 0 0 2px var(--accent-glow);} 50%{ box-shadow: 0 0 0 6px rgba(var(--accent-rgb),.25);} }
+
 /* language — current language with a ▾ caret that opens a dropdown */
 .menu-lang{ display: flex; align-items: center; gap: .6rem; padding: .55rem .65rem; border-radius: 10px; cursor: pointer; transition: background var(--fast); }
 .menu-lang:hover{ background: var(--fill-soft); }
@@ -512,13 +537,19 @@ body:has(#publish-open:checked) .publish-btn{ background: var(--fill-soft); bord
 body:has(#newlabel-open:checked) .modal-overlay--label,
 body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: page-in .25s var(--bounce); }
 .modal{
-  width: 320px; max-width: 100%; padding: 1.2rem 1.1rem;
+  position: relative; z-index: 1;   /* sit above the click-catch so clicks inside don't close it */
+  width: 320px; max-width: 100%; max-height: 86vh; overflow: auto; padding: 1.2rem 1.1rem;
   background: #fff; border-radius: var(--radius); box-shadow: 0 24px 60px rgba(0,0,0,.28);
 }
 .modal-head{ display: flex; align-items: center; margin: 0 0 .8rem; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--ink); }
 .modal-close{ margin-left: auto; width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-soft); transition: background var(--fast); }
 .modal-close:hover{ background: var(--fill-soft); color: var(--accent-deep); }
-.modal label.field-label{ display: block; font: 600 .78rem var(--font-ui); color: var(--ink-soft); margin: .6rem 0 .25rem; }
+.modal label.field-label, .modal .field-label{ display: block; font: 600 .78rem var(--font-ui); color: var(--ink-soft); margin: .6rem 0 .25rem; }
+/* emoji picker — 5 per row, 10 rows */
+.emoji-grid{ display: grid; grid-template-columns: repeat(5, 1fr); gap: .15rem; max-height: 200px; overflow-y: auto; padding: .2rem; border: 1px solid var(--line-strong); border-radius: 10px; }
+.emoji-cell{ display: inline-flex; align-items: center; justify-content: center; aspect-ratio: 1; border: 0; background: transparent; border-radius: 8px; font-size: 1.25rem; cursor: pointer; transition: background var(--fast), transform var(--fast); }
+.emoji-cell:hover{ background: var(--fill-soft); transform: scale(1.1); }
+.emoji-cell.is-chosen{ background: var(--accent); }
 .modal input[type=text]{ width: 100%; padding: .55rem .7rem; border: 1px solid var(--line-strong); border-radius: 10px; font: 400 .95rem var(--font-ui); }
 .modal input:focus-visible{ outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .modal-actions{ display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
@@ -715,13 +746,17 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
 
   <!-- STEP · Who -->
   <section class="step-panel step-panel--who card">
+    <p class="unlock-msg" role="status" aria-live="polite"><span class="l-en">You can now play the Advanced mode</span><span class="l-es">Ya puedes jugar el modo Avanzado</span></p>
     <form class="entry-form" action="mailto:publish@flove.org" method="post" enctype="text/plain">
       <div class="field-wrap">
         <div class="entry-field">
           <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
           <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
-          <!-- 🎤 mic — centred on the field's bottom border -->
-          <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
+          <!-- 🎤 mic + 📎 file upload — centred on the field's bottom border -->
+          <div class="field-fab">
+            <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
+            <label class="tool-btn file-btn" title="Attach a file" aria-label="Attach a file" tabindex="0">📎<input type="file" class="file-input" aria-hidden="true"></label>
+          </div>
         </div>
 
         <!-- ✦ wizard + ★ rater stacked to the right, each in its own row -->
@@ -870,8 +905,9 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
       <label class="modal-close" for="newwiz-open" tabindex="0" aria-label="Close">×</label>
     </h2>
     <form id="newwiz-form" onsubmit="return false">
-      <label class="field-label" for="nw-emoji"><span class="l-en">Emoji</span><span class="l-es">Emoji</span></label>
-      <input type="text" id="nw-emoji" placeholder="🌙" maxlength="4">
+      <span class="field-label"><span class="l-en">Emoji</span><span class="l-es">Emoji</span></span>
+      <div class="emoji-grid" id="nw-emoji-grid" role="radiogroup" aria-label="Choose an emoji"></div>
+      <input type="hidden" id="nw-emoji" value="">
       <label class="field-label" for="nw-name"><span class="l-en">Name</span><span class="l-es">Nombre</span></label>
       <input type="text" id="nw-name" placeholder="e.g. cosy" maxlength="24">
       <label class="field-label" for="nw-t1"><span class="l-en">Suggested text 1</span><span class="l-es">Texto sugerido 1</span></label>
@@ -959,6 +995,22 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
   }
   document.querySelectorAll('.tool-cell--bot .chip[data-wiz]').forEach(wireWizard);
 
+  /* New-wizard emoji picker — 5 per row, 10 rows (50). Click sets #nw-emoji. */
+  var emojiGrid = document.getElementById('nw-emoji-grid'),
+      emojiHidden = document.getElementById('nw-emoji');
+  if(emojiGrid){
+    var EMOJIS = ['😍','😂','🔥','❤️','✨','🌙','🌈','🦄','🎭','🤓','😈','🥰','😘','🤔','😆','🙂','😎','🤗','😇','🥳','💞','💖','💘','💌','💕','🌹','🌸','🌻','🍀','⭐','🌟','⚡','🌊','🍃','☕','🍷','🎈','🎉','🎁','📜','🕊️','🔮','🧩','🎨','🎵','📖','🗝️','🧭','⚓','🌴'];
+    EMOJIS.forEach(function(em){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'emoji-cell'; b.textContent = em; b.setAttribute('aria-label', em);
+      b.addEventListener('click', function(){
+        emojiGrid.querySelectorAll('.is-chosen').forEach(function(x){ x.classList.remove('is-chosen'); });
+        b.classList.add('is-chosen'); if(emojiHidden) emojiHidden.value = em;
+      });
+      emojiGrid.appendChild(b);
+    });
+  }
+
   /* New wizard — Save registers its texts and inserts a chip after wisdom,
      before the ＋ slot, then wires it like the built-ins. */
   var saveWiz = document.getElementById('saveWiz');
@@ -980,6 +1032,7 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
       slot.parentNode.insertBefore(li, slot);    // after the last wizard, before ＋
       wireWizard(b);
       ['nw-emoji','nw-name','nw-t1','nw-t2','nw-t3'].forEach(function(id){ document.getElementById(id).value = ''; });
+      if(emojiGrid) emojiGrid.querySelectorAll('.is-chosen').forEach(function(x){ x.classList.remove('is-chosen'); });
       var open = document.getElementById('newwiz-open'); if(open) open.checked = false;
     });
   }
@@ -1003,23 +1056,42 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
     if(emptyEl) emptyEl.style.display = (v.trim() || sel.length) ? 'none' : '';
   }
 
-  /* light counters — Clicks (any tool click) · Selections (rater) · Stars (1 if the field is non-empty) */
+  /* ---- counters (👆 clicks · 💞 selections · ⭐ stars) + Advanced unlock ----
+     Threshold: ≥1 star, ≥2 selections, ≥10 clicks → enable & highlight the
+     Advanced tier, party the counters for 3s, flash a 5s message. */
   var cClicks = document.getElementById('c-clicks'),
       cSel    = document.getElementById('c-sel'),
       cStars  = document.getElementById('c-stars');
-  var clicks = 0;
-  document.querySelectorAll('.tool-cell .chip, .tool-btn').forEach(function(el){
-    el.addEventListener('click', function(){ if(cClicks){ cClicks.textContent = ++clicks; } });
+  var clicks = 0, unlocked = false;
+  function selCount(){ return selections().length + ((activeBot || inserted) ? 1 : 0); }
+  function starCount(){ return ta.value.trim() ? 1 : 0; }
+  function refresh(){
+    if(cSel)   cSel.textContent   = selCount();
+    if(cStars) cStars.textContent = starCount();
+    checkUnlock();
+  }
+  function checkUnlock(){
+    if(unlocked) return;
+    if(starCount() >= 1 && selCount() >= 2 && clicks >= 10){ unlocked = true; doUnlock(); }
+  }
+  function doUnlock(){
+    var adv = document.querySelector('.level-pop-step[href$="flovyadvanced.html"]');
+    if(adv){ adv.classList.remove('level-pop-step--wip'); adv.classList.add('is-unlocked'); adv.removeAttribute('aria-disabled'); adv.setAttribute('tabindex','0'); }
+    var btn = document.querySelector('.level-pop-btn'); if(btn) btn.classList.add('is-unlocked');
+    var counters = document.querySelector('.counters');
+    if(counters){ counters.classList.add('celebrate'); setTimeout(function(){ counters.classList.remove('celebrate'); }, 3000); }
+    var msg = document.querySelector('.unlock-msg');
+    if(msg){ msg.classList.add('show'); setTimeout(function(){ msg.classList.remove('show'); }, 5000); }
+  }
+  document.querySelectorAll('.tool-cell .chip, .tool-btn, .add-btn, .ray, .level-pop-btn, .magic-btn, .menu-btn').forEach(function(el){
+    el.addEventListener('click', function(){ clicks++; if(cClicks) cClicks.textContent = clicks; checkUnlock(); });
   });
-  document.querySelectorAll('.tool-cell--rate .chip').forEach(function(el){
-    el.addEventListener('click', function(){ if(cSel){ cSel.textContent = '1'; } });
-  });
-  ta.addEventListener('input', function(){ if(cStars){ cStars.textContent = ta.value.trim() ? '1' : '0'; } updateSummary(); });
-  /* rater / ray / language changes also refresh the summary */
+  ta.addEventListener('input', function(){ refresh(); updateSummary(); });
+  /* rater / ray / language changes refresh the counters + summary */
   document.addEventListener('change', function(ev){
-    if(ev.target && /^(rate|ray|lang)-/.test(ev.target.id || '')) updateSummary();
+    if(ev.target && /^(rate|ray|lang)-/.test(ev.target.id || '')){ refresh(); updateSummary(); }
   });
-  updateSummary();
+  refresh(); updateSummary();
 })();
 </script>
 

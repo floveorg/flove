@@ -96,6 +96,10 @@
     background:linear-gradient(90deg,var(--brand),var(--accent));
     box-shadow:0 0 8px rgba(255,95,220,.4);transform:scaleY(1.4);
   }
+  /* analyze adds a filled bar to the main bar + a growing sub bar (accent tone) */
+  .stage-progress .seg.an.done,
+  .deck-progress .dseg.an.done{background:linear-gradient(90deg,var(--accent),var(--plum))}
+  .deck-progress .dseg.an{animation:fadein .25s ease}
   @media (max-width:460px){
     .stage-progress{padding:3px 6px;gap:3px}
     .stage-progress .seg{width:16px;height:3px}
@@ -789,8 +793,7 @@
   .summary-sec > summary:hover{background:rgba(250,220,146,.06);color:var(--ink)}
 
   /* go-back row above the summary */
-  .summary-back-row{display:flex;justify-content:center;margin-top:18px}
-  .summary-back-row[hidden]{display:none}
+  .decks-back-row{display:flex;justify-content:center;margin-top:8px}
 
   /* Analyze panel — sits above the decks once all four are settled */
   .analyze-panel{
@@ -1081,6 +1084,9 @@
       <div class="spotlight" id="spotlight" aria-live="polite"></div>
       <div class="board" id="board"></div>
     </div>
+    <div class="decks-back-row">
+      <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
+    </div>
     <div class="stage-cta" id="stage-cta"></div>
   </section>
 
@@ -1183,11 +1189,6 @@
 
   </section>
 
-  <!-- go back sits above the summary; both appear once the 4 decks are done -->
-  <div class="summary-back-row" id="summary-back-row" hidden>
-    <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
-  </div>
-
   <details class="summary-sec" id="summary-sec">
     <summary>✦ Summary</summary>
     <div class="summary-body" id="summary-body">
@@ -1267,8 +1268,9 @@
   }
 
   // Sub progress bar: fills left→right, one more segment per deck settled.
+  // (Leaves the appended analyze sub-segments .an alone.)
   function updateDeckProgress(){
-    const segs = $deckProg.querySelectorAll('.dseg');
+    const segs = $deckProg.querySelectorAll('.dseg:not(.an)');
     const doneCount = DECKS.filter(d => state.done[d.id]).length;
     segs.forEach((seg, i) => {
       seg.classList.toggle('done', i < doneCount);
@@ -1281,9 +1283,7 @@
   function updateStep4(){
     const ready = allDone();
     const ap = document.getElementById('analyze-panel');
-    const sb = document.getElementById('summary-back-row');
     if (ap) ap.hidden = !ready;
-    if (sb) sb.hidden = !ready;
     if ($summarySec) $summarySec.style.display = ready ? '' : 'none';
   }
 
@@ -1551,11 +1551,28 @@
     setProgress(0);
   }
   function setProgress(cur){
-    $progress.querySelectorAll('.seg').forEach((s, i) => {
+    // leave the appended analyze segment (.an) untouched
+    $progress.querySelectorAll('.seg:not(.an)').forEach((s, i) => {
       s.classList.toggle('done', i < cur);
       s.classList.toggle('current', i === cur);
     });
     $progress.setAttribute('aria-valuenow', String(cur + 1));
+  }
+
+  // Analyze: first click drops one filled bar into the main progress bar; every
+  // click adds one more segment to the sub bar below it.
+  let analyzeMainAdded = false;
+  function bumpAnalyzeProgress(){
+    if (!analyzeMainAdded){
+      analyzeMainAdded = true;
+      $progress.querySelectorAll('.seg').forEach(s => { s.classList.add('done'); s.classList.remove('current'); });
+      const seg = document.createElement('div');
+      seg.className = 'seg an done';
+      $progress.appendChild(seg);
+    }
+    const sub = document.createElement('span');
+    sub.className = 'dseg an done';
+    $deckProg.appendChild(sub);
   }
 
   // ============== Elapsed timer ==============
@@ -1645,7 +1662,6 @@
     $introSlider.classList.remove('hidden');
     $stage.style.display = 'none';
     document.getElementById('analyze-panel').hidden = true;
-    document.getElementById('summary-back-row').hidden = true;
     $summarySec.style.display = 'none';
     gotoSlide(INTRO_SLIDES.length - 1);
     window.scrollTo({ top:0, behavior:'smooth' });
@@ -2113,6 +2129,7 @@
     const el = document.getElementById(ANALYSES[analyzeStep]);
     el.hidden = false;
     $analyzeSub.children[analyzeStep].classList.add('done');
+    bumpAnalyzeProgress();     // main bar gains a bar; sub bar grows each click
     analyzeStep++;
     if (analyzeStep < ANALYSES.length){
       $btnAnalyze.textContent = `Analyze · ${analyzeStep}/${ANALYSES.length} ▸`;

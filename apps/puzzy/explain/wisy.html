@@ -184,8 +184,8 @@
     }
     body:has(#step-2:checked) .title-echo,
     body:has(#step-3:checked) .title-echo,
-    body:has(#step-4:checked) .title-echo,
-    body:has(#step-5:checked) .title-echo{ display:block; animation:fade .3s var(--flove-ease) both }
+    body:has(#step-4:checked) .title-echo{ display:block; animation:fade .3s var(--flove-ease) both }
+    /* step 5 has its own centred, 2× object inside the summary — no echo here */
 
     /* ── stepper · standard flove stepnav (§13) — lives at the BOTTOM,
        dots only (no section titles). Earlier steps read as "done", the
@@ -412,8 +412,8 @@
     .ta-wrap--inline input[type=text]{ padding-right:4.6rem }
     .ta-wrap--inline.ta-wrap--clone input[type=text]{ padding-right:6.4rem }
     /* the remove (−) tool only appears on cloned (newly added) fields */
-    .ta-del{ display:none }
-    .ta-wrap--clone .ta-del{ display:inline-flex }
+    .ta-tool.ta-del{ display:none }                 /* hidden on default fields… */
+    .ta-wrap--clone .ta-del{ display:inline-flex }  /* …only cloned fields can be removed */
     .ta-del:hover{ border-color:#ff7a7a; color:#ff9a9a }
     .ta-tool{
       display:inline-flex; align-items:center; justify-content:center;
@@ -639,6 +639,16 @@
       padding:.2rem .55rem; border:1px solid var(--line); border-radius:var(--flove-radius-pill);
       background:rgba(141,137,255,.12);
     }
+    /* step-3 echo — just the picked chips in a centred row (no sub-titles) */
+    .persp-echo-chips{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center }
+
+    /* summary · the object centred and at 2× (no "Object" label) */
+    .summary-object{
+      text-align:center; margin:.1rem 0 1rem; font-size:3rem; font-weight:700; letter-spacing:.5px; line-height:1.1;
+      background:linear-gradient(180deg,#fff,var(--app-accent-soft));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .summary-object:empty{ display:none }
 
     /* ── summary step ──────────────────────────────────────────── */
     .summary-lede{ margin:1rem 0 .6rem; color:var(--muted); font-size:.92rem }
@@ -917,7 +927,7 @@
           </fieldset>
 
           <fieldset class="field persp-sec persp-sec--teleo">
-            <legend class="lbl"><span class="t-en">Teleological background</span><span class="t-es">Trasfondo teleológico</span></legend>
+            <legend class="lbl"><span class="t-en">Teleology</span><span class="t-es">Teleología</span></legend>
             <div class="bar__choices">
               <label><input type="checkbox" name="cont"> <span class="t-en">Experimental</span><span class="t-es">Experimental</span></label>
               <label><input type="checkbox" name="cont"> <span class="t-en">Random</span><span class="t-es">Aleatorio</span></label>
@@ -989,8 +999,8 @@
           </div>
           <div class="xpl-static xpl-relate">
             <input type="checkbox" id="relate-open" class="ctl">
-            <label class="col-title relate-toggle" for="relate-open" tabindex="0" title="Relate to — expand / collapse">
-              <span class="relate-ico" aria-hidden="true">🔗</span> RELATE TO
+            <label class="col-title relate-toggle" for="relate-open" tabindex="0" title="Relate to — expand / collapse" aria-label="Relate to — expand / collapse">
+              <span class="relate-ico" aria-hidden="true">🔗</span>
             </label>
             <div class="relate-field">
               <input type="text" data-k="RELATE TO">
@@ -1079,6 +1089,8 @@
     <!-- PACK 5 · SUMMARY — every input + a flovynormal summary section -->
     <section class="pack pack--5">
       <div class="summary-box">
+        <!-- the object, centred and 2× (filled live; no label) -->
+        <div class="summary-object" id="summary-object" aria-hidden="true"></div>
         <!-- perspectives — sub-titles in a row, selections below in pairs -->
         <div class="persp-summary" id="persp-summary"></div>
         <div class="clause clause-default" id="summary-list">
@@ -1407,15 +1419,26 @@
                '</div></div>';
       }).join('') + '</div>';
     }
-    /* fill the step-3 echo (above the title) AND the summary block */
+    var objEl = document.getElementById('summary-object');
+    /* fill the step-3 echo (just the picked chips, no sub-titles) AND the
+       summary block (sub-titles in a row · selections below in pairs) */
     function renderPerspViews(){
-      var html = perspCardsHTML(perspGroups());
-      if(perspEchoEl) perspEchoEl.innerHTML = html;
-      if(perspSumEl)  perspSumEl.innerHTML  = html;
+      var groups = perspGroups();
+      if(perspEchoEl){
+        var all = [];
+        groups.forEach(function(g){ all = all.concat(g.vs); });
+        perspEchoEl.innerHTML = all.length
+          ? '<div class="persp-echo-chips">' +
+              all.map(function(v){ return '<span class="persp-pick">' + esc(v) + '</span>'; }).join('') +
+            '</div>'
+          : '';
+      }
+      if(perspSumEl) perspSumEl.innerHTML = perspCardsHTML(groups);
     }
 
     function renderSummary(){
       renderPerspViews();
+      if(objEl) objEl.textContent = (wise && wise.value.trim()) ? wise.value.trim() : '';
       if(!listEl) return;
       var items = collect();
       if(!items.length){
@@ -1424,9 +1447,9 @@
           '</p>';
         return;
       }
-      /* perspectives now render in their own block (row of titles · pairs below);
-         keep only the non-perspective inputs as key/value rows here */
-      var rows = items.filter(function(it){ return !it.vs; });
+      /* the object shows big & centred above · perspectives in their own block;
+         keep only the remaining non-perspective inputs as key/value rows here */
+      var rows = items.filter(function(it){ return !it.vs && it.k !== 'Object'; });
       listEl.innerHTML = rows.map(function(it){
         return '<div class="sum-row"><span class="sum-k">' + esc(it.k) + '</span><span class="sum-v">' + esc(it.v) + '</span></div>';
       }).join('');

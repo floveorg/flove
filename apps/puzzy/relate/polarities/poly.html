@@ -136,7 +136,7 @@
     .tune-intro small{ display:block; color:var(--muted); font-weight:400; font-size:.82rem; margin-top:.35rem }
 
     /* 1–5 rating bars — two columns + 30px void middle, 15px gutter left of col 1 */
-    .bars{ display:grid; gap:2.4rem 0; grid-template-columns:1fr 30px 1fr; padding-left:15px }
+    .bars{ display:grid; gap:1.6rem 0; grid-template-columns:1fr 30px 1fr; padding-left:15px; align-items:start }
     .bars > *{ grid-column:1 }
     .bars > *:nth-child(2n){ grid-column:3 }
     @media (max-width:720px){
@@ -144,16 +144,18 @@
       .bars > *, .bars > *:nth-child(2n){ grid-column:auto }
     }
 
-    /* collapsed base lenses behind one resuming title */
-    .more-base{ margin-top:2.4rem }
-    .more-sum{
-      cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:10px;
-      color:var(--ink); font-weight:600; padding:.2rem 0 .2rem 15px; flex-wrap:wrap;
+    /* each tuner is collapsible in place; only 2 open by default */
+    .tuner{ border-radius:var(--flove-radius-sm); padding:.35rem .5rem; border:1px solid transparent }
+    .tuner-sum{
+      cursor:pointer; list-style:none; display:flex; align-items:center; gap:9px;
+      color:var(--ink); font-weight:600; font-size:.92rem;
     }
-    .more-sum::-webkit-details-marker{ display:none }
-    .more-sum strong{ color:var(--accent2) }
-    .more-list{ color:var(--muted); font-weight:400; font-size:.85rem }
-    .more-base[open] .more-sum{ margin-bottom:1.6rem }
+    .tuner-sum::-webkit-details-marker{ display:none }
+    .tuner[open] .tuner-sum{ margin-bottom:.7rem }
+    .tuner .bar{ margin-top:.2rem }
+    /* slightly highlighted while it holds a selection — visible even collapsed */
+    .tuner:has(.node.on){ border-color:rgba(112,240,211,.35); background:rgba(112,240,211,.05) }
+    .tuner:has(.node.on) > .tuner-sum{ color:var(--accent2) }
 
     /* More raters */
     .raters-zone{ text-align:center; margin-top:1.8rem }
@@ -444,12 +446,9 @@
           </small>
         </p>
 
-        <!-- expanded: Similar–Different and Important–Trivial; the rest collapse -->
+        <!-- all 8 tuners in their original order; each collapsible in place.
+             Only Similar–Different and Important–Trivial open by default. -->
         <div class="bars" id="bars"></div>
-        <details class="more-base">
-          <summary class="more-sum"><span class="chev"></span> <span id="moreSumLabel"></span></summary>
-          <div class="bars" id="barsMore"></div>
-        </details>
 
         <!-- More raters: reveal 12 extra rating bars + a make-your-own bar -->
         <div class="raters-zone">
@@ -503,9 +502,8 @@
     const isES = ()=> document.getElementById('ui-lang-es').checked;
 
     /* ---- bars: a reusable builder so base + extra + custom all share code ---- */
-    const PRIMARY    = new Set([0, 3]);   // Similar–Different and Important–Trivial stay expanded
+    const PRIMARY    = new Set([0, 3]);   // Similar–Different and Important–Trivial open by default
     const barsEl     = document.getElementById('bars');
-    const barsMoreEl = document.getElementById('barsMore');
     const extraBarsEl= document.getElementById('extraBars');
     const raterBtnsEl= document.getElementById('raterBtns');
     const barEls = [];
@@ -540,20 +538,19 @@
       return bar;
     }
 
-    /* base polarities: 0 & 3 expanded, the other six collapsed below */
-    PAIRS.forEach((p,i)=> (PRIMARY.has(i) ? barsEl : barsMoreEl).appendChild(buildBar(p,i)));
+    /* wrap a bar in a collapsible tuner; open by default only for the primaries */
+    function buildTuner(p,i){
+      const d = el('details','tuner'); if(PRIMARY.has(i)) d.open = true;
+      const sum = el('summary','tuner-sum');
+      const chev = el('span','chev');
+      const name = el('span','tuner-name'); name.append(bi(p.en[0]+' – '+p.en[4], p.es[0]+' – '+p.es[4]));
+      sum.append(chev, name);
+      d.append(sum, buildBar(p,i));
+      return d;
+    }
 
-    /* one title resuming the collapsed base lenses */
-    (function(){
-      const more = PAIRS.filter((_,i)=>!PRIMARY.has(i));
-      const lab = document.getElementById('moreSumLabel');
-      const strong = el('strong');
-      strong.append(bi(more.length+' more polarities', more.length+' polaridades más'));
-      const list = el('span','more-list');
-      list.append(bi(more.map(p=>p.en[0]+'–'+p.en[4]).join(' · '),
-                     more.map(p=>p.es[0]+'–'+p.es[4]).join(' · ')));
-      lab.append(strong, document.createTextNode(' '), list);
-    })();
+    /* all 8 tuners in their original order — each collapsible in place */
+    PAIRS.forEach((p,i)=> barsEl.appendChild(buildTuner(p,i)));
 
     /* build a 5-step pair from two poles (generic hidden middles) */
     function makePair(aEn,bEn,aEs,bEs){

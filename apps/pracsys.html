@@ -94,7 +94,7 @@
   .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px; }
 
   /* ── systems deck (left-middle) ─────────────────────────────── */
-  .deck-col{ grid-column:2; align-self:center; }
+  .deck-col{ grid-column:2; align-self:center; position:relative; }
   .deck-toggle{
     display:flex; align-items:center; justify-content:center; gap:.45rem;
     width:100%; padding:14px 12px; cursor:pointer;
@@ -110,12 +110,28 @@
   body.deck-open .deck-toggle .caret{ transform:rotate(90deg); }
   .deck-count{ font-size:.7rem; color:var(--ink-dim); font-weight:600; }
 
-  .deck{
-    display:none; flex-direction:column; gap:7px; margin-top:10px;
+  /* collapsed by default — the single Systems card is the only thing shown */
+  body.deck-open .deck-toggle{ display:none; }
+
+  /* small handle to re-collapse, shown only while open, pinned above the fan */
+  .deck-caret{ display:none; }
+  body.deck-open .deck-caret{
+    display:inline-flex; align-items:center; gap:.3rem;
+    position:absolute; top:-30px; left:50%; transform:translateX(-50%);
+    padding:4px 12px; border-radius:var(--radius-pill);
+    background:#0f1320; border:1px solid var(--line); color:var(--ink-dim);
+    font:600 .72rem/1 var(--font-ui); cursor:pointer; white-space:nowrap; z-index:7;
   }
-  body.deck-open .deck{ display:flex; }
+  .deck-caret:hover{ border-color:var(--accent); color:var(--accent); }
+
+  /* the open fan: 5 up · 1 centre · 5 down */
+  .deck{ display:none; }
+  body.deck-open .deck{ display:flex; flex-direction:column; gap:7px; }
+  .deck-up, .deck-mid, .deck-down{ display:contents; }
   /* left deck cards: ~30% less tall than the base card */
   .deck .card{ padding-top:4px; padding-bottom:4px; }
+  /* the card that stays where the Systems card sat */
+  .deck .card.is-anchor{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent-deep) inset; }
 
   /* a system card — used in the deck and inside slots */
   .card{
@@ -164,6 +180,10 @@
     flex-direction:column; gap:.35rem; text-align:center; padding:6px;
   }
   .slot .card .lbl{ white-space:normal; line-height:1.1; font-size:.8rem; }
+
+  /* per-column card heights — left column taller, right column shorter (base 132) */
+  #rowSlots0 .slot{ height:211px; }   /* left column  · +60% */
+  #rowSlots2 .slot{ height:92px;  }   /* right column · −30% */
 
   /* subsystem badges stacked on a slot */
   .slot .subbadges{ position:absolute; top:-9px; left:50%; transform:translateX(-50%); display:flex; gap:4px; }
@@ -342,14 +362,19 @@
     <div id="immuneList"></div>
   </aside>
 
-  <!-- left-middle: systems deck -->
+  <!-- left-middle: systems deck (collapsed by default; fans 5·1·5 when opened) -->
   <div class="deck-col">
     <button class="deck-toggle" id="deckToggle" aria-expanded="false">
       <span class="caret">▸</span>
       <span>Systems</span>
       <span class="deck-count" id="deckCount">11</span>
     </button>
-    <div class="deck" id="deck" role="list" aria-label="Biological systems"></div>
+    <button class="deck-caret" id="deckCaret" aria-label="Collapse systems">▴ Systems</button>
+    <div class="deck" id="deck" role="list" aria-label="Biological systems">
+      <div class="deck-up"   id="deckUp"></div>
+      <div class="deck-mid"  id="deckMid"></div>
+      <div class="deck-down" id="deckDown"></div>
+    </div>
   </div>
 
   <!-- center: board -->
@@ -447,10 +472,17 @@
     return b;
   }
   function renderDeck(){
-    const deck = $('#deck');
-    deck.innerHTML = '';
+    const up = $('#deckUp'), mid = $('#deckMid'), down = $('#deckDown');
+    up.innerHTML = mid.innerHTML = down.innerHTML = '';
     const placedSet = new Set(Object.values(state.placed));
-    SYSTEMS.forEach(s => { if (!placedSet.has(s.id)) deck.appendChild(makeCard(s)); });
+    // alphabetical: 0–4 above · 5 (Integumentary) where the Systems card sits · 6–10 below
+    SYSTEMS.forEach((s, i) => {
+      if (placedSet.has(s.id)) return;
+      const card = makeCard(s);
+      if (i < 5){ up.appendChild(card); }
+      else if (i === 5){ card.classList.add('is-anchor'); mid.appendChild(card); }
+      else { down.appendChild(card); }
+    });
     $('#deckCount').textContent = SYSTEMS.length - placedSet.size;
   }
 
@@ -831,11 +863,13 @@
     }
   });
 
-  // ── deck toggle ─────────────────────────────────────────────
-  $('#deckToggle').addEventListener('click', () => {
-    const open = document.body.classList.toggle('deck-open');
+  // ── deck open / collapse ────────────────────────────────────
+  function setDeckOpen(open){
+    document.body.classList.toggle('deck-open', open);
     $('#deckToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
+  }
+  $('#deckToggle').addEventListener('click', () => setDeckOpen(true));
+  $('#deckCaret').addEventListener('click',  () => setDeckOpen(false));
 
   // ── subsystem reveal buttons ────────────────────────────────
   $('#revealNerve').addEventListener('click', () => {
@@ -885,9 +919,7 @@
   renderDeck();
   if (state.nerveOpen){ $('#nervousDock').classList.add('show'); $('#revealNerve').setAttribute('aria-pressed','true'); renderSubDock('nerve'); }
   if (state.immuneOpen){ $('#immuneDock').classList.add('show'); $('#revealImmune').setAttribute('aria-pressed','true'); renderSubDock('immune'); }
-  // open the deck on first load so the fan of systems is visible
-  document.body.classList.add('deck-open');
-  $('#deckToggle').setAttribute('aria-expanded','true');
+  // systems start collapsed — one "Systems" card; click fans the 5·1·5
   afterChange();
 </script>
 </body>

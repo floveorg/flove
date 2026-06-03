@@ -399,6 +399,14 @@
     .ta-wrap + .ta-wrap{ margin-top:.6rem }
     .ta-wrap textarea{ padding-bottom:2.3rem }
     .ta-tools{ position:absolute; right:.45rem; bottom:.45rem; display:flex; gap:.3rem; z-index:2 }
+    /* single-line (input) fields — tools centred on the right, padded clear */
+    .ta-wrap--inline .ta-tools{ top:50%; bottom:auto; transform:translateY(-50%) }
+    .ta-wrap--inline input[type=text]{ padding-right:4.6rem }
+    .ta-wrap--inline.ta-wrap--clone input[type=text]{ padding-right:6.4rem }
+    /* the remove (−) tool only appears on cloned (newly added) fields */
+    .ta-del{ display:none }
+    .ta-wrap--clone .ta-del{ display:inline-flex }
+    .ta-del:hover{ border-color:#ff7a7a; color:#ff9a9a }
     .ta-tool{
       display:inline-flex; align-items:center; justify-content:center;
       width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
@@ -1249,29 +1257,39 @@
       });
     }
     function wireWrap(wrap){
-      var ta   = wrap.querySelector('textarea');
+      var ta   = wrap.querySelector('textarea, input[type=text]');
       var mic  = wrap.querySelector('.ta-mic');
       var plus = wrap.querySelector('.ta-plus');
+      var del  = wrap.querySelector('.ta-del');
       if(mic && ta) wireMic(mic, ta);
       if(plus) plus.addEventListener('click', function(){
         var clone = wrap.cloneNode(true);
-        var cta = clone.querySelector('textarea');
+        clone.classList.add('ta-wrap--clone');          // clones are removable
+        var cta = clone.querySelector('textarea, input[type=text]');
         if(cta){ cta.value = ''; cta.removeAttribute('id'); }
         wrap.parentNode.insertBefore(clone, wrap.nextSibling);
         wireWrap(clone);
         if(cta) cta.focus();
         renderSummary(); updateMagic();
       });
+      /* remove — only acts on cloned fields (the − shows only on clones) */
+      if(del) del.addEventListener('click', function(){
+        wrap.remove();
+        renderSummary(); updateMagic();
+      });
     }
     function enhanceTextareas(){
-      document.querySelectorAll('.pack--3 textarea, .pack--4 textarea').forEach(function(ta){
+      /* every textarea in steps 3–4, plus the phrase/relate column inputs */
+      document.querySelectorAll('.pack--3 textarea, .pack--4 textarea, .xpl-static input[type=text]').forEach(function(ta){
         if(ta.closest('.ta-wrap')) return;
-        var wrap = document.createElement('div'); wrap.className = 'ta-wrap';
+        var inline = ta.tagName === 'INPUT';
+        var wrap = document.createElement('div'); wrap.className = 'ta-wrap' + (inline ? ' ta-wrap--inline' : '');
         ta.parentNode.insertBefore(wrap, ta); wrap.appendChild(ta);
         var tools = document.createElement('div'); tools.className = 'ta-tools';
         tools.innerHTML =
           '<button type="button" class="ta-tool ta-mic" title="Dictate" aria-label="Dictate">🎤</button>' +
-          '<button type="button" class="ta-tool ta-plus" title="Add another" aria-label="Add another field">＋</button>';
+          '<button type="button" class="ta-tool ta-plus" title="Add another" aria-label="Add another field">＋</button>' +
+          '<button type="button" class="ta-tool ta-del" title="Remove this field" aria-label="Remove this field">−</button>';
         wrap.appendChild(tools);
         wireWrap(wrap);
       });

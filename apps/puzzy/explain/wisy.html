@@ -323,7 +323,7 @@
 
     /* perspective sub-steps mirrored INTO node 2 of the main stepper */
     .substeps{
-      position:absolute; left:50%; top:calc(100% + .5rem);
+      position:absolute; left:calc(50% - 20px); top:calc(100% + .5rem);
       display:flex; align-items:flex-start; gap:10px; pointer-events:auto;
     }
     .substep{ display:flex; flex-direction:column; align-items:center; gap:.25rem; visibility:hidden; cursor:pointer }
@@ -603,6 +603,43 @@
     .xpl-row .xpl{ flex:1 1 auto; min-width:0 }
     .xpl-row .xpl-btn{ padding:.35rem .7rem; font-size:.78rem }
 
+    /* ── RELATE TO · collapsed into a transparent-icon link, toggled on click ── */
+    .relate-toggle{
+      display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;
+      background:transparent; border:0; padding:0; width:auto; margin:0 0 .3rem;
+    }
+    .relate-ico{ font-size:.95rem; color:var(--app-accent-soft); opacity:.85;
+      transition:transform var(--flove-fast), opacity var(--flove-fast); }
+    .relate-toggle:hover .relate-ico{ opacity:1; transform:translateY(-1px) }
+    .xpl-relate:has(#relate-open:checked) .relate-ico{ opacity:1 }
+    .relate-field{ display:none }
+    .xpl-relate:has(#relate-open:checked) .relate-field{ display:block; animation:fade .25s var(--flove-ease) both }
+
+    /* ── perspective views — sub-titles in a row, selections below in pairs.
+       Used on step 3 (above the title echo) AND in the summary. ───────── */
+    .persp-echo{ display:none; max-width:980px; margin:1rem auto 0; padding:0 1rem }
+    body:has(#step-3:checked) .persp-echo{ display:block; animation:fade .3s var(--flove-ease) both }
+    .persp-echo:empty{ display:none }
+    .persp-summary{ margin:0 0 1rem }
+    .persp-summary:empty{ display:none }
+    .persp-cards{ display:flex; flex-wrap:wrap; gap:.7rem; align-items:flex-start }
+    .persp-echo .persp-cards{ justify-content:center }
+    .persp-card{
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      padding:.5rem .6rem; background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    }
+    .persp-card-title{
+      font-size:.7rem; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+      color:var(--app-accent-soft); margin:0 0 .35rem; text-align:center;
+    }
+    /* selections below their title, two per row (pairs) */
+    .persp-card-picks{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.3rem }
+    .persp-pick{
+      font-size:.78rem; color:var(--ink); text-align:center; white-space:nowrap;
+      padding:.2rem .55rem; border:1px solid var(--line); border-radius:var(--flove-radius-pill);
+      background:rgba(141,137,255,.12);
+    }
+
     /* ── summary step ──────────────────────────────────────────── */
     .summary-lede{ margin:1rem 0 .6rem; color:var(--muted); font-size:.92rem }
     .summary-box{
@@ -810,6 +847,10 @@
     </div>
   </section>
 
+  <!-- perspective echo — on step 3, the perspectives picked in step 2,
+       shown ABOVE the title echo (filled live by the script) -->
+  <div class="persp-echo" id="persp-echo" aria-live="polite"></div>
+
   <!-- title echo — the entered title, centred on every later step -->
   <div class="title-echo" aria-live="polite"><b id="title-echo-text"></b></div>
 
@@ -946,9 +987,14 @@
             <span class="col-title">PHRASE</span>
             <textarea rows="2" data-k="PHRASE"></textarea>
           </div>
-          <div class="xpl-static">
-            <span class="col-title">RELATE TO</span>
-            <input type="text" data-k="RELATE TO">
+          <div class="xpl-static xpl-relate">
+            <input type="checkbox" id="relate-open" class="ctl">
+            <label class="col-title relate-toggle" for="relate-open" tabindex="0" title="Relate to — expand / collapse">
+              <span class="relate-ico" aria-hidden="true">🔗</span> RELATE TO
+            </label>
+            <div class="relate-field">
+              <input type="text" data-k="RELATE TO">
+            </div>
           </div>
         </div>
         <!-- column B — why/what/how in one row on top, then two rows of space,
@@ -1033,6 +1079,8 @@
     <!-- PACK 5 · SUMMARY — every input + a flovynormal summary section -->
     <section class="pack pack--5">
       <div class="summary-box">
+        <!-- perspectives — sub-titles in a row, selections below in pairs -->
+        <div class="persp-summary" id="persp-summary"></div>
         <div class="clause clause-default" id="summary-list">
           <p class="summary-empty"><span class="t-en">A summary of everything you added shows up here.</span><span class="t-es">Aquí aparece un resumen de todo lo que añadiste.</span></p>
         </div>
@@ -1337,7 +1385,37 @@
     /* ── live summary: list every input + a "magic" woven re-telling ── */
     var listEl  = document.getElementById('summary-list');
     var magicEl = document.getElementById('summary-magic');
+    var perspEchoEl = document.getElementById('persp-echo');
+    var perspSumEl  = document.getElementById('persp-summary');
+
+    /* perspectives picked in step 2 — one group per section that has picks */
+    function perspGroups(){
+      var groups = [];
+      document.querySelectorAll('.pack--2 fieldset.persp-sec').forEach(function(fs){
+        var picks = [].slice.call(fs.querySelectorAll('input:checked')).map(function(i){ return en(i.parentElement); });
+        if(picks.length) groups.push({k:en(fs.querySelector('legend')), vs:picks});
+      });
+      return groups;
+    }
+    /* sub-titles in a row · their selections listed below, two per row (pairs) */
+    function perspCardsHTML(groups){
+      if(!groups.length) return '';
+      return '<div class="persp-cards">' + groups.map(function(g){
+        return '<div class="persp-card"><div class="persp-card-title">' + esc(g.k) + '</div>' +
+               '<div class="persp-card-picks">' +
+               g.vs.map(function(v){ return '<span class="persp-pick">' + esc(v) + '</span>'; }).join('') +
+               '</div></div>';
+      }).join('') + '</div>';
+    }
+    /* fill the step-3 echo (above the title) AND the summary block */
+    function renderPerspViews(){
+      var html = perspCardsHTML(perspGroups());
+      if(perspEchoEl) perspEchoEl.innerHTML = html;
+      if(perspSumEl)  perspSumEl.innerHTML  = html;
+    }
+
     function renderSummary(){
+      renderPerspViews();
       if(!listEl) return;
       var items = collect();
       if(!items.length){
@@ -1346,9 +1424,11 @@
           '</p>';
         return;
       }
-      listEl.innerHTML = items.map(function(it){
-        var val = it.vs ? it.vs.join(', ') : it.v;
-        return '<div class="sum-row"><span class="sum-k">' + esc(it.k) + '</span><span class="sum-v">' + esc(val) + '</span></div>';
+      /* perspectives now render in their own block (row of titles · pairs below);
+         keep only the non-perspective inputs as key/value rows here */
+      var rows = items.filter(function(it){ return !it.vs; });
+      listEl.innerHTML = rows.map(function(it){
+        return '<div class="sum-row"><span class="sum-k">' + esc(it.k) + '</span><span class="sum-v">' + esc(it.v) + '</span></div>';
       }).join('');
     }
     function updateMagic(){

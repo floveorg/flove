@@ -292,6 +292,16 @@
     .cp-num{ min-width:2.4rem; text-align:center }
     .polbtn.is-on{ background:var(--accent2); color:var(--app-ink-on-accent); border-color:var(--accent2) }
     .polbtn[data-pol="neg"].is-on{ background:#5aa9ff; border-color:#5aa9ff }
+    .modebtn.is-on{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent) }
+    /* mode badge on created cards */
+    .mode-tag{
+      display:inline-block; vertical-align:middle; margin-left:.4rem;
+      font-size:.6rem; letter-spacing:.6px; text-transform:uppercase; font-weight:600;
+      color:var(--app-accent); border:1px solid var(--app-accent); border-radius:var(--flove-radius-pill); padding:.05rem .4rem;
+    }
+    /* picked nodes on a created bar (point/area/multi) */
+    .rater .bar span.pick{ outline:3px solid var(--accent2); outline-offset:-3px; filter:brightness(1.15) }
+    .rater.neg .bar span.pick{ outline-color:#dff0ff }
     .cp-num.is-on{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent); box-shadow:0 0 12px rgba(141,137,255,.35) }
 
     .cp-editors{ display:grid; gap:.7rem; margin:.6rem 0 }
@@ -443,6 +453,13 @@
     <div class="cp-row cp-polarity" role="group" aria-label="Polarity">
       <button type="button" class="polbtn is-on" data-pol="pos"><span class="t-en">Positive</span><span class="t-es">Positivo</span></button>
       <button type="button" class="polbtn" data-pol="neg"><span class="t-en">Negative</span><span class="t-es">Negativo</span></button>
+    </div>
+
+    <!-- selection mode applied to the created rater -->
+    <div class="cp-row cp-modes" role="group" aria-label="Selection mode">
+      <button type="button" class="polbtn modebtn is-on" data-mode="point"><span class="t-en">Point</span><span class="t-es">Punto</span></button>
+      <button type="button" class="polbtn modebtn" data-mode="area"><span class="t-en">Area</span><span class="t-es">Área</span></button>
+      <button type="button" class="polbtn modebtn" data-mode="multi"><span class="t-en">Multi</span><span class="t-es">Multi</span></button>
     </div>
 
     <!-- row 2: node counts (centered, multiselect) -->
@@ -1630,6 +1647,7 @@
     const list    = document.getElementById('cpList');
     const addBtn  = document.getElementById('cpAdd');
     let polarity  = 'pos';
+    let mode      = 'point';
 
     const GRAD = 'linear-gradient(90deg,#8d89ff,#9d8cff,#b08cff,#c9c6ff,#9fe3e0,#84ecda,#70f0d3)';
 
@@ -1659,13 +1677,43 @@
     toggle.addEventListener('click', ()=>{ panel.hidden = !panel.hidden; });
 
     // polarity — single choice
-    panel.querySelectorAll('.polbtn').forEach(b=>{
+    panel.querySelectorAll('.cp-polarity .polbtn').forEach(b=>{
       b.addEventListener('click', ()=>{
-        panel.querySelectorAll('.polbtn').forEach(x=>x.classList.remove('is-on'));
+        panel.querySelectorAll('.cp-polarity .polbtn').forEach(x=>x.classList.remove('is-on'));
         b.classList.add('is-on');
         polarity = b.dataset.pol;
       });
     });
+
+    // selection mode — single choice (Point / Area / Multi)
+    panel.querySelectorAll('.cp-modes .modebtn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        panel.querySelectorAll('.cp-modes .modebtn').forEach(x=>x.classList.remove('is-on'));
+        b.classList.add('is-on');
+        mode = b.dataset.mode;
+      });
+    });
+
+    // make a created bar interactive per its mode
+    function attachMode(bar, m){
+      const cells=[...bar.querySelectorAll('span')];
+      let areaStart=null;
+      cells.forEach((cell,idx)=>{
+        cell.style.cursor='pointer';
+        cell.addEventListener('click', (e)=>{
+          e.stopPropagation();               // don't toggle whole-card selection
+          if(m==='point'){
+            cells.forEach(c=>c.classList.remove('pick'));
+            cell.classList.add('pick');
+          } else if(m==='multi'){
+            cell.classList.toggle('pick');
+          } else { // area — first click sets start, second sets the inclusive range
+            if(areaStart===null){ cells.forEach(c=>c.classList.remove('pick')); areaStart=idx; cell.classList.add('pick'); }
+            else { const a=Math.min(areaStart,idx), z=Math.max(areaStart,idx); cells.forEach((c,i)=>c.classList.toggle('pick', i>=a&&i<=z)); areaStart=null; }
+          }
+        });
+      });
+    }
 
     // node counts — multiselect; each checked count gets its own editor
     panel.querySelectorAll('.cp-num').forEach(b=>{
@@ -1706,7 +1754,8 @@
         const vals = [...ed.querySelectorAll('.cp-inputs input')].map(i=>(i.value||'').trim());
 
         const card = document.createElement('div');
-        card.className = 'rater' + (polarity==='neg' ? ' neg' : '');
+        card.className = 'rater mode-' + mode + (polarity==='neg' ? ' neg' : '');
+        card.dataset.mode = mode;
 
         const del = document.createElement('button');
         del.type = 'button'; del.className = 'del'; del.textContent = '×';
@@ -1716,13 +1765,18 @@
 
         const h = document.createElement('h3');
         h.textContent = name.toUpperCase();
+        const tag = document.createElement('span');
+        tag.className = 'mode-tag'; tag.textContent = mode;
+        h.appendChild(document.createTextNode(' ')); h.appendChild(tag);
         card.appendChild(h);
 
         const labels = grid('labels', n);
         vals.forEach(v=>{ const li=document.createElement('li'); li.textContent=v; labels.appendChild(li); });
         card.appendChild(labels);
 
-        card.appendChild(buildBar(n));
+        const bar = buildBar(n);
+        attachMode(bar, mode);
+        card.appendChild(bar);
 
         const icons = grid('icons', n);
         vals.forEach(()=>{ const li=document.createElement('li'); li.textContent='●'; icons.appendChild(li); });

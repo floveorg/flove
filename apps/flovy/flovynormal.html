@@ -356,6 +356,10 @@ body:has(#bot-open:checked)  .tool-cell--bot  .tool-pop{ display: inline-flex; }
 .rate-panel{ display: none; flex-direction: column; gap: .25rem; }
 body:has(#rate-open:checked) .rate-panel{ display: flex; }
 .rate-set{ display: flex; flex-wrap: wrap; justify-content: center; gap: .15rem; max-width: 168px; }   /* ~5 per row */
+/* base row = the 5 senses (hear·touch·view·taste·smell): keep all five on
+   ONE row, packed to the left and a touch smaller so they never wrap */
+.rate-set.rate-base{ flex-wrap: nowrap; justify-content: flex-start; max-width: none; gap: .1rem; }
+.rate-base .rate-chip{ width: 24px; height: 24px; font-size: .95rem; }
 .rate-x1, .rate-x2{ display: none; }
 .rate-more.rate-more2-btn{ display: none; }   /* second ＋ hidden until the first list opens */
 /* first ＋ → reveals the 20-list and turns into × (collapse) */
@@ -644,9 +648,9 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
 <!-- mic listening toggle -->
 <input type="checkbox" id="mic-on" class="ctl">
 
-<!-- rater: 4 emoji, single-select -->
+<!-- rater: 5 senses (hear·touch·view·taste·smell) as the base meta-rater, multi-select -->
 <input type="checkbox" id="rate-open"  class="ctl"><!-- rater panel -->
-<input type="checkbox" id="rate-more1" class="ctl"><!-- +20 reactions -->
+<input type="checkbox" id="rate-more1" class="ctl"><!-- +reactions (the 4 original main raters come first) -->
 <input type="checkbox" id="rate-more2" class="ctl"><!-- +30 reactions -->
 
 <!-- insights: a single cycle — none → who → what → where → why → none -->
@@ -837,11 +841,13 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
           </span>
           <span class="tool-cell tool-cell--rate">
             <label class="tool-btn rate-trigger" for="rate-open" title="Rate" aria-label="Rate" tabindex="0"></label>
-            <!-- reactions open to the RIGHT of the heart (multi-select);
-                 ＋ reveals 20 more, then another ＋ reveals 30 more -->
-            <div class="rate-panel" role="group" aria-label="Reactions">
-              <div class="rate-set rate-base" data-rate-set></div>
-              <!-- centred ＋ below the base reactions; becomes × to collapse -->
+            <!-- the 5 senses (hear·touch·view·taste·smell) open to the RIGHT
+                 of the heart as the base meta-rater (multi-select); ＋ reveals
+                 the reactions (the 4 original main raters first), then another
+                 ＋ reveals 30 more -->
+            <div class="rate-panel" role="group" aria-label="Senses and reactions">
+              <div class="rate-set rate-base" data-rate-set aria-label="Senses"></div>
+              <!-- centred ＋ below the senses; becomes × to collapse -->
               <label class="rate-more rate-more1-btn" for="rate-more1" title="More reactions" aria-label="More reactions" tabindex="0"><span class="rm-plus">＋</span><span class="rm-close">×</span></label>
               <div class="rate-set rate-x1" data-rate-set aria-label="More reactions"></div>
               <!-- second ＋ appears below the expanded list; vanishes once used -->
@@ -1115,18 +1121,26 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
   }
 
   /* ---- rater — multi-select reaction palette to the right of the ♥ ----
-     base 4 · ＋ reveals 20 · ＋ reveals 30. Picks feed the summary. */
+     base = the 5 senses (hear·touch·view·taste·smell, the canonical flove
+     meta-rater) · ＋ reveals the reaction list (the 4 original main raters
+     come first) · ＋ reveals 30 more. Picks feed the summary. */
   var RAY  = {'ray-formal':'🎩','ray-informal':'👋','ray-hotter':'🔥'};
-  var REACT_BASE = ['😘','😆','🤔','🔥'];   /* kiss(♥) · fun · thoughts · fire — 4 in total, kiss first */
+  /* the 5 senses replace the old base reactions; titles label each chip */
+  var SENSE_LABELS = {'👂':'Hear','🖐️':'Touch','👁️':'View','👅':'Taste','👃':'Smell'};
+  var REACT_BASE = ['👂','🖐️','👁️','👅','👃'];   /* hear · touch · view · taste · smell */
+  /* the 4 former main raters (kiss·fun·thoughts·fire) now lead the +list */
+  var REACT_X1 = ['😘','😆','🤔','🔥','🥰','😎','🤗','😇','🥳','😈','🙂','😅','😌','🤩','😋','🤭','😏','🥲','😴','🤝'];
   var HEART = '😘';   /* the kiss-with-heart is the "heart" shown before the text */
-  var REACT_X1 = ['🥰','😘','😎','🤗','😇','🥳','😈','🙂','😅','😌','🤩','😋','🤭','😏','🥲','😴','🤝','👏','🙌','🙏'];
-  var REACT_X2 = ['💞','💖','💘','💗','💓','💕','💌','🌹','🌸','🌻','🍀','⭐','🌟','⚡','🌈','🔥','🌙','🌊','🍃','☕','🍷','🎈','🎉','🎁','🕊️','🔮','🎨','🎵','📖','🧭'];
+  var REACT_X2 = ['💞','💖','💘','💗','💓','💕','💌','🌹','🌸','🌻','🍀','⭐','🌟','⚡','🌈','🌙','🌊','🍃','☕','🍷','🎈','🎉','🎁','🕊️','🔮','🎨','🎵','📖','🧭'];
   var picked = new Set();
   function fillRateSet(sel, list){
     var box = document.querySelector(sel); if(!box) return;
     list.forEach(function(em){
       var b = document.createElement('button');
-      b.type = 'button'; b.className = 'rate-chip'; b.textContent = em; b.setAttribute('aria-label', em);
+      b.type = 'button'; b.className = 'rate-chip'; b.textContent = em;
+      var lbl = SENSE_LABELS[em] || em;             /* senses get a named label */
+      b.setAttribute('aria-label', lbl); b.title = lbl;
+      if(SENSE_LABELS[em]) b.setAttribute('data-sense', lbl.toLowerCase());
       b.addEventListener('click', function(){
         if(picked.has(em)){ picked.delete(em); b.classList.remove('picked'); }
         else { picked.add(em); b.classList.add('picked'); }
@@ -1148,7 +1162,8 @@ body:has(#newwiz-open:checked)   .modal-overlay--wiz{ display: flex; animation: 
       afterEl  = document.querySelector('.summary-after'),
       emptyEl  = document.querySelector('.summary-empty');
   function rayPick(){ for(var id in RAY){ var e = document.getElementById(id); if(e && e.checked) return RAY[id]; } return ''; }
-  /* phrase output: ❤️ heart · text · the other picked emojis (subemojis) */
+  /* phrase output: ❤️ heart · text · the other picks — senses + reactions —
+     trail at the end (subemojis) */
   function updateSummary(){
     var v = ta.value;
     var heart = picked.has(HEART) ? HEART : '';

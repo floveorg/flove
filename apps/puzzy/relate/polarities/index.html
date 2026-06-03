@@ -121,15 +121,16 @@
     }
     .tune-intro small{ display:block; color:var(--muted); font-weight:400; font-size:.82rem; margin-top:.35rem }
 
-    /* 1–5 rating bars — two columns */
-    .bars{ display:grid; gap:1.25rem 1.8rem; grid-template-columns:repeat(2,1fr) }
+    /* 1–5 rating bars — two columns, generously spaced down the page */
+    .bars{ display:grid; gap:2.4rem 2.4rem; grid-template-columns:repeat(2,1fr) }
     @media (max-width:720px){ .bars{ grid-template-columns:1fr } }
-    .bar{ display:grid; grid-template-columns:minmax(64px,auto) 1fr minmax(64px,auto); align-items:center; gap:10px }
-    @media (max-width:560px){
-      .bar{ grid-template-columns:1fr; gap:4px; text-align:center }
+    /* pole titles sit ABOVE the track, each centered over its extreme node */
+    .ends{ position:relative; height:1.25em; margin-bottom:.4rem }
+    .end{
+      position:absolute; transform:translateX(-50%); font-size:.86rem;
+      color:var(--muted); white-space:nowrap;
     }
-    .bar .end{ font-size:.86rem; color:var(--muted); white-space:nowrap }
-    .bar .end.l{ text-align:right } .bar .end.r{ text-align:left }
+    .end.l{ left:4% } .end.r{ left:96% }
     .bar:has(.node.on) .end{ color:var(--ink) }
 
     .track{ position:relative; height:36px; cursor:pointer }
@@ -166,9 +167,34 @@
       border:1px solid var(--line); border-radius:var(--flove-radius-sm);
       background:#0f1120; padding:.8rem .85rem;
     }
-    /* top row: only the alternative suggestion (title) + the tool buttons */
-    .opp-top{ display:flex; align-items:flex-start; gap:8px; margin-bottom:.5rem }
-    .opp-title{ flex:1; min-width:0; color:var(--ink); font-weight:600; margin:0; line-height:1.35 }
+    /* top row: only the suggested opposite — shown as a mini bar — + tools */
+    .opp-top{ display:flex; align-items:flex-end; gap:8px; margin-bottom:.5rem }
+
+    /* mini bar — a compact, non-interactive read of where the opposite sits */
+    .mini{ flex:1; min-width:0 }
+    .mini-ends{ position:relative; height:1em; margin-bottom:1px }
+    .mini-ends .e{ position:absolute; transform:translateX(-50%); font-size:.72rem; color:var(--muted); white-space:nowrap }
+    .mini-ends .e.l{ left:8% } .mini-ends .e.r{ left:92% }
+    .mini-track{ position:relative; height:18px }
+    .mini-track::before{
+      content:""; position:absolute; left:8%; right:8%; top:50%; height:2px;
+      transform:translateY(-50%); background:var(--line); border-radius:2px;
+    }
+    .mini-fill{
+      position:absolute; top:50%; height:3px; transform:translateY(-50%); display:none;
+      background:linear-gradient(90deg,var(--app-accent),var(--accent2)); border-radius:3px;
+    }
+    .mini-node{
+      position:absolute; top:50%; transform:translate(-50%,-50%);
+      width:10px; height:10px; border-radius:50%; z-index:1;
+      border:2px solid var(--line); background:var(--field);
+    }
+    .mini-node.on{
+      border-color:var(--app-accent);
+      background:linear-gradient(180deg,var(--app-accent-soft),var(--app-accent));
+      box-shadow:0 0 7px rgba(141,137,255,.65);
+    }
+
     .opp-tools{ display:inline-flex; gap:4px; flex-shrink:0 }
     .tool{
       width:30px; height:30px; display:grid; place-items:center; cursor:pointer; padding:0;
@@ -389,8 +415,10 @@
     const barsEl = document.getElementById('bars');
     PAIRS.forEach((p,i)=>{
       const bar = el('div','bar');
+      const ends = el('div','ends');
       const l = el('span','end l'); l.append(bi(p.en[0], p.es[0]));
       const r = el('span','end r'); r.append(bi(p.en[4], p.es[4]));
+      ends.append(l, r);
       const track = el('div','track');
       const fill = el('div','fill'); track.appendChild(fill);
       for(let n=1;n<=5;n++){
@@ -409,7 +437,7 @@
         n = Math.max(1, Math.min(5, n));
         pick(i, n);
       });
-      bar.append(l, track, r);
+      bar.append(ends, track);
       bar._fill = fill;
       barsEl.appendChild(bar);
     });
@@ -444,41 +472,73 @@
       }
     }
 
-    /* ---- the opposite of a rating ---- */
+    /* a contiguous run of nodes → [lo,hi] fill, else null (separate dots) */
+    function contiguousFill(nodes){
+      if(nodes.length<2) return null;
+      const s=[...nodes].sort((x,y)=>x-y);
+      for(let k=1;k<s.length;k++){ if(s[k]!==s[k-1]+1) return null; }
+      return [s[0], s[s.length-1]];
+    }
+
+    /* ---- the opposite of a rating — also returns the node(s) it lights ---- */
     function opposite(p,s){
+      let nodes, title, hint;
       if(s.b===null){                              // single point
         const n=s.a;
         if(n===3){                                 // middle → an extreme, or a partial lean (not the whole span)
-          return {
-            title:{ en:p.en[0]+' — or — '+p.en[4], es:p.es[0]+' — o — '+p.es[4] },
-            hint:{ en:'Commit to an extreme, or a partial lean (e.g. '+p.en[1]+' / '+p.en[3]+') — not the whole span.',
-                   es:'Decántate por un extremo, o una inclinación parcial (p. ej. '+p.es[1]+' / '+p.es[3]+') — no todo el rango.' }
-          };
+          nodes=[1,5];
+          title={ en:p.en[0]+' — or — '+p.en[4], es:p.es[0]+' — o — '+p.es[4] };
+          hint={ en:'Commit to an extreme, or a partial lean (e.g. '+p.en[1]+' / '+p.en[3]+') — not the whole span.',
+                 es:'Decántate por un extremo, o una inclinación parcial (p. ej. '+p.es[1]+' / '+p.es[3]+') — no todo el rango.' };
+        } else {
+          const opp = 6-n;                         // mirror point
+          const lo = n<3 ? n+1 : 1, hi = n<3 ? 5 : n-1;  // the remaining span on the far side
+          nodes=[opp];
+          title={ en:p.en[opp-1], es:p.es[opp-1] };
+          hint={ en:'the opposite point — or cover the remaining span: '+region(p,lo,hi,'en')+'.',
+                 es:'el punto opuesto — o cubre el rango restante: '+region(p,lo,hi,'es')+'.' };
         }
-        const opp = 6-n;                           // mirror point
-        const lo = n<3 ? n+1 : 1, hi = n<3 ? 5 : n-1;   // the remaining span on the far side
-        return {
-          title:{ en:p.en[opp-1], es:p.es[opp-1] },
-          hint:{ en:'the opposite point — or cover the remaining span: '+region(p,lo,hi,'en')+'.',
-                 es:'el punto opuesto — o cubre el rango restante: '+region(p,lo,hi,'es')+'.' }
-        };
+      } else {                                     // region [a,b] → remaining region, and/or mirror point
+        const a=s.a, b=s.b, mirror=Math.round(6-(a+b)/2);
+        const segs=[]; if(a>1) segs.push([1,a-1]); if(b<5) segs.push([b+1,5]);
+        if(segs.length===0){                       // whole span → opposite is to commit to one point
+          nodes=[1,5];
+          title={ en:'A single pole: '+p.en[0]+' or '+p.en[4], es:'Un solo polo: '+p.es[0]+' o '+p.es[4] };
+          hint={ en:'You covered the whole span — the opposite move is to commit to one clear point.',
+                 es:'Cubriste todo el rango — el movimiento opuesto es decantarse por un punto claro.' };
+        } else {
+          nodes=[]; segs.forEach(g=>{ for(let k=g[0];k<=g[1];k++) nodes.push(k); });
+          title={ en:segs.map(g=>region(p,g[0],g[1],'en')).join('  &  '),
+                  es:segs.map(g=>region(p,g[0],g[1],'es')).join('  &  ') };
+          hint={ en:'the remaining region — mirror point ≈ '+p.en[mirror-1]+'.',
+                 es:'la región restante — punto espejo ≈ '+p.es[mirror-1]+'.' };
+        }
       }
-      /* region [a,b] → the remaining region, and/or the mirror point */
-      const a=s.a, b=s.b, mirror=Math.round(6-(a+b)/2);
-      const segs=[]; if(a>1) segs.push([1,a-1]); if(b<5) segs.push([b+1,5]);
-      if(segs.length===0){                         // whole span → opposite is to commit to one point
-        return {
-          title:{ en:'A single pole: '+p.en[0]+' or '+p.en[4], es:'Un solo polo: '+p.es[0]+' o '+p.es[4] },
-          hint:{ en:'You covered the whole span — the opposite move is to commit to one clear point.',
-                 es:'Cubriste todo el rango — el movimiento opuesto es decantarse por un punto claro.' }
-        };
+      return { nodes, fill:contiguousFill(nodes), title, hint };
+    }
+
+    /* a compact, non-interactive bar showing where the suggested opposite sits */
+    const posMini = n => 8 + (n-1)*21;             // 8%..92% (room for the end labels)
+    function makeMini(p, res){
+      const wrap = el('div','mini');
+      const ends = el('div','mini-ends');
+      const l = el('span','e l'); l.append(bi(p.en[0], p.es[0]));
+      const r = el('span','e r'); r.append(bi(p.en[4], p.es[4]));
+      ends.append(l, r);
+      const track = el('div','mini-track');
+      const fill = el('div','mini-fill'); track.appendChild(fill);
+      for(let n=1;n<=5;n++){
+        const nd = el('span','mini-node'); nd.style.left = posMini(n)+'%';
+        if(res.nodes.includes(n)) nd.classList.add('on');
+        track.appendChild(nd);
       }
-      return {
-        title:{ en:segs.map(g=>region(p,g[0],g[1],'en')).join('  &  '),
-                es:segs.map(g=>region(p,g[0],g[1],'es')).join('  &  ') },
-        hint:{ en:'the remaining region — mirror point ≈ '+p.en[mirror-1]+'.',
-               es:'la región restante — punto espejo ≈ '+p.es[mirror-1]+'.' }
-      };
+      if(res.fill){
+        fill.style.display='block';
+        fill.style.left = posMini(res.fill[0])+'%';
+        fill.style.width = (posMini(res.fill[1])-posMini(res.fill[0]))+'%';
+      }
+      wrap.append(ends, track);
+      return wrap;
     }
 
     const isES = ()=> document.getElementById('ui-lang-es').checked;
@@ -545,22 +605,23 @@
 
         const card = el('div','opp');
 
-        /* top row — the alternative suggestion (title) + tools only */
+        /* top row — only the suggested opposite, drawn on a mini bar, + tools */
         const top   = el('div','opp-top');
-        const title = el('label','opp-title'); title.append(bi('Add — '+o.title.en, 'Añade — '+o.title.es));
+        const mini  = makeMini(p, o);
         const tools = el('div','opp-tools');
         const infoBtn  = el('button','tool info');  infoBtn.type='button';  infoBtn.textContent='ⓘ';  infoBtn.title='Info';
         const micBtn   = el('button','tool mic');   micBtn.type='button';   micBtn.textContent='🎤';   micBtn.title='Record & transcribe';
         const magicBtn = el('button','tool magic'); magicBtn.type='button'; magicBtn.textContent='✨'; magicBtn.title='Magic';
         tools.append(infoBtn, micBtn, magicBtn);
-        top.append(title, tools);
+        top.append(mini, tools);
 
         /* the rest of the texts — revealed by ⓘ */
         const info  = el('div','opp-info');
         const pair  = el('span','opp-pair');  pair.append(bi(p.en[0]+' ↔ '+p.en[4], p.es[0]+' ↔ '+p.es[4]));
+        const titleTxt = el('span','opp-chose'); titleTxt.append(bi('Add — '+o.title.en, 'Añade — '+o.title.es));
         const chose = el('span','opp-chose'); chose.append(bi('You rated: '+choseEn, 'Calificaste: '+choseEs));
         const hint  = el('p','opp-hint');     hint.append(bi(o.hint.en, o.hint.es));
-        info.append(pair, chose, hint);
+        info.append(pair, titleTxt, chose, hint);
 
         /* magic arms */
         const arms = el('div','opp-arms');

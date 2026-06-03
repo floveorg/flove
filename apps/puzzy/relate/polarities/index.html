@@ -121,9 +121,10 @@
     }
     .tune-intro small{ display:block; color:var(--muted); font-weight:400; font-size:.82rem; margin-top:.35rem }
 
-    /* 1–5 rating bars */
-    .bars{ display:grid; gap:1.15rem }
-    .bar{ display:grid; grid-template-columns:minmax(70px,auto) 1fr minmax(70px,auto); align-items:center; gap:12px }
+    /* 1–5 rating bars — two columns */
+    .bars{ display:grid; gap:1.25rem 1.8rem; grid-template-columns:repeat(2,1fr) }
+    @media (max-width:720px){ .bars{ grid-template-columns:1fr } }
+    .bar{ display:grid; grid-template-columns:minmax(64px,auto) 1fr minmax(64px,auto); align-items:center; gap:10px }
     @media (max-width:560px){
       .bar{ grid-template-columns:1fr; gap:4px; text-align:center }
     }
@@ -131,7 +132,7 @@
     .bar .end.l{ text-align:right } .bar .end.r{ text-align:left }
     .bar:has(.node.on) .end{ color:var(--ink) }
 
-    .track{ position:relative; height:36px }
+    .track{ position:relative; height:36px; cursor:pointer }
     .track::before{
       content:""; position:absolute; left:4%; right:4%; top:50%; height:3px;
       transform:translateY(-50%); background:var(--line); border-radius:3px;
@@ -157,24 +158,54 @@
 
     /* GO + generated opposite fields */
     .go-wrap{ text-align:center; margin-top:1.5rem }
+    /* generated opposite fields — two columns */
     .opp-out{ display:none; margin-top:1.3rem }
-    .opp-out.show{ display:grid; gap:1rem }
+    .opp-out.show{ display:grid; gap:1rem; grid-template-columns:repeat(2,1fr); align-items:start }
+    @media (max-width:720px){ .opp-out.show{ grid-template-columns:1fr } }
     .opp{
       border:1px solid var(--line); border-radius:var(--flove-radius-sm);
-      background:#0f1120; padding:.85rem .95rem;
+      background:#0f1120; padding:.8rem .85rem;
     }
-    .opp-head{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:baseline; margin-bottom:.55rem }
-    .opp-pair{ color:var(--accent2); font-weight:700; font-size:.9rem }
-    .opp-chose{ color:var(--muted); font-size:.8rem }
-    .opp-title{ display:block; color:var(--ink); font-weight:600; margin-bottom:.15rem }
-    .opp-hint{ color:var(--muted); font-size:.84rem; margin:.1rem 0 .6rem }
+    /* top row: only the alternative suggestion (title) + the tool buttons */
+    .opp-top{ display:flex; align-items:flex-start; gap:8px; margin-bottom:.5rem }
+    .opp-title{ flex:1; min-width:0; color:var(--ink); font-weight:600; margin:0; line-height:1.35 }
+    .opp-tools{ display:inline-flex; gap:4px; flex-shrink:0 }
+    .tool{
+      width:30px; height:30px; display:grid; place-items:center; cursor:pointer; padding:0;
+      border:1px solid var(--line); border-radius:var(--flove-radius-sm);
+      background:#13162a; color:var(--app-accent-soft); font-size:.95rem; line-height:1;
+      transition:border-color var(--flove-fast), color var(--flove-fast), box-shadow var(--flove-fast);
+    }
+    .tool:hover{ border-color:var(--app-accent) }
+    .tool.on{ border-color:var(--accent2); color:var(--accent2); box-shadow:0 0 8px rgba(112,240,211,.3) }
+    .tool.mic.rec{ border-color:#ff6b8b; color:#ff6b8b; box-shadow:0 0 12px rgba(255,107,139,.55); animation:micpulse 1s infinite }
+    @keyframes micpulse{ 50%{ box-shadow:0 0 4px rgba(255,107,139,.35) } }
+
+    /* the rest of the texts — hidden until ⓘ info is clicked */
+    .opp-info{ display:none; margin:0 0 .55rem; padding:.55rem .65rem; border:1px dashed var(--line); border-radius:var(--flove-radius-sm); background:#0d0f1c }
+    .opp-info.show{ display:block }
+    .opp-pair{ color:var(--accent2); font-weight:700; font-size:.85rem; display:block }
+    .opp-chose{ color:var(--muted); font-size:.8rem; display:block; margin-top:2px }
+    .opp-hint{ color:var(--muted); font-size:.84rem; margin:.4rem 0 0; line-height:1.45 }
+
+    /* magic wizard arms — open from the ✨ button */
+    .opp-arms{ display:none; gap:6px; margin:0 0 .55rem; flex-wrap:wrap }
+    .opp-arms.show{ display:flex }
+    .arm{
+      display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:.8rem;
+      padding:.3rem .6rem; border-radius:var(--flove-radius-pill);
+      border:1px solid var(--line); background:#13162a; color:var(--ink);
+    }
+    .arm:hover{ border-color:var(--app-accent) }
+    .arm .e{ font-size:1rem }
+
     .opp textarea{
-      width:100%; min-height:66px; padding:.6rem .65rem; color:var(--ink);
+      width:100%; min-height:72px; padding:.6rem .65rem; color:var(--ink);
       background:var(--field); border:1px solid var(--line); border-radius:var(--flove-radius-sm);
       outline:none; resize:vertical; caret-color:var(--app-accent); font:inherit; line-height:1.45;
     }
     .opp textarea:focus{ border-color:var(--app-accent); box-shadow:0 0 0 3px rgba(141,137,255,.18) }
-    .opp-empty{ text-align:center; color:var(--muted); padding:.4rem }
+    .opp-empty{ text-align:center; color:var(--muted); padding:.4rem; grid-column:1/-1 }
 
     /* the one help disclosure — all teaching text behind a single click */
     .learn{
@@ -368,9 +399,16 @@
         node.style.left = pos(n)+'%';
         node.dataset.n = n;
         node.setAttribute('aria-label', p.en[n-1]);
-        node.addEventListener('click', ()=>pick(i,n));
         track.appendChild(node);
       }
+      /* the whole line is clickable — map the click x to the nearest node */
+      track.addEventListener('click', ev=>{
+        const rect = track.getBoundingClientRect();
+        const pct = (ev.clientX - rect.left) / rect.width * 100;
+        let n = Math.round((pct - 4) / 23) + 1;
+        n = Math.max(1, Math.min(5, n));
+        pick(i, n);
+      });
       bar.append(l, track, r);
       bar._fill = fill;
       barsEl.appendChild(bar);
@@ -443,10 +481,39 @@
       };
     }
 
+    const isES = ()=> document.getElementById('ui-lang-es').checked;
+
+    /* ---- magic wizard, à la flovyadvanced: a per-field bot that pre-fills
+       the textarea with a stylistic variant, cycling phrasings on re-click ---- */
+    const BOTS = [
+      { key:'lovely', e:'😍', label:{en:'lovely', es:'cariñoso'} },
+      { key:'joy',    e:'😂', label:{en:'joy',    es:'alegre'} },
+      { key:'wisdom', e:'🔥', label:{en:'wisdom', es:'sabio'} },
+    ];
+    const MAGIC = {
+      lovely:{
+        en:[ o=>`Gently, the other side asks to be seen too — ${o}. Let me hold both with care.`,
+             o=>`With warmth, here's the complement: ${o}. It keeps the note kind and whole.` ],
+        es:[ o=>`Con ternura, el otro lado también pide verse — ${o}. Sostengamos ambos con cuidado.`,
+             o=>`Con cariño, aquí el complemento: ${o}. Mantiene la nota amable y completa.` ]
+      },
+      joy:{
+        en:[ o=>`Oh, and — ${o}! That's the missing spark that rounds this out. 🎈`,
+             o=>`Flip it for fun: ${o}. Now both sides get to play! 🎉` ],
+        es:[ o=>`¡Ah, y — ${o}! Esa es la chispa que faltaba para redondearlo. 🎈`,
+             o=>`Dale la vuelta con gracia: ${o}. ¡Ahora juegan los dos lados! 🎉` ]
+      },
+      wisdom:{
+        en:[ o=>`What was left unsaid asks for ${o} — the quiet counterweight.`,
+             o=>`Hold also its opposite: ${o}. Two sides, one fuller truth.` ],
+        es:[ o=>`Lo no dicho pide ${o} — el contrapeso silencioso.`,
+             o=>`Sostén también su opuesto: ${o}. Dos lados, una verdad más plena.` ]
+      }
+    };
+
     /* ---- Go: open a field per rating, titled with its opposite ---- */
     const out = document.getElementById('oppOut');
     document.getElementById('go').addEventListener('click', ()=>{
-      const lang = document.getElementById('ui-lang-es').checked ? 'es' : 'en';
       out.textContent='';
       let any=false;
       PAIRS.forEach((p,i)=>{
@@ -458,19 +525,71 @@
         const choseEs = s.b===null ? p.es[s.a-1] : region(p,s.a,s.b,'es');
 
         const card = el('div','opp');
-        const head = el('div','opp-head');
-        const pair = el('span','opp-pair'); pair.append(bi(p.en[0]+' ↔ '+p.en[4], p.es[0]+' ↔ '+p.es[4]));
-        const chose = el('span','opp-chose'); chose.append(bi('you rated: '+choseEn, 'calificaste: '+choseEs));
-        head.append(pair, chose);
 
+        /* top row — the alternative suggestion (title) + tools only */
+        const top   = el('div','opp-top');
         const title = el('label','opp-title'); title.append(bi('Add — '+o.title.en, 'Añade — '+o.title.es));
-        const hint = el('p','opp-hint'); hint.append(bi(o.hint.en, o.hint.es));
-        const ta = el('textarea');
-        ta.placeholder = (lang==='es' ? 'Escribe aquí el lado complementario… ('+o.title.es+')'
-                                      : 'Write the complementary side here… ('+o.title.en+')');
+        const tools = el('div','opp-tools');
+        const infoBtn  = el('button','tool info');  infoBtn.type='button';  infoBtn.textContent='ⓘ';  infoBtn.title='Info';
+        const micBtn   = el('button','tool mic');   micBtn.type='button';   micBtn.textContent='🎤';   micBtn.title='Record & transcribe';
+        const magicBtn = el('button','tool magic'); magicBtn.type='button'; magicBtn.textContent='✨'; magicBtn.title='Magic';
+        tools.append(infoBtn, micBtn, magicBtn);
+        top.append(title, tools);
 
-        card.append(head, title, hint, ta);
+        /* the rest of the texts — revealed by ⓘ */
+        const info  = el('div','opp-info');
+        const pair  = el('span','opp-pair');  pair.append(bi(p.en[0]+' ↔ '+p.en[4], p.es[0]+' ↔ '+p.es[4]));
+        const chose = el('span','opp-chose'); chose.append(bi('You rated: '+choseEn, 'Calificaste: '+choseEs));
+        const hint  = el('p','opp-hint');     hint.append(bi(o.hint.en, o.hint.es));
+        info.append(pair, chose, hint);
+
+        /* magic arms */
+        const arms = el('div','opp-arms');
+        const ta   = el('textarea');
+        ta.placeholder = isES() ? 'Escribe aquí el lado complementario…' : 'Write the complementary side here…';
+
+        const magicState = { key:null, idx:0 };
+        BOTS.forEach(bot=>{
+          const arm = el('button','arm'); arm.type='button';
+          const em = el('span','e'); em.textContent = bot.e;
+          arm.append(em, bi(bot.label.en, bot.label.es));
+          arm.addEventListener('click', ()=>{
+            if(magicState.key===bot.key){ magicState.idx++; } else { magicState.key=bot.key; magicState.idx=0; }
+            const lang = isES() ? 'es' : 'en';
+            const opp  = isES() ? o.title.es : o.title.en;
+            const variants = MAGIC[bot.key][lang];
+            ta.value = variants[magicState.idx % variants.length](opp);
+            ta.focus();
+          });
+          arms.appendChild(arm);
+        });
+
+        card.append(top, info, arms, ta);
         out.appendChild(card);
+
+        /* ── wiring ── */
+        infoBtn.addEventListener('click', ()=>{
+          const on = info.classList.toggle('show'); infoBtn.classList.toggle('on', on);
+        });
+        magicBtn.addEventListener('click', ()=>{
+          const on = arms.classList.toggle('show'); magicBtn.classList.toggle('on', on);
+        });
+
+        /* mic — record & transcribe straight into this field */
+        let rec=null, recording=false, base='';
+        micBtn.addEventListener('click', ()=>{
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if(!SR){ micBtn.title = isES() ? 'Dictado no disponible en este navegador' : 'Speech recognition not supported here'; micBtn.disabled=true; return; }
+          if(recording){ rec && rec.stop(); return; }
+          rec = new SR();
+          rec.lang = isES() ? 'es-ES' : 'en-US';
+          rec.interimResults = true; rec.continuous = true;
+          base = ta.value ? ta.value.replace(/\s*$/,'') + ' ' : '';
+          rec.onresult = ev=>{ let txt=''; for(let k=ev.resultIndex;k<ev.results.length;k++){ txt += ev.results[k][0].transcript; } ta.value = base + txt; };
+          rec.onend   = ()=>{ recording=false; micBtn.classList.remove('rec'); };
+          rec.onerror = ()=>{ recording=false; micBtn.classList.remove('rec'); };
+          rec.start(); recording=true; micBtn.classList.add('rec');
+        });
       });
       if(!any){
         const empty = el('p','opp-empty');

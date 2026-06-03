@@ -145,17 +145,22 @@
     }
 
     /* each tuner is collapsible in place; only 2 open by default */
-    .tuner{ border-radius:var(--flove-radius-sm); padding:.35rem .5rem; border:1px solid transparent }
+    .tuner{ border-radius:var(--flove-radius-sm); padding:.4rem .55rem; border:1px solid transparent }
+    /* poles at the two ends of the row; the whole row toggles the bar */
     .tuner-sum{
-      cursor:pointer; list-style:none; display:flex; align-items:center; gap:9px;
+      cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px;
       color:var(--ink); font-weight:600; font-size:.92rem;
     }
-    .tuner-sum::-webkit-details-marker{ display:none }
-    .tuner[open] .tuner-sum{ margin-bottom:.7rem }
-    .tuner .bar{ margin-top:.2rem }
+    .tuner-sum .pole{ cursor:pointer; padding:2px 6px; border-radius:6px }
+    .tuner-sum .pole.r{ text-align:right }
+    .tuner-sum .pole:hover{ color:var(--app-accent-soft) }
+    .tuner-sum .pole.on{ color:var(--app-ink-on-accent); background:var(--app-accent) }
+    /* the bar shows only when open — and no repeated pole words above the track */
+    .tuner > .bar{ display:none; margin-top:.6rem }
+    .tuner.open > .bar{ display:block }
+    .tuner .bar .ends{ display:none }
     /* slightly highlighted while it holds a selection — visible even collapsed */
     .tuner:has(.node.on){ border-color:rgba(112,240,211,.35); background:rgba(112,240,211,.05) }
-    .tuner:has(.node.on) > .tuner-sum{ color:var(--accent2) }
 
     /* More raters */
     .raters-zone{ text-align:center; margin-top:1.8rem }
@@ -309,12 +314,6 @@
     }
     .opp textarea:focus{ border-color:var(--app-accent); box-shadow:0 0 0 3px rgba(141,137,255,.18) }
     .opp-empty{ text-align:center; color:var(--muted); padding:.4rem; grid-column:1/-1 }
-
-    .chev{
-      width:9px; height:9px; border-right:2px solid var(--app-accent); border-bottom:2px solid var(--app-accent);
-      transform:rotate(-45deg); transition:transform var(--flove-fast); display:inline-block;
-    }
-    details[open] > summary .chev{ transform:rotate(45deg) }
 
     /* About modal — dark panel holding the moved intro/info texts */
     .flove-modal[hidden]{ display:none }
@@ -538,15 +537,21 @@
       return bar;
     }
 
-    /* wrap a bar in a collapsible tuner; open by default only for the primaries */
+    /* a collapsible tuner: the two poles sit at the row ends; the whole row
+       toggles the bar, and clicking a pole opens it AND checks that pole */
     function buildTuner(p,i){
-      const d = el('details','tuner'); if(PRIMARY.has(i)) d.open = true;
-      const sum = el('summary','tuner-sum');
-      const chev = el('span','chev');
-      const name = el('span','tuner-name'); name.append(bi(p.en[0]+' – '+p.en[4], p.es[0]+' – '+p.es[4]));
-      sum.append(chev, name);
-      d.append(sum, buildBar(p,i));
-      return d;
+      const wrap = el('div','tuner'); if(PRIMARY.has(i)) wrap.classList.add('open');
+      const head = el('div','tuner-sum');
+      const lp = el('span','pole l'); lp.append(bi(p.en[0], p.es[0]));
+      const rp = el('span','pole r'); rp.append(bi(p.en[4], p.es[4]));
+      head.append(lp, rp);
+      const bar = buildBar(p,i);
+      bar._poleL = lp; bar._poleR = rp;
+      wrap.append(head, bar);
+      head.addEventListener('click', ()=> wrap.classList.toggle('open'));
+      lp.addEventListener('click', e=>{ e.stopPropagation(); wrap.classList.add('open'); pick(i,1); });
+      rp.addEventListener('click', e=>{ e.stopPropagation(); wrap.classList.add('open'); pick(i,5); });
+      return wrap;
     }
 
     /* all 8 tuners in their original order — each collapsible in place */
@@ -676,6 +681,12 @@
         fill.style.width = (pos(s.b)-pos(s.a))+'%';
       } else {
         fill.style.display='none';
+      }
+      /* reflect the checked pole on the header (left = node 1, right = node 5) */
+      if(bar._poleL){
+        const onAt = n => s.a!==null && (s.b===null ? s.a===n : (n>=s.a && n<=s.b));
+        bar._poleL.classList.toggle('on', onAt(1));
+        bar._poleR.classList.toggle('on', onAt(5));
       }
     }
 

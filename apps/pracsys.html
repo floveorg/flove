@@ -126,7 +126,7 @@
 
   /* the open fan: 5 up · 1 centre · 5 down */
   .deck{ display:none; }
-  body.deck-open .deck{ display:flex; flex-direction:column; gap:7px; }
+  body.deck-open .deck{ display:flex; flex-direction:column; gap:10px; }
   .deck-up, .deck-mid, .deck-down{ display:contents; }
   /* left deck cards: ~30% less tall than the base card */
   .deck .card{ padding-top:4px; padding-bottom:4px; }
@@ -153,13 +153,13 @@
   /* three vertical columns of cards, side by side: 5 · 1(centre) · 5 */
   .board-grid{ display:flex; justify-content:center; align-items:stretch; gap:30px; }
   /* each row of cards now stacks vertically into a column */
-  .row-slots{ display:flex; flex-direction:column; gap:12px; }
+  .row-slots{ display:flex; flex-direction:column; gap:10px; }
   /* the lone middle slot centres vertically → in line with the 3rd card of the side columns */
   .row-slots.single{ justify-content:center; }
 
   .slot{
     position:relative;
-    width:96px; height:132px;            /* portrait — vertical placeholders */
+    width:96px; height:92px;             /* portrait — vertical placeholders */
     display:flex; align-items:center; justify-content:center;
     border:2px dashed var(--faint); border-radius:var(--radius-sm);
     background:rgba(255,255,255,.02);
@@ -181,9 +181,6 @@
   }
   .slot .card .lbl{ white-space:normal; line-height:1.1; font-size:.8rem; }
 
-  /* per-column card heights — left column taller, right column shorter (base 132) */
-  #rowSlots0 .slot{ height:211px; }   /* left column  · +60% */
-  #rowSlots2 .slot{ height:92px;  }   /* right column · −30% */
 
   /* subsystem badges stacked on a slot */
   .slot .subbadges{ position:absolute; top:-9px; left:50%; transform:translateX(-50%); display:flex; gap:4px; }
@@ -752,21 +749,7 @@
       nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
     })); }catch(_){}
   }
-  function load(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
-      const s = JSON.parse(raw); if (!s) return;
-      state.placed  = s.placed  || {};
-      state.reasons = (s.reasons && s.reasons.length === 3) ? s.reasons : [[],[],[]];
-      state.subs    = s.subs    || {};
-      state.nerveOpen  = !!s.nerveOpen;
-      state.immuneOpen = !!s.immuneOpen;
-      // rebuild slots
-      Object.entries(state.placed).forEach(([slotId, sysId]) => {
-        const el = slotEl(slotId); if (el) fillSlot(el, sysId);
-      });
-    }catch(_){}
-  }
+  // (no restore on load — each reload starts with a clean, unplaced board)
 
   // ── drag & drop ─────────────────────────────────────────────
   let dragSys = null, dragSub = null;
@@ -914,11 +897,10 @@
   window.addEventListener('scroll', scheduleDraw, { passive:true });
 
   // ── boot ────────────────────────────────────────────────────
+  // Reload always starts fresh — nothing placed, deck collapsed (mirrors souls.html).
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
   buildSlots();
-  load();
   renderDeck();
-  if (state.nerveOpen){ $('#nervousDock').classList.add('show'); $('#revealNerve').setAttribute('aria-pressed','true'); renderSubDock('nerve'); }
-  if (state.immuneOpen){ $('#immuneDock').classList.add('show'); $('#revealImmune').setAttribute('aria-pressed','true'); renderSubDock('immune'); }
   // systems start collapsed — one "Systems" card; click fans the 5·1·5
   afterChange();
 </script>

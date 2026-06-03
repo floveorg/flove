@@ -78,9 +78,17 @@
 
     /* main field tools — magic / mic / file at the top-right of the field */
     .field-wrap{ position:relative }
-    .field-wrap textarea{ padding-top:2.6rem }
+    .field-wrap textarea{ padding-top:2.6rem; padding-bottom:2.6rem }
     .field-tools{ position:absolute; top:8px; right:8px; display:flex; gap:5px; z-index:2 }
     .field-arms{ margin:.6rem 0 0 }
+    /* About moved here: a ? at the bottom-right of the field */
+    .field-help{
+      position:absolute; bottom:10px; right:10px; z-index:2;
+      width:26px; height:26px; border-radius:50%; cursor:pointer; padding:0;
+      display:grid; place-items:center; font-size:.9rem; font-weight:800;
+      border:1px solid var(--line); background:#13162a; color:var(--app-accent-soft);
+    }
+    .field-help:hover{ border-color:var(--app-accent); color:var(--accent2) }
 
     .run{ margin-top:.8rem; display:flex; gap:10px; flex-wrap:wrap; align-items:center }
     .btn{
@@ -127,15 +135,25 @@
     }
     .tune-intro small{ display:block; color:var(--muted); font-weight:400; font-size:.82rem; margin-top:.35rem }
 
-    /* 1–5 rating bars — two columns, generously spaced down the page */
-    /* two columns with a 30px void column down the middle */
-    .bars{ display:grid; gap:2.4rem 0; grid-template-columns:1fr 30px 1fr }
+    /* 1–5 rating bars — two columns + 30px void middle, 15px gutter left of col 1 */
+    .bars{ display:grid; gap:2.4rem 0; grid-template-columns:1fr 30px 1fr; padding-left:15px }
     .bars > *{ grid-column:1 }
     .bars > *:nth-child(2n){ grid-column:3 }
     @media (max-width:720px){
       .bars{ grid-template-columns:1fr }
       .bars > *, .bars > *:nth-child(2n){ grid-column:auto }
     }
+
+    /* collapsed base lenses behind one resuming title */
+    .more-base{ margin-top:2.4rem }
+    .more-sum{
+      cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:10px;
+      color:var(--ink); font-weight:600; padding:.2rem 0 .2rem 15px; flex-wrap:wrap;
+    }
+    .more-sum::-webkit-details-marker{ display:none }
+    .more-sum strong{ color:var(--accent2) }
+    .more-list{ color:var(--muted); font-weight:400; font-size:.85rem }
+    .more-base[open] .more-sum{ margin-bottom:1.6rem }
 
     /* More raters */
     .raters-zone{ text-align:center; margin-top:1.8rem }
@@ -212,7 +230,7 @@
     .go-wrap{ text-align:center; margin-top:1.5rem }
     /* generated opposite fields — two columns */
     .opp-out{ display:none; margin-top:1.3rem }
-    .opp-out.show{ display:grid; gap:1rem 0; grid-template-columns:1fr 30px 1fr; align-items:start }
+    .opp-out.show{ display:grid; gap:1rem 0; grid-template-columns:1fr 30px 1fr; align-items:start; padding-left:15px }
     .opp-out.show > *{ grid-column:1 }
     .opp-out.show > *:nth-child(2n){ grid-column:3 }
     .opp-out.show > .opp-empty{ grid-column:1 / -1 }
@@ -296,11 +314,6 @@
     }
     details[open] > summary .chev{ transform:rotate(45deg) }
 
-    /* menu button + dropdown (in the flove-bar) */
-    .menu-wrap{ position:relative; display:inline-flex; align-items:center }
-    .menu-wrap .flove-menu-btn{ width:32px; height:32px; font-size:15px; background:#0f1120; border-color:var(--line); color:var(--ink) }
-    .menu-wrap .flove-menu{ position:absolute; right:0; top:calc(100% + 6px) }
-
     /* About modal — dark panel holding the moved intro/info texts */
     .flove-modal[hidden]{ display:none }
     .about-panel{ background:var(--panel); color:var(--ink); border:1px solid var(--line); width:min(620px,100%) }
@@ -334,37 +347,13 @@
   </style>
 </head>
 <body>
-  <!-- language radios (drive the pure-CSS i18n) -->
-  <nav class="flove-bar flove-bar--dark">
-    <a class="flove-home" href="../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
-    <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
-    <span class="flove-app-name">Polarities</span>
-    <span class="flove-spacer"></span>
-    <span class="menu-wrap">
-      <button class="flove-menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">☰</button>
-      <div class="flove-menu" id="menu" hidden>
-        <div class="flove-menu__section">
-          <p class="flove-menu__title"><span class="t-en">Language</span><span class="t-es">Idioma</span></p>
-          <span class="lang">
-            <input type="radio" name="ui-lang" id="ui-lang-en" checked>
-            <input type="radio" name="ui-lang" id="ui-lang-es">
-            <label for="ui-lang-en">EN</label>
-            <label for="ui-lang-es">ES</label>
-          </span>
-        </div>
-        <div class="flove-menu__section">
-          <button class="flove-menu__item" id="aboutItem">ⓘ <span class="t-en">About</span><span class="t-es">Acerca de</span></button>
-        </div>
-        <div class="flove-menu__section">
-          <p class="flove-menu__title"><span class="t-en">Settings</span><span class="t-es">Ajustes</span></p>
-          <button class="flove-menu__item" id="clearSaved">🗑 <span class="t-en">Clear saved raters</span><span class="t-es">Borrar raters guardados</span></button>
-          <button class="flove-menu__item" id="resetRatings">↺ <span class="t-en">Reset ratings</span><span class="t-es">Reiniciar calificaciones</span></button>
-        </div>
-      </div>
-    </span>
-  </nav>
+  <!-- language radios (drive the pure-CSS i18n; EN default, no visible toggle) -->
+  <span class="lang-radios" hidden>
+    <input type="radio" name="ui-lang" id="ui-lang-en" checked>
+    <input type="radio" name="ui-lang" id="ui-lang-es">
+  </span>
 
-  <!-- About: holds all the intro/info texts moved out of the page body -->
+  <!-- About: holds all the intro/info texts; opened by the ? on the field -->
   <div class="flove-modal about-modal" id="aboutModal" hidden>
     <div class="flove-modal__backdrop" data-close></div>
     <div class="flove-modal__panel about-panel">
@@ -420,11 +409,6 @@
   </div>
 
   <div class="wrap">
-    <header class="top">
-      <h1>Polarities</h1>
-      <span class="ready"><span class="dot"></span><span class="t-en">Ready</span><span class="t-es">Listo</span></span>
-    </header>
-
     <!-- THE AGENT: prompt + actions, front and center -->
     <section class="agent">
       <div class="field-wrap">
@@ -435,6 +419,7 @@
           <button type="button" class="tool file"  id="mainFile"  title="Load a text file">📎</button>
         </div>
         <div class="opp-arms field-arms" id="mainArms"></div>
+        <button type="button" class="field-help" id="helpBtn" aria-label="About">?</button>
       </div>
       <div class="run">
         <a class="btn" href="#" aria-label="Mock action">
@@ -459,8 +444,12 @@
           </small>
         </p>
 
-        <!-- all polarities, in their original order -->
+        <!-- expanded: Similar–Different and Important–Trivial; the rest collapse -->
         <div class="bars" id="bars"></div>
+        <details class="more-base">
+          <summary class="more-sum"><span class="chev"></span> <span id="moreSumLabel"></span></summary>
+          <div class="bars" id="barsMore"></div>
+        </details>
 
         <!-- More raters: reveal 12 extra rating bars + a make-your-own bar -->
         <div class="raters-zone">
@@ -482,11 +471,6 @@
         <div class="opp-out" id="oppOut"></div>
       </div>
     </details>
-
-    <footer>
-      <span class="t-en">Made with balance — inspired by <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.</span>
-      <span class="t-es">Hecho con equilibrio — inspirado en <a href="https://en.wikipedia.org/wiki/Laozi" target="_blank" rel="noopener">Laozi</a>.</span>
-    </footer>
   </div>
 
   <script>
@@ -519,7 +503,9 @@
     const isES = ()=> document.getElementById('ui-lang-es').checked;
 
     /* ---- bars: a reusable builder so base + extra + custom all share code ---- */
+    const PRIMARY    = new Set([0, 3]);   // Similar–Different and Important–Trivial stay expanded
     const barsEl     = document.getElementById('bars');
+    const barsMoreEl = document.getElementById('barsMore');
     const extraBarsEl= document.getElementById('extraBars');
     const raterBtnsEl= document.getElementById('raterBtns');
     const barEls = [];
@@ -554,8 +540,20 @@
       return bar;
     }
 
-    /* the 8 base polarities, in their original order */
-    PAIRS.forEach((p,i)=> barsEl.appendChild(buildBar(p,i)));
+    /* base polarities: 0 & 3 expanded, the other six collapsed below */
+    PAIRS.forEach((p,i)=> (PRIMARY.has(i) ? barsEl : barsMoreEl).appendChild(buildBar(p,i)));
+
+    /* one title resuming the collapsed base lenses */
+    (function(){
+      const more = PAIRS.filter((_,i)=>!PRIMARY.has(i));
+      const lab = document.getElementById('moreSumLabel');
+      const strong = el('strong');
+      strong.append(bi(more.length+' more polarities', more.length+' polaridades más'));
+      const list = el('span','more-list');
+      list.append(bi(more.map(p=>p.en[0]+'–'+p.en[4]).join(' · '),
+                     more.map(p=>p.es[0]+'–'+p.es[4]).join(' · ')));
+      lab.append(strong, document.createTextNode(' '), list);
+    })();
 
     /* build a 5-step pair from two poles (generic hidden middles) */
     function makePair(aEn,bEn,aEs,bEs){
@@ -908,29 +906,11 @@
       out.classList.add('show');
     });
 
-    /* ---- menu + About modal (flove pattern: JS toggles [hidden]/aria) ---- */
-    const menuBtn   = document.getElementById('menuBtn');
-    const menu      = document.getElementById('menu');
-    const aboutItem = document.getElementById('aboutItem');
-    const aboutModal= document.getElementById('aboutModal');
-    const setMenu = open=>{ menu.hidden = !open; menuBtn.setAttribute('aria-expanded', open?'true':'false'); };
-    menuBtn.addEventListener('click', e=>{ e.stopPropagation(); setMenu(menu.hidden); });
-    document.addEventListener('click', e=>{ if(!menu.hidden && !menu.contains(e.target) && e.target!==menuBtn) setMenu(false); });
-    aboutItem.addEventListener('click', ()=>{ setMenu(false); aboutModal.hidden=false; });
+    /* ---- About modal — opened by the ? on the text field ---- */
+    const aboutModal = document.getElementById('aboutModal');
+    document.getElementById('helpBtn').addEventListener('click', ()=>{ aboutModal.hidden=false; });
     aboutModal.addEventListener('click', e=>{ if(e.target.hasAttribute('data-close')) aboutModal.hidden=true; });
-    document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ setMenu(false); aboutModal.hidden=true; } });
-
-    /* settings */
-    document.getElementById('clearSaved').addEventListener('click', ()=>{
-      [...raterBtnsEl.children].forEach(b=>{
-        if(b._rec){ if(b._idx!=null && barEls[b._idx]){ state[b._idx].removed=true; barEls[b._idx].remove(); } b.remove(); }
-      });
-      saved = []; persistSaved(); setMenu(false);
-    });
-    document.getElementById('resetRatings').addEventListener('click', ()=>{
-      state.forEach((s,i)=>{ if(!s.removed){ s.a=null; s.b=null; if(barEls[i]) render(i); } });
-      out.classList.remove('show'); out.textContent=''; setMenu(false);
-    });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') aboutModal.hidden=true; });
   })();
   </script>
 </body>

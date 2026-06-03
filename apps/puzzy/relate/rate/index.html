@@ -348,6 +348,59 @@
     .rater.pop h3{ color:var(--accent2) }
     .pop-tag{ float:right; font-size:.66rem; letter-spacing:.5px; color:var(--accent2); border:1px solid var(--accent2); border-radius:var(--flove-radius-pill); padding:.05rem .4rem }
 
+    /* ===== whole-card selection · reorder · views (JS-driven) ===== */
+    .rater{ cursor:pointer }
+    .rater.selected{ box-shadow:0 0 0 2px var(--app-accent), 0 14px 30px rgba(141,137,255,.28) }
+    .rater.selected::after{
+      content:""; position:absolute; inset:0; border-radius:inherit;
+      background:rgba(141,137,255,.12); pointer-events:none;
+    }
+    .rater.dragging{ opacity:.5; outline:2px dashed var(--accent2); outline-offset:-2px }
+
+    /* up/down arrows on the right */
+    .rater.has-reorder{ padding-right:2rem }
+    .reorder{
+      position:absolute; top:50%; right:.3rem; transform:translateY(-50%);
+      display:flex; flex-direction:column; gap:3px; z-index:3;
+    }
+    .reorder button{
+      cursor:pointer; width:1.5rem; height:1.3rem; line-height:1; padding:0;
+      border-radius:6px; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:.65rem;
+    }
+    .reorder button:hover{ border-color:var(--app-accent); color:var(--ink) }
+
+    /* "views" button — appears after the numbers when exactly two are selected, 30% bigger */
+    .views-ctrl{ align-items:center; gap:.4rem; margin-left:.4rem }
+    .viewsbtn{
+      cursor:pointer; font-weight:700; letter-spacing:.5px; border-radius:var(--flove-radius-pill);
+      background:var(--accent2); color:var(--app-ink-on-accent); border:1px solid var(--accent2);
+      font-size:1.3em; padding:.4rem 1rem;            /* ~30% larger than the number buttons */
+      box-shadow:0 0 14px rgba(112,240,211,.4);
+    }
+    .viewsbtn:hover{ box-shadow:0 0 20px rgba(112,240,211,.6) }
+    .views-menu{ display:inline-flex; gap:.3rem }
+    .views-menu[hidden]{ display:none }
+    .views-menu button{
+      cursor:pointer; padding:.4rem .7rem; border-radius:var(--flove-radius-pill);
+      background:#171a2e; border:1px solid var(--line); color:var(--ink); font:inherit;
+    }
+    .views-menu button:hover{ border-color:var(--accent2); color:var(--accent2) }
+
+    /* views stage (rendered comparative figure) */
+    .views-stage{
+      position:relative; margin:.4rem 0 1.1rem; padding:1rem .8rem;
+      border:1px solid var(--accent2); border-radius:var(--flove-radius);
+      background:linear-gradient(180deg,rgba(112,240,211,.06),rgba(255,255,255,.02)),#10121f;
+    }
+    .views-stage[hidden]{ display:none }
+    .views-stage h4{ margin:.1rem 0 .5rem; color:var(--accent2); letter-spacing:.4px; font-size:.95rem; text-transform:capitalize }
+    .views-stage svg{ width:100%; height:auto; display:block }
+    .vclose{
+      position:absolute; top:.5rem; right:.5rem; cursor:pointer; width:1.6rem; height:1.6rem;
+      border-radius:50%; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:.95rem;
+    }
+    .vclose:hover{ border-color:#ff6b6b; color:#ff6b6b }
+
     /* know more */
     .output{ max-width:980px; margin:0 auto 5rem; padding:0 1rem }
     .output summary{ cursor:pointer; color:var(--muted) }
@@ -1681,6 +1734,183 @@
       editors.innerHTML = '';
       panel.querySelectorAll('.cp-num.is-on').forEach(x=>x.classList.remove('is-on'));
     });
+  })();
+  </script>
+
+  <!-- selection · views (vertical/axial/spider) · drag & arrow reorder -->
+  <script>
+  (function(){
+    const VIOLET='#8d89ff', TEAL='#70f0d3', SOFT='#c9c6ff', LINE='#2a2e45';
+
+    /* ---------- helpers ---------- */
+    const esc = s => String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    const isEs = () => !!document.getElementById('ui-lang-es')?.checked;
+    function liText(li){
+      const en=li.querySelector('.t-en'), es=li.querySelector('.t-es');
+      if(en||es) return ((isEs()? es?.textContent : en?.textContent) || en?.textContent || es?.textContent || '').trim();
+      return li.textContent.trim();
+    }
+    function getData(card){
+      const name=(card.querySelector('h3')?.textContent||'rater').trim();
+      const ul=card.querySelector('.form-not5 .labels') || card.querySelector('.labels');
+      const labels=ul ? [...ul.querySelectorAll('li')].map(liText).filter(Boolean) : [];
+      return {name, labels:labels.length?labels:['—']};
+    }
+
+    /* ---------- SVG renderings (combine the two selected raters) ---------- */
+    const W=640, H=380;
+    function grad(id,vertical){
+      return `<linearGradient id="${id}" x1="0" y1="0" x2="${vertical?0:1}" y2="${vertical?1:0}">`+
+             `<stop offset="0%" stop-color="${VIOLET}"/><stop offset="50%" stop-color="${SOFT}"/>`+
+             `<stop offset="100%" stop-color="${TEAL}"/></linearGradient>`;
+    }
+    function renderVertical(a,b){
+      let s=`<svg viewBox="0 0 ${W} ${H}" role="img"><defs>${grad('vg',true)}</defs>`;
+      [{d:a,cx:150},{d:b,cx:430}].forEach(({d,cx})=>{
+        const n=d.labels.length, top=52, bh=H-100, bw=44, ch=bh/n;
+        s+=`<text x="${cx}" y="34" text-anchor="middle" fill="${TEAL}" font-size="14" font-weight="700">${esc(d.name)}</text>`;
+        s+=`<rect x="${cx-bw/2}" y="${top}" width="${bw}" height="${bh}" rx="10" fill="url(#vg)"/>`;
+        for(let i=0;i<n;i++){
+          const y=top+i*ch;
+          if(i>0) s+=`<line x1="${cx-bw/2}" y1="${y}" x2="${cx+bw/2}" y2="${y}" stroke="#0f1120" stroke-width="2"/>`;
+          s+=`<text x="${cx+bw/2+9}" y="${y+ch/2+4}" fill="${SOFT}" font-size="11">${esc(d.labels[i])}</text>`;
+        }
+      });
+      return s+`</svg>`;
+    }
+    function renderAxial(a,b){
+      const ox=96, oy=H-72, axLen=W-200, ayLen=H-150;
+      let s=`<svg viewBox="0 0 ${W} ${H}" role="img"><defs>${grad('hg',false)}${grad('vg',true)}</defs>`;
+      // faint grid
+      const na=a.labels.length, nb=b.labels.length;
+      for(let i=0;i<=na;i++){ const x=ox+i*axLen/na; s+=`<line x1="${x}" y1="${oy}" x2="${x}" y2="${oy-ayLen}" stroke="${LINE}" stroke-width="1" opacity=".4"/>`; }
+      for(let j=0;j<=nb;j++){ const y=oy-j*ayLen/nb; s+=`<line x1="${ox}" y1="${y}" x2="${ox+axLen}" y2="${y}" stroke="${LINE}" stroke-width="1" opacity=".4"/>`; }
+      // axes
+      s+=`<rect x="${ox}" y="${oy-5}" width="${axLen}" height="10" rx="5" fill="url(#hg)"/>`;
+      s+=`<rect x="${ox-5}" y="${oy-ayLen}" width="10" height="${ayLen}" rx="5" fill="url(#vg)"/>`;
+      // X = rater a
+      s+=`<text x="${ox+axLen}" y="${oy+40}" text-anchor="end" fill="${VIOLET}" font-size="13" font-weight="700">${esc(a.name)} →</text>`;
+      for(let i=0;i<na;i++){ const x=ox+(i+0.5)*axLen/na;
+        s+=`<line x1="${x}" y1="${oy-5}" x2="${x}" y2="${oy+5}" stroke="${SOFT}" stroke-width="1"/>`;
+        s+=`<text x="${x}" y="${oy+20}" text-anchor="end" fill="${SOFT}" font-size="10" transform="rotate(-32 ${x} ${oy+20})">${esc(a.labels[i])}</text>`; }
+      // Y = rater b
+      s+=`<text x="${ox-8}" y="${oy-ayLen-12}" fill="${TEAL}" font-size="13" font-weight="700">↑ ${esc(b.name)}</text>`;
+      for(let j=0;j<nb;j++){ const y=oy-(j+0.5)*ayLen/nb;
+        s+=`<line x1="${ox-5}" y1="${y}" x2="${ox+5}" y2="${y}" stroke="${SOFT}" stroke-width="1"/>`;
+        s+=`<text x="${ox-10}" y="${y+4}" text-anchor="end" fill="${SOFT}" font-size="10">${esc(b.labels[j])}</text>`; }
+      return s+`</svg>`;
+    }
+    function renderSpider(a,b){
+      const cx=W/2, cy=H/2+6, R=Math.min(W,H)/2-66;
+      const nodes=[...a.labels.map(l=>({l,c:VIOLET})), ...b.labels.map(l=>({l,c:TEAL}))];
+      const m=nodes.length;
+      let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+      [0.34,0.67,1].forEach(r=> s+=`<circle cx="${cx}" cy="${cy}" r="${R*r}" fill="none" stroke="${LINE}" stroke-width="1" opacity=".5"/>`);
+      const pts=[];
+      for(let k=0;k<m;k++){
+        const ang=-Math.PI/2 + k*2*Math.PI/m;
+        const tx=cx+Math.cos(ang)*R, ty=cy+Math.sin(ang)*R;
+        pts.push(`${tx},${ty}`);
+        s+=`<line x1="${cx}" y1="${cy}" x2="${tx}" y2="${ty}" stroke="${nodes[k].c}" stroke-width="1.5" opacity=".75"/>`;
+        const lx=cx+Math.cos(ang)*(R+14), ly=cy+Math.sin(ang)*(R+14);
+        const anchor=Math.abs(Math.cos(ang))<0.3?'middle':(Math.cos(ang)>0?'start':'end');
+        s+=`<text x="${lx}" y="${ly+3}" text-anchor="${anchor}" fill="${nodes[k].c}" font-size="10">${esc(nodes[k].l)}</text>`;
+      }
+      s+=`<polygon points="${pts.join(' ')}" fill="rgba(141,137,255,.12)" stroke="${SOFT}" stroke-width="1.5"/>`;
+      // legend
+      s+=`<rect x="14" y="14" width="11" height="11" rx="2" fill="${VIOLET}"/><text x="30" y="24" fill="${SOFT}" font-size="11">${esc(a.name)}</text>`;
+      s+=`<rect x="14" y="32" width="11" height="11" rx="2" fill="${TEAL}"/><text x="30" y="42" fill="${SOFT}" font-size="11">${esc(b.name)}</text>`;
+      return s+`</svg>`;
+    }
+    const RENDER={vertical:renderVertical, axial:renderAxial, spider:renderSpider};
+
+    /* ---------- views control (after the numbers) + stage ---------- */
+    const mainform=document.querySelector('.mainform');
+    let stage=null, viewsCtrl=null, menu=null;
+    if(mainform){
+      viewsCtrl=document.createElement('span');
+      viewsCtrl.className='views-ctrl'; viewsCtrl.style.display='none';
+      viewsCtrl.innerHTML='<button type="button" class="viewsbtn">views</button>'+
+        '<span class="views-menu" hidden>'+
+        '<button type="button" data-view="vertical">vertical</button>'+
+        '<button type="button" data-view="axial">axial</button>'+
+        '<button type="button" data-view="spider">spider</button></span>';
+      mainform.appendChild(viewsCtrl);
+      menu=viewsCtrl.querySelector('.views-menu');
+      stage=document.createElement('div');
+      stage.className='views-stage'; stage.id='viewsStage'; stage.hidden=true;
+      mainform.after(stage);
+
+      viewsCtrl.querySelector('.viewsbtn').addEventListener('click', ()=>{ menu.hidden=!menu.hidden; });
+      menu.querySelectorAll('button[data-view]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const sel=selected(); if(sel.length!==2) return;
+          const a=getData(sel[0]), b=getData(sel[1]), v=btn.dataset.view;
+          stage.innerHTML=`<button type="button" class="vclose" aria-label="Close">×</button>`+
+            `<h4>${v} view — ${esc(a.name)} × ${esc(b.name)}</h4>`+RENDER[v](a,b);
+          stage.hidden=false;
+          stage.querySelector('.vclose').addEventListener('click', ()=>{ stage.hidden=true; });
+          menu.hidden=true;
+          stage.scrollIntoView({behavior:'smooth', block:'nearest'});
+        });
+      });
+    }
+
+    /* ---------- selection (whole card) ---------- */
+    const selected = () => [...document.querySelectorAll('.rater.selected')];
+    function updateViews(){
+      if(!viewsCtrl) return;
+      const two = selected().length===2;
+      viewsCtrl.style.display = two ? 'inline-flex' : 'none';
+      if(!two && menu){ menu.hidden=true; }
+    }
+    document.addEventListener('click', (e)=>{
+      if(e.target.closest('label, input, button, a, .reorder, .form-pick, .senses-bar, .views-ctrl, .views-stage, .mainform')) return;
+      const card=e.target.closest('.rater'); if(!card) return;
+      card.classList.toggle('selected');
+      updateViews();
+    });
+
+    /* ---------- reorder: arrows + drag&drop (within the same list) ---------- */
+    function initRater(card){
+      if(card.dataset.rInit) return; card.dataset.rInit='1';
+      card.classList.add('has-reorder');
+      card.setAttribute('draggable','true');
+      const r=document.createElement('div'); r.className='reorder';
+      r.innerHTML='<button type="button" class="up" aria-label="Move up">▲</button>'+
+                  '<button type="button" class="down" aria-label="Move down">▼</button>';
+      card.appendChild(r);
+    }
+    document.addEventListener('click', (e)=>{
+      const up=e.target.closest('.reorder .up'), down=e.target.closest('.reorder .down');
+      if(!up && !down) return;
+      const card=e.target.closest('.rater'), p=card.parentNode;
+      if(up && card.previousElementSibling) p.insertBefore(card, card.previousElementSibling);
+      if(down && card.nextElementSibling) p.insertBefore(card.nextElementSibling, card);
+    });
+
+    let dragEl=null;
+    document.addEventListener('dragstart', (e)=>{ const c=e.target.closest('.rater'); if(!c) return; dragEl=c; c.classList.add('dragging'); if(e.dataTransfer) e.dataTransfer.effectAllowed='move'; });
+    document.addEventListener('dragend', ()=>{ if(dragEl){ dragEl.classList.remove('dragging'); dragEl=null; } });
+    document.addEventListener('dragover', (e)=>{
+      if(!dragEl) return;
+      const over=e.target.closest('.rater');
+      if(!over || over===dragEl || over.parentNode!==dragEl.parentNode) return;
+      e.preventDefault();
+      const rect=over.getBoundingClientRect();
+      const after=(e.clientY-rect.top)/rect.height > 0.5;
+      over.parentNode.insertBefore(dragEl, after ? over.nextElementSibling : over);
+    });
+
+    /* ---------- init existing + observe new (created cards) ---------- */
+    document.querySelectorAll('.rater').forEach(initRater);
+    new MutationObserver(muts=>{
+      muts.forEach(m=> m.addedNodes.forEach(nd=>{
+        if(nd.nodeType!==1) return;
+        if(nd.matches && nd.matches('.rater')) initRater(nd);
+        nd.querySelectorAll && nd.querySelectorAll('.rater').forEach(initRater);
+      }));
+    }).observe(document.body, {childList:true, subtree:true});
   })();
   </script>
 </body>

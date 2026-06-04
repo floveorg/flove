@@ -703,10 +703,11 @@
   .node.n3{right:8px;top:8px;text-align:right}
   .node.n3 .rank-badge{align-self:flex-end}
   .node.n3 .items{align-items:flex-end}
-  /* rank 4 & 5 anchor from the top of the lower half so added sub-elements
-     stack downward (the square grows to keep them inside) */
-  .node.n4{left:8px;top:56%}
-  .node.n5{right:8px;top:56%;text-align:right}
+  /* rank 4 & 5 anchor low (near the bottom) so the default empty square reads as
+     a full square; added sub-elements still stack downward (the square grows to
+     keep them inside) */
+  .node.n4{left:8px;top:70%}
+  .node.n5{right:8px;top:70%;text-align:right}
   .node.n5 .rank-badge{align-self:flex-end}
   .node.n5 .items{align-items:flex-end}
   .node.n2 .item,.node.n4 .item{width:fit-content;max-width:100%}
@@ -770,14 +771,15 @@
     opacity:1;outline:2px dashed var(--accent);outline-offset:2px;
   }
 
-  /* Title input row (shown only when editing a new custom category) */
+  /* Title input row (shown only when editing a new custom category) — fits the
+     left column's full width */
   .cat-title-row{
-    display:none;margin:0 auto 10px;max-width:520px;
+    display:none;margin:0 0 10px;width:100%;
     animation:fadein .2s ease;
   }
   .cat-title-row.active{display:flex;gap:8px;align-items:center;justify-content:center}
   .cat-title-row input{
-    flex:1;padding:.55rem .8rem;border-radius:999px;
+    flex:1;width:100%;min-width:0;padding:.55rem .8rem;border-radius:999px;
     background:var(--fx);border:1.5px dashed var(--accent);
     color:var(--ink);font:600 .95rem/1 system-ui,sans-serif;
     outline:none;
@@ -833,8 +835,10 @@
   .summary-sec > summary::-webkit-details-marker{display:none}
   .summary-sec > summary:hover{background:rgba(250,220,146,.06);color:var(--ink)}
 
-  /* go-back + Fields → share one centred row */
-  .decks-back-row{display:flex;justify-content:center;align-items:center;gap:.7rem;margin-top:8px;flex-wrap:wrap}
+  /* go-back + Fields → share one centred row (also Fields/Summary nav rows) */
+  .decks-back-row,.fields-nav-row,.summary-nav-row{
+    display:flex;justify-content:center;align-items:center;gap:.7rem;margin-top:8px;flex-wrap:wrap;
+  }
   .decks-back-row .stage-cta{margin-top:0}
 
   /* Analyze panel — sits above the decks once all four are settled */
@@ -873,14 +877,6 @@
   .sum-table td.dim{color:var(--muted)}
   .sum-table td.top{background:rgba(0,247,167,.1);font-weight:600}
   .sum-table-wrap{overflow-x:auto}
-
-  /* ---- Square snapshot in the summary (read-only mini view) ---- */
-  .summary-square{display:flex;justify-content:center;margin:.5rem 0 .2rem}
-  .summary-square .square{
-    width:clamp(220px,70vw,300px);max-width:100%;aspect-ratio:1/1;
-    pointer-events:none;
-  }
-  .summary-square .square .node .item{cursor:default}
 
   /* ---- analyses (shown directly) ---- */
   .analysis{
@@ -1174,10 +1170,11 @@
           <button class="cat cat-add" id="btn-add-cat" type="button" aria-label="Add a new fivy" title="Add a new fivy">+</button>
           <button class="cat cat-save" id="btn-save-cat" type="button" hidden>Save</button>
         </nav>
+        <!-- saved custom chips list (above the title input) -->
+        <div class="saved-customs" id="saved-customs"></div>
         <div class="cat-title-row" id="cat-title-row">
           <input id="cat-title-input" type="text" placeholder="Title of your fivy…" maxlength="32"/>
         </div>
-        <div class="saved-customs" id="saved-customs"></div>
       </aside>
 
       <div class="fields-main">
@@ -1215,28 +1212,35 @@
       </div><!-- /fields-main -->
     </div><!-- /fields-grid -->
 
+    <div class="fields-nav-row" id="fields-nav-row">
+      <button class="btn btn-ghost btn-back" id="btn-fields-back" type="button">← Decks</button>
+      <button class="btn btn-primary" id="btn-to-summary" type="button">Summary →</button>
+    </div>
+
   </section>
 
+  <!-- Decks view footer: Go back (to intro) + Fields → -->
+  <div class="decks-back-row" id="decks-back-row">
+    <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
+    <div class="stage-cta" id="stage-cta"></div>
+  </div>
+
+  <!-- Summary is its own (final) stage — shown only when navigated to -->
   <details class="summary-sec" id="summary-sec" open>
     <summary>✦ Summary</summary>
     <div class="summary-body" id="summary-body">
       <h3>Fivys</h3>
       <div class="sum-table-wrap" id="summary-fivys"></div>
-      <h3>Square</h3>
-      <div class="summary-square" id="summary-square"></div>
     </div>
   </details>
-
-  <!-- Go back + Fields → and Related apps now live below the summary -->
-  <div class="decks-back-row" id="decks-back-row">
-    <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
-    <div class="stage-cta" id="stage-cta"></div>
-  </div>
   <div id="related-wrap">
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button">Related apps</button>
     </div>
     <div class="related-apps" id="related-apps" hidden></div>
+    <div class="summary-nav-row" id="summary-nav-row">
+      <button class="btn btn-ghost btn-back" id="btn-summary-back" type="button">← Fields</button>
+    </div>
   </div>
 
 </div>
@@ -1323,8 +1327,8 @@
     });
   }
 
-  // The Summary is shown by default once play starts (see showBottom/hideBottom);
-  // its visibility is no longer gated on the four decks being settled.
+  // Summary visibility is handled by the view switcher (setView); this hook is
+  // kept as a no-op so the render() pipeline stays unchanged.
   function updateStep4(){}
 
   function renderBoard(){
@@ -1588,24 +1592,34 @@
     try { parent.postMessage({ type: 'fivy-next', decks }, '*'); } catch (e) {}
   }
 
-  // ============== Fields stage (simplex) ==============
-  function enterFields(){
-    if (!timer.tFields) timer.tFields = Date.now();   // split decks-time vs fields-time
-    $stage.style.display = 'none';
-    $fields.classList.add('active');
-    renderNested();   // the decks just settled in stage 1 become toggle buttons here
-    applyGrowth();    // toolbar is now visible → size the square to its height
-    setProgress(1);
-    setDeckSubProgress(1);   // fresh stage → sub-bar restarts at its first step
-    if ($decksBackRow) $decksBackRow.style.display = 'none';   // no Go back/Fields here
+  // ============== Stage views: decks · fields · summary ==============
+  // Exactly one view is shown at a time. The summary is its own final stage —
+  // it is NOT displayed alongside decks/fields anymore.
+  function setView(view){
+    $introSlider.classList.add('hidden');
+    $stage.style.display = (view === 'decks') ? '' : 'none';
+    $fields.classList.toggle('active', view === 'fields');
+    if ($decksBackRow)  $decksBackRow.style.display  = (view === 'decks')   ? '' : 'none';
+    if ($fieldsNavRow)  $fieldsNavRow.style.display  = (view === 'fields')  ? '' : 'none';
+    if ($summarySec){   $summarySec.style.display    = (view === 'summary') ? '' : 'none'; $summarySec.open = true; }
+    if ($relatedWrap)   $relatedWrap.style.display   = (view === 'summary') ? '' : 'none';
+    setProgress(view === 'decks' ? 0 : 1);
     window.scrollTo({ top:0, behavior:'smooth' });
   }
-  function leaveFields(){
-    $fields.classList.remove('active');
-    $stage.style.display = '';
-    if ($decksBackRow) $decksBackRow.style.display = '';   // restore the decks row
-    setProgress(0);
-    updateDeckProgress();    // back in decks → sub-bar reflects settled decks again
+  function showDecks(){
+    setView('decks');
+    updateDeckProgress();    // sub-bar reflects settled decks
+  }
+  function enterFields(){
+    if (!timer.tFields) timer.tFields = Date.now();   // split decks-time vs fields-time
+    renderNested();   // the settled decks become toggle buttons here
+    setView('fields');
+    applyGrowth();    // toolbar is now visible → size the square to its height
+    setDeckSubProgress(1);   // fresh stage → sub-bar restarts at its first step
+  }
+  function enterSummary(){
+    paintSummary();
+    setView('summary');
   }
   // Light the first N sub-segments (used when a new stage opens: N = 1).
   function setDeckSubProgress(cur){
@@ -1661,20 +1675,15 @@
   // ============== Intro slider (3 slides → Go play) ==============
   const $introSlider = document.getElementById('intro-slider');
   const $summarySec  = document.getElementById('summary-sec');
-  // Summary + Go back/Fields row + Related apps now sit below the page. They are
-  // hidden on the intro and revealed once play starts; the Go back/Fields row is
-  // hidden again while inside the Fields stage.
+  // Per-view footer rows / summary. setView() (above) shows exactly one set of
+  // these; hideAllViews() blanks them for the intro.
   const $decksBackRow = document.getElementById('decks-back-row');
+  const $fieldsNavRow = document.getElementById('fields-nav-row');
   const $relatedWrap  = document.getElementById('related-wrap');
-  function showBottom(){
-    if ($summarySec){ $summarySec.style.display = ''; $summarySec.open = true; }
-    if ($decksBackRow) $decksBackRow.style.display = '';
-    if ($relatedWrap)  $relatedWrap.style.display  = '';
-  }
-  function hideBottom(){
-    if ($summarySec)   $summarySec.style.display   = 'none';
-    if ($decksBackRow) $decksBackRow.style.display = 'none';
-    if ($relatedWrap)  $relatedWrap.style.display  = 'none';
+  function hideAllViews(){
+    $stage.style.display = 'none';
+    $fields.classList.remove('active');
+    [$decksBackRow, $fieldsNavRow, $relatedWrap, $summarySec].forEach(el => { if (el) el.style.display = 'none'; });
   }
   const INTRO_SLIDES = [
     { t:'Four decks, five cards', b:'Flip each face-down deck and order its five cards however you feel they should go.' },
@@ -1728,16 +1737,12 @@
     document.getElementById('intro-cta').classList.toggle('gated', introSlide < INTRO_SLIDES.length - 1);
   }
   function startApp(){
-    $introSlider.classList.add('hidden');
-    $stage.style.display = '';
     startTimer();
-    showBottom();         // Summary is displayed by default once play starts
-    window.scrollTo({ top:0, behavior:'smooth' });
+    showDecks();          // play opens on the decks view
   }
   function backToIntro(){
     $introSlider.classList.remove('hidden');
-    $stage.style.display = 'none';
-    hideBottom();
+    hideAllViews();
     gotoSlide(INTRO_SLIDES.length - 1);
     window.scrollTo({ top:0, behavior:'smooth' });
   }
@@ -1745,6 +1750,10 @@
   document.getElementById('intro-next').addEventListener('click', () => gotoSlide(introSlide + 1));
   document.getElementById('intro-start').addEventListener('click', startApp);
   document.getElementById('btn-go-back').addEventListener('click', backToIntro);
+  // Fields ↔ Summary navigation
+  document.getElementById('btn-fields-back').addEventListener('click', showDecks);
+  document.getElementById('btn-to-summary').addEventListener('click', enterSummary);
+  document.getElementById('btn-summary-back').addEventListener('click', enterFields);
 
   // ============== Brand menu ==============
   const $brandMenu = document.getElementById('brand-menu');
@@ -1767,13 +1776,9 @@
     setMenu(false);
     switch (btn.dataset.act){
       case 'restart': location.reload(); break;
-      case 'decks':   leaveFields(); startApp(); break;   // also dismisses the intro if open
-      case 'fields':  if (allDone()){ startApp(); enterFields(); } break;
-      case 'summary': {
-        const s = document.getElementById('summary-sec');
-        s.open = true; s.scrollIntoView({ behavior:'smooth', block:'start' });
-        break;
-      }
+      case 'decks':   startTimer(); showDecks(); break;            // also dismisses the intro
+      case 'fields':  if (allDone()){ startTimer(); enterFields(); } break;
+      case 'summary': startTimer(); enterSummary(); break;
     }
   });
 
@@ -1798,8 +1803,8 @@
   const deckColor = did => CAT_COLOR[DECK_PARENT[did]] || DECK_COLOR[did];
 
   const customCats = [];                          // [{id,label,items:[5],starred}]
-  const activeSets = ['cat-i'];                   // toggled sets shown in the square (Social by default)
-  let lastSet = 'cat-i';                          // last set toggled on — drives the List view
+  const activeSets = [];                          // toggled sets shown in the square (none by default)
+  let lastSet = null;                             // last set toggled on — drives the List view
   const reasons = {};                             // setId -> [reason per rank]  (square-item "Reason")
   const toggles = { list:false, cycle:false, confluence:false };
   let customSeq = 0;
@@ -1841,7 +1846,9 @@
     }
     if (id && id.startsWith('custom:')){
       const c = customCats.find(x => x.id === id);
-      return c && { kind:'custom', id, label:c.label, items:c.items, color:'var(--plum)', editable:true, saved:true };
+      // saved only once all five are filled → until then its items are editable
+      // inputs in the square (so a fresh custom fivy can actually be filled in)
+      return c && { kind:'custom', id, label:c.label, items:c.items, color:'var(--plum)', editable:true, saved:c.items.every(v => (v||'').trim()) };
     }
     if (id && id.startsWith('deck:')){
       const did = id.slice(5);
@@ -2019,9 +2026,9 @@
     const grow  = 1 + 0.05 * Math.max(0, n - 1);
     const aside = document.querySelector('.fields-grid .toolbar');
     const base  = (aside && aside.offsetHeight) ? aside.offsetHeight : 320;
-    // rank-4/5 anchor at 56% from the top, so their downward stack of n items
-    // (≈30px each) only fits when 0.56·H + n·30 + pad ≤ H  →  H ≥ (n·30+pad)/0.44
-    const contentH = Math.ceil((n * 30 + 28) / 0.44);
+    // rank-4/5 anchor at 70% from the top, so their downward stack of n items
+    // (≈30px each) only fits when 0.70·H + n·30 + pad ≤ H  →  H ≥ (n·30+pad)/0.30
+    const contentH = Math.ceil((n * 30 + 28) / 0.30);
     const size  = Math.max(Math.round(base * grow), contentH);
     $square.style.setProperty('--sq', size + 'px');
   }
@@ -2183,7 +2190,6 @@
     $square.classList.toggle('confluence', toggles.confluence);
     $ll.classList.toggle('confluence', toggles.confluence);
     $ll.classList.toggle('cycle', toggles.cycle);
-    renderSquarePicture();   // mirror the arrows into the summary snapshot
   }
   document.querySelectorAll('.tbtn').forEach(btn => {
     btn.addEventListener('click', () => applyToggle(btn.dataset.toggle));
@@ -2210,7 +2216,6 @@
 
   function paintSummary(){
     paintFivysTable();
-    renderSquarePicture();
   }
 
   // Fivys recap: a leading Time column (per-deck active time, live for the open
@@ -2232,31 +2237,6 @@
   function paintFivysTable(){
     const $sp = document.getElementById('summary-fivys');
     if ($sp) $sp.innerHTML = fivysTableHTML();
-  }
-
-  // A read-only snapshot of the square "from above": the same five rank nodes
-  // with their current items, plain — or with the cycle / confluence arrows if
-  // those toggles are on (it mirrors the live square's classes).
-  function renderSquarePicture(){
-    const host = document.getElementById('summary-square');
-    if (!host) return;
-    const clone = $square.cloneNode(true);
-    clone.removeAttribute('id');
-    clone.style.removeProperty('--sq');
-    clone.classList.toggle('cycle', $square.classList.contains('cycle'));
-    clone.classList.toggle('confluence', $square.classList.contains('confluence'));
-    // strip every interactive control → a flat picture
-    clone.querySelectorAll('.item-next,.item-star,.item-reason,.item-reason-view').forEach(el => el.remove());
-    clone.querySelectorAll('input.item-input').forEach(inp => {
-      const div = document.createElement('div');
-      div.className = 'item' + (inp.value.trim() ? '' : ' empty');
-      div.style.setProperty('--c', inp.style.getPropertyValue('--c'));
-      div.textContent = inp.value.trim() || '·';
-      inp.replaceWith(div);
-    });
-    clone.querySelectorAll('button,input').forEach(el => { el.disabled = true; el.tabIndex = -1; });
-    host.innerHTML = '';
-    host.appendChild(clone);
   }
 
   // ----- Analyses are shown directly (no Analyze button) → See more -----
@@ -2306,10 +2286,9 @@
   paintSummary();
   render();
 
-  // Start on the intro: hide the board + the whole bottom area until "Go play".
+  // Start on the intro: every view stays hidden until "Go play".
   renderIntro();
-  $stage.style.display = 'none';
-  hideBottom();
+  hideAllViews();
 
   // Re-paint Summary whenever the fivys board changes (Done / reopen).
   new MutationObserver(() => paintSummary())

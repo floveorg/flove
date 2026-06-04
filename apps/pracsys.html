@@ -166,10 +166,30 @@
     justify-content:center; align-items:center;
     column-gap:28px; row-gap:14px;
   }
-  /* middle cell of each row: stacks the (optional) centre slot above its reason */
+  /* middle cell of each row: holds this pair's reason, floating over the centre spine */
   .mid-cell{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:8px; width:100%; min-height:92px;
+    position:relative; z-index:2; pointer-events:none;   /* clicks fall through to the spine */
+  }
+  .mid-cell .reasons{ pointer-events:auto; }
+
+  /* the centre (6th) card is a distinct full-height spine down the middle, title vertical */
+  .slot.centre-spine{
+    width:84px; height:auto; min-height:100%; align-self:stretch; z-index:0;
+    justify-self:center;
+    border-style:solid; border-color:var(--accent-deep);
+    background:linear-gradient(180deg, rgba(77,208,225,.10), rgba(179,136,255,.08));
+  }
+  .slot.centre-spine.filled{
+    border-color:var(--accent);
+    background:linear-gradient(180deg, rgba(77,208,225,.16), rgba(179,136,255,.12));
+    box-shadow:0 0 0 1px var(--accent-deep) inset;
+  }
+  .slot.centre-spine .card{ justify-content:center; }
+  .slot.centre-spine .card .lbl{
+    writing-mode:vertical-rl; text-orientation:mixed;
+    white-space:nowrap; letter-spacing:.12em; font-size:1rem; font-weight:700;
   }
 
   .slot{
@@ -197,6 +217,9 @@
   }
   .slot .card:hover{ border-color:var(--accent); }
   .slot .card .lbl{ white-space:normal; line-height:1.1; font-size:.8rem; }
+  /* the system icon rides on the deck chips, not on the placed cards */
+  .card-ico{ font-size:1rem; line-height:1; }
+  .slot .card .card-ico{ display:none; }
 
 
   /* subsystem badges stacked on a slot */
@@ -288,16 +311,19 @@
   .sub-chips .sub-card{ padding:5px 9px; font-size:.74rem; white-space:nowrap; }
 
   /* ── verb editor: the field opens where the + is (lower edge of the card) ── */
+  /* the + and saved verbs only appear in stage 3 (after the verbs Next) */
   .verb-add{
-    position:absolute; bottom:-9px; left:50%; transform:translateX(-50%); z-index:4;
-    width:18px; height:18px; padding:0; border-radius:50%; display:grid; place-items:center;
+    display:none;
+    position:absolute; bottom:-15px; left:50%; transform:translateX(-50%); z-index:4;
+    width:30px; height:30px; padding:0; border-radius:50%; place-items:center;   /* 30% larger again */
     border:1px solid var(--accent-deep); background:var(--panel); color:var(--accent);
-    font:700 .85rem/1 var(--font-ui); cursor:pointer;
+    font:700 1.4rem/1 var(--font-ui); cursor:pointer;
   }
+  body.show-verbs .slot.filled .verb-add{ display:grid; }
+  body.show-verbs .slot.filled.verb-open .verb-add{ display:none; }
   .verb-add:hover{ border-color:var(--accent); filter:brightness(1.1); }
-  .slot.verb-open .verb-add{ display:none; }
   .verb-edit{ display:none; position:absolute; bottom:4px; left:5px; right:5px; z-index:5; }
-  .slot.verb-open .verb-edit{ display:block; }
+  body.show-verbs .slot.verb-open .verb-edit{ display:block; }
   .verb-edit input{
     width:100%; text-align:center; padding:4px 6px; border-radius:6px;
     background:#0d1018; border:1px solid var(--accent); color:var(--ink);
@@ -310,14 +336,16 @@
     border:1px solid var(--success); background:var(--panel); color:var(--success);
     font-size:.8rem; cursor:pointer;
   }
-  .slot.verb-open .verb-save{ display:grid; }
+  body.show-verbs .slot.verb-open .verb-save{ display:grid; }
   .verb-save:hover{ filter:brightness(1.15); }
 
   /* saved verbs, centred on the card; a +N opens the full list below */
   .verb-list{
+    display:none;
     position:absolute; left:4px; right:4px; top:56%; z-index:3;
-    display:flex; flex-wrap:wrap; gap:3px; justify-content:center; align-items:center;
+    flex-wrap:wrap; gap:3px; justify-content:center; align-items:center;
   }
+  body.show-verbs .slot .verb-list{ display:flex; }
   .verb-chip{
     font:600 .56rem/1.2 var(--font-ui); padding:1px 6px; border-radius:var(--radius-pill);
     background:rgba(77,208,225,.16); border:1px solid var(--accent-deep); color:var(--accent);
@@ -333,7 +361,7 @@
     background:var(--panel); border:1px solid var(--chip-border); box-shadow:0 8px 20px rgba(0,0,0,.45);
     flex-direction:column; gap:4px;
   }
-  .slot.verbs-expanded .verb-all{ display:flex; }
+  body.show-verbs .slot.verbs-expanded .verb-all{ display:flex; }
   .verb-all .verb-row{
     display:flex; align-items:center; gap:6px; justify-content:space-between;
     font:500 .68rem/1.2 var(--font-ui); color:var(--ink);
@@ -341,8 +369,12 @@
   .verb-all .verb-row .del{ border:0; background:transparent; color:var(--ink-dim); cursor:pointer; font-size:.85rem; }
   .verb-all .verb-row .del:hover{ color:var(--accent-2); }
 
-  /* the centre (6th) card shows its system emoji under the name */
-  .sys-emoji{ font-size:1.15rem; line-height:1; }
+  /* system emoji — revealed in stage 2, pinned to the right end of the card, vertically centred */
+  .slot .sys-emoji{
+    display:none; position:absolute; right:5px; top:50%; transform:translateY(-50%);
+    font-size:1.15rem; line-height:1; z-index:3; pointer-events:none;
+  }
+  body.show-emojis .slot.filled .sys-emoji{ display:block; }
 
   .sub-card{
     display:flex; align-items:center; gap:.45rem;
@@ -379,14 +411,35 @@
   .next-btn:hover{ transform:translateY(-1px); filter:brightness(1.06); }
   @keyframes nextpulse{ 0%,100%{ box-shadow:0 8px 22px rgba(77,208,225,.3) } 50%{ box-shadow:0 8px 30px rgba(77,208,225,.55) } }
 
-  /* ── reset ──────────────────────────────────────────────────── */
-  .resetbar{ grid-column:1 / -1; display:flex; justify-content:center; margin-top:6px; }
-  .reset-btn{
-    padding:7px 16px; border-radius:var(--radius-pill);
-    border:1px solid var(--line); background:transparent; color:var(--ink-dim);
-    cursor:pointer; font:600 .78rem/1 var(--font-ui);
+  /* stage-4 toggle: show/hide the verb + icons across all cards */
+  .verb-toggle{
+    display:none; align-items:center; gap:.45rem; margin:16px auto 0;
+    padding:8px 16px; cursor:pointer; border-radius:var(--radius-pill);
+    border:1px solid var(--accent-deep); background:#0f1320; color:var(--accent);
+    font:700 .82rem/1 var(--font-ui);
+    transition:border-color var(--fast), filter var(--fast);
   }
-  .reset-btn:hover{ border-color:var(--accent-2); color:var(--accent-2); }
+  .verb-toggle.show{ display:inline-flex; }
+  .verb-toggle:hover{ border-color:var(--accent); filter:brightness(1.08); }
+  .verb-toggle .tplus{
+    width:21px; height:21px; display:grid; place-items:center; border-radius:50%;
+    border:1px solid var(--accent-deep); font-size:1rem; line-height:1;
+  }
+
+  /* Back / Next nav for the middle stages */
+  .stage-nav{ display:none; gap:12px; justify-content:center; margin-top:16px; }
+  .stage-nav.show{ display:flex; }
+  .stage-btn{
+    padding:10px 22px; cursor:pointer; border-radius:var(--radius-pill);
+    font:700 .9rem/1 var(--font-ui); border:1px solid; background:transparent;
+    transition:transform var(--fast), filter var(--fast), background var(--fast);
+  }
+  .stage-btn:hover{ transform:translateY(-1px); }
+  .stage-btn.back{ border-color:var(--line); color:var(--ink-dim); }
+  .stage-btn.back:hover{ border-color:var(--ink); color:var(--ink); }
+  .stage-btn.next{ border-color:var(--accent); color:#001018; background:var(--accent); }
+  .stage-btn.next:hover{ filter:brightness(1.07); }
+  .stage-btn.next[hidden]{ display:none; }
 
   /* ── toast ──────────────────────────────────────────────────── */
   .toast{
@@ -447,11 +500,10 @@
   <h1>Practise the systems</h1>
   <p class="subtitle">The eleven biological systems from <b>souls</b>, laid out as a living body you arrange by hand.</p>
   <ol>
-    <li>Tap the <b>Systems</b> card on the left to fan the eleven systems open (five up, five down, alphabetical).</li>
-    <li><b>Click</b> a system to drop it into the next free placeholder — or <b>drag</b> it where you want. Click a placed one to send it back.</li>
-    <li>When a row's <b>left and right</b> systems are both placed (and when the centre one is), a <b>smiley</b> appears in the middle. Click it to open the <b>reason</b> field; it collapses again once you save.</li>
-    <li>Once all eleven are placed, press <b>Next stage</b> — this locks the placements (no more sending cards back) and makes the <b>Immune</b> and <b>Nervous</b> systems glow. Click one to fan its <b>subsystems</b> out as chips beside it (toward the centre), then click a subsystem and a system to thread a labelled line. Threaded subsystems leave the fan; remove one via its badge on the slot.</li>
-    <li>Each placed system has a <b>+</b> on its lower edge — click it to add a <b>verb</b> to that system. Watch the <b>progress bar</b> in the top bar fill as you complete each stage.</li>
+    <li><b>Stage 1 · Place.</b> Tap the <b>Systems</b> card to fan the eleven open, then click or drag each into a placeholder. Click a placed one to send it back. When all are down, press <b>Next stage</b> — this locks the placements and removes Clear board.</li>
+    <li><b>Stage 2 · Reasons.</b> Each card reveals its <b>emoji</b> (to its right). Where a row's left+right (or the centre) are placed, a <b>smiley</b> appears in the middle — click it to write a <b>reason</b>; it collapses on save. Once you've written one, <b>Next</b> appears beside <b>Back</b>.</li>
+    <li><b>Stage 3 · Verbs.</b> A <b>+</b> shows on each card's lower edge — click it to add a <b>verb</b>; saved verbs sit centred (a <b>+N</b> opens the full list). Once you've added one, <b>Next</b> reveals the subsystems.</li>
+    <li><b>Stage 4 · Subsystems.</b> The <b>Immune</b> and <b>Nervous</b> systems glow; click one to fan its subsystems out as chips beside it, then click a subsystem and a system to thread a labelled line. Threaded ones leave the fan; remove via the slot badge. The <b>progress bar</b> tracks every stage.</li>
   </ol>
 </aside>
 
@@ -478,11 +530,18 @@
 
     <!-- stage-1 → stage-2 gate: appears once all are placed -->
     <button class="next-btn" id="nextBtn">Next stage&nbsp;→</button>
-  </section>
 
-  <div class="resetbar">
-    <button class="reset-btn" id="resetBtn">Clear board</button>
-  </div>
+    <!-- stage-4 toggle for the verb + icons on the cards -->
+    <button class="verb-toggle" id="verbToggle" aria-pressed="false">
+      <span class="tplus">+</span><span>Verbs</span>
+    </button>
+
+    <!-- Back / Next nav for the middle stages (reasons, verbs) -->
+    <div class="stage-nav" id="stageNav">
+      <button class="stage-btn back" id="backBtn">←&nbsp;Back</button>
+      <button class="stage-btn next" id="nextBtn2" hidden>Next&nbsp;→</button>
+    </div>
+  </section>
 </main>
 
 <svg class="links" id="links" aria-hidden="true"></svg>
@@ -545,9 +604,14 @@
     reasons: freshReasons(),      // reason key -> array of saved strings
     subs:    {},                  // subId  -> { kind, slotId }
     verbs:   {},                  // slotId -> array of saved verbs
-    frozen:  false,               // stage 2: placements locked, parents highlighted
+    stage:   1,                   // 1 place · 2 emojis+reasons · 3 verbs · 4 subsystems
+    verbsShown:false,             // stage-4 toggle for the verb + icons
     nerveOpen:false, immuneOpen:false
   };
+  // stage 2+ locks placements; helpers for the "Next" gates
+  const frozen = () => state.stage >= 2;
+  const hasAnyReason = () => REASON_KEYS.some(k => state.reasons[k] && state.reasons[k].length);
+  const hasAnyVerb   = () => Object.values(state.verbs).some(a => a && a.length);
   let armedSub = null;            // currently click-armed subsystem id
   const openReasons = new Set();  // which reason fields are expanded (ephemeral UI)
 
@@ -559,7 +623,8 @@
     b.draggable = true;
     b.dataset.sys = sys.id;
     b.setAttribute('role', 'listitem');
-    b.innerHTML = `<span class="lbl">${sys.label}</span>`;
+    // icon shows on the deck chips; hidden on placed cards (see CSS)
+    b.innerHTML = `<span class="card-ico">${sys.icon}</span><span class="lbl">${sys.label}</span>`;
     return b;
   }
   function renderDeck(){
@@ -590,14 +655,16 @@
     const grid = $('#boardGrid');
     grid.innerHTML = '';
     for (let r = 0; r < N_ROWS; r++){
-      // left slot
-      grid.appendChild(makeSlot(leftSlotId(r), r));
-      // middle cell: the centre system slot (row 2 only), its own reason, then this pair's reason
+      // left slot (column 1)
+      const L = makeSlot(leftSlotId(r), r);
+      L.style.gridColumn = '1'; L.style.gridRow = (r + 1);
+      grid.appendChild(L);
+      // middle cell (column 2): this pair's reason — and the centre's own reason at the centre row
       const mid = document.createElement('div');
       mid.className = 'mid-cell';
       mid.dataset.midrow = r;
+      mid.style.gridColumn = '2'; mid.style.gridRow = (r + 1);
       if (r === CENTRE_ROW){
-        mid.appendChild(makeSlot(CENTRE_SLOT, r));
         const cReasons = document.createElement('div');
         cReasons.className = 'reasons';
         cReasons.dataset.reasons = 'c';
@@ -608,9 +675,16 @@
       reasons.dataset.reasons = r;
       mid.appendChild(reasons);
       grid.appendChild(mid);
-      // right slot
-      grid.appendChild(makeSlot(rightSlotId(r), r));
+      // right slot (column 3)
+      const R = makeSlot(rightSlotId(r), r);
+      R.style.gridColumn = '3'; R.style.gridRow = (r + 1);
+      grid.appendChild(R);
     }
+    // the centre (6th) slot spans the full column height — appended last so it fills last
+    const centre = makeSlot(CENTRE_SLOT, CENTRE_ROW);
+    centre.classList.add('centre-spine');
+    centre.style.gridColumn = '2'; centre.style.gridRow = '1 / -1';
+    grid.appendChild(centre);
   }
   const slotEl  = id => $(`.slot[data-slot="${id}"]`);
   const allSlots = () => $$('.slot');
@@ -619,14 +693,12 @@
   function fillSlot(slot, sysId){
     const card = makeCard(SYS[sysId]);
     card.classList.remove('draggable');
-    // the centre (6th) card shows its emoji under the system name
-    if (slot.dataset.slot === CENTRE_SLOT){
-      const em = document.createElement('span');
-      em.className = 'sys-emoji'; em.textContent = SYS[sysId].icon;
-      card.appendChild(em);
-    }
     slot.appendChild(card);
     slot.classList.add('filled');
+    // emoji badge pinned to the right end of every placed card (revealed in stage 2)
+    const em = document.createElement('span');
+    em.className = 'sys-emoji'; em.textContent = SYS[sysId].icon;
+    slot.appendChild(em);
     buildVerbUI(slot);
     ensureBadgeHost(slot);
   }
@@ -686,7 +758,7 @@
       const v = inp.value.trim();
       if (v){
         (state.verbs[slot.dataset.slot] ||= []).push(v);
-        renderVerbChips(slot); save();
+        renderVerbChips(slot); afterChange();   // reveal the Next gate + refresh progress
       }
       inp.value = '';
     }
@@ -736,6 +808,7 @@
     return !!state.placed[leftSlotId(row)] && !!state.placed[rightSlotId(row)];
   }
   function reasonVisible(key){
+    if (state.stage < 2) return false;          // reasons open only from stage 2
     return key === 'c' ? !!state.placed[CENTRE_SLOT] : rowFull(+key);
   }
   function renderReasons(key){
@@ -770,7 +843,7 @@
       line.querySelector('.txt').textContent = txt;
       line.querySelector('.del').addEventListener('click', () => {
         list.splice(i, 1);
-        save(); renderReasons(key);
+        afterChange();   // refresh smiley/gates/progress
       });
       host.appendChild(line);
     });
@@ -788,7 +861,7 @@
       if (!v){ toast('Write a reason first'); input.focus(); return; }
       list.push(v);
       openReasons.delete(key);   // collapse back to the smiley after saving
-      save(); renderReasons(key);
+      afterChange();             // reveal the Next gate + refresh progress
     };
     comp.querySelector('.save').addEventListener('click', saveReason);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') saveReason(); });
@@ -931,28 +1004,47 @@
   }
   function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
-  // ── flow: stage 1 = place freely · "Next" freezes & opens the subsystem stage ──
+  // ── flow: 1 place · 2 emojis+reasons · 3 verbs · 4 subsystems ──
   function allPlaced(){ return Object.keys(state.placed).length === SYSTEMS.length; }
   function afterChange(){
     renderBadges();
     renderAllReasons();
-    // parents glow only in stage 2 (after Next is pressed)
+    // per-stage reveals: emojis from stage 2; verbs always in stage 3,
+    // but in stage 4 only when the toggle is on (collapsed by default)
+    document.body.classList.toggle('show-emojis', state.stage >= 2);
+    const verbsVisible = state.stage === 3 || (state.stage >= 4 && state.verbsShown);
+    document.body.classList.toggle('show-verbs', verbsVisible);
+    // parents glow only in stage 4
     allSlots().forEach(s => s.classList.remove('is-parent','parent-immune','parent-nerve','parent-open'));
-    if (state.frozen){
+    if (state.stage >= 4){
       const im = slotOfSystem('immune');  if (im) im.classList.add('is-parent','parent-immune');
       const ne = slotOfSystem('nervous'); if (ne) ne.classList.add('is-parent','parent-nerve');
-      // re-anchor any open chip fans (the parent slot may have moved)
-      renderSubChips('immune'); renderSubChips('nerve');
+      renderSubChips('immune'); renderSubChips('nerve');   // re-anchor open fans
     } else {
-      closeDocks();   // still in stage 1 → no subtabs
+      closeDocks();   // before the subsystem stage → no subtabs
     }
-    // "Next stage" shows once everything is placed, until it is pressed
-    $('#nextBtn').classList.toggle('show', allPlaced() && !state.frozen);
-    // Clear board disappears once placements are frozen
-    $('#resetBtn').style.display = state.frozen ? 'none' : '';
+    // stage-1 big button: appears once all placed
+    $('#nextBtn').classList.toggle('show', state.stage === 1 && allPlaced());
+    // stage nav (Back always from stage 2; Next appears once that stage's gate is met)
+    const nav = $('#stageNav');
+    nav.classList.toggle('show', state.stage >= 2);
+    const next2 = $('#nextBtn2');
+    if (state.stage === 2)      next2.hidden = !hasAnyReason();
+    else if (state.stage === 3) next2.hidden = !hasAnyVerb();
+    else                        next2.hidden = true;   // stage 4: no further Next
+    // stage-4 verb toggle
+    const vt = $('#verbToggle');
+    vt.classList.toggle('show', state.stage === 4);
+    vt.setAttribute('aria-pressed', state.verbsShown ? 'true' : 'false');
     renderProgress();
     drawLinks();
     save();
+  }
+  function goStage(n){
+    state.stage = Math.max(1, Math.min(4, n));
+    if (state.stage === 4) state.verbsShown = false;   // verbs collapsed by default in stage 4
+    if (state.stage < 4) closeDocks();
+    afterChange();
   }
   function closeDocks(){
     state.nerveOpen = state.immuneOpen = false;
@@ -969,16 +1061,19 @@
     save(); drawLinks();
   }
 
-  // ── progress bar: Systems → (all placed) Subsystems → (all threaded) Complete ──
+  // ── progress: Systems → Reasons → Verbs → Subsystems → Complete ──
   function renderProgress(){
     const host = $('#progress'); if (!host) return;
     host.innerHTML = '';
     const placedCount = Object.keys(state.placed).length;
     const subCount    = Object.keys(state.subs).length;
+    const st = state.stage;
 
     const steps = [{ lab:'Systems', cur:placedCount, max:SYSTEMS.length, cls:'' }];
-    if (state.frozen) steps.push({ lab:'Subsystems', cur:subCount, max:TOTAL_SUBS, cls:'sub' });
-    if (state.frozen && subCount === TOTAL_SUBS) steps.push({ lab:'Complete', cur:1, max:1, cls:'' });
+    if (st >= 2) steps.push({ lab:'Reasons', cur:(st > 2 || hasAnyReason()) ? 1 : 0, max:1, cls:'sub' });
+    if (st >= 3) steps.push({ lab:'Verbs',   cur:(st > 3 || hasAnyVerb())   ? 1 : 0, max:1, cls:'sub' });
+    if (st >= 4) steps.push({ lab:'Subsystems', cur:subCount, max:TOTAL_SUBS, cls:'sub' });
+    if (st >= 4 && subCount === TOTAL_SUBS) steps.push({ lab:'Complete', cur:1, max:1, cls:'' });
 
     steps.forEach((st, i) => {
       if (i > 0){
@@ -1000,7 +1095,7 @@
   function save(){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({
       placed:state.placed, reasons:state.reasons, subs:state.subs, verbs:state.verbs,
-      frozen:state.frozen, nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
+      stage:state.stage, nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
     })); }catch(_){}
   }
   // (no restore on load — each reload starts with a clean, unplaced board)
@@ -1015,7 +1110,7 @@
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', dragSys);
     } else if (sysCard && sysCard.closest('.slot')){
-      if (state.frozen){ e.preventDefault(); return; }   // placements locked
+      if (frozen()){ e.preventDefault(); return; }   // placements locked
       dragSys = sysCard.dataset.sys; dragSys = '@'+sysCard.closest('.slot').dataset.slot; // move-from-slot
       sysCard.classList.add('is-dragging');
       e.dataTransfer.effectAllowed = 'move';
@@ -1091,7 +1186,7 @@
     if (vDel){
       const slot = vDel.closest('.slot');
       (state.verbs[slot.dataset.slot] || []).splice(+vDel.dataset.i, 1);
-      renderVerbChips(slot); save();
+      renderVerbChips(slot); afterChange();
       return;
     }
     // clicks inside the verb input / list shouldn't bubble into place/unplace
@@ -1123,8 +1218,8 @@
       placeSystem(card.dataset.sys, empty);
     } else if (card.closest('.slot')){
       const cslot = card.closest('.slot');
-      if (state.frozen){
-        // placements are locked; only the glowing parents stay interactive
+      if (frozen()){
+        // placements are locked; only the glowing parents stay interactive (stage 4)
         if (cslot.classList.contains('is-parent')){
           const sys = state.placed[cslot.dataset.slot];
           toggleSubGroup(sys === 'immune' ? 'immune' : 'nerve');
@@ -1153,21 +1248,24 @@
   $('#deckToggle').addEventListener('click', () => setDeckOpen(true));
   $('#deckCaret').addEventListener('click',  () => setDeckOpen(false));
 
-  // ── next stage: freeze placements, drop Clear board, light up the parents ──
+  // ── stage navigation ────────────────────────────────────────
+  // stage 1 → 2: lock placements, drop Clear board, reveal the emojis
   $('#nextBtn').addEventListener('click', () => {
-    if (!allPlaced() || state.frozen) return;
-    state.frozen = true;
-    afterChange();
-    toast('Placements locked — click Immune or Nervous to thread subsystems');
+    if (state.stage !== 1 || !allPlaced()) return;
+    goStage(2);
+    toast('Placements locked — write reasons in the middle');
   });
-
-  // ── reset ───────────────────────────────────────────────────
-  $('#resetBtn').addEventListener('click', () => {
-    state.placed = {}; state.reasons = freshReasons(); state.subs = {}; state.verbs = {};
-    state.frozen = false; armedSub = null; openReasons.clear();
-    try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
-    buildSlots(); renderDeck(); closeDocks(); afterChange();
-    toast('Board cleared');
+  // middle-stage Next: 2 → 3 (reveal + verbs) · 3 → 4 (reveal subsystems)
+  $('#nextBtn2').addEventListener('click', () => {
+    if (state.stage === 2 && hasAnyReason()){ goStage(3); toast('Add verbs with the + on each card'); }
+    else if (state.stage === 3 && hasAnyVerb()){ goStage(4); toast('Click Immune or Nervous to thread subsystems'); }
+  });
+  // Back one stage
+  $('#backBtn').addEventListener('click', () => goStage(state.stage - 1));
+  // stage-4: toggle the verb + icons across all cards
+  $('#verbToggle').addEventListener('click', () => {
+    state.verbsShown = !state.verbsShown;
+    afterChange();
   });
 
   // ── toast ───────────────────────────────────────────────────

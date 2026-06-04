@@ -197,6 +197,31 @@
     .intro-arrows{gap:18px}
   }
 
+  /* customize panel on the last intro slide (souls-style toggle) */
+  .customize-wrap{margin-top:1rem;display:flex;flex-direction:column;align-items:center;gap:.6rem;width:100%}
+  .customize-btn{
+    appearance:none;border:0;cursor:pointer;color:#1a1a28;
+    background:linear-gradient(135deg,var(--sky),var(--plum));
+    border-radius:999px;padding:.55rem 1.1rem;
+    font:700 .9rem/1 system-ui,sans-serif;
+    animation:pulse 2.6s ease-in-out infinite;
+  }
+  .customize-btn:hover{filter:brightness(1.06)}
+  .customize-btn[aria-expanded="true"]{background:linear-gradient(135deg,var(--brand),var(--accent));animation:none}
+  .customize-panel{
+    width:100%;max-width:48ch;margin:0 auto;text-align:left;
+    border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.03);
+    padding:.8rem;display:flex;flex-direction:column;gap:.6rem;
+    animation:fadein .2s ease;
+  }
+  .customize-panel[hidden]{display:none}
+  .cust-radio{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer;font-size:.86rem;color:var(--ink);line-height:1.4}
+  .cust-radio input{margin-top:.25rem;flex:none}
+  .cust-radio b{color:var(--gold)}
+  .cust-radio em{color:var(--muted);font-style:italic}
+  .cust-download[hidden]{display:none}
+  .cust-download-btn{display:inline-block;text-decoration:none}
+
   /* ============== Layout ============== */
   .wrap{max-width:1100px;margin:auto;padding:28px 18px 80px;display:grid;gap:22px}
   @media (max-width:520px){.wrap{padding:18px 12px 60px;gap:16px}}
@@ -407,6 +432,12 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
     text-shadow:0 4px 12px rgba(0,0,0,.4);
     transform:rotate(-1deg);
+  }
+  /* the fivy pentagon logo on face-down decks (the pencil ✎ stays on the new one) */
+  .deck-closed .mark.logo{background:none;-webkit-text-fill-color:initial;text-shadow:none}
+  .deck-closed .mark .fivy-logo{
+    width:48px;height:48px;display:block;
+    filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));
   }
   .deck-closed .hint{
     position:absolute;left:0;right:0;bottom:-22px;text-align:center;
@@ -1247,7 +1278,7 @@
 
 <div class="wrap">
 
-  <!-- Intro: 3 slides, last one reveals the Go play button -->
+  <!-- Intro: 3 slides; the last has the Customize panel and reveals "I'm ready" -->
   <section class="intro-slider" id="intro-slider" aria-label="How fivy works">
     <div class="intro-track" id="intro-track"></div>
     <div class="intro-arrows">
@@ -1256,7 +1287,7 @@
     </div>
     <div class="intro-dots" id="intro-dots" role="tablist" aria-label="Slides"></div>
     <div class="intro-cta gated" id="intro-cta">
-      <button class="btn btn-primary" id="intro-start" type="button">Go play →</button>
+      <button class="btn btn-primary" id="intro-start" type="button">I'm ready →</button>
     </div>
   </section>
 
@@ -1651,7 +1682,7 @@
       <div class="back back-1"></div>
       <div class="back back-2"></div>
       <div class="back back-3"></div>
-      <div class="mark">${d.custom ? '✎' : '✺'}</div>
+      <div class="mark${d.custom ? '' : ' logo'}">${d.custom ? '✎' : '<svg class="fivy-logo" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,12 88,38 73,82 27,82 12,38" fill="url(#brandGrad)"/></svg>'}</div>
       <div class="hint">${escapeHTML(d.title || (d.custom ? 'New fivy' : ''))}</div>
     `;
     btn.addEventListener('click', () => openDeck(deckIdx));
@@ -2007,10 +2038,27 @@
     $fields.classList.remove('active');
     [$decksBackRow, $fieldsNavRow, $relatedWrap, $summarySec].forEach(el => { if (el) el.style.display = 'none'; });
   }
+  const CUSTOMIZE_HTML = `
+    <div class="customize-wrap">
+      <button class="btn customize-btn" type="button" id="customizeBtn" aria-expanded="false" aria-controls="customizePanel">⚙ Customize</button>
+      <div class="customize-panel" id="customizePanel" hidden>
+        <label class="cust-radio">
+          <input type="radio" name="custMode" value="private">
+          <span><b>Private</b> · Play fivy privately on your device and upload your results later.</span>
+        </label>
+        <div class="cust-download" id="custDownload" hidden>
+          <a class="btn btn-primary cust-download-btn" id="custDownloadBtn" href="fivy.html" download="fivy.html">↓ Download fivy app</a>
+        </div>
+        <label class="cust-radio">
+          <input type="radio" name="custMode" value="open" checked>
+          <span><b>Open</b> · Play directly here and publish it more privately or publicly at the end. <em>(Default)</em></span>
+        </label>
+      </div>
+    </div>`;
   const INTRO_SLIDES = [
-    { t:'Four decks, five cards', b:'Flip each face-down deck and order its five cards however you feel they should go.' },
-    { t:'Say <b>why</b>, if you like', b:'Add a short note on your ordering — always optional, never required.' },
-    { t:'Then step into Fields', b:'Toggle your decks and categories; watch the same five-rank pattern read across domains.' },
+    { t:"Five isn't too little nor too much", b:'Why do we have 5 senses otherwise?' },
+    { t:'Order senses and other popular high 5s', b:'…in more ways than just 5.' },
+    { t:'Get yourself a comfy space', b:'Check the options below for more.', extra: CUSTOMIZE_HTML },
   ];
   let introSlide = 0, introObserver = null;
 
@@ -2022,7 +2070,7 @@
       const slide = document.createElement('div');
       slide.className = 'intro-slide';
       slide.dataset.idx = String(i);
-      slide.innerHTML = `<div class="step-num">${i+1} / ${INTRO_SLIDES.length}</div><h2>${s.t}</h2><p>${s.b}</p>`;
+      slide.innerHTML = `<div class="step-num">${i+1} / ${INTRO_SLIDES.length}</div><h2>${s.t}</h2><p>${s.b}</p>${s.extra || ''}`;
       $track.appendChild(slide);
       const dot = document.createElement('button');
       dot.type = 'button';
@@ -2041,7 +2089,25 @@
       });
     }, { root: $track, threshold: 0.6 });
     $track.querySelectorAll('.intro-slide').forEach(s => introObserver.observe(s));
+    wireCustomize();
     updateIntroUI();
+  }
+  // Customize button on the last intro slide — toggles the options panel
+  // (same behaviour as souls.html: expand/collapse + Private reveals download).
+  function wireCustomize(){
+    const btn = document.getElementById('customizeBtn');
+    const panel = document.getElementById('customizePanel');
+    if (!btn || !panel || btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    });
+    const dl = document.getElementById('custDownload');
+    document.querySelectorAll('input[name="custMode"]').forEach(r => {
+      r.addEventListener('change', () => { if (r.checked && dl) dl.hidden = r.value !== 'private'; });
+    });
   }
   function gotoSlide(i){
     const $track = document.getElementById('intro-track');

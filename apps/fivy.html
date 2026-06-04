@@ -594,8 +594,9 @@
   .linear-list.confluence.cycle li:nth-child(5){animation:listMorph-r5 24s ease-in-out infinite}
 
   .square{
-    position:relative;aspect-ratio:1/1;
-    width:100%;                       /* fill all the width left by the toolbar */
+    position:relative;
+    /* defaults to the left column's height; grows 5% per set added (set by JS) */
+    width:var(--sq,320px);height:var(--sq,320px);max-width:100%;
     background:radial-gradient(100% 100% at 50% 50%, rgba(255,255,255,.08) 0%, rgba(255,255,255,.02) 70%);
     border:1px solid var(--stroke);
     border-radius:22px;
@@ -829,8 +830,9 @@
   .summary-sec > summary::-webkit-details-marker{display:none}
   .summary-sec > summary:hover{background:rgba(250,220,146,.06);color:var(--ink)}
 
-  /* go-back row above the summary */
-  .decks-back-row{display:flex;justify-content:center;margin-top:8px}
+  /* go-back + Fields → share one centred row */
+  .decks-back-row{display:flex;justify-content:center;align-items:center;gap:.7rem;margin-top:8px;flex-wrap:wrap}
+  .decks-back-row .stage-cta{margin-top:0}
 
   /* Analyze panel — sits above the decks once all four are settled */
   .analyze-panel{
@@ -1093,39 +1095,15 @@
   <!-- Stage 0: fivy ordering -->
   <section class="fivys-stage" id="fivys-stage">
 
-    <!-- Analyze sits above the decks; appears once all four decks are settled -->
-    <div class="analyze-panel" id="analyze-panel" hidden>
-      <div class="analysis" id="analysis-ordinals">
-        <h4>Ordinals</h4>
-        <div class="ord-decks" id="ord-decks"></div>
-        <p class="note">Arrows show the order within each selected deck, top to bottom.</p>
-      </div>
-      <div class="analysis" id="analysis-perspective">
-        <h4>Perspective</h4>
-        <div class="persp-above" id="persp-above"></div>
-        <div class="ord-decks" id="persp-decks"></div>
-        <div class="persp-below" id="persp-below"></div>
-        <p class="note">Add your perspective above, then re-pick the items below the decks.</p>
-      </div>
-      <div class="analysis" id="analysis-timer">
-        <h4>Timer</h4>
-        <div class="sum-table-wrap" id="timer-table"></div>
-        <p class="note">Not a race — just a useful fact about the play.</p>
-      </div>
-      <div class="summary-bottom-actions">
-        <button class="btn btn-soft" id="btn-see-more" type="button">Related apps</button>
-      </div>
-      <div class="related-apps" id="related-apps" hidden></div>
-    </div>
-
     <div class="play-area">
       <div class="spotlight" id="spotlight" aria-live="polite"></div>
       <div class="board" id="board"></div>
     </div>
+    <!-- Go back + Fields → share one row -->
     <div class="decks-back-row" id="decks-back-row">
       <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
+      <div class="stage-cta" id="stage-cta"></div>
     </div>
-    <div class="stage-cta" id="stage-cta"></div>
   </section>
 
   <!-- Stage 1: Fields (simplex) -->
@@ -1228,6 +1206,12 @@
         <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
       </section>
         </div>
+
+        <!-- Related apps live below the square -->
+        <div class="summary-bottom-actions">
+          <button class="btn btn-soft" id="btn-see-more" type="button">Related apps</button>
+        </div>
+        <div class="related-apps" id="related-apps" hidden></div>
       </div><!-- /fields-main -->
     </div><!-- /fields-grid -->
 
@@ -1240,6 +1224,8 @@
       <div id="summary-fivys"></div>
       <h3>Fields</h3>
       <div id="summary-fields"></div>
+      <h3>Time</h3>
+      <div class="sum-table-wrap" id="timer-table"></div>
     </div>
   </details>
 
@@ -1327,12 +1313,9 @@
     });
   }
 
-  // Step 4 = all four decks settled. Only then do the Analyze panel (above the
-  // decks) and the Summary (+ its go-back) become available.
+  // Step 4 = all four decks settled. Only then does the Summary become available.
   function updateStep4(){
     const ready = allDone();
-    const ap = document.getElementById('analyze-panel');
-    if (ap) ap.hidden = !ready;
     if ($summarySec) $summarySec.style.display = ready ? '' : 'none';
   }
 
@@ -1596,13 +1579,23 @@
     $stage.style.display = 'none';
     $fields.classList.add('active');
     renderNested();   // the decks just settled in stage 1 become toggle buttons here
+    applyGrowth();    // toolbar is now visible → size the square to its height
     setProgress(1);
+    setDeckSubProgress(1);   // fresh stage → sub-bar restarts at its first step
     window.scrollTo({ top:0, behavior:'smooth' });
   }
   function leaveFields(){
     $fields.classList.remove('active');
     $stage.style.display = '';
     setProgress(0);
+    updateDeckProgress();    // back in decks → sub-bar reflects settled decks again
+  }
+  // Light the first N sub-segments (used when a new stage opens: N = 1).
+  function setDeckSubProgress(cur){
+    $deckProg.querySelectorAll('.dseg:not(.an)').forEach((seg, i) => {
+      seg.classList.toggle('done', i < cur - 1);
+      seg.classList.toggle('current', i === cur - 1);
+    });
   }
   function setProgress(cur){
     // leave the appended analyze segment (.an) untouched
@@ -1625,8 +1618,7 @@
     if (num) num.textContent = fmtTime(Date.now() - timer.t0);
     const chip = document.getElementById('chipTime');
     if (chip) chip.classList.remove('is-empty');
-    const tt = document.getElementById('analysis-timer');     // keep the Timer analysis live
-    if (tt && !tt.hidden) renderTimerTable();
+    if (document.getElementById('timer-table')) renderTimerTable();   // keep the Summary timer live
   }
   function startTimer(){
     if (timer.t0) return;                 // already running
@@ -1703,7 +1695,6 @@
   function backToIntro(){
     $introSlider.classList.remove('hidden');
     $stage.style.display = 'none';
-    document.getElementById('analyze-panel').hidden = true;
     $summarySec.style.display = 'none';
     gotoSlide(INTRO_SLIDES.length - 1);
     window.scrollTo({ top:0, behavior:'smooth' });
@@ -1977,12 +1968,16 @@
     try { _rec.start(); _recOn = true; mic.classList.add('recording'); } catch(_){}
   }
 
-  // Each toggled set grows the square 5% (continuous, from the first added set);
-  // the square scales, so the overlaid cycle/confluence arrows scale with it.
+  // The square defaults to the left column (toolbar) height, then grows 5% per
+  // extra active set — the overlaid cycle/confluence arrows scale with it.
   function applyGrowth(){
-    const grow = 1 + 0.05 * Math.max(0, activeSets.length - 1);
-    $square.style.setProperty('--grow', grow.toFixed(4));
+    const grow  = 1 + 0.05 * Math.max(0, activeSets.length - 1);
+    const aside = document.querySelector('.fields-grid .toolbar');
+    const base  = (aside && aside.offsetHeight) ? aside.offsetHeight : 320;
+    $square.style.setProperty('--sq', Math.round(base * grow) + 'px');
   }
+  // re-fit the square if the viewport (and thus the toolbar height) changes
+  window.addEventListener('resize', () => { if ($fields.classList.contains('active')) applyGrowth(); });
 
   // Persist inline edits without re-rendering (keeps input focus). A completed
   // five marks the category saved and surfaces it in the list / summary.

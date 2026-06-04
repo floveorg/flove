@@ -510,7 +510,7 @@
      behind its tall background sheet) */
   .square-dock{
     position:relative;
-    display:flex;justify-content:center;
+    display:flex;justify-content:flex-start;   /* hug the left column; grow → right + down */
     margin:0 0 14px;padding:6px 0 10px;
   }
 
@@ -702,8 +702,10 @@
   .node.n3{right:8px;top:8px;text-align:right}
   .node.n3 .rank-badge{align-self:flex-end}
   .node.n3 .items{align-items:flex-end}
-  .node.n4{left:8px;bottom:8px}
-  .node.n5{right:8px;bottom:8px;text-align:right}
+  /* rank 4 & 5 anchor from the top of the lower half so added sub-elements
+     stack downward (the square grows to keep them inside) */
+  .node.n4{left:8px;top:56%}
+  .node.n5{right:8px;top:56%;text-align:right}
   .node.n5 .rank-badge{align-self:flex-end}
   .node.n5 .items{align-items:flex-end}
   .node.n2 .item,.node.n4 .item{width:fit-content;max-width:100%}
@@ -1321,6 +1323,10 @@
 
   function renderBoard(){
     $board.innerHTML = '';
+    // Step 4: once all four decks are settled, collapse the deck cards away
+    // (unless one is reopened for editing). The Summary keeps the orderings.
+    if (allDone() && state.openDeckIdx === null){ $board.style.display = 'none'; return; }
+    $board.style.display = '';
     DECKS.forEach((deck, deckIdx) => {
       const slot = document.createElement('div');
       slot.className = 'slot';
@@ -1523,7 +1529,9 @@
   }
 
   function openDeck(deckIdx){
+    flushDeckTime();              // bank any currently-open deck's time first
     state.openDeckIdx = deckIdx;
+    _openTs = Date.now();         // start timing this deck
     state.porQuePanelOpen = false;
     state.porQueDraft = '';
     render();
@@ -1532,6 +1540,7 @@
   function doneDeck(deckIdx){
     const id = DECKS[deckIdx].id;
     const wasDone = state.done[id];
+    flushDeckTime();              // bank the time spent on this deck
     state.done[id] = true;
     if (!wasDone) bumpCounter('selections');
     state.openDeckIdx = null;
@@ -1608,6 +1617,16 @@
 
   // ============== Elapsed timer ==============
   const timer = { t0:0, tFields:0, handle:null };
+  // per-deck active time: accumulates while a deck is open in the spotlight
+  const deckTime = {};   // deckId -> ms
+  let _openTs = 0;
+  function flushDeckTime(){
+    if (state.openDeckIdx !== null && _openTs){
+      const id = DECKS[state.openDeckIdx].id;
+      deckTime[id] = (deckTime[id] || 0) + (Date.now() - _openTs);
+    }
+    _openTs = 0;
+  }
   const fmtTime = ms => {
     const s = Math.max(0, Math.floor(ms/1000));
     return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
@@ -1969,12 +1988,19 @@
   }
 
   // The square defaults to the left column (toolbar) height, then grows 5% per
-  // extra active set — the overlaid cycle/confluence arrows scale with it.
+  // extra active set. It always stays square (width = height = --sq) and grows
+  // further if the stacked rank nodes would spill past its bottom edge — so the
+  // rank-4/5 stacks read downward instead of being squeezed up.
   function applyGrowth(){
-    const grow  = 1 + 0.05 * Math.max(0, activeSets.length - 1);
+    const n     = activeSets.length;                 // one stacked item per set
+    const grow  = 1 + 0.05 * Math.max(0, n - 1);
     const aside = document.querySelector('.fields-grid .toolbar');
     const base  = (aside && aside.offsetHeight) ? aside.offsetHeight : 320;
-    $square.style.setProperty('--sq', Math.round(base * grow) + 'px');
+    // rank-4/5 anchor at 56% from the top, so their downward stack of n items
+    // (≈30px each) only fits when 0.56·H + n·30 + pad ≤ H  →  H ≥ (n·30+pad)/0.44
+    const contentH = Math.ceil((n * 30 + 28) / 0.44);
+    const size  = Math.max(Math.round(base * grow), contentH);
+    $square.style.setProperty('--sq', size + 'px');
   }
   // re-fit the square if the viewport (and thus the toolbar height) changes
   window.addEventListener('resize', () => { if ($fields.classList.contains('active')) applyGrowth(); });
@@ -2249,14 +2275,15 @@
     const $t = document.getElementById('timer-table');
     if (!$t) return;
     const now = Date.now();
-    const total  = timer.t0 ? now - timer.t0 : 0;
-    const decks  = timer.t0 ? (timer.tFields ? timer.tFields - timer.t0 : now - timer.t0) : 0;
-    const fields = timer.tFields ? now - timer.tFields : 0;
-    $t.innerHTML = tableHTML('Phase', ['Time'], [
-      { label:'Total',  cells:[{ v:fmtTime(total) }] },
-      { label:'Decks',  cells:[{ v:fmtTime(decks) }] },
-      { label:'Fields', cells:[{ v:fmtTime(fields) }] },
-    ]);
+    const liveId = state.openDeckIdx !== null ? DECKS[state.openDeckIdx].id : null;
+    // one row per deck (live for the one currently open) + a Total row
+    const rows = DECKS.map(d => {
+      let ms = deckTime[d.id] || 0;
+      if (d.id === liveId && _openTs) ms += now - _openTs;
+      return { label:d.title, cells:[{ v:fmtTime(ms) }] };
+    });
+    rows.push({ label:'Total', cells:[{ v:fmtTime(timer.t0 ? now - timer.t0 : 0) }] });
+    $t.innerHTML = tableHTML('Deck', ['Time'], rows);
   }
 
   // ----- Analyses are shown directly (no Analyze button) → See more -----

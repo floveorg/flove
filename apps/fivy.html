@@ -595,8 +595,9 @@
 
   .square{
     position:relative;
-    /* defaults to the left column's height; grows 5% per set added (set by JS) */
-    width:var(--sq,320px);height:var(--sq,320px);max-width:100%;
+    /* default placeholder size set by JS via --sq; height always tracks the
+       actual (possibly capped) width so it stays a true square as it grows */
+    width:var(--sq,320px);max-width:100%;aspect-ratio:1/1;
     background:radial-gradient(100% 100% at 50% 50%, rgba(255,255,255,.08) 0%, rgba(255,255,255,.02) 70%);
     border:1px solid var(--stroke);
     border-radius:22px;
@@ -873,6 +874,14 @@
   .sum-table td.top{background:rgba(0,247,167,.1);font-weight:600}
   .sum-table-wrap{overflow-x:auto}
 
+  /* ---- Square snapshot in the summary (read-only mini view) ---- */
+  .summary-square{display:flex;justify-content:center;margin:.5rem 0 .2rem}
+  .summary-square .square{
+    width:clamp(220px,70vw,300px);max-width:100%;aspect-ratio:1/1;
+    pointer-events:none;
+  }
+  .summary-square .square .node .item{cursor:default}
+
   /* ---- analyses (shown directly) ---- */
   .analysis{
     margin:.6rem 0;padding:.7rem .8rem;
@@ -1101,11 +1110,6 @@
       <div class="spotlight" id="spotlight" aria-live="polite"></div>
       <div class="board" id="board"></div>
     </div>
-    <!-- Go back + Fields → share one row -->
-    <div class="decks-back-row" id="decks-back-row">
-      <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
-      <div class="stage-cta" id="stage-cta"></div>
-    </div>
   </section>
 
   <!-- Stage 1: Fields (simplex) -->
@@ -1208,28 +1212,32 @@
         <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
       </section>
         </div>
-
-        <!-- Related apps live below the square -->
-        <div class="summary-bottom-actions">
-          <button class="btn btn-soft" id="btn-see-more" type="button">Related apps</button>
-        </div>
-        <div class="related-apps" id="related-apps" hidden></div>
       </div><!-- /fields-main -->
     </div><!-- /fields-grid -->
 
   </section>
 
-  <details class="summary-sec" id="summary-sec">
+  <details class="summary-sec" id="summary-sec" open>
     <summary>✦ Summary</summary>
     <div class="summary-body" id="summary-body">
       <h3>Fivys</h3>
-      <div id="summary-fivys"></div>
-      <h3>Fields</h3>
-      <div id="summary-fields"></div>
-      <h3>Time</h3>
-      <div class="sum-table-wrap" id="timer-table"></div>
+      <div class="sum-table-wrap" id="summary-fivys"></div>
+      <h3>Square</h3>
+      <div class="summary-square" id="summary-square"></div>
     </div>
   </details>
+
+  <!-- Go back + Fields → and Related apps now live below the summary -->
+  <div class="decks-back-row" id="decks-back-row">
+    <button class="btn btn-ghost btn-back" id="btn-go-back" type="button">← Go back</button>
+    <div class="stage-cta" id="stage-cta"></div>
+  </div>
+  <div id="related-wrap">
+    <div class="summary-bottom-actions">
+      <button class="btn btn-soft" id="btn-see-more" type="button">Related apps</button>
+    </div>
+    <div class="related-apps" id="related-apps" hidden></div>
+  </div>
 
 </div>
 
@@ -1315,11 +1323,9 @@
     });
   }
 
-  // Step 4 = all four decks settled. Only then does the Summary become available.
-  function updateStep4(){
-    const ready = allDone();
-    if ($summarySec) $summarySec.style.display = ready ? '' : 'none';
-  }
+  // The Summary is shown by default once play starts (see showBottom/hideBottom);
+  // its visibility is no longer gated on the four decks being settled.
+  function updateStep4(){}
 
   function renderBoard(){
     $board.innerHTML = '';
@@ -1591,11 +1597,13 @@
     applyGrowth();    // toolbar is now visible → size the square to its height
     setProgress(1);
     setDeckSubProgress(1);   // fresh stage → sub-bar restarts at its first step
+    if ($decksBackRow) $decksBackRow.style.display = 'none';   // no Go back/Fields here
     window.scrollTo({ top:0, behavior:'smooth' });
   }
   function leaveFields(){
     $fields.classList.remove('active');
     $stage.style.display = '';
+    if ($decksBackRow) $decksBackRow.style.display = '';   // restore the decks row
     setProgress(0);
     updateDeckProgress();    // back in decks → sub-bar reflects settled decks again
   }
@@ -1637,7 +1645,7 @@
     if (num) num.textContent = fmtTime(Date.now() - timer.t0);
     const chip = document.getElementById('chipTime');
     if (chip) chip.classList.remove('is-empty');
-    if (document.getElementById('timer-table')) renderTimerTable();   // keep the Summary timer live
+    paintFivysTable();   // keep the Summary's per-deck Time column live
   }
   function startTimer(){
     if (timer.t0) return;                 // already running
@@ -1653,6 +1661,21 @@
   // ============== Intro slider (3 slides → Go play) ==============
   const $introSlider = document.getElementById('intro-slider');
   const $summarySec  = document.getElementById('summary-sec');
+  // Summary + Go back/Fields row + Related apps now sit below the page. They are
+  // hidden on the intro and revealed once play starts; the Go back/Fields row is
+  // hidden again while inside the Fields stage.
+  const $decksBackRow = document.getElementById('decks-back-row');
+  const $relatedWrap  = document.getElementById('related-wrap');
+  function showBottom(){
+    if ($summarySec){ $summarySec.style.display = ''; $summarySec.open = true; }
+    if ($decksBackRow) $decksBackRow.style.display = '';
+    if ($relatedWrap)  $relatedWrap.style.display  = '';
+  }
+  function hideBottom(){
+    if ($summarySec)   $summarySec.style.display   = 'none';
+    if ($decksBackRow) $decksBackRow.style.display = 'none';
+    if ($relatedWrap)  $relatedWrap.style.display  = 'none';
+  }
   const INTRO_SLIDES = [
     { t:'Four decks, five cards', b:'Flip each face-down deck and order its five cards however you feel they should go.' },
     { t:'Say <b>why</b>, if you like', b:'Add a short note on your ordering — always optional, never required.' },
@@ -1708,13 +1731,13 @@
     $introSlider.classList.add('hidden');
     $stage.style.display = '';
     startTimer();
-    updateStep4();        // summary/analyze stay gated until the 4 decks are done
+    showBottom();         // Summary is displayed by default once play starts
     window.scrollTo({ top:0, behavior:'smooth' });
   }
   function backToIntro(){
     $introSlider.classList.remove('hidden');
     $stage.style.display = 'none';
-    $summarySec.style.display = 'none';
+    hideBottom();
     gotoSlide(INTRO_SLIDES.length - 1);
     window.scrollTo({ top:0, behavior:'smooth' });
   }
@@ -2160,6 +2183,7 @@
     $square.classList.toggle('confluence', toggles.confluence);
     $ll.classList.toggle('confluence', toggles.confluence);
     $ll.classList.toggle('cycle', toggles.cycle);
+    renderSquarePicture();   // mirror the arrows into the summary snapshot
   }
   document.querySelectorAll('.tbtn').forEach(btn => {
     btn.addEventListener('click', () => applyToggle(btn.dataset.toggle));
@@ -2185,105 +2209,54 @@
   }
 
   function paintSummary(){
-    // base recap tables
-    const $sp = document.getElementById('summary-fivys');
-    const $sf = document.getElementById('summary-fields');
-    if ($sp){
-      const decks = settledDecks();
-      $sp.innerHTML = decks.length
-        ? tableHTML('Fivy', ORD, decks.map(d => ({ label:d.title, cells:deckRanked(d).map(v=>({v})) })))
-        : '<div class="empty-line">No fivys ordered yet.</div>';
-    }
-    if ($sf){
-      const fields = filledFields();
-      $sf.innerHTML = fields.length
-        ? tableHTML('Field', ORD, fields.map(f => ({ label:f.label, cells:f.items.map(v=>({v:v||''})) })))
-        : '<div class="empty-line">No fields filled yet.</div>';
-    }
-    renderOrdinals();
-    renderPerspective();
-    renderTimerTable();
+    paintFivysTable();
+    renderSquarePicture();
   }
 
-  // Selected decks rendered as cards with order arrows running within each.
-  function deckCardsHTML(){
+  // Fivys recap: a leading Time column (per-deck active time, live for the open
+  // one) before the fivy name, then the 1st–5th ordering.
+  function fivysTableHTML(){
     const decks = settledDecks();
-    if (!decks.length) return '';
-    return decks.map(d =>
-      `<div class="ord-deck"><div class="od-title">${escapeHTML(d.title)}</div>`
-      + `<ol>${deckRanked(d).map(v => `<li>${escapeHTML(v || '·')}</li>`).join('')}</ol></div>`
-    ).join('');
-  }
-
-  // Ordinals: the selected decks, with ↓ arrows showing the order within each.
-  function renderOrdinals(){
-    const $d = document.getElementById('ord-decks');
-    if (!$d) return;
-    $d.innerHTML = deckCardsHTML() || '<div class="empty-line">No decks settled yet.</div>';
-  }
-
-  // Perspective: a perspective bar (+ Add) ABOVE the selected decks, the decks
-  // themselves, and a decks-selection strip BELOW them.
-  let perspCount = 0;
-  function perspBarHTML(n){
-    return `<div class="persp-bar"><span class="pb-tag">Perspective ${n}</span>`
-      + `<input type="text" placeholder="name this perspective…" aria-label="Perspective ${n}"></div>`;
-  }
-  function renderPerspective(){
-    const $above = document.getElementById('persp-above');
-    const $decks = document.getElementById('persp-decks');
-    const $below = document.getElementById('persp-below');
-    if (!$above || !$decks || !$below) return;
-
-    // Above: one perspective to start + a ＋ that appends another. Built once
-    // so typed names / added perspectives survive summary repaints.
-    if (!$above.dataset.init){
-      perspCount = 1;
-      $above.innerHTML = perspBarHTML(1)
-        + `<button class="persp-add" id="persp-add" type="button">＋ Add perspective</button>`;
-      $above.dataset.init = '1';
-      $above.addEventListener('click', e => {
-        if (!e.target.closest('#persp-add')) return;
-        perspCount++;
-        const add = $above.querySelector('#persp-add');
-        const tmp = document.createElement('div');
-        tmp.innerHTML = perspBarHTML(perspCount);
-        $above.insertBefore(tmp.firstElementChild, add);
-      });
-    }
-
-    // Decks (same cards as Ordinals).
-    $decks.innerHTML = deckCardsHTML();
-
-    // Below: decks selection — each deck's items as toggle chips. Built once so
-    // selections aren't wiped on repaint.
-    if (!$below.dataset.init){
-      const decks = settledDecks();
-      $below.innerHTML = `<span class="pb-cap">Decks selection</span>`
-        + decks.map(d => `<div class="psel-deck">`
-            + deckRanked(d).map(v => `<button type="button" class="psel-chip">${escapeHTML(v || '·')}</button>`).join('')
-          + `</div>`).join('');
-      $below.dataset.init = '1';
-      $below.addEventListener('click', e => {
-        const chip = e.target.closest('.psel-chip');
-        if (chip) chip.classList.toggle('sel');
-      });
-    }
-  }
-
-  function renderTimerTable(){
-    const $t = document.getElementById('timer-table');
-    if (!$t) return;
+    if (!decks.length) return '<div class="empty-line">No fivys ordered yet.</div>';
     const now = Date.now();
     const liveId = state.openDeckIdx !== null ? DECKS[state.openDeckIdx].id : null;
-    // one row per deck (live for the one currently open) + a Total row
-    const rows = DECKS.map(d => {
+    const head = `<thead><tr><th>Time</th><th>Fivy</th>${ORD.map(o => `<th>${o}</th>`).join('')}</tr></thead>`;
+    const body = '<tbody>' + decks.map(d => {
       let ms = deckTime[d.id] || 0;
       if (d.id === liveId && _openTs) ms += now - _openTs;
-      return { label:d.title, cells:[{ v:fmtTime(ms) }] };
+      const cells = deckRanked(d).map(v => `<td>${escapeHTML(v) || '·'}</td>`).join('');
+      return `<tr><td class="dim">${fmtTime(ms)}</td><th>${escapeHTML(d.title)}</th>${cells}</tr>`;
+    }).join('') + '</tbody>';
+    return `<table class="sum-table">${head}${body}</table>`;
+  }
+  function paintFivysTable(){
+    const $sp = document.getElementById('summary-fivys');
+    if ($sp) $sp.innerHTML = fivysTableHTML();
+  }
+
+  // A read-only snapshot of the square "from above": the same five rank nodes
+  // with their current items, plain — or with the cycle / confluence arrows if
+  // those toggles are on (it mirrors the live square's classes).
+  function renderSquarePicture(){
+    const host = document.getElementById('summary-square');
+    if (!host) return;
+    const clone = $square.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.style.removeProperty('--sq');
+    clone.classList.toggle('cycle', $square.classList.contains('cycle'));
+    clone.classList.toggle('confluence', $square.classList.contains('confluence'));
+    // strip every interactive control → a flat picture
+    clone.querySelectorAll('.item-next,.item-star,.item-reason,.item-reason-view').forEach(el => el.remove());
+    clone.querySelectorAll('input.item-input').forEach(inp => {
+      const div = document.createElement('div');
+      div.className = 'item' + (inp.value.trim() ? '' : ' empty');
+      div.style.setProperty('--c', inp.style.getPropertyValue('--c'));
+      div.textContent = inp.value.trim() || '·';
+      inp.replaceWith(div);
     });
-    rows.push({ label:'Total', cells:[{ v:fmtTime(timer.t0 ? now - timer.t0 : 0) }] });
-    $t.innerHTML = tableHTML('Deck', ['Time'], rows);
+    clone.querySelectorAll('button,input').forEach(el => { el.disabled = true; el.tabIndex = -1; });
+    host.innerHTML = '';
+    host.appendChild(clone);
   }
 
   // ----- Analyses are shown directly (no Analyze button) → See more -----
@@ -2333,10 +2306,10 @@
   paintSummary();
   render();
 
-  // Start on the intro: hide the board + summary until "Go play".
+  // Start on the intro: hide the board + the whole bottom area until "Go play".
   renderIntro();
   $stage.style.display = 'none';
-  $summarySec.style.display = 'none';
+  hideBottom();
 
   // Re-paint Summary whenever the fivys board changes (Done / reopen).
   new MutationObserver(() => paintSummary())

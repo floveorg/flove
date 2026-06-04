@@ -1101,6 +1101,9 @@
       }
     }
     Object.entries(state.subs).forEach(([subId, rec]) => {
+      // SubNervous / SubImmune toggles hide that kind's arrows
+      if (rec.kind === 'nerve'  && state.hideNerve)  return;
+      if (rec.kind === 'immune' && state.hideImmune) return;
       const slot = slotEl(rec.slotId); if (!slot) return;
       const parent = slotOfSystem(HOME_OF[rec.kind]); if (!parent) return;
       const a = anchorRect(parent), b = anchorRect(slot);
@@ -1121,25 +1124,28 @@
 
       // label sits at the line's first-quarter point (near the parent), not the middle
       const mx = x1 + (x2 - x1) * 0.25, my = y1 + (y2 - y1) * 0.25;
-      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      txt.setAttribute('x', mx); txt.setAttribute('y', my);
-      txt.setAttribute('text-anchor', 'middle');
-      txt.setAttribute('dominant-baseline', 'middle');
-      txt.setAttribute('fill', colour);
-      txt.setAttribute('stroke', getCSS('--bg'));
-      txt.setAttribute('stroke-width', '3');
-      txt.setAttribute('paint-order', 'stroke');
-      // once a reason/verb is added, its icon shows to the right of the title
-      let label = def ? def.label : subId;
-      if ((state.subReasons[subId] || []).length) label += ' 🙂';
-      if ((state.subVerbs[subId]   || []).length) label += ' 🔗';
-      txt.textContent = label;
-      // click the label → open a reason (above) + verb (below) composer for this link
-      txt.style.cursor = 'pointer';
-      txt.style.pointerEvents = 'auto';
+      // helper: a clickable svg text that opens this link's reason/verb composer
+      const NS = 'http://www.w3.org/2000/svg';
+      const mkText = (x, y, content, size, fill) => {
+        const t = document.createElementNS(NS, 'text');
+        t.setAttribute('x', x); t.setAttribute('y', y);
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'middle');
+        t.setAttribute('fill', fill); t.setAttribute('stroke', getCSS('--bg'));
+        t.setAttribute('stroke-width', '3'); t.setAttribute('paint-order', 'stroke');
+        if (size) t.setAttribute('font-size', size);
+        t.textContent = content;
+        t.style.cursor = 'pointer'; t.style.pointerEvents = 'auto';
+        t.addEventListener('click', ev => openLinkPanel(subId, ev.clientX, ev.clientY));
+        return t;
+      };
+      const txt = mkText(mx, my, def ? def.label : subId, null, colour);
       txt.setAttribute('aria-label', 'Reason / verb for ' + (def ? def.label : subId));
-      txt.addEventListener('click', ev => openLinkPanel(subId, ev.clientX, ev.clientY));
       svg.appendChild(txt);
+      // reason + verbs shown like the system ones, but half-size, stacked under the label
+      const subR = state.subReasons[subId] || [], subV = state.subVerbs[subId] || [];
+      let oy = 17;
+      if (subR.length){ svg.appendChild(mkText(mx, my + oy, subR.length > 1 ? '😊' : '🙂', '1.05rem', colour)); oy += 13; }
+      if (subV.length){ svg.appendChild(mkText(mx, my + oy, subV.join(' · '), '.42rem', getCSS('--accent'))); }
     });
   }
   function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -1201,20 +1207,27 @@
     }
     // stage-1 big button: appears once all placed
     $('#nextBtn').classList.toggle('show', state.stage === 1 && allPlaced());
-    // Check / Polarities: appears once every subsystem is threaded (stage 4)
-    const allSubsPlaced = Object.keys(state.subs).length === TOTAL_SUBS;
-    $('#checkBtn').classList.toggle('show', state.stage === 4 && allSubsPlaced);
-    if (!(state.stage === 4 && allSubsPlaced)){
+    // Check / Polarities: end of stage 1 (all cards placed) AND in stage 4 (all subs threaded)
+    const subsAllIn = allSubsPlaced();
+    const showCheck = (state.stage === 1 && allPlaced()) || (state.stage === 4 && subsAllIn);
+    $('#checkBtn').classList.toggle('show', showCheck);
+    if (!showCheck){
       $('#board').classList.remove('checking','show-polarities');
       const cb = $('#checkBtn'); cb.textContent = 'Check'; cb.setAttribute('aria-pressed','false');
     }
+    // SubNervous / SubImmune arrow-hide toggles — above Back, once all subs are placed
+    $('#subToggleRow').classList.toggle('show', state.stage === 4 && subsAllIn);
+    $('#subNerveBtn').setAttribute('aria-pressed', state.hideNerve ? 'true' : 'false');
+    $('#subImmuneBtn').setAttribute('aria-pressed', state.hideImmune ? 'true' : 'false');
     // stage nav (Back always from stage 2; Next appears once that stage's gate is met)
     const nav = $('#stageNav');
     nav.classList.toggle('show', state.stage >= 2);
     const next2 = $('#nextBtn2');
     if (state.stage === 2)      next2.hidden = !hasAnyReason();
     else if (state.stage === 3) next2.hidden = !hasAnyVerb();
-    else                        next2.hidden = true;   // stage 4: no further Next
+    // stage 4: a final Next once some subsystem has both a reason and a verb
+    else if (state.stage === 4) next2.hidden = !(hasAnySubReason() && hasAnySubVerb());
+    else                        next2.hidden = true;
     // stage-4 toggles: Reasons (reasons + emojis) then Verbs
     const rt = $('#reasonToggle');
     rt.classList.toggle('show', state.stage === 4);
@@ -1229,8 +1242,9 @@
   function goStage(n){
     state.stage = Math.max(1, Math.min(4, n));
     if (state.stage === 4){ state.verbsShown = false; state.reasonsShown = false; }   // both collapsed by default in stage 4
-    // reset the centre confluence view when navigating stages
+    // reset the centre confluence view + arrow-hide toggles when navigating stages
     state.centreFx = 0; document.body.classList.remove('hide-right-icons');
+    state.hideNerve = false; state.hideImmune = false;
     if (state.stage < 4) closeDocks();
     afterChange();
   }
@@ -1467,11 +1481,15 @@
       $('#checkBtn').setAttribute('aria-pressed', String(on));
     }
   });
-  // middle-stage Next: 2 → 3 (reveal + verbs) · 3 → 4 (reveal subsystems)
+  // middle-stage Next: 2 → 3 (reveal + verbs) · 3 → 4 (reveal subsystems) · 4 → done
   $('#nextBtn2').addEventListener('click', () => {
     if (state.stage === 2 && hasAnyReason()){ goStage(3); toast('Add verbs with the + on each card'); }
     else if (state.stage === 3 && hasAnyVerb()){ goStage(4); toast('Click Immune or Nervous to thread subsystems'); }
+    else if (state.stage === 4 && hasAnySubReason() && hasAnySubVerb()){ toast('All threaded — tap Polarities to explore the groupings'); }
   });
+  // SubNervous / SubImmune: hide that kind's connector arrows
+  $('#subNerveBtn').addEventListener('click', () => { state.hideNerve = !state.hideNerve; afterChange(); });
+  $('#subImmuneBtn').addEventListener('click', () => { state.hideImmune = !state.hideImmune; afterChange(); });
   // Back one stage
   $('#backBtn').addEventListener('click', () => goStage(state.stage - 1));
   // stage-4: toggle the verb + icons across all cards

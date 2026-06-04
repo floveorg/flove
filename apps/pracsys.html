@@ -182,8 +182,7 @@
     background:transparent;
   }
   .slot.centre-spine.filled{
-    border-color:var(--accent); background:transparent;
-    box-shadow:0 0 0 1px var(--accent-deep) inset;
+    border-color:transparent; background:transparent; box-shadow:none;   /* borderless like the others */
   }
   .slot.centre-spine .card{ justify-content:center; }
   .slot.centre-spine .card .lbl{
@@ -200,14 +199,14 @@
     transition:border-color var(--fast), background var(--fast);
   }
   .slot::after{ content:none; }          /* no placeholder numbers */
-  .slot.filled{ border-style:solid; border-color:var(--chip-border); background:transparent; }
+  .slot.filled{ border-color:transparent; background:transparent; }   /* placed systems read borderless */
   .slot.over{ border-color:var(--accent); background:rgba(77,208,225,.10); }
   .slot.sub-ok{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(77,208,225,.25) inset; }
   .slot.sub-no{ border-color:var(--accent-2); }
   .slot .card{
     width:100%; height:100%; cursor:pointer;
-    flex-direction:column; gap:.35rem; text-align:center; padding:6px;
-    background:transparent; border-color:transparent;   /* cards read as transparent in the slot */
+    flex-direction:column; gap:.35rem; justify-content:center; text-align:center; padding:6px;
+    background:transparent; border-color:transparent;   /* cards read as transparent, text centred */
   }
   .slot .card:hover{ border-color:var(--accent); }
   .slot .card .lbl{ white-space:normal; line-height:1.1; font-size:.8rem; }
@@ -290,10 +289,10 @@
   @keyframes glow-im{ 0%,100%{ box-shadow:0 0 0 2px rgba(105,240,174,.45), 0 0 10px rgba(105,240,174,.3) } 50%{ box-shadow:0 0 0 2px rgba(105,240,174,.65), 0 0 18px rgba(105,240,174,.5) } }
   @keyframes glow-ne{ 0%,100%{ box-shadow:0 0 0 2px rgba(179,136,255,.45), 0 0 10px rgba(179,136,255,.3) } 50%{ box-shadow:0 0 0 2px rgba(179,136,255,.65), 0 0 18px rgba(179,136,255,.5) } }
 
-  /* parent gets a stronger ring while its subtabs are fanned out */
-  .slot.parent-open{ animation:none; filter:brightness(1.08); }
-  .slot.parent-immune.parent-open{ box-shadow:0 0 0 3px var(--immune), 0 0 20px rgba(105,240,174,.6); }
-  .slot.parent-nerve.parent-open{ box-shadow:0 0 0 3px var(--nerve), 0 0 20px rgba(179,136,255,.6); }
+  /* once a parent is checked (its fan opened), drop the highlight entirely */
+  .slot.parent-open{ animation:none; filter:none; }
+  .slot.parent-immune.parent-open,
+  .slot.parent-nerve.parent-open{ box-shadow:none; border-color:transparent; }
 
   /* ── subsystem chips: the fan anchors to its PARENT slot, by the parent's
         column — left column → fan right · right column → fan left · centre → fan above ── */
@@ -499,7 +498,7 @@
     <li><b>Stage 1 · Place.</b> Tap the <b>Systems</b> card to fan the eleven open, then click or drag each into a placeholder. Click a placed one to send it back. When all are down, press <b>Next stage</b> — this locks the placements and removes Clear board.</li>
     <li><b>Stage 2 · Reasons.</b> Each right-column system shows its <b>emoji</b> in a strip down the right edge. Where a row's left+right (or the centre) are placed, a <b>smiley</b> appears in the middle — click it to write a <b>reason</b>; it collapses on save. Once you've written one, <b>Next</b> appears beside <b>Back</b>.</li>
     <li><b>Stage 3 · Verbs.</b> A <b>+</b> shows on each card's lower edge — click it to add a <b>verb</b>; saved verbs sit centred (a <b>+N</b> opens the full list). Once you've added one, <b>Next</b> reveals the subsystems.</li>
-    <li><b>Stage 4 · Subsystems.</b> The <b>Immune</b> and <b>Nervous</b> systems glow; click one to fan its subsystems out as chips — to the right if the parent sits in the left column, to the left if it's on the right, above if it's the centre. Click a subsystem and a system to thread a labelled line. Threaded ones leave the fan; remove via the slot badge. The reasons + emojis collapse under a <b>Reasons</b> toggle and verbs under a <b>Verbs</b> toggle. The <b>progress bar</b> tracks every stage.</li>
+    <li><b>Stage 4 · Subsystems.</b> The <b>Immune</b> and <b>Nervous</b> systems glow; click one to fan its subsystems out as chips — to the right if the parent sits in the left column, to the left if it's on the right, above if it's the centre. Click a subsystem and a system to thread a labelled line. Threaded ones leave the fan; click the line's label to unthread it. The reasons + emojis collapse under a <b>Reasons</b> toggle and verbs under a <b>Verbs</b> toggle. The <b>progress bar</b> tracks every stage.</li>
   </ol>
 </aside>
 
@@ -966,17 +965,9 @@
     if (!silent){ save(); drawLinks(); }
   }
   function renderBadges(){
-    allSlots().forEach(slot => { ensureBadgeHost(slot); slot.querySelector('.subbadges').innerHTML = ''; });
-    Object.entries(state.subs).forEach(([subId, rec]) => {
-      const slot = slotEl(rec.slotId); if (!slot) return;
-      const def = subDef(rec.kind, subId); if (!def) return;
-      const tag = document.createElement('span');
-      tag.className = `subbadge ${rec.kind}`;
-      tag.textContent = def.label;
-      tag.title = 'Click to remove';
-      tag.addEventListener('click', e => { e.stopPropagation(); removeSub(subId); });
-      slot.querySelector('.subbadges').appendChild(tag);
-    });
+    // a threaded subsystem now shows only as its connector line (+ label) — no
+    // chip on the target system. Just clear any leftover badge hosts.
+    allSlots().forEach(slot => { const h = slot.querySelector('.subbadges'); if (h) h.innerHTML = ''; });
   }
 
   // ── connector lines (parent system card → threaded slot) ────
@@ -1013,6 +1004,11 @@
       txt.setAttribute('stroke-width', '3');
       txt.setAttribute('paint-order', 'stroke');
       txt.textContent = def ? def.label : subId;
+      // the label is the only handle now → click it to unthread (lines stay click-through)
+      txt.style.cursor = 'pointer';
+      txt.style.pointerEvents = 'auto';
+      txt.setAttribute('aria-label', 'Remove ' + (def ? def.label : subId));
+      txt.addEventListener('click', () => removeSub(subId));
       svg.appendChild(txt);
     });
   }

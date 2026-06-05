@@ -475,8 +475,9 @@
     .scale .scale-bar{ display:none; margin:.1rem 0 }
     .scale.d-big .scale-bar, .scale.d-normal .scale-bar{ display:grid }
     .scale.d-normal .scale-bar span{ height:16px }
-    .scale.d-big .picker input[type=range], .scale.d-big .picker .ticks,
-    .scale.d-normal .picker input[type=range], .scale.d-normal .picker .ticks{ display:none }
+    /* hide only the slider in normal/big — keep the ticks (1..N labels) visible with the bar */
+    .scale.d-big .picker input[type=range],
+    .scale.d-normal .picker input[type=range]{ display:none }
     .scale-bar span{ cursor:pointer }
     .scale-tools{ display:flex; justify-content:flex-end; align-items:center; gap:.4rem; margin-top:-.1rem }
 
@@ -527,8 +528,7 @@
     }
     .adj-toggle:hover{ filter:brightness(1.15) }
 
-    /* phrase mode controls: Add an object → Compare ⇄ Rate */
-    .obj-part[hidden]{ display:none }
+    /* phrase mode controls: Merge ⇄ Compare */
     .phrase-btn{
       cursor:pointer; font:inherit; font-size:.8rem; font-weight:700; letter-spacing:.3px;
       padding:.22rem .8rem; margin-left:.4rem; border-radius:var(--flove-radius-pill);
@@ -538,6 +538,12 @@
     .phrase-btn:hover{ border-color:var(--app-accent); box-shadow:0 0 10px rgba(141,137,255,.3) }
     .phrase-btn[hidden]{ display:none }
     .phrase-body[hidden]{ display:none }
+    /* Merge / Compare radios — Merge stacked above Compare */
+    .phrase-modes{ display:inline-flex; flex-direction:column; gap:.25rem; vertical-align:middle; margin-left:.4rem }
+    .phrase-modes .phrase-btn{ margin-left:0 }
+    .phrase-btn.is-on{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent); box-shadow:0 0 10px rgba(141,137,255,.4) }
+    /* the comparison connector ("as more … than") inserted between the two words only in Compare */
+    .cmp-connector[hidden]{ display:none }
     .phrase-summary{ color:var(--accent2); font-weight:700; letter-spacing:.3px }
     .static-line{ color:var(--accent2); letter-spacing:.3px }
     .static-line[hidden]{ display:none }
@@ -765,15 +771,7 @@
 
   <!-- main area -->
   <main class="layout">
-    <!-- shared node-count row for the first section (mirrors the More-raters row) -->
-    <div class="scale-nodes-row" id="scaleNodes" role="group" aria-label="Node counts">
-      <button type="button" class="numbtn" data-n="2">2</button>
-      <button type="button" class="numbtn" data-n="3">3</button>
-      <button type="button" class="numbtn" data-n="4">4</button>
-      <button type="button" class="numbtn" data-n="5">5</button>
-      <button type="button" class="numbtn" data-n="7">7</button>
-      <button type="button" class="numbtn" data-n="all">all</button>
-    </div>
+    <!-- each scale now carries its own node-count buttons (see setupTools) -->
     <section class="scales">
       <!-- each scale has a 1–7 rating and sense toggles -->
 
@@ -1985,6 +1983,7 @@
     const phrases = [];
     const staticUpdaters = [];           // the bottom (static) phrase render hooks
     let topSubjField = null, topObjField = null;
+    let phraseMode = 'merge';            // 'merge' = both words only · 'compare' = connector between them
     // 🪄 magic-fill: each click cycles a 5-word loop (6th click resets to empty)
     const SUBJ_WORDS = ['True','Love','Life','Time','Self'];
     const OBJ_WORDS  = ['Love','Fear','Hope','Art','Death'];
@@ -2005,33 +2004,36 @@
       const subjMagic = magicBtn(SUBJ_WORDS, subjField);   // left of the subject field
       const objMagic  = magicBtn(OBJ_WORDS,  objField);    // right of the object field
 
-      // "more" continues "as"; the object " than <field> 🪄" — both shown only in Compare
-      const moreWord = document.createElement('span'); moreWord.className='more-word'; moreWord.textContent=' more'; moreWord.hidden = true;
-      const objPart  = document.createElement('span'); objPart.className='obj-part'; objPart.hidden = true;
-      objPart.append(' than ', objField, objMagic);
+      // the comparison connector ("as more <adj> than") — the "arrows" that sit between the
+      // two words only in Compare. In Merge it's hidden so the two words just sit together.
+      const moreWord = document.createElement('span'); moreWord.className='more-word'; moreWord.textContent=' more';
+      const connector = document.createElement('span'); connector.className='cmp-connector';
+      connector.append(' as', moreWord, ' ', adj, ' than ');
 
-      // the phrase body — collapsed by default under "Add an object"
-      const body = document.createElement('span'); body.className='phrase-body'; body.hidden = true;
-      body.append(subjMagic, subjField, ' as', moreWord, ' ', adj, objPart);
+      // both fields are shown by default now (no "Add an object" gate)
+      const body = document.createElement('span'); body.className='phrase-body';
+      body.append(subjMagic, subjField, ' ', connector, objField, objMagic);
 
-      const btn = (cls,en,es,hidden)=>{ const b=document.createElement('button'); b.type='button'; b.className='phrase-btn '+cls; if(hidden) b.hidden=true; b.innerHTML='<span class="t-en">'+en+'</span><span class="t-es">'+es+'</span>'; return b; };
-      const addObjBtn = btn('add-obj','Add an object','Añadir objeto', false);
-      const cmpBtn = btn('cmp','Compare','Comparar', true);
-      const hideBtn = btn('hide','Hide','Ocultar', true);
-      const addObjOriginal = addObjBtn.innerHTML;
+      const btn = (cls,en,es)=>{ const b=document.createElement('button'); b.type='button'; b.className='phrase-btn '+cls; b.innerHTML='<span class="t-en">'+en+'</span><span class="t-es">'+es+'</span>'; return b; };
+      const mergeBtn = btn('merge','Merge','Unir');
+      const cmpBtn   = btn('cmp','Compare','Comparar');
+      const modes = document.createElement('span'); modes.className='phrase-modes';
+      modes.append(mergeBtn, cmpBtn);   // Merge stacked above Compare
 
-      // Add an object → magic + empty field + "as" + Compare + Hide
-      addObjBtn.addEventListener('click', ()=>{ body.hidden=false; addObjBtn.hidden=true; cmpBtn.hidden=false; hideBtn.hidden=false; subjField.focusInput(); });
-      // Compare → object field + magic on the right; "more" after "as", "than" before the field
-      cmpBtn.addEventListener('click', ()=>{ moreWord.hidden=false; objPart.hidden=false; cmpBtn.hidden=true; });
-      // Hide → collapse; write any added word(s) into the Add-an-object button itself
-      hideBtn.addEventListener('click', ()=>{
-        body.hidden=true; cmpBtn.hidden=true; hideBtn.hidden=true; addObjBtn.hidden=false;
-        const names = [subjField.getValue(), objField.getValue()].filter(Boolean);
-        addObjBtn.innerHTML = names.length ? names.join('  ·  ') : addObjOriginal;
-      });
+      // Merge / Compare behave as mutually-exclusive radios.
+      // Merge → both words only; Compare → inserts the connector ("arrows") between them.
+      function applyMode(m){
+        phraseMode = m;
+        mergeBtn.classList.toggle('is-on', m==='merge');
+        cmpBtn.classList.toggle('is-on', m==='compare');
+        connector.hidden = (m !== 'compare');
+      }
+      function setMode(m){ applyMode(m); renderPhrase(); }
+      mergeBtn.addEventListener('click', ()=> setMode('merge'));
+      cmpBtn.addEventListener('click', ()=> setMode('compare'));
 
-      container.append(addObjBtn, body, ' ', cmpBtn, hideBtn);
+      container.append(body, ' ', modes);
+      applyMode('merge');   // default: both words shown, merged (no arrows) — renderPhrase() runs later
       phrases.push(ph);
       return { subjField, objField };
     }
@@ -2045,8 +2047,14 @@
       container.append(toggle, ' ', line);
       staticUpdaters.push((parts)=>{
         const subj = (topSubjField && topSubjField.getValue()) || 'It';
-        const obj  = (topObjField  && topObjField.getValue())  || 'Love';
-        line.textContent = ' ' + subj + ' is more ' + parts.join(', ') + ' than ' + obj + '.';
+        const obj  = (topObjField  && topObjField.getValue())  || '';
+        if(phraseMode === 'compare'){
+          line.textContent = ' ' + subj + ' is more ' + parts.join(', ') + ' than ' + (obj || 'Love') + '.';
+        } else {
+          // Merge → reads as a single (first) item: both words merged, no "than …"
+          const merged = [subj, obj].filter(Boolean).join(' ') || subj;
+          line.textContent = ' ' + merged + ' is ' + parts.join(', ') + '.';
+        }
       });
     }
 
@@ -2548,6 +2556,8 @@
     const SENSES   = [['hear','👂'],['touch','🖐️'],['view','👁️'],['taste','👅'],['smell','👃']];
     const SGRAD    = 'linear-gradient(90deg,#ff2d2d,#ff8a00,#ffe100,#36d63a,#2aa9ff,#3b4cff,#a64bff)';
     const scaleNodeUpdaters = [];   // first-section node-count row → each scale's number strip
+    // each main scale carries its OWN set of node-count buttons (different per scale)
+    const SCALE_NODE_SETS = [[2,3,5,7],[3,4,5,7],[2,4,6,7]];
 
     // colours bar — start at 50% intensity, +5% per click (multi-click, caps at 100%)
     function buildColours(){
@@ -2750,8 +2760,15 @@
             });
             sbar.appendChild(s);
           }
+          // labels: tick row mirrors the node count (1..N)
+          const ticks = el.querySelector('.ticks');
+          if(ticks){ ticks.innerHTML=''; for(let k=1;k<=n;k++){ const t=document.createElement('span'); t.textContent=k; ticks.appendChild(t); } }
         }
-        if(sbar) wireBar(7);
+        // this scale's own number set (different per scale) + its default node count
+        const scaleIndex = [...document.querySelectorAll('.scale')].indexOf(el);
+        const mySet = SCALE_NODE_SETS[scaleIndex] || [2,3,5,7];
+        const defN  = mySet.includes(7) ? 7 : Math.max(...mySet);
+        if(sbar) wireBar(defN);
 
         const modeSel = document.createElement('select'); modeSel.className='mode-pick'; modeSel.title='Selection';
         modeSel.innerHTML='<option value="single">single</option><option value="area">area</option><option value="multi">multi</option>';
@@ -2781,6 +2798,7 @@
           });
         }
         scaleNodeUpdaters.push(renderNodes);
+        renderNodes(mySet);                        // populate this scale's own buttons independently
 
         tools.append(modeSel, topRow, dsel);       // mode above · + · design+view below
       } else {
@@ -2799,27 +2817,7 @@
       }));
     }).observe(document.body, {childList:true, subtree:true});
 
-    // shared node-count row for the first section → each scale shows the selected counts
-    const ncRow = document.getElementById('scaleNodes');
-    if(ncRow){
-      const selCounts = new Set();
-      const numBtns = [...ncRow.querySelectorAll('[data-n]')].filter(b=>b.dataset.n!=='all');
-      ncRow.addEventListener('click', e=>{
-        const b = e.target.closest('[data-n]'); if(!b) return;
-        if(b.dataset.n === 'all'){
-          const turnOn = !b.classList.contains('on');
-          b.classList.toggle('on', turnOn);
-          selCounts.clear();
-          numBtns.forEach(x=>{ x.classList.toggle('on', turnOn); if(turnOn) selCounts.add(+x.dataset.n); });
-        } else {
-          b.classList.toggle('on');
-          const c = +b.dataset.n;
-          if(b.classList.contains('on')) selCounts.add(c); else selCounts.delete(c);
-          ncRow.querySelector('[data-n="all"]').classList.toggle('on', selCounts.size===numBtns.length);
-        }
-        scaleNodeUpdaters.forEach(fn=> fn(selCounts));
-      });
-    }
+    // (the shared first-section node-count row is gone — each scale owns its own buttons now)
   })();
   </script>
 

@@ -764,27 +764,47 @@
       background:linear-gradient(180deg,rgba(112,240,211,.06),rgba(255,255,255,.02)),#10121f;
       box-shadow:0 14px 34px rgba(0,0,0,.4) }
     .axis-stage[hidden]{ display:none }
-    .axis-stage h4{ margin:.1rem 0 .15rem; color:var(--accent2); letter-spacing:.4px; font-size:1rem }
-    .axis-stage .axis-hint{ margin:0 0 1rem; color:var(--muted); font-size:.82rem }
     .axis-close{ position:absolute; top:.6rem; right:.6rem; cursor:pointer; width:1.9rem; height:1.9rem;
-      border-radius:50%; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:1.05rem }
+      border-radius:50%; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:1.05rem; z-index:4 }
     .axis-close:hover{ border-color:#ff6b6b; color:#ff6b6b }
 
-    /* cross layout: one rater horizontal · one vertical, each with only its extreme labels */
-    .axis-figure{ display:flex; gap:1.8rem; flex-wrap:wrap; align-items:flex-start; justify-content:center }
-    .axis-name{ font-size:.85rem; font-weight:700; margin-bottom:.5rem; text-align:center; letter-spacing:.3px }
-    .axis-h{ flex:1 1 340px; min-width:240px }
-    .axis-h .axis-name{ color:var(--app-accent) }
-    .axis-v .axis-name{ color:var(--accent2) }
-    .axis-v{ flex:0 0 auto }
-    .axis-hwrap{ display:flex; align-items:center; gap:.6rem }
-    .axis-hwrap > .bar{ flex:1 }
-    .axis-vwrap{ display:flex; flex-direction:column; align-items:center; gap:.5rem }
-    .axis-h .end, .axis-v .end{ font-size:.72rem; color:var(--app-accent-soft); white-space:nowrap }
-    .axis-h .end{ max-width:9ch; overflow:hidden; text-overflow:ellipsis }
-    /* vertical bar = a column of cells */
-    .bar.vbar{ display:flex; flex-direction:column; width:66px; gap:2px }
+    /* crossing layout: the horizontal rater and the vertical rater overlap as one axis-cross */
+    .axis-cross{ position:relative; max-width:560px; margin:1.4rem auto .2rem }
+    .axis-cross .cross-h{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+      display:flex; align-items:center; gap:.55rem; z-index:1 }
+    .axis-cross .cross-h > .bar{ flex:1 }
+    .axis-cross .cross-v{ position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
+      display:flex; flex-direction:column; align-items:center; justify-content:space-between; z-index:2 }
+    .axis-cross .end{ font-size:.72rem; color:var(--app-accent-soft); white-space:nowrap }
+    .axis-cross .cross-h .end{ max-width:9ch; overflow:hidden; text-overflow:ellipsis }
+    .axis-cap{ position:absolute; top:-.1rem; font-size:.72rem; font-weight:700; letter-spacing:.3px; z-index:3 }
+    .axis-cap.cap-h{ left:0; color:var(--app-accent) }
+    .axis-cap.cap-v{ right:0; color:var(--accent2); text-align:right }
+    /* vertical bar = a column of cells; it crosses over the horizontal bar */
+    .bar.vbar{ display:flex; flex-direction:column; width:66px; gap:2px;
+      box-shadow:0 0 0 3px #10121f, inset 0 10px 22px rgba(0,0,0,.35) }
     .bar.vbar span{ width:100%; height:34px }
+
+    /* Save + the saved-axes list (each item: up/down + delete) */
+    .axis-actions{ display:flex; justify-content:center; gap:.5rem; margin-top:1.1rem }
+    .axis-save{ cursor:pointer; font:inherit; font-weight:700; letter-spacing:.5px; font-size:.95rem;
+      padding:.45rem 1.4rem; border-radius:var(--flove-radius-pill);
+      background:var(--accent2); color:var(--app-ink-on-accent); border:1px solid var(--accent2);
+      box-shadow:0 0 14px rgba(112,240,211,.4); display:inline-flex; align-items:center; gap:.4rem }
+    .axis-save:hover{ box-shadow:0 0 20px rgba(112,240,211,.6) }
+    .axis-saved[hidden]{ display:none }
+    .axis-saved{ margin-top:1.3rem; border-top:1px solid var(--line); padding-top:.9rem }
+    .axis-saved-head{ margin:0 0 .6rem; font-size:.78rem; letter-spacing:.6px; text-transform:uppercase; color:var(--accent2) }
+    .axis-saved-list{ display:grid; gap:.8rem }
+    .axis-item{ border:1px solid var(--line); border-radius:var(--flove-radius-sm); background:#15182b; padding:.6rem .7rem }
+    .axis-item-top{ display:flex; align-items:center; gap:.5rem }
+    .axis-item .si-name{ flex:1; font-weight:700; letter-spacing:.3px; font-size:.9rem }
+    .axis-item-arrows{ display:inline-flex; gap:3px }
+    .axis-item-arrows button, .axis-item .si-del{ cursor:pointer; width:1.6rem; height:1.4rem; line-height:1; padding:0;
+      border-radius:6px; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:.7rem }
+    .axis-item-arrows button:hover{ border-color:var(--app-accent); color:var(--ink) }
+    .axis-item .si-del:hover{ border-color:#ff6b6b; color:#ff6b6b }
+    .axis-item .axis-cross{ pointer-events:none; margin:1rem auto .2rem }
     /* multi-check cells inside the inline stage; unchecked dim to 50% once one is picked */
     .axis-stage .bar span{ cursor:pointer }
     .axis-stage .bar span.pick{ outline:3px solid var(--accent2); outline-offset:-3px; filter:brightness(1.15) }
@@ -3088,42 +3108,78 @@
       }
       return bar;
     }
-    // one rater: its name + chosen node count, the bar, and only its EXTREME labels at the ends
-    function buildBlock(d, vertical){
-      const wrap=document.createElement('div'); wrap.className=vertical?'axis-v':'axis-h';
-      const name=document.createElement('div'); name.className='axis-name';
-      name.textContent=d.name+' · '+d.nodes+' '+(esEs()?'nodos':'nodes');
-      const ends = d.labels.length>=2 ? [d.labels[0], d.labels[d.labels.length-1]] : [d.labels[0]||'—', d.labels[0]||'—'];
-      const inner=document.createElement('div'); inner.className=vertical?'axis-vwrap':'axis-hwrap';
-      const e1=document.createElement('span'); e1.className='end'; e1.textContent=ends[0];
-      const e2=document.createElement('span'); e2.className='end'; e2.textContent=ends[1];
-      inner.append(e1, buildBar(d, vertical), e2);
-      wrap.append(name, inner);
-      return wrap;
+    function endSpan(t){ const s=document.createElement('span'); s.className='end'; s.textContent=t; return s; }
+    function extremes(d){ return d.labels.length>=2 ? [d.labels[0], d.labels[d.labels.length-1]] : [d.labels[0]||'—', d.labels[0]||'—']; }
+    // the crossing figure: rater A laid horizontally and rater B vertically, overlapping;
+    // each keeps only its extreme labels and its chosen node count
+    function buildCross(a, b){
+      const cross=document.createElement('div'); cross.className='axis-cross';
+      const ae=extremes(a), be=extremes(b);
+      const hg=document.createElement('div'); hg.className='cross-h';
+      hg.append(endSpan(ae[0]), buildBar(a,false), endSpan(ae[1]));
+      const vg=document.createElement('div'); vg.className='cross-v';
+      vg.append(endSpan(be[0]), buildBar(b,true), endSpan(be[1]));
+      const capA=document.createElement('div'); capA.className='axis-cap cap-h';
+      capA.textContent=a.name+' · '+a.nodes+' '+(esEs()?'nodos':'nodes');
+      const capB=document.createElement('div'); capB.className='axis-cap cap-v';
+      capB.textContent=b.name+' · '+b.nodes+' '+(esEs()?'nodos':'nodes');
+      cross.append(hg, vg, capA, capB);
+      cross.style.minHeight = (b.nodes*34 + Math.max(0,b.nodes-1)*2 + 48) + 'px';   // room for top/bottom labels
+      return cross;
     }
 
-    // the inline figure (rendered within the page, not in a modal)
+    // the inline stage lives below the page content (no modal); the saved list persists across opens
     const stage=document.createElement('div'); stage.className='axis-stage'; stage.hidden=true;
+    const closeBtn=document.createElement('button'); closeBtn.type='button'; closeBtn.className='axis-close'; closeBtn.setAttribute('aria-label','Close'); closeBtn.textContent='×';
+    const current=document.createElement('div'); current.className='axis-current';
+    const saved=document.createElement('div'); saved.className='axis-saved'; saved.hidden=true;
+    const savedHead=document.createElement('div'); savedHead.className='axis-saved-head';
+    savedHead.innerHTML='<span class="t-en">Saved axes</span><span class="t-es">Ejes guardados</span>';
+    const savedList=document.createElement('div'); savedList.className='axis-saved-list';
+    saved.append(savedHead, savedList);
+    stage.append(closeBtn, current, saved);
     function closeAxis(){ stage.hidden=true; }
+    closeBtn.addEventListener('click', closeAxis);
     document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAxis(); });
+    function refreshSaved(){ saved.hidden = !savedList.children.length; }
 
-    function openAxis(e){
+    // place the stage once, below the rater content (just above "know more")
+    (function(){
+      const out=document.querySelector('.output');
+      if(out && out.parentNode) out.parentNode.insertBefore(stage, out);
+      else (document.querySelector('main.layout')||document.body).appendChild(stage);
+    })();
+
+    // save the current axis to the TOP of the list, with up/down + delete controls
+    function saveAxis(a, b, crossNode){
+      const item=document.createElement('div'); item.className='axis-item';
+      const top=document.createElement('div'); top.className='axis-item-top';
+      const arrows=document.createElement('span'); arrows.className='axis-item-arrows';
+      const up=document.createElement('button'); up.type='button'; up.title='Up'; up.textContent='▲';
+      const down=document.createElement('button'); down.type='button'; down.title='Down'; down.textContent='▼';
+      up.addEventListener('click', ()=>{ const p=item.previousElementSibling; if(p) savedList.insertBefore(item, p); });
+      down.addEventListener('click', ()=>{ const n=item.nextElementSibling; if(n) savedList.insertBefore(n, item); });
+      arrows.append(up, down);
+      const name=document.createElement('span'); name.className='si-name'; name.textContent=a.name+' × '+b.name;
+      const del=document.createElement('button'); del.type='button'; del.className='si-del'; del.title='Delete'; del.textContent='×';
+      del.addEventListener('click', ()=>{ item.remove(); refreshSaved(); });
+      top.append(arrows, name, del);
+      item.append(top, crossNode.cloneNode(true));     // static snapshot (picks preserved)
+      savedList.insertBefore(item, savedList.firstChild);   // newest first
+      refreshSaved();
+    }
+
+    function openAxis(){
       const cards=allSelected(); if(cards.length!==2) return;
       const a=info(cards[0]), b=info(cards[1]);
-      stage.innerHTML='';
-      const close=document.createElement('button'); close.type='button'; close.className='axis-close'; close.setAttribute('aria-label','Close'); close.textContent='×';
-      close.addEventListener('click', closeAxis);
-      const h=document.createElement('h4'); h.textContent='Axis · '+a.name+' × '+b.name;
-      const hint=document.createElement('p'); hint.className='axis-hint';
-      hint.textContent = esEs() ? 'Un valorador en horizontal, el otro en vertical — marca varios puntos sobre el mismo eje.'
-                                : 'One rater horizontal, the other vertical — multi-check points on one shared axis.';
-      const fig=document.createElement('div'); fig.className='axis-figure';
-      fig.append(buildBlock(a,false), buildBlock(b,true));    // A → horizontal · B → vertical
-      stage.append(close, h, hint, fig);
-      // drop the figure into the page right after the Axis control that was clicked
-      const ctrl = e && e.currentTarget && e.currentTarget.closest('.axis-ctrl');
-      if(ctrl && ctrl.parentNode) ctrl.parentNode.insertBefore(stage, ctrl.nextSibling);
-      else (document.querySelector('main.layout')||document.body).appendChild(stage);
+      current.innerHTML='';
+      const cross=buildCross(a, b);                     // A → horizontal · B → vertical, crossing
+      const actions=document.createElement('div'); actions.className='axis-actions';
+      const saveBtn=document.createElement('button'); saveBtn.type='button'; saveBtn.className='axis-save';
+      saveBtn.innerHTML='💾 <span class="t-en">Save</span><span class="t-es">Guardar</span>';
+      saveBtn.addEventListener('click', ()=> saveAxis(a, b, cross));
+      actions.append(saveBtn);
+      current.append(cross, actions);
       stage.hidden=false;
       stage.scrollIntoView({behavior:'smooth', block:'nearest'});
     }

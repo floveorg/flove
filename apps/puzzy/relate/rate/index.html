@@ -793,14 +793,18 @@
       box-shadow:0 0 14px rgba(112,240,211,.4); display:inline-flex; align-items:center; gap:.4rem }
     .axis-save:hover{ box-shadow:0 0 20px rgba(112,240,211,.6) }
 
-    /* saved axis card: only the axis (static) + move up/down + delete cross */
+    /* once saved: same axis stays (static) with a bigger delete + up/down arrows on the right */
     .axis-saved-card .axis-cross{ pointer-events:none }
-    .axis-card-ctrls{ position:absolute; top:.5rem; right:.5rem; z-index:5; display:flex; gap:4px }
-    .axis-card-ctrls button{ cursor:pointer; width:1.7rem; height:1.5rem; line-height:1; padding:0;
-      border-radius:6px; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:.75rem }
+    .axis-card-ctrls{ position:absolute; top:.5rem; right:.5rem; z-index:5;
+      display:flex; flex-direction:column; align-items:center; gap:5px }
+    .axis-card-ctrls button{ cursor:pointer; line-height:1; padding:0; border-radius:7px;
+      border:1px solid var(--line); background:#171a2e; color:var(--muted) }
     .axis-card-ctrls button:hover{ border-color:var(--app-accent); color:var(--ink) }
-    .axis-card-ctrls .ac-del{ font-size:1rem }
-    .axis-card-ctrls .ac-del:hover{ border-color:#ff6b6b; color:#ff6b6b }
+    /* delete = the big button */
+    .axis-card-ctrls .ac-del{ width:2.5rem; height:2.5rem; font-size:1.6rem; border-color:#ff6b6b; color:#ff6b6b }
+    .axis-card-ctrls .ac-del:hover{ color:#fff; background:#3a1417; box-shadow:0 0 14px rgba(255,107,107,.45) }
+    /* arrows = smaller */
+    .axis-card-ctrls .ac-up, .axis-card-ctrls .ac-down{ width:1.8rem; height:1.5rem; font-size:.8rem }
   </style>
 </head>
 <body>
@@ -3118,10 +3122,14 @@
 
     const scalesHost = () => document.querySelector('.scales') || document.querySelector('main.layout') || document.body;
 
-    // the live preview sits as the FIRST main rater; saved axes become main-rater cards below it
-    const live=document.createElement('div'); live.className='axis-live'; live.hidden=true;
-    (function(){ const h=scalesHost(); h.insertBefore(live, h.firstChild); })();
-    function closeAxis(){ live.hidden=true; }
+    // the live preview sits as the FIRST main rater; on Save it turns IN PLACE into a saved card
+    let live=null;
+    function makeLive(){
+      const el=document.createElement('div'); el.className='axis-live'; el.hidden=true;
+      const h=scalesHost(); h.insertBefore(el, h.firstChild); live=el; return el;
+    }
+    makeLive();
+    function closeAxis(){ if(live) live.hidden=true; }
     document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAxis(); });
 
     // move a saved card up/down among the main raters (never above the live preview)
@@ -3130,31 +3138,34 @@
       else     { const n=card.nextElementSibling;     if(n) card.parentNode.insertBefore(n, card); }
     }
 
-    // save: keep the axis as a permanent main rater — only the cross + delete × + up/down
-    function saveAxis(crossNode){
-      const card=document.createElement('div'); card.className='axis-saved-card';
+    // Save: keep THIS axis where it is (no copy) — hide the Save button, freeze the cross,
+    // and add a bigger delete + up/down arrows on the right
+    function saveAxis(){
+      const card=live; if(!card) return;
+      card.querySelector('.axis-actions')?.remove();     // hide / drop the Save button
+      card.classList.remove('axis-live'); card.classList.add('axis-saved-card');
       const ctrls=document.createElement('div'); ctrls.className='axis-card-ctrls';
-      const up=document.createElement('button');   up.type='button';   up.title='Up';     up.textContent='▲';
-      const down=document.createElement('button'); down.type='button'; down.title='Down'; down.textContent='▼';
-      const del=document.createElement('button');  del.type='button';  del.className='ac-del'; del.title='Delete'; del.textContent='×';
+      const del=document.createElement('button');  del.type='button';  del.className='ac-del';  del.title='Delete'; del.textContent='×';
+      const up=document.createElement('button');   up.type='button';   up.className='ac-up';    up.title='Up';     up.textContent='▲';
+      const down=document.createElement('button'); down.type='button'; down.className='ac-down'; down.title='Down'; down.textContent='▼';
+      del.addEventListener('click',  ()=> card.remove());
       up.addEventListener('click',   ()=> moveCard(card,-1));
       down.addEventListener('click', ()=> moveCard(card, 1));
-      del.addEventListener('click',  ()=> card.remove());
-      ctrls.append(up, down, del);
-      card.append(ctrls, crossNode.cloneNode(true));     // static snapshot (picks preserved)
-      const h=scalesHost();                              // drop it in right after the live preview (top of the raters)
-      if(live.parentNode===h) h.insertBefore(card, live.nextSibling); else h.insertBefore(card, h.firstChild);
+      ctrls.append(del, up, down);
+      card.appendChild(ctrls);
+      live=null;                                         // next Axis opens a fresh preview (no duplicate)
     }
 
     function openAxis(){
       const cards=allSelected(); if(cards.length!==2) return;
+      if(!live || !live.isConnected) makeLive();
       const a=info(cards[0]), b=info(cards[1]);
       live.innerHTML='';
       const cross=buildCross(a, b);                     // A → horizontal · B → vertical, crossing
       const actions=document.createElement('div'); actions.className='axis-actions';
       const saveBtn=document.createElement('button'); saveBtn.type='button'; saveBtn.className='axis-save';
       saveBtn.innerHTML='💾 <span class="t-en">Save</span><span class="t-es">Guardar</span>';
-      saveBtn.addEventListener('click', ()=> saveAxis(cross));
+      saveBtn.addEventListener('click', saveAxis);
       actions.append(saveBtn);
       live.append(cross, actions);
       live.hidden=false;

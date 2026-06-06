@@ -2944,8 +2944,7 @@
 
     let groupCount = 0;    // groups are created via + → name → Save
     let groups = [];       // {num, name, checked}
-    let items = [];        // [{key, el, group}] — gathered from the page's selected raters
-    let axisItems = [];    // [{key, el, group, isAxis}] — saved axes (persist across opens)
+    let entries = [];      // unified ordered list: {key, el, group, isAxis} — axes + selected raters
     let axKey = 0;
     let dragItem = null;
 
@@ -2953,7 +2952,7 @@
     function addAxis(crossNode){
       if(!crossNode) return;
       const el = crossNode.cloneNode(true); el.classList.add('myr-clone');
-      axisItems.unshift({ key:'ax'+(axKey++), el, group:null, isAxis:true });
+      entries.unshift({ key:'ax'+(axKey++), el, group:null, isAxis:true });
       if(!drawer.hidden) render();
     }
     window.addEventListener('flove:save-axis', e=> addAxis(e.detail));
@@ -2969,14 +2968,16 @@
       return c;
     }
     function gather(){
-      const sel = [...document.querySelectorAll('.rater.selected, .scale.selected')];
-      items = sel.map((el,i)=>({ key:'k'+i, el, group:null }));
+      // keep the saved axes, rebuild the selected-rater entries from the page
+      const axes = entries.filter(e=>e.isAxis);
+      const sel = [...document.querySelectorAll('.rater.selected, .scale.selected')]
+        .map((el,i)=>({ key:'k'+i, el, group:null, isAxis:false }));
+      entries = axes.concat(sel);
     }
     function move(it, dir){
-      const arr = it.isAxis ? axisItems : items;
-      const i = arr.indexOf(it), j = i + dir;
-      if(j < 0 || j >= arr.length) return;
-      arr.splice(i,1); arr.splice(j,0,it); render();
+      const i = entries.indexOf(it), j = i + dir;
+      if(j < 0 || j >= entries.length) return;
+      entries.splice(i,1); entries.splice(j,0,it); render();
     }
     function section(g, list){
       const sec = document.createElement('div'); sec.className = 'myr-section';
@@ -2987,13 +2988,17 @@
         const p = document.createElement('p'); p.className='save-empty';
         p.textContent = isEs()?'Sin valoradores.':'No raters.'; sec.appendChild(p); return sec;
       }
-      list.forEach(it=>{
+      list.forEach((it, idx)=>{
         const item = document.createElement('div'); item.className='myr-item'; item.dataset.key=it.key; item.draggable=true;
         const mv = document.createElement('div'); mv.className='myr-move';
-        const U = document.createElement('button'); U.type='button'; U.className='mi-up'; U.textContent='▲';
-        const D = document.createElement('button'); D.type='button'; D.className='mi-down'; D.textContent='▼';
-        U.addEventListener('click', ()=>move(it,-1)); D.addEventListener('click', ()=>move(it,1));
-        mv.append(U, D);
+        if(idx > 0){                                    // no up-arrow on the first item
+          const U = document.createElement('button'); U.type='button'; U.className='mi-up'; U.textContent='▲';
+          U.addEventListener('click', ()=>move(it,-1)); mv.append(U);
+        }
+        if(idx < list.length-1){                         // no down-arrow on the last item
+          const D = document.createElement('button'); D.type='button'; D.className='mi-down'; D.textContent='▼';
+          D.addEventListener('click', ()=>move(it,1)); mv.append(D);
+        }
         if(it.group){ const bd=document.createElement('span'); bd.className='mi-badge'; bd.textContent='g'+it.group; mv.appendChild(bd); }
         const content = it.isAxis ? it.el.cloneNode(true) : cloneRater(it.el);
         item.append(content, mv);   // content left · big arrows on the right
@@ -3010,13 +3015,13 @@
         const chip = document.createElement('button'); chip.type='button';
         chip.className = 'group-chip' + (g.checked?' checked':''); chip.dataset.group = g.num;
         chip.innerHTML = '<span class="gc-name">'+esc(g.name)+'</span>'+
-                         '<span class="gc-count">'+items.filter(it=>it.group===g.num).length+'</span>';
+                         '<span class="gc-count">'+entries.filter(it=>it.group===g.num).length+'</span>';
         groupsRow.appendChild(chip);
       });
-      // body: saved axes + the flat Selected section, then a section per checked group
+      // body: the unified list (saved axes + selected raters), then a section per checked group
       body.innerHTML = '';
-      body.appendChild(section(null, axisItems.concat(items)));
-      groups.filter(g=>g.checked).forEach(g=> body.appendChild(section(g, items.filter(it=>it.group===g.num))));
+      body.appendChild(section(null, entries));
+      groups.filter(g=>g.checked).forEach(g=> body.appendChild(section(g, entries.filter(it=>it.group===g.num))));
     }
     const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 

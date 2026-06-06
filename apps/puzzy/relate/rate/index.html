@@ -758,31 +758,37 @@
     }
     .axis-btn:hover{ box-shadow:0 0 20px rgba(112,240,211,.6) }
 
-    .axis-overlay{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
-      padding:1rem; background:rgba(8,9,18,.62); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px) }
-    .axis-overlay[hidden]{ display:none }
-    .axis-panel{ width:min(680px,94vw); max-height:88vh; overflow:auto; position:relative;
-      background:var(--panel); border:1px solid var(--accent2); border-radius:var(--flove-radius);
-      padding:1rem 1.1rem 1.4rem; box-shadow:0 30px 80px rgba(0,0,0,.5) }
-    .axis-panel h4{ margin:.1rem 0 .15rem; color:var(--accent2); letter-spacing:.4px; font-size:1rem }
-    .axis-hint{ margin:0 0 .8rem; color:var(--muted); font-size:.82rem }
+    /* the Axis figure renders INLINE in the page (no modal) */
+    .axis-stage{ position:relative; max-width:980px; margin:.6rem auto 1.4rem; padding:1.1rem 1.1rem 1.4rem;
+      border:1px solid var(--accent2); border-radius:var(--flove-radius);
+      background:linear-gradient(180deg,rgba(112,240,211,.06),rgba(255,255,255,.02)),#10121f;
+      box-shadow:0 14px 34px rgba(0,0,0,.4) }
+    .axis-stage[hidden]{ display:none }
+    .axis-stage h4{ margin:.1rem 0 .15rem; color:var(--accent2); letter-spacing:.4px; font-size:1rem }
+    .axis-stage .axis-hint{ margin:0 0 1rem; color:var(--muted); font-size:.82rem }
     .axis-close{ position:absolute; top:.6rem; right:.6rem; cursor:pointer; width:1.9rem; height:1.9rem;
       border-radius:50%; border:1px solid var(--line); background:#171a2e; color:var(--muted); font-size:1.05rem }
     .axis-close:hover{ border-color:#ff6b6b; color:#ff6b6b }
-    /* the shared axis line both raters hang from */
-    .axis-shared{ display:flex; align-items:center; gap:.5rem; margin:.2rem 0 .9rem; color:var(--muted); font-size:.72rem }
-    .axis-shared .axis-line{ flex:1; height:8px; border-radius:5px;
-      background:linear-gradient(90deg,#ff2d2d,#ff8a00,#ffe100,#36d63a,#2aa9ff,#3b4cff,#a64bff) }
-    .axis-row{ margin:.7rem 0 }
-    .axis-row .axis-name{ font-size:.85rem; font-weight:700; margin-bottom:.35rem }
-    .axis-row.a .axis-name{ color:var(--app-accent) }
-    .axis-row.b .axis-name{ color:var(--accent2) }
-    .axis-row .axis-labels{ display:grid; gap:6px; margin-top:.35rem }
-    .axis-row .axis-labels span{ text-align:center; font-size:.72rem; color:var(--app-accent-soft) }
-    /* multi-check on the cells; unchecked dim to 50% once one is picked */
-    .axis-panel .bar span{ cursor:pointer }
-    .axis-panel .bar span.pick{ outline:3px solid var(--accent2); outline-offset:-3px; filter:brightness(1.15) }
-    .axis-panel .bar:has(span.pick) span:not(.pick){ opacity:.5 }
+
+    /* cross layout: one rater horizontal · one vertical, each with only its extreme labels */
+    .axis-figure{ display:flex; gap:1.8rem; flex-wrap:wrap; align-items:flex-start; justify-content:center }
+    .axis-name{ font-size:.85rem; font-weight:700; margin-bottom:.5rem; text-align:center; letter-spacing:.3px }
+    .axis-h{ flex:1 1 340px; min-width:240px }
+    .axis-h .axis-name{ color:var(--app-accent) }
+    .axis-v .axis-name{ color:var(--accent2) }
+    .axis-v{ flex:0 0 auto }
+    .axis-hwrap{ display:flex; align-items:center; gap:.6rem }
+    .axis-hwrap > .bar{ flex:1 }
+    .axis-vwrap{ display:flex; flex-direction:column; align-items:center; gap:.5rem }
+    .axis-h .end, .axis-v .end{ font-size:.72rem; color:var(--app-accent-soft); white-space:nowrap }
+    .axis-h .end{ max-width:9ch; overflow:hidden; text-overflow:ellipsis }
+    /* vertical bar = a column of cells */
+    .bar.vbar{ display:flex; flex-direction:column; width:66px; gap:2px }
+    .bar.vbar span{ width:100%; height:34px }
+    /* multi-check cells inside the inline stage; unchecked dim to 50% once one is picked */
+    .axis-stage .bar span{ cursor:pointer }
+    .axis-stage .bar span.pick{ outline:3px solid var(--accent2); outline-offset:-3px; filter:brightness(1.15) }
+    .axis-stage .bar:has(span.pick) span:not(.pick){ opacity:.5 }
   </style>
 </head>
 <body>
@@ -3044,25 +3050,35 @@
       if(en||es) return ((esEs()? es?.textContent : en?.textContent) || en?.textContent || es?.textContent || '').trim();
       return el.textContent.trim();
     }
-    // name + node labels for a selected card (works for main scales and rater cards)
+    // node count chosen at a card: scales use the active node-num, raters the checked formr
+    function nodeCountOf(card){
+      if(card.classList.contains('scale')){
+        const a=card.querySelector('.scale-nodes .node-num.active');
+        return a ? (parseInt(a.textContent,10)||7) : 7;
+      }
+      const f=card.querySelector('.formr:checked');
+      return f ? (parseInt(f.value,10)||7) : 7;
+    }
+    // name + labels + chosen node count for a selected card (main scales & rater cards)
     function info(card){
       if(card.classList.contains('scale')){
         const parts=[card.querySelector('.lbl.left'), card.querySelector('.lbl.mid'), card.querySelector('.lbl.right')]
           .filter(Boolean).map(activeText).filter(Boolean);
-        return { name: card.dataset.scale || 'scale', labels: parts.length?parts:['—'] };
+        return { name: card.dataset.scale || 'scale', labels: parts.length?parts:['—'], nodes: nodeCountOf(card) };
       }
       const name=(card.querySelector('h3')?.textContent||'rater').trim();
       const ul=card.querySelector('.form-not5 .labels') || card.querySelector('.labels');
       const labels=ul ? [...ul.querySelectorAll('li')].map(activeText).filter(Boolean) : [];
-      return { name, labels: labels.length?labels:['—'] };
+      return { name, labels: labels.length?labels:['—'], nodes: nodeCountOf(card) };
     }
     const allSelected = () => [...document.querySelectorAll('.rater.selected, .scale.selected')];
 
-    // a multi-checkable colour bar for one rater (n cells = its labels)
-    function buildBar(d){
-      const bar=document.createElement('div'); bar.className='bar';
-      const n=Math.max(1, d.labels.length);
-      bar.style.gridTemplateColumns='repeat('+n+',1fr)';
+    // a multi-checkable colour bar with the card's chosen number of nodes (cells),
+    // laid out horizontally or vertically
+    function buildBar(d, vertical){
+      const bar=document.createElement('div'); bar.className='bar'+(vertical?' vbar':'');
+      const n=Math.max(1, d.nodes|0);
+      if(!vertical) bar.style.gridTemplateColumns='repeat('+n+',1fr)';
       for(let i=0;i<n;i++){
         const s=document.createElement('span');
         s.style.background=SGRAD; s.style.backgroundSize='700% 100%';
@@ -3072,42 +3088,44 @@
       }
       return bar;
     }
-    function buildLabels(d){
-      const r=document.createElement('div'); r.className='axis-labels';
-      const n=Math.max(1, d.labels.length);
-      r.style.gridTemplateColumns='repeat('+n+',1fr)';
-      d.labels.forEach(l=>{ const sp=document.createElement('span'); sp.textContent=l; r.appendChild(sp); });
-      return r;
+    // one rater: its name + chosen node count, the bar, and only its EXTREME labels at the ends
+    function buildBlock(d, vertical){
+      const wrap=document.createElement('div'); wrap.className=vertical?'axis-v':'axis-h';
+      const name=document.createElement('div'); name.className='axis-name';
+      name.textContent=d.name+' · '+d.nodes+' '+(esEs()?'nodos':'nodes');
+      const ends = d.labels.length>=2 ? [d.labels[0], d.labels[d.labels.length-1]] : [d.labels[0]||'—', d.labels[0]||'—'];
+      const inner=document.createElement('div'); inner.className=vertical?'axis-vwrap':'axis-hwrap';
+      const e1=document.createElement('span'); e1.className='end'; e1.textContent=ends[0];
+      const e2=document.createElement('span'); e2.className='end'; e2.textContent=ends[1];
+      inner.append(e1, buildBar(d, vertical), e2);
+      wrap.append(name, inner);
+      return wrap;
     }
 
-    // floating panel
-    const overlay=document.createElement('div'); overlay.className='axis-overlay'; overlay.hidden=true;
-    const panel=document.createElement('div'); panel.className='axis-panel';
-    overlay.appendChild(panel); document.body.appendChild(overlay);
-    function closeAxis(){ overlay.hidden=true; }
-    overlay.addEventListener('click', e=>{ if(e.target===overlay) closeAxis(); });
+    // the inline figure (rendered within the page, not in a modal)
+    const stage=document.createElement('div'); stage.className='axis-stage'; stage.hidden=true;
+    function closeAxis(){ stage.hidden=true; }
     document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAxis(); });
 
-    function openAxis(){
+    function openAxis(e){
       const cards=allSelected(); if(cards.length!==2) return;
       const a=info(cards[0]), b=info(cards[1]);
-      panel.innerHTML='';
+      stage.innerHTML='';
       const close=document.createElement('button'); close.type='button'; close.className='axis-close'; close.setAttribute('aria-label','Close'); close.textContent='×';
       close.addEventListener('click', closeAxis);
       const h=document.createElement('h4'); h.textContent='Axis · '+a.name+' × '+b.name;
       const hint=document.createElement('p'); hint.className='axis-hint';
-      hint.textContent = esEs() ? 'Marca varios puntos en ambos valoradores sobre el mismo eje.'
-                                : 'Multi-check points on both raters along one shared axis.';
-      const shared=document.createElement('div'); shared.className='axis-shared';
-      shared.innerHTML='<span>'+ (esEs()?'menos':'less') +'</span><span class="axis-line"></span><span>'+ (esEs()?'más':'more') +'</span>';
-      panel.append(close, h, hint, shared);
-      [[a,'a'],[b,'b']].forEach(([d,cls])=>{
-        const row=document.createElement('div'); row.className='axis-row '+cls;
-        const name=document.createElement('div'); name.className='axis-name'; name.textContent=d.name;
-        row.append(name, buildBar(d), buildLabels(d));
-        panel.appendChild(row);
-      });
-      overlay.hidden=false;
+      hint.textContent = esEs() ? 'Un valorador en horizontal, el otro en vertical — marca varios puntos sobre el mismo eje.'
+                                : 'One rater horizontal, the other vertical — multi-check points on one shared axis.';
+      const fig=document.createElement('div'); fig.className='axis-figure';
+      fig.append(buildBlock(a,false), buildBlock(b,true));    // A → horizontal · B → vertical
+      stage.append(close, h, hint, fig);
+      // drop the figure into the page right after the Axis control that was clicked
+      const ctrl = e && e.currentTarget && e.currentTarget.closest('.axis-ctrl');
+      if(ctrl && ctrl.parentNode) ctrl.parentNode.insertBefore(stage, ctrl.nextSibling);
+      else (document.querySelector('main.layout')||document.body).appendChild(stage);
+      stage.hidden=false;
+      stage.scrollIntoView({behavior:'smooth', block:'nearest'});
     }
 
     // inject an Axis control into main · more · my-raters

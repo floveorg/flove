@@ -6,23 +6,27 @@
 <meta name="theme-color" content="#d32f2f">
 <meta name="color-scheme" content="light">
 <title>FlovyBasic</title>
-<meta name="description" content="FlovyBasic — the basic tier of flovy: topbar with magic labelers, an entry field with wizard suggesters, a heart rater and a mic, and a summary with cycling insights, Copy and Share. Single page, pure CSS, no JavaScript. Tiers: mini · basic · normal · advanced · super.">
+<meta name="description" content="FlovyBasic — the basic tier of flovy: topbar with magic labelers, an entry field with wizard suggesters, a heart rater and a mic, and a summary that shows the actual text added and the emoji selections, with counters, cycling insights, Copy and Share. Single page, CSS-driven with one small inline script for the wizard text-insert and live summary. Tiers: mini · basic · normal · advanced · super.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d32f2f' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-3A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3C/svg%3E">
 <style>
 /* ============================================================
    FLOVYBASIC — the BASIC tier of flovy
    tiers:  mini → basic → normal → advanced → super
 
-   Single-page (no stepper) but fully interactive — pure CSS, no
-   JavaScript; state lives in hidden .ctl inputs read with :has().
+   Single-page (no stepper) but fully interactive — CSS-driven, with
+   one small inline script at the end of the body for the wizard
+   text-insert + live summary (CSS can't write into / read a textarea).
+   State otherwise lives in hidden .ctl inputs read with :has().
 
    Elements shown (basic level):
      · Topbar   — heart mark + title + MAGIC labelers (3 rays)
                   + tier-switcher + ☰ menu (opens below the title)
-     · Content  — entry field + ✦ WIZARDS + ♥ HEART RATER (reactions
-                  open below the ♥) + 🎤 MIC + Add
-     · Summary  — phrase + INSIGHTS (one cycling button, looping the
-                  4 info boxes + reset) + Copy + SHARE
+     · Content  — entry field + ✦ WIZARDS (inject text, same as normal)
+                  + ♥ HEART RATER (reactions open below the ♥) + 🎤 MIC + Add
+     · Summary  — the actual text added + the emoji selections +
+                  COUNTERS (👆 clicks · 💞 selections · ⭐ stars) +
+                  INSIGHTS (one cycling button, looping the 4 info
+                  boxes + reset) + Copy + SHARE
      · Menu     — About flovy (opens an info box below the topbar) ·
                   Language (dropdown) · Related apps (flovyadvanced card) ·
                   Flove home — no underlines, subicons bare
@@ -295,16 +299,12 @@ main{ max-width: 460px; margin: 1.2rem auto 2rem; padding: 0 .9rem; }
 .entry-textarea:focus-visible{ outline: none; }
 .ghost-placeholder{ position: absolute; top: .8rem; left: .9rem; pointer-events: none; color: var(--ink-mute); font-size: 1.15rem; line-height: 1.4; display: none; }
 .entry-field:has(.entry-textarea:placeholder-shown) .ghost-placeholder{ display: block; }
-/* wizard suggestion — inline ghost text overlay, shown when a bot is picked and field empty */
-.suggestion{
-  position: absolute; top: calc(.8rem + 1.45em); left: .9rem; right: .9rem;
-  margin: 0; color: var(--ink-mute); font-size: 1.05rem; line-height: 1.4; pointer-events: none; display: none; z-index: 0;
-}
-.suggestion > span{ display: none; }
-body:has([name="bot"]:checked:not(#bot-none)) .entry-field:has(.entry-textarea:placeholder-shown) .suggestion{ display: block; }
-body:has(#bot-lovely:checked) .sg-lovely,
-body:has(#bot-joy:checked)    .sg-joy,
-body:has(#bot-wisdom:checked) .sg-wisdom{ display: inline; }
+/* wizards now INJECT text into the field (same behaviour as the normal tier),
+   driven by the small inline script at the end of the body. CSS can't write
+   into a <textarea>, so the wizard chips are <button>s, not radio labels. */
+.chip.wiz-active{ background: rgba(var(--accent-rgb),.18); }   /* the active wizard keeps a slight reddish fill */
+.chip.just-injected{ animation: pop .35s var(--bounce); }      /* a tiny pulse when it injects text */
+@keyframes pop{ 0%{ transform: scale(1);} 50%{ transform: scale(1.25);} 100%{ transform: scale(1);} }
 
 /* field on the left · ✦ and ♥ stacked to its right (each its own row) ·
    mic centred on the field's bottom border */
@@ -341,9 +341,6 @@ body:has(#rate-open:checked) .tool-cell--rate .tool-pop{ display: inline-flex; }
   transition: transform var(--fast), background var(--fast), border-color var(--fast);
 }
 .chip:hover{ background: var(--fill-soft); transform: translateY(-1px); }
-body:has(#bot-lovely:checked) .chip[for="bot-lovely"],
-body:has(#bot-joy:checked)    .chip[for="bot-joy"],
-body:has(#bot-wisdom:checked) .chip[for="bot-wisdom"],
 body:has(#rate-1:checked) .chip[for="rate-1"],
 body:has(#rate-2:checked) .chip[for="rate-2"],
 body:has(#rate-3:checked) .chip[for="rate-3"],
@@ -387,6 +384,18 @@ body:has(#mic-on:checked) .mic-hint{ display: block; }
 .summary-title::before{ content: "✦ "; color: var(--accent); }
 .clause{ display: block; margin: 0; font-size: 1rem; line-height: 1.55; color: var(--ink-soft); }
 .clause code{ font: .85em ui-monospace,Menlo,Consolas,monospace; background: var(--fill-soft); color: var(--accent-deep); padding: .05em .35em; border-radius: 5px; }
+/* live summary — the actual text added + the emoji selections (filled by JS) */
+.summary-phrase{ color: var(--ink); white-space: pre-wrap; }
+.summary-rx{ font-size: 1.15em; }
+.summary-rx:not(:empty){ margin-right: .4rem; }
+.summary-after{ font-size: 1.15em; }
+.summary-after:not(:empty){ margin-left: .4rem; }
+
+/* counters — icon chips, living inside the summary (👆 clicks · 💞 selections · ⭐ stars) */
+.counters{ display: flex; flex-wrap: wrap; gap: .5rem; margin: .9rem 0 .2rem; }
+.counter{ display: inline-flex; align-items: center; gap: .35rem; padding: .28rem .6rem; border-radius: 999px; background: var(--fill-soft); font: 700 .82rem var(--font-ui); }
+.counter .counter-ico{ font-size: .95rem; }
+.counter b{ color: var(--accent-deep); }
 
 /* insights — ONE cycling button: none→who→what→where→why→none(reset) */
 .insight-cycle{ margin: .9rem 0 .2rem; }
@@ -465,12 +474,9 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
 <input type="radio" name="ray" id="ray-informal" class="ctl">
 <input type="radio" name="ray" id="ray-hotter"   class="ctl">
 
-<!-- wizards: bot suggester (single suggestion per bot) -->
+<!-- wizards: the ✦ chips INJECT text into the field (driven by the inline
+     script, like the normal tier). #bot-open just toggles the chip popover. -->
 <input type="checkbox" id="bot-open" class="ctl">
-<input type="radio" name="bot" id="bot-none"     class="ctl" checked>
-<input type="radio" name="bot" id="bot-lovely" class="ctl">
-<input type="radio" name="bot" id="bot-joy"    class="ctl">
-<input type="radio" name="bot" id="bot-wisdom" class="ctl">
 
 <!-- heart rater: 4 heart reactions, single-select -->
 <input type="checkbox" id="rate-open" class="ctl">
@@ -611,11 +617,6 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
         <div class="entry-field">
           <textarea class="entry-textarea" name="love" rows="3" maxlength="1000" placeholder=" " required></textarea>
           <span class="ghost-placeholder" aria-hidden="true"><span class="l-en">What's in your love?</span><span class="l-es">¿Qué hay en tu amor?</span></span>
-          <output class="suggestion">
-            <span class="sg-lovely"><span class="l-en">Dear reader, with care and respect, I share the following for your consideration.</span><span class="l-es">Estimado lector, con cuidado y respeto, comparto lo siguiente para tu consideración.</span></span>
-            <span class="sg-joy"><span class="l-en">Hey! What if we do it together and have a blast? 🎈</span><span class="l-es">¡Eh! ¿Y si lo hacemos juntos y la pasamos genial? 🎈</span></span>
-            <span class="sg-wisdom"><span class="l-en">Where the air leans and the silence writes, there beats what has no name yet.</span><span class="l-es">Donde el aire se inclina y el silencio escribe, late lo que aún no tiene nombre.</span></span>
-          </output>
           <!-- 🎤 mic — centred on the field's bottom border -->
           <label class="tool-btn mic-btn" for="mic-on" title="Mic — dictate" aria-label="Microphone" tabindex="0">🎤</label>
         </div>
@@ -623,12 +624,12 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
         <!-- ✦ and ♥ to the right of the field, each in its own row -->
         <div class="field-side">
           <span class="tool-cell tool-cell--bot">
-            <ul class="tool-pop" role="radiogroup" aria-label="Wizard suggestions">
-              <li><label class="chip" for="bot-lovely" title="Lovely" aria-label="Lovely wizard" tabindex="0">😍</label></li>
-              <li><label class="chip" for="bot-joy"    title="Joy"    aria-label="Joy wizard"    tabindex="0">😂</label></li>
-              <li><label class="chip" for="bot-wisdom" title="Wisdom" aria-label="Wisdom wizard" tabindex="0">🔥</label></li>
+            <ul class="tool-pop" role="group" aria-label="Wizard suggestions">
+              <li><button type="button" class="chip" data-wiz="lovely" title="Lovely" aria-label="Lovely wizard" tabindex="0">😍</button></li>
+              <li><button type="button" class="chip" data-wiz="joy"    title="Joy"    aria-label="Joy wizard"    tabindex="0">😂</button></li>
+              <li><button type="button" class="chip" data-wiz="wisdom" title="Wisdom" aria-label="Wisdom wizard" tabindex="0">🔥</button></li>
             </ul>
-            <label class="tool-btn" for="bot-open" title="Wizards" aria-label="Wizard suggestions" tabindex="0">✦</label>
+            <label class="tool-btn" for="bot-open" title="Wizards — click a chip to add text" aria-label="Wizard suggestions" tabindex="0">✦</label>
           </span>
           <span class="tool-cell tool-cell--rate">
             <ul class="tool-pop" role="radiogroup" aria-label="Heart rater">
@@ -654,8 +655,18 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
   <section class="summary" aria-label="Summary">
     <h2 class="summary-title"><span class="l-en">Summary</span><span class="l-es">Resumen</span></h2>
     <output class="clause">
-      <span class="l-en">A summary of what you added shows up here. Pick a tone with ✨, suggest with ✦, react with ♥, and read the insights below.</span><span class="l-es">Aquí aparece un resumen de lo que añadiste. Elige un tono con ✨, sugiere con ✦, reacciona con ♥ y lee los insights de abajo.</span>
+      <span class="summary-empty"><span class="l-en">A summary of what you added shows up here — your words and the reactions you picked.</span><span class="l-es">Aquí aparece un resumen de lo que añadiste — tus palabras y las reacciones que elegiste.</span></span>
+      <span class="summary-rx" aria-label="Reaction"></span>
+      <span class="summary-phrase" data-flove-phrase></span>
+      <span class="summary-after" aria-label="Labelers"></span>
     </output>
+
+    <!-- counters (👆 clicks · 💞 selections · ⭐ stars) — live, filled by JS -->
+    <div class="counters" aria-label="Counters">
+      <span class="counter" title="Clicks"><span class="counter-ico">👆</span><b id="c-clicks">0</b></span>
+      <span class="counter" title="Selections"><span class="counter-ico">💞</span><b id="c-sel">0</b></span>
+      <span class="counter" title="Stars — filled textareas"><span class="counter-ico">⭐</span><b id="c-stars">0</b></span>
+    </div>
 
     <!-- insights -->
     <!-- insights — ONE cycling button; each click advances the loop and
@@ -689,9 +700,134 @@ body:has(#share-open:checked) .share-btn{ background: var(--fill-soft); border-c
 </main>
 
 <p class="showcase-note">
-  <span class="l-en">FlovyBasic · the basic tier — magic labelers, wizards, a heart rater, a mic and cycling insights, all in pure CSS. Switch tiers from the ◆ button.</span>
-  <span class="l-es">FlovyBasic · el tier básico — labelers mágicos, wizards, un heart rater, un micro e insights cíclicos, todo en CSS puro. Cambia de tier con el botón ◆.</span>
+  <span class="l-en">FlovyBasic · the basic tier — magic labelers, text-injecting wizards, a heart rater, a mic, a live summary with counters and cycling insights. CSS-driven, with one small inline script. Switch tiers from the ◆ button.</span>
+  <span class="l-es">FlovyBasic · el tier básico — labelers mágicos, wizards que insertan texto, un heart rater, un micro, un resumen en vivo con contadores e insights cíclicos. Basado en CSS, con un pequeño script. Cambia de tier con el botón ◆.</span>
 </p>
+
+<!-- ============================================================
+     Wizard text-insert + live summary + counters — the ONLY JavaScript
+     in this tier. CSS can't write into a <textarea> nor read its content
+     into the summary, so this small script (mirroring the normal tier):
+       · ✦ wizard chip → inserts its suggestion text
+       · same wizard again → cycles 3 texts → 4th click resets it
+       · edits to the field keep the text; the next click APPENDS
+       · the summary shows the actual text + the emoji selections
+       · the counters tally 👆 clicks · 💞 selections · ⭐ stars
+     ============================================================ -->
+<script>
+(function(){
+  var ta = document.querySelector('.entry-textarea');
+  if(!ta) return;
+  var WIZ = {
+    lovely: [
+      {en:"Dear reader, with care and respect, I share the following for your consideration.", es:"Estimado lector, con cuidado y respeto, comparto lo siguiente para tu consideración."},
+      {en:"If it helps, I'm here — softly, slowly, on your terms.",                            es:"Si ayuda, aquí estoy — con suavidad, despacio, a tu ritmo."},
+      {en:"Thank you for trusting me with this. Let's hold it gently.",                        es:"Gracias por confiarme esto. Sostengámoslo con delicadeza."}
+    ],
+    joy: [
+      {en:"Hey! What if we do it together and have a blast?",  es:"¡Eh! ¿Y si lo hacemos juntos y la pasamos genial?"},
+      {en:"Plot twist: we make it a game and laugh through it.", es:"Giro inesperado: lo convertimos en juego y nos reímos."},
+      {en:"Snacks ready, music up — let's gooo!",               es:"Snacks listos, música arriba — ¡vamos!"}
+    ],
+    wisdom: [
+      {en:"Where the air leans and the silence writes, there beats what has no name yet.", es:"Donde el aire se inclina y el silencio escribe, late lo que aún no tiene nombre."},
+      {en:"The river does not argue with the stone; it learns the stone's shape.",         es:"El río no discute con la piedra; aprende la forma de la piedra."},
+      {en:"What we cannot say aloud, we can say slowly — and still be heard.",              es:"Lo que no podemos decir en voz alta, podemos decirlo despacio — y seguir siendo escuchados."}
+    ]
+  };
+  var esOn = function(){ var es = document.getElementById('lang-es'); return es && es.checked; };
+  var pick = function(bot, step){ var t = WIZ[bot][step]; return esOn() ? t.es : t.en; };
+
+  var base = '';        // committed content before the active suggestion
+  var inserted = '';    // the suggestion segment we last wrote
+  var activeBot = null; // which wizard is currently cycling
+  var step = 0;         // index into the 3 texts
+
+  function set(v){
+    ta.value = v;
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+    ta.focus();
+  }
+  function pristine(bot){ return activeBot === bot && ta.value === (base + inserted); }
+  function markWizState(){
+    document.querySelectorAll('.chip[data-wiz].wiz-active').forEach(function(c){ c.classList.remove('wiz-active'); });
+    if(activeBot){
+      var c = document.querySelector('.chip[data-wiz="' + activeBot + '"]');
+      if(c) c.classList.add('wiz-active');
+    }
+  }
+  function wireWizard(btn){
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var bot = btn.getAttribute('data-wiz');
+      if(!WIZ[bot]) return;
+      if(pristine(bot)){
+        step += 1;
+        if(step >= WIZ[bot].length){    // past the last text → reset this wizard
+          inserted = ''; activeBot = null; step = 0;
+          set(base);
+        } else {                        // cycle to a different text in place
+          inserted = pick(bot, step);
+          set(base + inserted);
+        }
+      } else {                          // field was edited (or other wizard) → append
+        base = ta.value + (ta.value && !/\s$/.test(ta.value) ? ' ' : '');
+        inserted = pick(bot, 0);
+        activeBot = bot; step = 0;
+        set(base + inserted);
+      }
+      markWizState();
+      btn.classList.remove('just-injected'); void btn.offsetWidth; btn.classList.add('just-injected');
+    });
+  }
+  document.querySelectorAll('.tool-cell--bot .chip[data-wiz]').forEach(wireWizard);
+
+  /* ---- selections: the magic ray (tone) + the heart reaction ---- */
+  var RAY  = {'ray-formal':'🎩','ray-informal':'👋','ray-hotter':'🔥'};
+  var RATE = {'rate-1':'😊','rate-2':'😆','rate-3':'😘','rate-4':'😈'};
+  function pickFrom(map){ for(var id in map){ var e = document.getElementById(id); if(e && e.checked) return map[id]; } return ''; }
+
+  /* ---- live summary: field text + the selections made ---- */
+  var phraseEl = document.querySelector('.summary-phrase'),
+      rxEl     = document.querySelector('.summary-rx'),
+      afterEl  = document.querySelector('.summary-after'),
+      emptyEl  = document.querySelector('.summary-empty');
+  function updateSummary(){
+    var v = ta.value;
+    var rate = pickFrom(RATE);   /* the heart reaction → before the text */
+    var ray  = pickFrom(RAY);    /* the tone labeler   → after the text */
+    if(rxEl)     rxEl.textContent     = rate;
+    if(phraseEl) phraseEl.textContent = v;
+    if(afterEl)  afterEl.textContent  = ray;
+    if(emptyEl)  emptyEl.style.display = (v.trim() || rate || ray) ? 'none' : '';
+  }
+
+  /* ---- counters (👆 clicks · 💞 selections · ⭐ stars) ---- */
+  var cClicks = document.getElementById('c-clicks'),
+      cSel    = document.getElementById('c-sel'),
+      cStars  = document.getElementById('c-stars');
+  var clicks = 0;
+  function selCount(){ return (pickFrom(RAY) ? 1 : 0) + (pickFrom(RATE) ? 1 : 0) + ((activeBot || inserted) ? 1 : 0); }
+  function starCount(){ return ta.value.trim() ? 1 : 0; }
+  function refresh(){
+    if(cSel)   cSel.textContent   = selCount();
+    if(cStars) cStars.textContent = starCount();
+  }
+  document.querySelectorAll('.chip, .tool-btn, .add-btn, .ray, .level-pop-btn, .magic-btn, .btn-ghost').forEach(function(el){
+    el.addEventListener('click', function(){ clicks++; if(cClicks) cClicks.textContent = clicks; });
+  });
+  ta.addEventListener('input', function(){
+    if(!ta.value){ base = ''; inserted = ''; activeBot = null; step = 0; }  /* field cleared → no wizard text */
+    markWizState();
+    refresh(); updateSummary();
+  });
+  /* ray / rate / language changes refresh the counters + summary */
+  document.addEventListener('change', function(ev){
+    if(ev.target && /^(ray|rate|lang)-/.test(ev.target.id || '')){ refresh(); updateSummary(); }
+  });
+  refresh(); updateSummary();
+})();
+</script>
 
 </body>
 </html>

@@ -1949,7 +1949,7 @@
     /* ---- editable phrase fields: button form ↔ text field ----
        TRUE starts as a focused text field; LOVE starts as a squared button.
        Leaving a field (blur) turns its text into the squared button form. */
-    function makeField(initial, startEditing, mod){
+    function makeField(initial, startEditing, mod, onChange){
       const wrap = document.createElement('span');
       wrap.className = 'phrase-field';
       let value = initial;
@@ -1967,12 +1967,12 @@
         inp.size = Math.max(4, value.length);
         inp.addEventListener('input', ()=>{ inp.size = Math.max(4, inp.value.length); });
         inp.addEventListener('keydown', e=>{ if(e.key==='Enter') inp.blur(); });
-        inp.addEventListener('blur', ()=>{ value = inp.value.trim(); showButton(); });
+        inp.addEventListener('blur', ()=>{ value = inp.value.trim(); showButton(); onChange && onChange(value); });
         wrap.appendChild(inp);
         inp.focus(); inp.select();
       }
       wrap.getValue = ()=> value;
-      wrap.setValue = (v)=>{ value = v; showButton(); };   // magic-fill
+      wrap.setValue = (v)=>{ value = v; showButton(); onChange && onChange(value); };   // magic-fill
       wrap.focusInput = showInput;
       startEditing ? showInput() : showButton();
       return wrap;
@@ -1983,7 +1983,7 @@
     const phrases = [];
     const staticUpdaters = [];           // the bottom (static) phrase render hooks
     let topSubjField = null, topObjField = null;
-    let phraseMode = 'merge';            // 'merge' = both words only · 'compare' = connector between them
+    let phraseMode = 'none';             // 'none' = no second word yet · 'merge' = words joined · 'compare' = connector between them
     // 🪄 magic-fill: each click cycles a 5-word loop (6th click resets to empty)
     const SUBJ_WORDS = ['True','Love','Life','Time','Self'];
     const OBJ_WORDS  = ['Love','Fear','Hope','Art','Death'];
@@ -1993,26 +1993,30 @@
       b.addEventListener('click', ()=>{ idx = (idx+1) % (words.length+1); field.setValue(idx===0 ? '' : words[idx-1]); });
       return b;
     }
+    // progressive phrase:
+    //  ① only the (violet) first field shows.
+    //  ② once it holds a word → Merge / Compare appear (toggleable radios).
+    //  ③ picking a mode reveals the (green) second field AFTER the buttons,
+    //     with the phrase (connector "as more … than") BEFORE them in Compare.
+    //  ④ in Merge, filling the green word + clicking away joins both words
+    //     together and the buttons hop to the end.
     function mountPhrase(container, autofocus){
-      const subjField = makeField('', false, 'phrase-chip--true');   // empty by default
-      const objField  = makeField('', false, 'phrase-chip--love');   // empty by default
+      let mode = 'none';   // 'none' | 'merge' | 'compare'
+
       const adj = document.createElement('span');
       adj.className = 'adj-toggle'; adj.title = 'Click to expand';
       const ph = { adj, expanded:false };
       adj.addEventListener('click', ()=>{ ph.expanded = !ph.expanded; renderPhrase(); });
 
-      const subjMagic = magicBtn(SUBJ_WORDS, subjField);   // left of the subject field
-      const objMagic  = magicBtn(OBJ_WORDS,  objField);    // right of the object field
-
-      // the comparison connector ("as more <adj> than") — the "arrows" that sit between the
-      // two words only in Compare. In Merge it's hidden so the two words just sit together.
+      // the comparison connector ("as more <adj> than") — shown only in Compare.
       const moreWord = document.createElement('span'); moreWord.className='more-word'; moreWord.textContent=' more';
       const connector = document.createElement('span'); connector.className='cmp-connector';
       connector.append(' as', moreWord, ' ', adj, ' than ');
 
-      // both fields are shown by default now (no "Add an object" gate)
-      const body = document.createElement('span'); body.className='phrase-body';
-      body.append(subjMagic, subjField, ' ', connector, objField, objMagic);
+      const subjField = makeField('', false, 'phrase-chip--true', ()=>{ layout(); renderPhrase(); });   // empty by default
+      const objField  = makeField('', false, 'phrase-chip--love', ()=>{ layout(); renderPhrase(); });   // empty by default
+      const subjMagic = magicBtn(SUBJ_WORDS, subjField);   // left of the subject field
+      const objMagic  = magicBtn(OBJ_WORDS,  objField);    // right of the object field
 
       const btn = (cls,en,es)=>{ const b=document.createElement('button'); b.type='button'; b.className='phrase-btn '+cls; b.innerHTML='<span class="t-en">'+en+'</span><span class="t-es">'+es+'</span>'; return b; };
       const mergeBtn = btn('merge','Merge','Unir');
@@ -2020,21 +2024,46 @@
       const modes = document.createElement('span'); modes.className='phrase-modes';
       modes.append(mergeBtn, cmpBtn);   // Merge stacked above Compare
 
-      // Merge / Compare behave as mutually-exclusive radios.
-      // Merge → both words only; Compare → inserts the connector ("arrows") between them.
-      function applyMode(m){
-        phraseMode = m;
-        mergeBtn.classList.toggle('is-on', m==='merge');
-        cmpBtn.classList.toggle('is-on', m==='compare');
-        connector.hidden = (m !== 'compare');
+      // Merge / Compare behave as mutually-exclusive radios that can also untick
+      // themselves (clicking the active one returns to 'none' → green field hidden).
+      function setMode(m){
+        mode = (mode === m) ? 'none' : m;
+        phraseMode = mode;
+        mergeBtn.classList.toggle('is-on', mode==='merge');
+        cmpBtn.classList.toggle('is-on', mode==='compare');
+        layout(); renderPhrase();
       }
-      function setMode(m){ applyMode(m); renderPhrase(); }
       mergeBtn.addEventListener('click', ()=> setMode('merge'));
       cmpBtn.addEventListener('click', ()=> setMode('compare'));
 
-      container.append(body, ' ', modes);
-      applyMode('merge');   // default: both words shown, merged (no arrows) — renderPhrase() runs later
+      // (re)flow the row according to the current state
+      function layout(){
+        const hasSubj = !!subjField.getValue();
+        const hasObj  = !!objField.getValue();
+        const merged  = (mode === 'merge' && hasObj);   // both words joined together
+        connector.hidden = (mode !== 'compare');
+        container.innerHTML = '';
+        container.append(subjMagic, subjField);
+        if(mode === 'compare'){
+          container.append(' ', connector);
+          if(hasSubj) container.append(' ', modes);
+          container.append(' ', objField, objMagic);
+        } else if(mode === 'merge'){
+          if(merged){
+            container.append(' ', objField, objMagic);
+            if(hasSubj) container.append(' ', modes);
+          } else {
+            if(hasSubj) container.append(' ', modes);
+            container.append(' ', objField, objMagic);
+          }
+        } else {
+          if(hasSubj) container.append(' ', modes);   // 'none' → buttons only, no green field
+        }
+      }
+
+      layout();
       phrases.push(ph);
+      if(autofocus) subjField.focusInput();
       return { subjField, objField };
     }
 
@@ -2763,6 +2792,24 @@
           // labels: tick row mirrors the node count (1..N)
           const ticks = el.querySelector('.ticks');
           if(ticks){ ticks.innerHTML=''; for(let k=1;k<=n;k++){ const t=document.createElement('span'); t.textContent=k; ticks.appendChild(t); } }
+          // worded poles aligned to the bar cells: left at cell 1 · right at cell N ·
+          // the middle word (EQUAL/COMPLEMENT, when the scale has one) at ceil(N/2),
+          // and only from 3 nodes upward (2 = extremes only).
+          const labelsRow = el.querySelector('.labels');
+          if(labelsRow){
+            const L = labelsRow.querySelector('.lbl.left');
+            const M = labelsRow.querySelector('.lbl.mid');
+            const R = labelsRow.querySelector('.lbl.right');
+            labelsRow.style.display = 'grid';
+            labelsRow.style.gridTemplateColumns = 'repeat('+n+',1fr)';
+            labelsRow.style.alignItems = 'baseline';
+            if(L){ L.style.gridColumn = 1; L.style.justifySelf = 'start';  L.style.textAlign = 'left'; }
+            if(R){ R.style.gridColumn = n; R.style.justifySelf = 'end';    R.style.textAlign = 'right'; }
+            if(M){
+              if(n >= 3){ M.style.display = ''; M.style.gridColumn = Math.ceil(n/2); M.style.justifySelf = 'center'; M.style.textAlign = 'center'; }
+              else { M.style.display = 'none'; }
+            }
+          }
         }
         // this scale's own number set (different per scale) + its default node count
         const scaleIndex = [...document.querySelectorAll('.scale')].indexOf(el);

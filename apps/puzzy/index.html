@@ -7,16 +7,12 @@
   <link rel="stylesheet" href="../flove.css">
   <style>
     :root{
-      /* flove identity — Puzzy: violet accent, teal flourish, deep canvas */
-      --app-accent:        #8d89ff;
-      --app-accent-soft:   #c9c6ff;
-      --app-ink-on-accent: #0b0b14;
+      --app-accent:#8d89ff; --app-accent-soft:#c9c6ff; --app-ink-on-accent:#0b0b14;
       --bg:#0a0a0f; --ink:#e9eaf2; --muted:#a3a7b4;
       --line:#1e2133; --field:#13162a; --accent2:#70f0d3;
       --grad:linear-gradient(135deg, var(--app-accent), var(--accent2));
     }
     @property --spin{ syntax:"<angle>"; inherits:false; initial-value:0deg }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
@@ -25,29 +21,24 @@
         radial-gradient(1100px 760px at 110% -10%, rgba(141,137,255,.20), transparent 60%),
         radial-gradient(900px 680px at -10% 120%, rgba(112,240,211,.13), transparent 50%),
         var(--bg);
-      background-attachment:fixed;
-      font-family:var(--flove-font-ui); letter-spacing:.2px;
+      background-attachment:fixed; font-family:var(--flove-font-ui); letter-spacing:.2px;
     }
 
     /* i18n — pure CSS (§13.2) */
     .t-es{ display:none }
     body:has(#ui-lang-es:checked) .t-en{ display:none }
     body:has(#ui-lang-es:checked) .t-es{ display:inline }
-    .lang{ display:inline-flex; gap:2px; margin-left:auto }
+    .lang{ display:inline-flex; gap:2px }
     .lang input{ position:absolute; opacity:0; pointer-events:none }
-    .lang label{
-      font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
-      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted);
-      border:1px solid transparent;
-    }
+    .lang label{ font-size:11px; font-weight:600; letter-spacing:.4px; padding:3px 9px;
+      border-radius:var(--flove-radius-pill); cursor:pointer; color:var(--muted); border:1px solid transparent }
     #ui-lang-en:checked ~ label[for=ui-lang-en],
     #ui-lang-es:checked ~ label[for=ui-lang-es]{
-      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent);
-    }
+      color:var(--app-ink-on-accent); background:var(--app-accent); border-color:var(--app-accent) }
 
-    /* ───── brand + click-menu (own logo · replaces topbar arrow/apps/lang) ───── */
-    .flove-bar{ position:relative }
-    .puz-menu-ctl{ position:absolute; opacity:0; pointer-events:none }
+    /* ───── topbar: brand (own logo · click-menu) + global compass ───── */
+    .flove-bar{ position:relative; display:flex; align-items:center; gap:.7rem }
+    .ctl{ position:absolute; opacity:0; pointer-events:none }
     .puz-brand{ display:inline-flex; align-items:center; gap:.5rem; cursor:pointer; user-select:none }
     .puz-logo{ display:block; filter:drop-shadow(0 0 8px rgba(141,137,255,.5)); transition:transform var(--flove-fast) }
     .puz-brand:hover .puz-logo{ transform:rotate(18deg) scale(1.05) }
@@ -55,174 +46,164 @@
     .puz-brand::after{ content:"▾"; font-size:.7rem; color:var(--muted);
       transition:transform var(--flove-fast), color var(--flove-fast) }
     body:has(#puz-menu:checked) .puz-brand::after{ transform:rotate(180deg); color:var(--accent2) }
-    /* click-away overlay */
-    .puz-overlay{ display:none; position:fixed; inset:0; z-index:40 }
+    .puz-overlay, .cmp-overlay{ display:none; position:fixed; inset:0; z-index:40 }
     body:has(#puz-menu:checked) .puz-overlay{ display:block }
-    /* the dropdown */
+    body:has(#compass-open:checked) .cmp-overlay{ display:block }
     .puz-menu{ position:absolute; top:calc(100% + 6px); left:.7rem; z-index:50; display:none;
       flex-direction:column; gap:.1rem; min-width:212px; padding:.5rem;
-      border-radius:var(--flove-radius); background:#13162a; border:1px solid var(--line);
-      box-shadow:0 16px 40px rgba(0,0,0,.5) }
+      border-radius:var(--flove-radius); background:#13162a; border:1px solid var(--line); box-shadow:0 16px 40px rgba(0,0,0,.5) }
     body:has(#puz-menu:checked) .puz-menu{ display:flex }
-    .puz-menu a{ display:block; padding:.5rem .7rem; border-radius:8px; color:var(--ink);
-      text-decoration:none; font-size:.9rem; font-weight:600;
-      transition:background var(--flove-fast), color var(--flove-fast) }
+    .puz-menu a{ display:block; padding:.5rem .7rem; border-radius:8px; color:var(--ink); text-decoration:none;
+      font-size:.9rem; font-weight:600; transition:background var(--flove-fast), color var(--flove-fast) }
     .puz-menu a:hover{ background:rgba(141,137,255,.16); color:var(--accent2) }
     .puz-sep{ height:1px; margin:.35rem .2rem; background:var(--line) }
     .puz-mlabel{ font-size:.66rem; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); padding:.25rem .7rem }
-    .puz-menu .lang{ margin-left:0; padding:.1rem .5rem .3rem }
+    .puz-menu .lang{ padding:.1rem .5rem .3rem }
 
-    /* ───── sections / categories ───── */
-    main{ max-width:1080px; margin:2.4rem auto 4rem; padding:0 1.2rem; display:grid; gap:2.6rem }
-    .sec__head{ display:flex; align-items:center; gap:.7rem; margin:0 0 .2rem; flex-wrap:wrap }
-    .sec__num{
-      font-size:1rem; color:var(--app-ink-on-accent); background:var(--grad);
-      width:1.9rem; height:1.9rem; border-radius:var(--flove-radius-pill); display:grid; place-items:center;
-      flex:0 0 auto;
-    }
-    .sec__title{ margin:0; font-size:1.15rem; letter-spacing:.5px; font-weight:800; color:var(--ink) }
-    .sec__lede{ margin:0; color:var(--muted); font-size:.86rem; flex:1 1 14ch; min-width:12ch }
-    .sec__rule{ height:1px; margin:.7rem 0 1.1rem;
-      background:linear-gradient(90deg, color-mix(in srgb,var(--app-accent) 55%, transparent), transparent 70%) }
-
-    /* ───── grids ───── */
-    .grid{ display:grid; gap:.8rem; grid-template-columns:repeat(3, minmax(0,1fr)) }
-    .grid--2{ grid-template-columns:repeat(2, minmax(0,1fr)) }
-
-    /* ───── cards (gradient-border glass) ───── */
-    .card{
-      position:relative; display:flex; gap:.8rem; align-items:flex-start;
-      text-decoration:none; color:inherit; isolation:isolate; overflow:hidden;
-      border:1px solid transparent; border-radius:var(--flove-radius); padding:.95rem 1rem;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)) padding-box,
-        linear-gradient(140deg, rgba(255,255,255,.12), rgba(255,255,255,.02)) border-box;
-      transition:transform var(--flove-fast), box-shadow var(--flove-fast), background var(--flove-fast),
-        scale .5s ease, rotate .5s ease;
-    }
-    .card:hover{
-      transform:translateY(-3px);
-      background:
-        linear-gradient(180deg, rgba(141,137,255,.12), rgba(112,240,211,.04)) padding-box,
-        var(--grad) border-box;
-      box-shadow:0 14px 36px rgba(141,137,255,.24);
-    }
-    .card .ico{ font-size:1.5rem; line-height:1; flex:0 0 auto; filter:saturate(1.1) }
-    .card h3{ margin:0 0 .2rem; font-size:1rem; letter-spacing:.3px; font-weight:700 }
-    .card p{ margin:0; color:var(--muted); font-size:.82rem; line-height:1.45 }
-
-    /* feature / hub card — large, animated conic ring behind the icon */
-    .card--feat{ grid-column:1 / -1; gap:1.1rem; padding:1.3rem 1.4rem; align-items:center }
-    .card--feat::before{
-      content:""; position:absolute; z-index:-1; inset:-40%; opacity:.16;
-      background:conic-gradient(from var(--spin), var(--app-accent), var(--accent2), var(--app-accent));
-      animation:spin 14s linear infinite;
-    }
-    @keyframes spin{ to{ --spin:360deg } }
-    @media (prefers-reduced-motion:reduce){ .card--feat::before{ animation:none } }
-    .card--feat .ico{ font-size:2.2rem }
-    .card--feat h3{ font-size:1.2rem }
-    .card--feat p{ font-size:.9rem }
-    .badge{ font-size:.6rem; font-weight:800; letter-spacing:.6px; color:var(--app-ink-on-accent);
-      background:var(--accent2); border-radius:var(--flove-radius-pill); padding:2px 8px;
-      margin-left:.55em; vertical-align:.15em }
-
-    /* nested child rows — apps nested under their category hub */
-    .child{ margin-top:.7rem; margin-left:1.1rem;
-      border-left:2px solid color-mix(in srgb, var(--app-accent) 38%, transparent); padding-left:1.1rem }
-    .child .card h3::before{ content:"↳ "; color:var(--app-accent); font-weight:800 }
-
-    /* "Redefine & Read" category cards get the gold-teal accent */
-    .cat-read .sec__num{ background:linear-gradient(135deg,#ffd479,var(--accent2)) }
-    .card--app .ico{ font-size:1.7rem }
-    .card--app:hover{ background:
-        linear-gradient(180deg, rgba(112,240,211,.10), rgba(255,212,121,.05)) padding-box,
-        linear-gradient(135deg,#ffd479,var(--accent2)) border-box;
-      box-shadow:0 14px 36px rgba(112,240,211,.20) }
-
-    footer{ max-width:1080px; margin:0 auto 5rem; padding:1.4rem 1.2rem 0; color:var(--muted);
-      font-size:.82rem; text-align:center; border-top:1px solid var(--line) }
-    footer a{ color:var(--accent2) }
-
-    /* ═══════════════════════════════════════════════════════════════════
-       PER-CATEGORY controls — compass (display modes) + fold (nesting).
-       Each category carries its OWN inputs (unique ids for the labels) that
-       share state CLASSES, so one set of rules drives every category
-       independently — :has() is scoped to each .cat. (flove standard, 0 JS)
-       ═══════════════════════════════════════════════════════════════════ */
-    .compass-ctl{ position:absolute; opacity:0; pointer-events:none }
-    .cat-tools{ margin-left:auto; display:inline-flex; align-items:center; gap:.5rem }
-
-    /* fold = nest the whole category away */
-    .fold-btn{ cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
-      width:1.7rem; height:1.7rem; border-radius:8px; border:1px solid var(--line); background:#13162a;
-      color:var(--app-accent-soft); font-size:.9rem; line-height:1; transition:transform var(--flove-fast), border-color var(--flove-fast) }
-    .fold-btn:hover{ border-color:var(--app-accent); color:var(--ink) }
-    .cat:has(.opt-fold:checked) .fold-btn{ transform:rotate(-90deg) }
-    .cat:has(.opt-fold:checked) .cat-body{ display:none }
-    .cat:has(.opt-fold:checked) .sec__rule{ opacity:.3 }
-
-    /* compass button + popout */
-    .compass-wrap{ position:relative; display:inline-flex; align-items:center; z-index:30 }
+    /* global compass — sits in the topbar next to the title; drives ALL items at once */
+    .compass-wrap{ position:relative; display:inline-flex; align-items:center }
     .compass-btn{ display:inline-flex; align-items:center; justify-content:center; padding:0; border:0;
       background:transparent; color:var(--app-accent-soft); cursor:pointer;
       transition:color var(--flove-fast), transform var(--flove-fast) }
     .compass-btn svg{ display:block; transition:transform var(--flove-fast) }
     .compass-btn:hover{ color:var(--accent2); transform:translateY(-1px) }
-    .cat:has(.opt-open:checked) .compass-btn{ color:var(--accent2) }
-    .cat:has(.opt-open:checked) .compass-btn svg{ animation:compass-spin .5s ease }
+    body:has(#compass-open:checked) .compass-btn{ color:var(--accent2) }
+    body:has(#compass-open:checked) .compass-btn svg{ animation:compass-spin .5s ease }
     @keyframes compass-spin{ from{ transform:rotate(0) } to{ transform:rotate(360deg) } }
-    .mode-buttons{ position:absolute; top:calc(100% + 8px); right:0; display:none; align-items:center; gap:.5rem;
+    .mode-buttons{ position:absolute; top:calc(100% + 8px); left:0; z-index:50; display:none; align-items:center; gap:.5rem;
       padding:.45rem .6rem; border-radius:var(--flove-radius-pill); background:#13162a; border:1px solid var(--line);
       box-shadow:0 12px 30px rgba(0,0,0,.45); white-space:nowrap }
-    .cat:has(.opt-open:checked) .mode-buttons{ display:inline-flex }
+    body:has(#compass-open:checked) .mode-buttons{ display:inline-flex }
     .mode-btn{ display:inline-flex; align-items:center; justify-content:center; padding:.15rem; border:0;
       background:transparent; color:var(--muted); font-size:1.25rem; line-height:1; cursor:pointer;
       transition:color var(--flove-fast), transform var(--flove-fast), background var(--flove-fast) }
     .mode-btn svg{ display:block; width:23px; height:23px }
     .mode-btn:hover{ color:var(--accent2); transform:translateY(-1px) }
-    .cat:has(.opt-cloud:checked) .mb-cloud,
-    .cat:has(.opt-bub:checked)   .mb-bub,
-    .cat:has(.opt-list:checked)  .mb-list,
-    .cat:has(.opt-sized:checked) .mb-sized,
-    .cat:has(.opt-rand:checked)  .mb-rand{ color:var(--app-accent); transform:scale(1.25) }
-    .cat:has(.opt-sized:checked) .mb-sized,
-    .cat:has(.opt-rand:checked)  .mb-rand{ background:rgba(141,137,255,.18); border-radius:8px }
+    body:has(#disp-cloud:checked) .mb-cloud, body:has(#disp-bub:checked) .mb-bub,
+    body:has(#disp-list:checked) .mb-list, body:has(#disp-sized:checked) .mb-sized,
+    body:has(#disp-rand:checked) .mb-rand{ color:var(--app-accent); transform:scale(1.25) }
+    body:has(#disp-sized:checked) .mb-sized, body:has(#disp-rand:checked) .mb-rand{ background:rgba(141,137,255,.18); border-radius:8px }
     .mode-sep{ width:1px; align-self:stretch; margin:3px 1px; background:var(--line) }
 
-    /* the display modes, scoped per category (default = list / natural grid) */
-    .cat:has(.opt-sized:checked) .grid > .card:not(.card--feat):nth-child(3n+1){ scale:.9 }
-    .cat:has(.opt-sized:checked) .grid > .card:not(.card--feat):nth-child(3n+2){ scale:1 }
-    .cat:has(.opt-sized:checked) .grid > .card:not(.card--feat):nth-child(3n+3){ scale:1.13 }
-    .cat:has(.opt-cloud:checked) .card{ animation:card-drift 6.5s ease-in-out infinite }
-    .cat:has(.opt-cloud:checked) .card:nth-child(3n+2){ animation-duration:7.6s; animation-delay:-1.6s }
-    .cat:has(.opt-cloud:checked) .card:nth-child(3n+3){ animation-duration:5.9s; animation-delay:-3.2s }
+    /* ───── sections / categories ───── */
+    main{ max-width:1080px; margin:2.4rem auto 4rem; padding:0 1.2rem; display:grid; gap:2.6rem }
+    .sec__head{ display:flex; align-items:center; gap:.7rem; margin:0 0 .2rem; flex-wrap:wrap }
+    .sec__num{ font-size:1rem; color:var(--app-ink-on-accent); background:var(--grad);
+      width:1.9rem; height:1.9rem; border-radius:var(--flove-radius-pill); display:grid; place-items:center; flex:0 0 auto }
+    .sec__title{ margin:0; font-size:1.15rem; letter-spacing:.5px; font-weight:800; color:var(--ink) }
+    .sec__lede{ margin:0; color:var(--muted); font-size:.86rem; flex:1 1 14ch; min-width:12ch }
+    .sec__rule{ height:1px; margin:.7rem 0 1.1rem;
+      background:linear-gradient(90deg, color-mix(in srgb,var(--app-accent) 55%, transparent), transparent 70%) }
+
+    /* fold = nest the category away (per category) */
+    .cat-tools{ margin-left:auto; display:inline-flex; align-items:center; gap:.5rem }
+    .fold-btn{ cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:1.7rem; height:1.7rem;
+      border-radius:8px; border:1px solid var(--line); background:#13162a; color:var(--app-accent-soft); font-size:.9rem; line-height:1;
+      transition:transform var(--flove-fast), border-color var(--flove-fast) }
+    .fold-btn:hover{ border-color:var(--app-accent); color:var(--ink) }
+    .cat:has(.opt-fold:checked) .fold-btn{ transform:rotate(-90deg) }
+    .cat:has(.opt-fold:checked) .cat-body{ display:none }
+    .cat:has(.opt-fold:checked) .sec__rule{ opacity:.3 }
+
+    /* ───── grids ───── */
+    .grid{ display:grid; gap:.8rem; grid-template-columns:repeat(3, minmax(0,1fr)) }
+
+    /* ───── cards — each is a TITLE BUBBLE that reveals its info on click ───── */
+    .card{ position:relative; isolation:isolate; overflow:hidden;
+      border:1px solid transparent; border-radius:var(--flove-radius); padding:.7rem .8rem;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)) padding-box,
+        linear-gradient(140deg, rgba(255,255,255,.12), rgba(255,255,255,.02)) border-box;
+      transition:box-shadow var(--flove-fast), background var(--flove-fast), scale .5s ease, rotate .5s ease }
+    .card:hover{ box-shadow:0 10px 28px rgba(141,137,255,.18) }
+    .card--feat{ grid-column:1 / -1; padding:.9rem 1rem }
+    .card--feat::before{ content:""; position:absolute; z-index:-1; inset:-40%; opacity:.16;
+      background:conic-gradient(from var(--spin), var(--app-accent), var(--accent2), var(--app-accent));
+      animation:spin 14s linear infinite }
+    @keyframes spin{ to{ --spin:360deg } }
+    @media (prefers-reduced-motion:reduce){ .card--feat::before{ animation:none } }
+
+    /* the title bubble */
+    .ti-bub{ display:inline-flex; align-items:center; gap:.5rem; cursor:pointer; user-select:none;
+      font-weight:700; letter-spacing:.3px; font-size:1rem; color:var(--ink);
+      padding:.45rem .9rem; border-radius:var(--flove-radius-pill); border:1px solid transparent;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)) padding-box,
+        linear-gradient(140deg, rgba(255,255,255,.20), rgba(255,255,255,.05)) border-box;
+      transition:transform var(--flove-fast), box-shadow var(--flove-fast), background var(--flove-fast) }
+    .ti-bub:hover{ transform:translateY(-2px); box-shadow:0 8px 22px rgba(141,137,255,.28) }
+    .ti-bub .ico{ font-size:1.2rem; line-height:1 }
+    .card--feat .ti-bub{ font-size:1.15rem; padding:.55rem 1.1rem }
+    .card--feat .ti-bub .ico{ font-size:1.5rem }
+    .card:has(.ti-ctl:checked) .ti-bub{
+      background:linear-gradient(180deg, rgba(141,137,255,.18), rgba(112,240,211,.06)) padding-box, var(--grad) border-box;
+      box-shadow:0 8px 24px rgba(141,137,255,.32) }
+    .badge{ font-size:.6rem; font-weight:800; letter-spacing:.6px; color:var(--app-ink-on-accent);
+      background:var(--accent2); border-radius:var(--flove-radius-pill); padding:2px 8px }
+
+    /* the info, revealed on click */
+    .ti-info{ display:none; margin:.6rem .1rem 0 }
+    .card:has(.ti-ctl:checked) .ti-info{ display:block; animation:info-in .25s ease both }
+    @keyframes info-in{ from{ opacity:0; transform:translateY(-4px) } to{ opacity:1; transform:none } }
+    .ti-info p{ margin:0 0 .55rem; color:var(--muted); font-size:.84rem; line-height:1.45 }
+    .ti-open{ display:inline-block; font-size:.8rem; font-weight:700; text-decoration:none;
+      color:var(--app-ink-on-accent); background:var(--accent2); border-radius:var(--flove-radius-pill); padding:.32rem .9rem;
+      transition:box-shadow var(--flove-fast), filter var(--flove-fast) }
+    .ti-open:hover{ box-shadow:0 0 14px rgba(112,240,211,.5); filter:brightness(1.05) }
+
+    /* nested child rows — apps nested under their category hub */
+    .child{ margin-top:.7rem; margin-left:1.1rem;
+      border-left:2px solid color-mix(in srgb, var(--app-accent) 38%, transparent); padding-left:1.1rem }
+    .child .ti-bub .ti-name::before{ content:"↳ "; color:var(--app-accent); font-weight:800 }
+
+    /* "Redefine & Read" accents */
+    .cat-read .sec__num{ background:linear-gradient(135deg,#ffd479,var(--accent2)) }
+    .cat-read .card:has(.ti-ctl:checked) .ti-bub{
+      background:linear-gradient(180deg, rgba(112,240,211,.12), rgba(255,212,121,.06)) padding-box,
+        linear-gradient(135deg,#ffd479,var(--accent2)) border-box }
+
+    footer{ max-width:1080px; margin:0 auto 5rem; padding:1.4rem 1.2rem 0; color:var(--muted);
+      font-size:.82rem; text-align:center; border-top:1px solid var(--line) }
+    footer a{ color:var(--accent2) }
+
+    /* ───── compass display modes — applied to the items AS A WHOLE ───── */
+    body:has(#disp-sized:checked) .grid > .card:not(.card--feat):nth-child(3n+1){ scale:.9 }
+    body:has(#disp-sized:checked) .grid > .card:not(.card--feat):nth-child(3n+2){ scale:1 }
+    body:has(#disp-sized:checked) .grid > .card:not(.card--feat):nth-child(3n+3){ scale:1.13 }
+    body:has(#disp-cloud:checked) .card{ animation:card-drift 6.5s ease-in-out infinite }
+    body:has(#disp-cloud:checked) .card:nth-child(3n+2){ animation-duration:7.6s; animation-delay:-1.6s }
+    body:has(#disp-cloud:checked) .card:nth-child(3n+3){ animation-duration:5.9s; animation-delay:-3.2s }
     @keyframes card-drift{ 0%,100%{ transform:translate(0,0) rotate(0) } 25%{ transform:translate(10px,-8px) rotate(1.5deg) }
       50%{ transform:translate(-7px,7px) rotate(-1.5deg) } 75%{ transform:translate(8px,5px) rotate(1deg) } }
-    .cat:has(.opt-bub:checked) .card{ animation:card-bubble 5s ease-in-out infinite }
-    .cat:has(.opt-bub:checked) .card:nth-child(3n+2){ animation-duration:5.8s; animation-delay:-1.2s }
-    .cat:has(.opt-bub:checked) .card:nth-child(3n+3){ animation-duration:6.4s; animation-delay:-2.4s }
+    body:has(#disp-bub:checked) .card{ animation:card-bubble 5s ease-in-out infinite }
+    body:has(#disp-bub:checked) .card:nth-child(3n+2){ animation-duration:5.8s; animation-delay:-1.2s }
+    body:has(#disp-bub:checked) .card:nth-child(3n+3){ animation-duration:6.4s; animation-delay:-2.4s }
     @keyframes card-bubble{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-10px) } }
-    .cat:has(.opt-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+1){ rotate:-2deg; scale:.95 }
-    .cat:has(.opt-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+2){ rotate:1.5deg; scale:1.08; order:2 }
-    .cat:has(.opt-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+3){ rotate:-1deg; order:-1 }
-    .cat:has(.opt-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+4){ rotate:2.5deg; scale:.9; order:1 }
+    body:has(#disp-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+1){ rotate:-2deg; scale:.95 }
+    body:has(#disp-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+2){ rotate:1.5deg; scale:1.08; order:2 }
+    body:has(#disp-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+3){ rotate:-1deg; order:-1 }
+    body:has(#disp-rand:checked) .grid > .card:not(.card--feat):nth-child(4n+4){ rotate:2.5deg; scale:.9; order:1 }
     @media (prefers-reduced-motion:reduce){
-      .cat:has(.opt-cloud:checked) .card, .cat:has(.opt-bub:checked) .card{ animation:none }
+      body:has(#disp-cloud:checked) .card, body:has(#disp-bub:checked) .card{ animation:none }
     }
 
     /* ───── responsive ───── */
     @media (max-width:820px){ .grid{ grid-template-columns:repeat(2,minmax(0,1fr)) } }
-    @media (max-width:560px){
-      .grid, .grid--2{ grid-template-columns:1fr }
-      .card--feat{ flex-direction:column; align-items:flex-start; text-align:left }
-      .rail .lbl{ display:none }
-    }
+    @media (max-width:560px){ .grid{ grid-template-columns:1fr } }
   </style>
 </head>
 <body>
+  <!-- global compass controls (pure CSS; list = default) -->
+  <input type="checkbox" id="compass-open" class="ctl">
+  <input type="radio" name="disp" id="disp-cloud" class="ctl">
+  <input type="radio" name="disp" id="disp-bub"   class="ctl">
+  <input type="radio" name="disp" id="disp-list"  class="ctl" checked>
+  <input type="checkbox" id="disp-sized" class="ctl">
+  <input type="checkbox" id="disp-rand"  class="ctl">
+  <label for="compass-open" class="cmp-overlay" aria-hidden="true"></label>
+
   <nav class="flove-bar flove-bar--dark">
-    <input type="checkbox" id="puz-menu" class="puz-menu-ctl">
+    <input type="checkbox" id="puz-menu" class="ctl">
     <!-- own logo + title — click to open the menu -->
     <label class="puz-brand" for="puz-menu" title="Menu" aria-label="Open menu" tabindex="0">
       <svg class="puz-logo" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
@@ -249,210 +230,167 @@
         <label for="ui-lang-es">ES</label>
       </span>
     </div>
+
+    <!-- global compass — along the title -->
+    <span class="compass-wrap">
+      <label class="compass-btn" for="compass-open" title="Display modes" aria-label="Display modes" tabindex="0">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.9" fill="#0a0a0f"/></svg>
+      </label>
+      <span class="mode-buttons" role="group" aria-label="Display modes">
+        <label class="mode-btn mb-cloud" for="disp-cloud" title="Cloud — drift" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/><rect x="6.5" y="13" width="12.5" height="6" rx="3"/></g></svg></label>
+        <label class="mode-btn mb-bub" for="disp-bub" title="Bubbles — float &amp; bounce" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/></g></svg></label>
+        <label class="mode-btn mb-list" for="disp-list" title="List — ordered grid" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="6" r="2.3"/><rect x="9" y="4.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/></g></svg></label>
+        <span class="mode-sep" aria-hidden="true"></span>
+        <label class="mode-btn mb-sized" for="disp-sized" title="Size — small to large" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="currentColor"><rect x="2" y="15" width="3" height="5"/><rect x="7" y="12" width="3" height="8"/><rect x="12" y="8" width="3" height="12"/><rect x="17" y="3" width="3" height="17"/></g></svg></label>
+        <label class="mode-btn mb-rand" for="disp-rand" title="Random — shuffle sizes &amp; order" tabindex="0">🎲</label>
+      </span>
+    </span>
   </nav>
 
   <main>
-    <!-- ══ 1 · RATE — place on fuzzy scales ══ -->
+    <!-- ══ 1 · RATE ══ -->
     <section id="cat-rate" class="cat cat-rate">
-      <input type="checkbox" class="compass-ctl opt-open"  id="r-open">
-      <input type="radio"    class="compass-ctl opt-cloud" name="r-lay" id="r-cloud">
-      <input type="radio"    class="compass-ctl opt-bub"   name="r-lay" id="r-bub">
-      <input type="radio"    class="compass-ctl opt-list"  name="r-lay" id="r-list" checked>
-      <input type="checkbox" class="compass-ctl opt-sized" id="r-sized">
-      <input type="checkbox" class="compass-ctl opt-rand"  id="r-rand">
-      <input type="checkbox" class="compass-ctl opt-fold"  id="r-fold">
+      <input type="checkbox" class="ctl opt-fold" id="f-rate">
       <div class="sec__head">
         <span class="sec__num">🌈</span>
         <h2 class="sec__title"><span class="t-en">Rate</span><span class="t-es">Puntúa</span></h2>
         <p class="sec__lede"><span class="t-en">Place the object on fuzzy colour scales — rate, polarise, rank, sense.</span><span class="t-es">Sitúa el objeto en escalas difusas de color — puntúa, polariza, ordena, siente.</span></p>
-        <span class="cat-tools">
-          <label class="fold-btn" for="r-fold" title="Fold / nest" aria-label="Fold category" tabindex="0">▾</label>
-          <span class="compass-wrap">
-            <label class="compass-btn" for="r-open" title="Display modes" aria-label="Display modes" tabindex="0">
-              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
-                <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
-                <circle cx="12" cy="12" r="1.9" fill="#0a0a0f"/></svg>
-            </label>
-            <span class="mode-buttons" role="group" aria-label="Display modes">
-              <label class="mode-btn mb-cloud" for="r-cloud" title="Cloud — drift" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/><rect x="6.5" y="13" width="12.5" height="6" rx="3"/></g></svg></label>
-              <label class="mode-btn mb-bub" for="r-bub" title="Bubbles — float &amp; bounce" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/></g></svg></label>
-              <label class="mode-btn mb-list" for="r-list" title="List — ordered grid" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="6" r="2.3"/><rect x="9" y="4.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/></g></svg></label>
-              <span class="mode-sep" aria-hidden="true"></span>
-              <label class="mode-btn mb-sized" for="r-sized" title="Size — small to large" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="currentColor"><rect x="2" y="15" width="3" height="5"/><rect x="7" y="12" width="3" height="8"/><rect x="12" y="8" width="3" height="12"/><rect x="17" y="3" width="3" height="17"/></g></svg></label>
-              <label class="mode-btn mb-rand" for="r-rand" title="Random — shuffle sizes &amp; order" tabindex="0">🎲</label>
-            </span>
-          </span>
-        </span>
+        <span class="cat-tools"><label class="fold-btn" for="f-rate" title="Fold / nest" aria-label="Fold category" tabindex="0">▾</label></span>
       </div>
       <div class="sec__rule"></div>
       <div class="cat-body">
         <div class="grid">
-          <a class="card card--feat" href="raty.html">
-            <span class="ico">🌈</span>
-            <span>
-              <h3>Raty<span class="badge">HUB</span></h3>
+          <div class="card card--feat">
+            <input type="checkbox" class="ti-ctl" id="ti-raty">
+            <label class="ti-bub" for="ti-raty" tabindex="0"><span class="ico">🌈</span><span class="ti-name">Raty</span><span class="badge">HUB</span></label>
+            <div class="ti-info">
               <p><span class="t-en">Seven colour scales + the five senses as meta-rater; live phrase, axis, ranks.</span><span class="t-es">Siete escalas de color + los cinco sentidos como meta-rater; frase en vivo, eje, rangos.</span></p>
-            </span>
-          </a>
+              <a class="ti-open" href="raty.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+            </div>
+          </div>
         </div>
         <div class="child">
           <div class="grid">
-            <a class="card" href="poly.html">
-              <span class="ico">☯️</span>
-              <span>
-                <h3>Poly</h3>
+            <div class="card">
+              <input type="checkbox" class="ti-ctl" id="ti-poly">
+              <label class="ti-bub" for="ti-poly" tabindex="0"><span class="ico">☯️</span><span class="ti-name">Poly</span></label>
+              <div class="ti-info">
                 <p><span class="t-en">Bipolar pairs as mutual flow, with complementary hints.</span><span class="t-es">Pares bipolares como flujo mutuo, con sugerencias complementarias.</span></p>
-              </span>
-            </a>
-            <a class="card" href="triady.html">
-              <span class="ico">🔱</span>
-              <span>
-                <h3>Triady</h3>
+                <a class="ti-open" href="poly.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+              </div>
+            </div>
+            <div class="card">
+              <input type="checkbox" class="ti-ctl" id="ti-triady">
+              <label class="ti-bub" for="ti-triady" tabindex="0"><span class="ico">🔱</span><span class="ti-name">Triady</span></label>
+              <div class="ti-info">
                 <p><span class="t-en">When two aren't enough: the triad as minimal harmony; live ranking.</span><span class="t-es">Cuando dos no bastan: la tríada como armonía mínima; ranking en vivo.</span></p>
-              </span>
-            </a>
-            <a class="card" href="fivy.html">
-              <span class="ico">🖐️</span>
-              <span>
-                <h3>Fivy</h3>
+                <a class="ti-open" href="triady.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+              </div>
+            </div>
+            <div class="card">
+              <input type="checkbox" class="ti-ctl" id="ti-fivy">
+              <label class="ti-bub" for="ti-fivy" tabindex="0"><span class="ico">🖐️</span><span class="ti-name">Fivy</span></label>
+              <div class="ti-info">
                 <p><span class="t-en">Order the five senses, then map their fields, simplexes and confluences.</span><span class="t-es">Ordena los cinco sentidos y mapea sus campos, simplexes y confluencias.</span></p>
-              </span>
-            </a>
+                <a class="ti-open" href="fivy.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ══ 2 · RELATE — combine & connect ══ -->
+    <!-- ══ 2 · RELATE ══ -->
     <section id="cat-relate" class="cat cat-relate">
-      <input type="checkbox" class="compass-ctl opt-open"  id="l-open">
-      <input type="radio"    class="compass-ctl opt-cloud" name="l-lay" id="l-cloud">
-      <input type="radio"    class="compass-ctl opt-bub"   name="l-lay" id="l-bub">
-      <input type="radio"    class="compass-ctl opt-list"  name="l-lay" id="l-list" checked>
-      <input type="checkbox" class="compass-ctl opt-sized" id="l-sized">
-      <input type="checkbox" class="compass-ctl opt-rand"  id="l-rand">
-      <input type="checkbox" class="compass-ctl opt-fold"  id="l-fold">
+      <input type="checkbox" class="ctl opt-fold" id="f-relate">
       <div class="sec__head">
         <span class="sec__num">🕸️</span>
         <h2 class="sec__title"><span class="t-en">Relate</span><span class="t-es">Relaciona</span></h2>
         <p class="sec__lede"><span class="t-en">Combine and connect — how the object links to everything else.</span><span class="t-es">Combina y conecta — cómo enlaza el objeto con todo lo demás.</span></p>
-        <span class="cat-tools">
-          <label class="fold-btn" for="l-fold" title="Fold / nest" aria-label="Fold category" tabindex="0">▾</label>
-          <span class="compass-wrap">
-            <label class="compass-btn" for="l-open" title="Display modes" aria-label="Display modes" tabindex="0">
-              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
-                <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
-                <circle cx="12" cy="12" r="1.9" fill="#0a0a0f"/></svg>
-            </label>
-            <span class="mode-buttons" role="group" aria-label="Display modes">
-              <label class="mode-btn mb-cloud" for="l-cloud" title="Cloud — drift" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/><rect x="6.5" y="13" width="12.5" height="6" rx="3"/></g></svg></label>
-              <label class="mode-btn mb-bub" for="l-bub" title="Bubbles — float &amp; bounce" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/></g></svg></label>
-              <label class="mode-btn mb-list" for="l-list" title="List — ordered grid" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="6" r="2.3"/><rect x="9" y="4.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/></g></svg></label>
-              <span class="mode-sep" aria-hidden="true"></span>
-              <label class="mode-btn mb-sized" for="l-sized" title="Size — small to large" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="currentColor"><rect x="2" y="15" width="3" height="5"/><rect x="7" y="12" width="3" height="8"/><rect x="12" y="8" width="3" height="12"/><rect x="17" y="3" width="3" height="17"/></g></svg></label>
-              <label class="mode-btn mb-rand" for="l-rand" title="Random — shuffle sizes &amp; order" tabindex="0">🎲</label>
-            </span>
-          </span>
-        </span>
+        <span class="cat-tools"><label class="fold-btn" for="f-relate" title="Fold / nest" aria-label="Fold category" tabindex="0">▾</label></span>
       </div>
       <div class="sec__rule"></div>
       <div class="cat-body">
         <div class="grid">
-          <a class="card card--feat" href="vizy2.html">
-            <span class="ico">🕸️</span>
-            <span>
-              <h3>Vizy2<span class="badge">HUB</span></h3>
+          <div class="card card--feat">
+            <input type="checkbox" class="ti-ctl" id="ti-vizy2">
+            <label class="ti-bub" for="ti-vizy2" tabindex="0"><span class="ico">🕸️</span><span class="ti-name">Vizy2</span><span class="badge">HUB</span></label>
+            <div class="ti-info">
               <p><span class="t-en">The semantic mind-map: relations radiating from the core object.</span><span class="t-es">El mapa mental semántico: relaciones que irradian del objeto central.</span></p>
-            </span>
-          </a>
+              <a class="ti-open" href="vizy2.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+            </div>
+          </div>
         </div>
         <div class="child">
           <div class="grid">
-            <a class="card" href="comby.html">
-              <span class="ico">🎲</span>
-              <span>
-                <h3>Comby</h3>
+            <div class="card">
+              <input type="checkbox" class="ti-ctl" id="ti-comby">
+              <label class="ti-bub" for="ti-comby" tabindex="0"><span class="ico">🎲</span><span class="ti-name">Comby</span></label>
+              <div class="ti-info">
                 <p><span class="t-en">Fuzzy combinations from words and pools — full power-set, JSON export.</span><span class="t-es">Combinaciones difusas de palabras y conjuntos — power-set completo, exporta JSON.</span></p>
-              </span>
-            </a>
-            <a class="card" href="confluenty.html">
-              <span class="ico">🌀</span>
-              <span>
-                <h3>Confluenty</h3>
+                <a class="ti-open" href="comby.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+              </div>
+            </div>
+            <div class="card">
+              <input type="checkbox" class="ti-ctl" id="ti-confluenty">
+              <label class="ti-bub" for="ti-confluenty" tabindex="0"><span class="ico">🌀</span><span class="ti-name">Confluenty</span></label>
+              <div class="ti-info">
                 <p><span class="t-en">7-column board where lists meet at a centre.</span><span class="t-es">Tablero de 7 columnas donde las listas confluyen en un centro.</span></p>
-              </span>
-            </a>
+                <a class="ti-open" href="confluenty.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ══ 3 · REDEFINE & READ — name anew, read back, tune, decode ══ -->
+    <!-- ══ 3 · REDEFINE & READ ══ -->
     <section id="cat-read" class="cat cat-read">
-      <input type="checkbox" class="compass-ctl opt-open"  id="e-open">
-      <input type="radio"    class="compass-ctl opt-cloud" name="e-lay" id="e-cloud">
-      <input type="radio"    class="compass-ctl opt-bub"   name="e-lay" id="e-bub">
-      <input type="radio"    class="compass-ctl opt-list"  name="e-lay" id="e-list" checked>
-      <input type="checkbox" class="compass-ctl opt-sized" id="e-sized">
-      <input type="checkbox" class="compass-ctl opt-rand"  id="e-rand">
-      <input type="checkbox" class="compass-ctl opt-fold"  id="e-fold">
+      <input type="checkbox" class="ctl opt-fold" id="f-read">
       <div class="sec__head">
         <span class="sec__num">📖</span>
         <h2 class="sec__title"><span class="t-en">Redefine &amp; Read</span><span class="t-es">Redefine y Lee</span></h2>
         <p class="sec__lede"><span class="t-en">Name it anew, read it back, tune it — and decode the glyphs.</span><span class="t-es">Nómbralo de nuevo, léelo, ajústalo — y descifra los glifos.</span></p>
-        <span class="cat-tools">
-          <label class="fold-btn" for="e-fold" title="Fold / nest" aria-label="Fold category" tabindex="0">▾</label>
-          <span class="compass-wrap">
-            <label class="compass-btn" for="e-open" title="Display modes" aria-label="Display modes" tabindex="0">
-              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/>
-                <path d="M12 2.6 L13.7 10.3 L21.4 12 L13.7 13.7 L12 21.4 L10.3 13.7 L2.6 12 L10.3 10.3 Z" fill="currentColor"/>
-                <circle cx="12" cy="12" r="1.9" fill="#0a0a0f"/></svg>
-            </label>
-            <span class="mode-buttons" role="group" aria-label="Display modes">
-              <label class="mode-btn mb-cloud" for="e-cloud" title="Cloud — drift" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8.5" cy="13" r="5.2"/><circle cx="15" cy="10" r="6.3"/><circle cx="18" cy="14.5" r="4.6"/><rect x="6.5" y="13" width="12.5" height="6" rx="3"/></g></svg></label>
-              <label class="mode-btn mb-bub" for="e-bub" title="Bubbles — float &amp; bounce" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="9" r="4.2"/><circle cx="16" cy="14" r="5"/><circle cx="17" cy="6" r="2.6"/></g></svg></label>
-              <label class="mode-btn mb-list" for="e-list" title="List — ordered grid" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="6" r="2.3"/><rect x="9" y="4.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="12" r="2.3"/><rect x="9" y="10.2" width="13" height="3.6" rx="1.8"/><circle cx="4" cy="18" r="2.3"/><rect x="9" y="16.2" width="13" height="3.6" rx="1.8"/></g></svg></label>
-              <span class="mode-sep" aria-hidden="true"></span>
-              <label class="mode-btn mb-sized" for="e-sized" title="Size — small to large" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="currentColor"><rect x="2" y="15" width="3" height="5"/><rect x="7" y="12" width="3" height="8"/><rect x="12" y="8" width="3" height="12"/><rect x="17" y="3" width="3" height="17"/></g></svg></label>
-              <label class="mode-btn mb-rand" for="e-rand" title="Random — shuffle sizes &amp; order" tabindex="0">🎲</label>
-            </span>
-          </span>
-        </span>
+        <span class="cat-tools"><label class="fold-btn" for="f-read" title="Fold / nest" aria-label="Fold category" tabindex="0">▾</label></span>
       </div>
       <div class="sec__rule"></div>
       <div class="cat-body">
         <div class="grid">
-          <a class="card card--app" href="wisy.html">
-            <span class="ico">📝</span>
-            <span>
-              <h3>Wisy</h3>
+          <div class="card">
+            <input type="checkbox" class="ti-ctl" id="ti-wisy">
+            <label class="ti-bub" for="ti-wisy" tabindex="0"><span class="ico">📝</span><span class="ti-name">Wisy</span></label>
+            <div class="ti-info">
               <p><span class="t-en">Progressive form by depth: prism, tone, focus, then formalise.</span><span class="t-es">Formulario progresivo por profundidad: prisma, tono, enfoque y formalizar.</span></p>
-            </span>
-          </a>
-          <a class="card card--app" href="vizy.html">
-            <span class="ico">👁️</span>
-            <span>
-              <h3>Vizy</h3>
+              <a class="ti-open" href="wisy.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+            </div>
+          </div>
+          <div class="card">
+            <input type="checkbox" class="ti-ctl" id="ti-vizy">
+            <label class="ti-bub" for="ti-vizy" tabindex="0"><span class="ico">👁️</span><span class="ti-name">Vizy</span></label>
+            <div class="ti-info">
               <p><span class="t-en">Read the whole definition back as one woven phrase.</span><span class="t-es">Lee la definición entera como una sola frase tejida.</span></p>
-            </span>
-          </a>
-          <a class="card card--app" href="sety.html">
-            <span class="ico">⚙️</span>
-            <span>
-              <h3>Sety</h3>
+              <a class="ti-open" href="vizy.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+            </div>
+          </div>
+          <div class="card">
+            <input type="checkbox" class="ti-ctl" id="ti-sety">
+            <label class="ti-bub" for="ti-sety" tabindex="0"><span class="ico">⚙️</span><span class="ti-name">Sety</span></label>
+            <div class="ti-info">
               <p><span class="t-en">Language, scales and defaults for the whole tool.</span><span class="t-es">Idioma, escalas y valores por defecto de toda la herramienta.</span></p>
-            </span>
-          </a>
-          <a class="card card--app" href="keys.html">
-            <span class="ico">🔑</span>
-            <span>
-              <h3>Keys</h3>
+              <a class="ti-open" href="sety.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+            </div>
+          </div>
+          <div class="card">
+            <input type="checkbox" class="ti-ctl" id="ti-keys">
+            <label class="ti-bub" for="ti-keys" tabindex="0"><span class="ico">🔑</span><span class="ti-name">Keys</span></label>
+            <div class="ti-info">
               <p><span class="t-en">The visual alphabet of flove — symbols, glyphs and shortcuts you learn by looking.</span><span class="t-es">El alfabeto visual de flove — símbolos, glifos y atajos que aprendes mirando.</span></p>
-            </span>
-          </a>
+              <a class="ti-open" href="keys.html"><span class="t-en">Open ↗</span><span class="t-es">Abrir ↗</span></a>
+            </div>
+          </div>
         </div>
       </div>
     </section>

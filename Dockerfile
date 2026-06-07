@@ -10,6 +10,7 @@ RUN mv /usr/share/nginx/html/index.html /usr/share/nginx/html/apps.html
 COPY docs/ /usr/share/nginx/html/docs/
 
 COPY index.html /usr/share/nginx/html/index.html
+COPY bubbles.html /usr/share/nginx/html/bubbles.html
 
 EXPOSE 80
 

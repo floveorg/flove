@@ -1546,6 +1546,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
         const visName  = vis?.dataset.visibility || '—';
         setHint(`<i class="fas fa-cloud-upload-alt"></i> Published · ${platName} · ${visName}.`);
         wraps.publish.classList.remove('is-open');
+        scoreEvily();
       } else {
         closeAllWraps();
         wraps.publish.classList.add('is-open');
@@ -1554,11 +1555,19 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
     Object.values(wraps).forEach(w => w.addEventListener('click', e => e.stopPropagation()));
     document.addEventListener('click', () => closeAllWraps());
 
+    function scoreEvily() {
+      if (!window.floveAPI || !floveAPI.currentUser) return;
+      const fd = getFormData();
+      const data = {};
+      for (const [k, v] of Object.entries(fd)) data[k] = typeof v === 'boolean' ? (v ? 'yes' : 'no') : v;
+      floveAPI.submitForm('evily', 'evil', data).then(r => { if (r.stats) floveAPI.updateBadge(); }).catch(() => {});
+    }
+
     const subActions = {
-      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'evily.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
-      'save:text': () => { downloadBlob(new Blob([summaryText()+'\n'], {type:'text/plain'}), 'evily.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
-      'save:json': () => { downloadBlob(new Blob([JSON.stringify(getFormData(), null, 2)], {type:'application/json'}), 'evily.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
-      'save:jpg':  () => { renderJPG(blob => { if(!blob){ setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; } downloadBlob(blob, 'evily.jpg'); setHint('<i class="fas fa-check-circle"></i> JPG downloaded.'); }); },
+      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'evily.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); scoreEvily(); },
+      'save:text': () => { downloadBlob(new Blob([summaryText()+'\n'], {type:'text/plain'}), 'evily.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); scoreEvily(); },
+      'save:json': () => { downloadBlob(new Blob([JSON.stringify(getFormData(), null, 2)], {type:'application/json'}), 'evily.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); scoreEvily(); },
+      'save:jpg':  () => { renderJPG(blob => { if(!blob){ setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; } downloadBlob(blob, 'evily.jpg'); setHint('<i class="fas fa-check-circle"></i> JPG downloaded.'); scoreEvily(); }); },
       'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
       'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
       'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },

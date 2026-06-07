@@ -1,0 +1,414 @@
+const API_BASE = '/api';
+
+let currentUser = null;
+let _clickDebounce = {};
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+const apiGet  = (path) => api('GET', path);
+const apiPost = (path, body) => api('POST', path, body);
+const apiPut  = (path, body) => api('PUT', path, body);
+
+function getAppName() {
+  const html = document.documentElement;
+  if (html.dataset.floveApp) return html.dataset.floveApp;
+  const path = window.location.pathname.replace(/\/+$/, '');
+  const match = path.match(/\/([^/]+)\.html$/);
+  if (match) return match[1];
+  const segs = path.split('/').filter(Boolean);
+  return segs[segs.length - 1] || 'home';
+}
+
+async function checkSession() {
+  try {
+    const data = await apiGet('/auth/me');
+    currentUser = data;
+    return data;
+  } catch {
+    currentUser = null;
+    return null;
+  }
+}
+
+async function register(username, email, password) {
+  const data = await apiPost('/auth/register', { username, email, password });
+  currentUser = data.user;
+  return data.user;
+}
+
+async function login(username, password) {
+  const data = await apiPost('/auth/login', { username, password });
+  currentUser = data.user;
+  return data.user;
+}
+
+async function logout() {
+  await apiPost('/auth/logout');
+  currentUser = null;
+}
+
+async function submitForm(appName, formType, data) {
+  const result = await apiPost('/forms/submit', { appName, formType, data });
+  if (currentUser) {
+    currentUser.stats = result.stats;
+  }
+  return result;
+}
+
+async function recordClick(appName, actionType, label) {
+  if (!currentUser) return null;
+  try {
+    const data = await apiPost('/events/click', { appName, actionType, label });
+    if (currentUser && data.stats) {
+      currentUser.stats = data.stats;
+    }
+    return data;
+  } catch { return null; }
+}
+
+async function recordPageView(appName) {
+  if (!currentUser) return;
+  try {
+    const data = await apiPost('/events/pageview', { appName });
+    if (data.stats && currentUser) {
+      currentUser.stats = data.stats;
+    }
+  } catch {}
+}
+
+async function getMyScores() {
+  return apiGet('/scores/me');
+}
+
+async function submitFormData(form) {
+  const formData = new FormData(form);
+  const data = {};
+  for (const [key, val] of formData.entries()) {
+    if (data[key]) {
+      if (!Array.isArray(data[key])) data[key] = [data[key]];
+      data[key].push(val);
+    } else {
+      data[key] = val;
+    }
+  }
+  const appName = form.dataset.app || getAppName();
+  const formType = form.dataset.type || form.id || 'form';
+  if (Object.keys(data).length === 0) return null;
+  const result = await submitForm(appName, formType, data);
+  updateBadge();
+  return result;
+}
+
+function setupAutoForms() {
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (!currentUser) return;
+    if (form.dataset.floveApi === 'false') return;
+    e.preventDefault();
+    try {
+      const result = await submitFormData(form);
+      const evt = new CustomEvent('flove-submit', { detail: result });
+      form.dispatchEvent(evt);
+    } catch (err) {
+      const evt = new CustomEvent('flove-submit-error', { detail: err });
+      form.dispatchEvent(evt);
+    }
+  });
+}
+
+function setupClickTracking() {
+  if (!currentUser) return;
+  const appName = getAppName();
+
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest(
+      'button:not([data-flove-api="false"]):not([data-flove-click="false"]), ' +
+      'a:not([data-flove-api="false"]):not([data-flove-click="false"]), ' +
+      'input[type="submit"]:not([data-flove-api="false"]), ' +
+      '[data-flove-click]:not([data-flove-click="false"])'
+    );
+    if (!target) return;
+    if (target.closest('#flove-api-modal, #flove-api-badge')) return;
+
+    const label = (
+      target.dataset.floveClick
+      || target.getAttribute('aria-label')
+      || (target.textContent || '').trim().substring(0, 60)
+      || target.id
+      || target.className
+      || 'click'
+    ).substring(0, 80);
+
+    const key = appName + ':' + label;
+    const now = Date.now();
+    if (_clickDebounce[key] && now - _clickDebounce[key] < 3000) return;
+    _clickDebounce[key] = now;
+
+    recordClick(appName, 'click', label);
+  });
+}
+
+function renderModal() {
+  const existing = document.getElementById('flove-api-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'flove-api-modal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:99999;
+    display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.4); backdrop-filter:blur(6px);
+    font-family:system-ui,-apple-system,sans-serif;
+  `;
+  modal.innerHTML = `
+    <div style="
+      background:#fff; border-radius:20px; padding:2rem;
+      max-width:400px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,.2);
+      position:relative;
+    ">
+      <button id="flove-api-close" style="
+        position:absolute; top:12px; right:16px;
+        background:none; border:none; font-size:1.5rem;
+        cursor:pointer; color:#999;
+      ">×</button>
+
+      <div id="flove-api-login">
+        <h2 style="margin:0 0 1.5rem; font-weight:600;">✺ flove · entrar</h2>
+        <input id="flove-login-user" placeholder="usuario o email" style="
+          width:100%; padding:12px; margin-bottom:8px; border:1px solid #ddd;
+          border-radius:10px; font-size:1rem; box-sizing:border-box;
+        ">
+        <input id="flove-login-pass" type="password" placeholder="contraseña" style="
+          width:100%; padding:12px; margin-bottom:12px; border:1px solid #ddd;
+          border-radius:10px; font-size:1rem; box-sizing:border-box;
+        ">
+        <button id="flove-login-btn" style="
+          width:100%; padding:12px; background:#1a1820; color:#fff;
+          border:none; border-radius:10px; font-size:1rem; cursor:pointer;
+        ">Entrar</button>
+        <p style="text-align:center; margin-top:12px; font-size:.9rem; color:#666;">
+          ¿No tienes cuenta?
+          <a href="#" id="flove-show-register" style="color:#1a1820;">Regístrate</a>
+        </p>
+        <p id="flove-login-error" style="color:#e44; font-size:.9rem; display:none;"></p>
+      </div>
+
+      <div id="flove-api-register" style="display:none;">
+        <h2 style="margin:0 0 1.5rem; font-weight:600;">✺ flove · registrarse</h2>
+        <input id="flove-reg-user" placeholder="usuario" style="
+          width:100%; padding:12px; margin-bottom:8px; border:1px solid #ddd;
+          border-radius:10px; font-size:1rem; box-sizing:border-box;
+        ">
+        <input id="flove-reg-email" type="email" placeholder="email" style="
+          width:100%; padding:12px; margin-bottom:8px; border:1px solid #ddd;
+          border-radius:10px; font-size:1rem; box-sizing:border-box;
+        ">
+        <input id="flove-reg-pass" type="password" placeholder="contraseña" style="
+          width:100%; padding:12px; margin-bottom:12px; border:1px solid #ddd;
+          border-radius:10px; font-size:1rem; box-sizing:border-box;
+        ">
+        <button id="flove-register-btn" style="
+          width:100%; padding:12px; background:#1a1820; color:#fff;
+          border:none; border-radius:10px; font-size:1rem; cursor:pointer;
+        ">Crear cuenta</button>
+        <p style="text-align:center; margin-top:12px; font-size:.9rem; color:#666;">
+          ¿Ya tienes cuenta?
+          <a href="#" id="flove-show-login" style="color:#1a1820;">Entra</a>
+        </p>
+        <p id="flove-register-error" style="color:#e44; font-size:.9rem; display:none;"></p>
+      </div>
+
+      <div id="flove-api-authenticated" style="display:none;">
+        <div style="text-align:center;">
+          <div id="flove-avatar" style="
+            width:64px; height:64px; border-radius:50%; background:#eee;
+            margin:0 auto 12px; display:flex; align-items:center; justify-content:center;
+            font-size:1.5rem; color:#999;
+          ">✺</div>
+          <h3 id="flove-display-name" style="margin:0 0 4px; font-weight:600;"></h3>
+          <p id="flove-user-stats" style="margin:0 0 8px; font-size:.9rem; color:#666;"></p>
+          <p id="flove-app-stats" style="margin:0 0 16px; font-size:.85rem; color:#999;"></p>
+          <button id="flove-logout-btn" style="
+            padding:8px 24px; background:#eee; color:#1a1820;
+            border:none; border-radius:8px; cursor:pointer;
+          ">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  document.getElementById('flove-api-close').onclick = () => hideModal();
+  modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+  document.getElementById('flove-login-btn').onclick = async () => {
+    const user = document.getElementById('flove-login-user').value.trim();
+    const pass = document.getElementById('flove-login-pass').value;
+    const err = document.getElementById('flove-login-error');
+    err.style.display = 'none';
+    try {
+      await login(user, pass);
+      hideModal();
+      updateBadge();
+    } catch (e) {
+      err.textContent = e.error || 'Error al entrar';
+      err.style.display = 'block';
+    }
+  };
+
+  document.getElementById('flove-register-btn').onclick = async () => {
+    const user = document.getElementById('flove-reg-user').value.trim();
+    const email = document.getElementById('flove-reg-email').value.trim();
+    const pass = document.getElementById('flove-reg-pass').value;
+    const err = document.getElementById('flove-register-error');
+    err.style.display = 'none';
+    try {
+      await register(user, email, pass);
+      hideModal();
+      updateBadge();
+    } catch (e) {
+      err.textContent = e.error || 'Error al registrarse';
+      err.style.display = 'block';
+    }
+  };
+
+  document.getElementById('flove-show-register').onclick = (e) => {
+    e.preventDefault();
+    document.getElementById('flove-api-login').style.display = 'none';
+    document.getElementById('flove-api-register').style.display = 'block';
+  };
+
+  document.getElementById('flove-show-login').onclick = (e) => {
+    e.preventDefault();
+    document.getElementById('flove-api-register').style.display = 'none';
+    document.getElementById('flove-api-login').style.display = 'block';
+  };
+
+  document.getElementById('flove-logout-btn').onclick = async () => {
+    await logout();
+    hideModal();
+    updateBadge();
+  };
+
+  if (currentUser) {
+    showAuthenticated();
+  }
+}
+
+function showAuthenticated() {
+  document.getElementById('flove-api-login').style.display = 'none';
+  document.getElementById('flove-api-register').style.display = 'none';
+  const authed = document.getElementById('flove-api-authenticated');
+  authed.style.display = 'block';
+  document.getElementById('flove-display-name').textContent =
+    currentUser.displayName || currentUser.username;
+  const stats = currentUser.stats || {};
+  document.getElementById('flove-user-stats').textContent =
+    `✦ ${stats.totalPoints || 0} puntos · nivel ${stats.level || 1} · ${stats.submissionCount || 0} envíos`;
+  const appName = getAppName();
+  document.getElementById('flove-app-stats').textContent =
+    `📱 ${appName} · visita puntuada`;
+}
+
+function showModal() {
+  renderModal();
+  const modal = document.getElementById('flove-api-modal');
+  if (currentUser) showAuthenticated();
+  modal.style.display = 'flex';
+}
+
+function hideModal() {
+  const modal = document.getElementById('flove-api-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderBadge() {
+  const existing = document.getElementById('flove-api-badge');
+  if (existing) existing.remove();
+
+  const badge = document.createElement('div');
+  badge.id = 'flove-api-badge';
+  badge.style.cssText = `
+    position:fixed; bottom:20px; right:20px; z-index:99998;
+    display:flex; align-items:center; gap:8px;
+    padding:8px 16px 8px 12px;
+    background:rgba(255,255,255,.85); backdrop-filter:blur(12px);
+    border:1px solid rgba(0,0,0,.08); border-radius:100px;
+    box-shadow:0 4px 16px rgba(0,0,0,.1);
+    cursor:pointer; font-family:system-ui,-apple-system,sans-serif;
+    font-size:13px;
+    transition:transform .15s;
+  `;
+  badge.onmouseenter = () => badge.style.transform = 'scale(1.05)';
+  badge.onmouseleave = () => badge.style.transform = 'scale(1)';
+
+  if (currentUser) {
+    const s = currentUser.stats || {};
+    badge.innerHTML = `
+      <span style="font-size:1.2rem;">✺</span>
+      <span style="font-weight:500;">${currentUser.displayName || currentUser.username}</span>
+      <span style="color:#888;">·</span>
+      <span style="font-weight:600;">✦ ${s.totalPoints || 0}</span>
+    `;
+    badge.onclick = () => showModal();
+  } else {
+    badge.innerHTML = `
+      <span style="font-size:1.2rem;">✺</span>
+      <span style="font-weight:500;">Entrar</span>
+    `;
+    badge.onclick = () => showModal();
+  }
+
+  document.body.appendChild(badge);
+}
+
+async function updateBadge() {
+  if (currentUser) {
+    try {
+      const data = await getMyScores();
+      currentUser.stats = data;
+    } catch {}
+  }
+  renderBadge();
+}
+
+async function init(options = {}) {
+  await checkSession();
+  renderBadge();
+
+  if (currentUser) {
+    const appName = getAppName();
+    recordPageView(appName);
+    setupClickTracking();
+  }
+
+  setupAutoForms();
+}
+
+window.floveAPI = {
+  init,
+  checkSession,
+  login,
+  register,
+  logout,
+  submitForm,
+  getMyScores,
+  recordClick,
+  recordPageView,
+  getAppName,
+  showModal,
+  hideModal,
+  updateBadge,
+  get currentUser() { return currentUser; },
+};

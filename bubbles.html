@@ -162,21 +162,6 @@ body {
   const vel = () => (Math.random()<.5?-1:1) * rnd(.05,.16);
   const physics = new Map();
 
-  // build the bubbles
-  WORDS.forEach((w,i) => {
-    const el = document.createElement('div');
-    el.className = 'bubble';
-    el.textContent = w.t;
-    el.style.setProperty('--bub', w.c);
-    const size = Math.round(rnd(70, 132));
-    el.style.width = size+'px'; el.style.height = size+'px';
-    el.style.fontSize = (size*0.22).toFixed(0)+'px';
-    el.style.animationDelay = (i*0.07).toFixed(2)+'s';
-    // tapping a bubble opens its calm flove infobox (physics keeps running)
-    el.addEventListener('click', (e) => { e.stopPropagation(); openInfo(w, el); });
-    cloud.appendChild(el);
-  });
-
   // ── calm infobox: floats above the cloud near the tapped bubble ──
   const box = document.getElementById('infoBox');
   const ibKind = document.getElementById('ibKind');
@@ -209,9 +194,12 @@ body {
   }
   function closeInfo() { box.classList.remove('show'); }
   document.getElementById('ibClose').addEventListener('click', (e) => { e.stopPropagation(); closeInfo(); });
-  // tap anywhere outside a bubble or the box → close
+  // tap in the open space (not on a bubble or the box) → close the box AND
+  // float up a few more bubbles from the bottom
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.bubble') && !e.target.closest('#infoBox')) closeInfo();
+    if (e.target.closest('.bubble') || e.target.closest('#infoBox') || e.target.closest('.home-link')) return;
+    closeInfo();
+    if (queue.length) releaseBatch(3);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeInfo(); });
 
@@ -220,18 +208,37 @@ body {
     const b = el.getBoundingClientRect();
     return { w: b.width/r.width*100 || 10, h: b.height/r.height*100 || 10 };
   }
-  function seed() {
-    const r = cloudRect();
-    [...cloud.children].forEach(el => {
-      const m = measure(el, r);
-      const x = +(Math.random()*Math.max(1,100-m.w)).toFixed(2);
-      const y = reduce ? +(Math.random()*Math.max(1,100-m.h)).toFixed(2)
-                       : +(100-m.h).toFixed(2);            // rise from the bottom
-      el.style.left = x+'%'; el.style.top = y+'%';
-      physics.set(el, { x, y, w:m.w, h:m.h, vx: vel(), vy: reduce ? 0 : (-Math.abs(vel())-0.04) });
-    });
-  }
   let raf = null;
+  let queue = [];
+  // seed one bubble at the bottom so it rises up into the cloud
+  function seedOne(el) {
+    const r = cloudRect();
+    const m = measure(el, r);
+    const x = +(Math.random()*Math.max(1,100-m.w)).toFixed(2);
+    const y = reduce ? +(Math.random()*Math.max(1,100-m.h)).toFixed(2)
+                     : +(100-m.h).toFixed(2);              // start at the bottom
+    el.style.left = x+'%'; el.style.top = y+'%';
+    physics.set(el, { x, y, w:m.w, h:m.h, vx: vel(), vy: reduce ? 0 : (-Math.abs(vel())-0.05) });
+  }
+  function makeBubble(w, stagger) {
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    el.textContent = w.t;
+    el.style.setProperty('--bub', w.c);
+    const size = Math.round(rnd(70, 132));
+    el.style.width = size+'px'; el.style.height = size+'px';
+    el.style.fontSize = (size*0.22).toFixed(0)+'px';
+    el.style.animationDelay = (stagger||0).toFixed(2)+'s';
+    el.addEventListener('click', (e) => { e.stopPropagation(); openInfo(w, el); });
+    cloud.appendChild(el);
+    seedOne(el);
+    if (!reduce && !raf) raf = requestAnimationFrame(step);
+  }
+  // release the next few queued bubbles — they rise from the bottom, leaving
+  // the bubbles already drifting undisturbed
+  function releaseBatch(n) {
+    queue.splice(0, n).forEach((w, i) => makeBubble(w, i*0.06));
+  }
   function step() {
     const r = cloudRect();
     if (!r.width || !r.height) { raf = requestAnimationFrame(step); return; }
@@ -263,8 +270,9 @@ body {
     raf = requestAnimationFrame(step);
   }
 
-  seed();
-  if (!reduce) raf = requestAnimationFrame(step);
+  // start with just a few bubbles; the rest rise on each background click
+  queue = WORDS.slice();
+  releaseBatch(5);
 })();
 </script>
 

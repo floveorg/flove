@@ -245,16 +245,72 @@ function renderModal() {
         <div style="text-align:center;">
           <div id="flove-avatar" style="
             width:64px; height:64px; border-radius:50%; background:#eee;
-            margin:0 auto 12px; display:flex; align-items:center; justify-content:center;
+            margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
             font-size:1.5rem; color:#999;
           ">✺</div>
-          <h3 id="flove-display-name" style="margin:0 0 4px; font-weight:600;"></h3>
-          <p id="flove-user-stats" style="margin:0 0 8px; font-size:.9rem; color:#666;"></p>
-          <p id="flove-app-stats" style="margin:0 0 16px; font-size:.85rem; color:#999;"></p>
-          <button id="flove-logout-btn" style="
-            padding:8px 24px; background:#eee; color:#1a1820;
-            border:none; border-radius:8px; cursor:pointer;
-          ">Cerrar sesión</button>
+          <h3 id="flove-display-name" style="margin:0; font-weight:600;"></h3>
+          <p id="flove-username-tag" style="margin:0 0 4px; font-size:.85rem; color:#999;"></p>
+          <p id="flove-user-bio" style="margin:0 0 8px; font-size:.85rem; color:#666; font-style:italic;"></p>
+          <p id="flove-user-stats" style="margin:0 0 4px; font-size:.9rem; color:#666;"></p>
+          <p id="flove-user-social" style="margin:0 0 8px; font-size:.85rem; color:#999;"></p>
+          <p id="flove-created-at" style="margin:0 0 12px; font-size:.75rem; color:#bbb;"></p>
+          <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:12px;">
+            <button id="flove-profile-edit-btn" style="
+              padding:6px 16px; background:#eee; color:#1a1820;
+              border:none; border-radius:8px; font-size:.85rem; cursor:pointer;
+            ">✎ Editar perfil</button>
+            <button id="flove-profile-feed-btn" style="
+              padding:6px 16px; background:#1a1820; color:#fff;
+              border:none; border-radius:8px; font-size:.85rem; cursor:pointer;
+            ">📰 Mi feed</button>
+            <button id="flove-profile-friends-btn" style="
+              padding:6px 16px; background:#eee; color:#1a1820;
+              border:none; border-radius:8px; font-size:.85rem; cursor:pointer;
+            ">👥 Amigos</button>
+            <button id="flove-logout-btn" style="
+              padding:6px 16px; background:#ddd; color:#666;
+              border:none; border-radius:8px; font-size:.85rem; cursor:pointer;
+            ">Salir</button>
+          </div>
+          <div id="flove-profile-edit-form" style="display:none; text-align:left; border-top:1px solid #eee; padding-top:12px; margin-top:4px;">
+            <input id="flove-edit-name" placeholder="Nombre visible" style="
+              width:100%; padding:10px; margin-bottom:6px; border:1px solid #ddd;
+              border-radius:8px; font-size:.9rem; box-sizing:border-box;
+            ">
+            <input id="flove-edit-bio" placeholder="Bio" style="
+              width:100%; padding:10px; margin-bottom:6px; border:1px solid #ddd;
+              border-radius:8px; font-size:.9rem; box-sizing:border-box;
+            ">
+            <input id="flove-edit-avatar" placeholder="URL de avatar" style="
+              width:100%; padding:10px; margin-bottom:6px; border:1px solid #ddd;
+              border-radius:8px; font-size:.9rem; box-sizing:border-box;
+            ">
+            <input id="flove-edit-website" placeholder="Web" style="
+              width:100%; padding:10px; margin-bottom:8px; border:1px solid #ddd;
+              border-radius:8px; font-size:.9rem; box-sizing:border-box;
+            ">
+            <div style="display:flex; gap:6px; justify-content:flex-end;">
+              <button id="flove-edit-cancel" style="
+                padding:8px 18px; background:#eee; color:#1a1820;
+                border:none; border-radius:8px; font-size:.85rem; cursor:pointer;
+              ">Cancelar</button>
+              <button id="flove-edit-save" style="
+                padding:8px 18px; background:#1a1820; color:#fff;
+                border:none; border-radius:8px; font-size:.85rem; cursor:pointer;
+              ">Guardar</button>
+            </div>
+            <p id="flove-edit-error" style="color:#e44; font-size:.85rem; display:none; margin-top:6px;"></p>
+          </div>
+          <div id="flove-profile-feed" style="display:none; text-align:left; border-top:1px solid #eee; padding-top:10px; margin-top:4px; max-height:240px; overflow-y:auto;">
+            <p style="margin:0 0 6px; font-size:.8rem; color:#999; font-weight:600;">📰 Mis publicaciones</p>
+            <div id="flove-feed-list"></div>
+            <p id="flove-feed-loading" style="font-size:.8rem; color:#bbb; text-align:center;">Cargando...</p>
+          </div>
+          <div id="flove-profile-friends" style="display:none; text-align:left; border-top:1px solid #eee; padding-top:10px; margin-top:4px; max-height:240px; overflow-y:auto;">
+            <p style="margin:0 0 6px; font-size:.8rem; color:#999; font-weight:600;">👥 Siguiendo</p>
+            <div id="flove-friends-list"></div>
+            <p id="flove-friends-loading" style="font-size:.8rem; color:#bbb; text-align:center;">Cargando...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -313,24 +369,160 @@ function renderModal() {
     updateBadge();
   };
 
+  document.getElementById('flove-profile-edit-btn').onclick = () => {
+    const form = document.getElementById('flove-profile-edit-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('flove-edit-name').value = currentUser.displayName || '';
+    document.getElementById('flove-edit-bio').value = currentUser.bio || '';
+    document.getElementById('flove-edit-avatar').value = currentUser.avatarUrl || '';
+    document.getElementById('flove-edit-website').value = currentUser.websiteUrl || '';
+  };
+
+  document.getElementById('flove-edit-cancel').onclick = () => {
+    document.getElementById('flove-profile-edit-form').style.display = 'none';
+  };
+
+  document.getElementById('flove-edit-save').onclick = async () => {
+    const errEl = document.getElementById('flove-edit-error');
+    errEl.style.display = 'none';
+    try {
+      const result = await updateProfile({
+        displayName: document.getElementById('flove-edit-name').value.trim(),
+        bio: document.getElementById('flove-edit-bio').value.trim(),
+        avatarUrl: document.getElementById('flove-edit-avatar').value.trim(),
+        websiteUrl: document.getElementById('flove-edit-website').value.trim(),
+      });
+      currentUser.displayName = result.displayName;
+      currentUser.bio = result.bio;
+      currentUser.avatarUrl = result.avatarUrl;
+      currentUser.websiteUrl = result.websiteUrl;
+      document.getElementById('flove-profile-edit-form').style.display = 'none';
+      updateBadge();
+      showAuthenticated();
+    } catch (e) {
+      errEl.textContent = e.error || 'Error al guardar';
+      errEl.style.display = 'block';
+    }
+  };
+
+  document.getElementById('flove-profile-feed-btn').onclick = async () => {
+    const panel = document.getElementById('flove-profile-feed');
+    const list = document.getElementById('flove-feed-list');
+    const loading = document.getElementById('flove-feed-loading');
+    document.getElementById('flove-profile-friends').style.display = 'none';
+    if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    loading.style.display = 'block';
+    list.innerHTML = '';
+    try {
+      const data = await getUserFeed(currentUser.username);
+      loading.style.display = 'none';
+      if (!data.posts || data.posts.length === 0) {
+        list.innerHTML = '<p style="font-size:.8rem;color:#bbb;text-align:center;">Sin publicaciones aún</p>';
+        return;
+      }
+      for (const p of data.posts.slice(0, 10)) {
+        const d = document.createElement('div');
+        d.style.cssText = 'padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:.82rem;';
+        d.innerHTML = `
+          <span style="font-weight:600;">${p.appName}</span>
+          <span style="color:#999;font-size:.75rem;"> · ${new Date(p.createdAt).toLocaleDateString()}</span>
+          <span style="color:#888;"> ✦${p.pointsEarned}</span>
+          <p style="margin:2px 0 0;color:#666;font-size:.8rem;">${p.content ? floveAPI.parseMentions(p.content.substring(0,120)) : ''}</p>
+          <span style="font-size:.75rem;color:#bbb;">♡ ${p.likes}</span>
+        `;
+        list.appendChild(d);
+      }
+    } catch {
+      loading.textContent = 'Error al cargar feed';
+    }
+  };
+
+  document.getElementById('flove-profile-friends-btn').onclick = async () => {
+    const panel = document.getElementById('flove-profile-friends');
+    const list = document.getElementById('flove-friends-list');
+    const loading = document.getElementById('flove-friends-loading');
+    document.getElementById('flove-profile-feed').style.display = 'none';
+    if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    loading.style.display = 'block';
+    list.innerHTML = '';
+    try {
+      const uid = currentUser.id;
+      const [followers, following] = await Promise.all([
+        getFollowers(uid),
+        getFollowing(uid),
+      ]);
+      loading.style.display = 'none';
+      const users = following.following || [];
+      const allUsers = [...users, ...(followers.followers || [])];
+      const seen = new Set();
+      const unique = [];
+      for (const u of allUsers) {
+        if (!seen.has(u.id)) { seen.add(u.id); unique.push(u); }
+      }
+      if (unique.length === 0) {
+        list.innerHTML = '<p style="font-size:.8rem;color:#bbb;text-align:center;">Sin conexiones aún</p>';
+        return;
+      }
+      for (const u of unique) {
+        const d = document.createElement('div');
+        d.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:.82rem;';
+        d.innerHTML = `
+          <span style="font-weight:600;">@${u.username}</span>
+          <span style="color:#666;">${u.display_name || ''}</span>
+          <span style="margin-left:auto;color:#999;font-size:.75rem;">✦ ${u.total_points || 0}</span>
+        `;
+        list.appendChild(d);
+      }
+    } catch {
+      loading.textContent = 'Error al cargar amigos';
+    }
+  };
+
   if (currentUser) {
     showAuthenticated();
   }
 }
 
-function showAuthenticated() {
+async function showAuthenticated() {
   document.getElementById('flove-api-login').style.display = 'none';
   document.getElementById('flove-api-register').style.display = 'none';
   const authed = document.getElementById('flove-api-authenticated');
   authed.style.display = 'block';
+
+  try {
+    const profile = await apiGet('/auth/me');
+    Object.assign(currentUser, profile);
+  } catch {}
+
   document.getElementById('flove-display-name').textContent =
     currentUser.displayName || currentUser.username;
+  document.getElementById('flove-username-tag').textContent =
+    `@${currentUser.username}`;
+  document.getElementById('flove-user-bio').textContent =
+    currentUser.bio || '';
+  document.getElementById('flove-user-bio').style.display =
+    currentUser.bio ? 'block' : 'none';
+
   const stats = currentUser.stats || {};
   document.getElementById('flove-user-stats').textContent =
-    `✦ ${stats.totalPoints || 0} puntos · nivel ${stats.level || 1} · ${stats.submissionCount || 0} envíos`;
-  const appName = getAppName();
-  document.getElementById('flove-app-stats').textContent =
-    `📱 ${appName} · visita puntuada`;
+    `✦ ${stats.totalPoints || 0} pts · nivel ${stats.level || 1} · ${stats.submissionCount || 0} envíos`;
+  document.getElementById('flove-user-social').textContent =
+    `📰 ${stats.postCount || 0} posts · 👥 ${stats.followerCount || 0} seguidores · ${stats.followingCount || 0} siguiendo`;
+
+  if (currentUser.createdAt) {
+    const d = new Date(currentUser.createdAt);
+    document.getElementById('flove-created-at').textContent =
+      `Desde ${d.toLocaleDateString()}`;
+  }
+
+  const avatar = document.getElementById('flove-avatar');
+  if (currentUser.avatarUrl) {
+    avatar.innerHTML = `<img src="${currentUser.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`;
+  } else {
+    avatar.textContent = '✺';
+  }
 }
 
 function showModal() {
@@ -367,8 +559,11 @@ function renderBadge() {
 
   if (currentUser) {
     const s = currentUser.stats || {};
+    const avatarHtml = currentUser.avatarUrl
+      ? `<img src="${currentUser.avatarUrl}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">`
+      : `<span style="font-size:1.2rem;">✺</span>`;
     badge.innerHTML = `
-      <span style="font-size:1.2rem;">✺</span>
+      ${avatarHtml}
       <span style="font-weight:500;">${currentUser.displayName || currentUser.username}</span>
       <span style="color:#888;">·</span>
       <span style="font-weight:600;">✦ ${s.totalPoints || 0}</span>

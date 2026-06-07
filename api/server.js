@@ -6,6 +6,9 @@ import authRoutes from './routes/auth.js';
 import formsRoutes from './routes/forms.js';
 import scoresRoutes from './routes/scores.js';
 import eventsRoutes from './routes/events.js';
+import feedRoutes from './routes/feed.js';
+import usersRoutes from './routes/users.js';
+import socialRoutes from './routes/social.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +26,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/forms', formsRoutes);
 app.use('/api/scores', scoresRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/feed', feedRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/social', socialRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });

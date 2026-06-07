@@ -72,6 +72,64 @@ CREATE TABLE IF NOT EXISTS user_badges (
   PRIMARY KEY (user_id, badge_id)
 );
 
+-- Social tables
+
+CREATE TABLE IF NOT EXISTS posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  app_name TEXT NOT NULL,
+  form_type TEXT DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  data_snapshot JSONB DEFAULT '{}',
+  points_earned INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS post_likes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, post_id)
+);
+
+CREATE TABLE IF NOT EXISTS mentions (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  mentioned_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(post_id, mentioned_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mentions_user ON mentions(mentioned_user_id);
+
+CREATE TABLE IF NOT EXISTS follows (
+  follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  followee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (follower_id, followee_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follows_followee ON follows(followee_id);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('mention','follow','like')),
+  actor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, created_at DESC);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url TEXT DEFAULT '';
+
 INSERT INTO badges (code, name, description) VALUES
   ('first_submit', 'First Steps', 'Submit your first form'),
   ('ten_submits', 'Getting Started', 'Submit 10 forms'),
@@ -82,5 +140,9 @@ INSERT INTO badges (code, name, description) VALUES
   ('score_100', 'Century', 'Reach 100 points'),
   ('score_1000', 'Millennium', 'Reach 1,000 points'),
   ('explorer', 'Explorer', 'Use 5 different apps'),
-  ('all_rounder', 'All-Rounder', 'Use 10 different apps')
+  ('all_rounder', 'All-Rounder', 'Use 10 different apps'),
+  ('social_first_post', 'First Post', 'Publish your first post'),
+  ('social_ten_posts', 'Storyteller', 'Publish 10 posts'),
+  ('social_followed', 'Popular', 'Get 5 followers'),
+  ('social_mentioned', 'Noticed', 'Get your first mention')
 ON CONFLICT (code) DO NOTHING;

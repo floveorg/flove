@@ -19,6 +19,7 @@ async function api(method, path, body) {
 const apiGet  = (path) => api('GET', path);
 const apiPost = (path, body) => api('POST', path, body);
 const apiPut  = (path, body) => api('PUT', path, body);
+const apiDel  = (path) => api('DELETE', path);
 
 function getAppName() {
   const html = document.documentElement;
@@ -110,6 +111,8 @@ async function submitFormData(form) {
   return result;
 }
 
+let _publishCooldown = {};
+
 function setupAutoForms() {
   document.addEventListener('submit', async (e) => {
     const form = e.target;
@@ -120,6 +123,15 @@ function setupAutoForms() {
       const result = await submitFormData(form);
       const evt = new CustomEvent('flove-submit', { detail: result });
       form.dispatchEvent(evt);
+      const appName = form.dataset.app || getAppName();
+      const cooldownKey = appName + ':publish';
+      const now = Date.now();
+      if (!_publishCooldown[cooldownKey] || now - _publishCooldown[cooldownKey] > 30000) {
+        if (form.dataset.flovePublish !== 'false') {
+          _publishCooldown[cooldownKey] = now;
+          wireFormPublish(form, result);
+        }
+      }
     } catch (err) {
       const evt = new CustomEvent('flove-submit-error', { detail: err });
       form.dispatchEvent(evt);
@@ -394,6 +406,251 @@ async function init(options = {}) {
   }
 
   setupAutoForms();
+  setupDeclarativePublish();
+  renderPublishFloat();
+}
+
+function setupDeclarativePublish() {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-flove-publish]');
+    if (!btn) return;
+    if (!currentUser) { showModal(); return; }
+    e.preventDefault();
+    const appName = btn.dataset.flovePublish || getAppName();
+    const formType = btn.dataset.floveFormtype || 'result';
+    let dataSnapshot = {};
+    try {
+      dataSnapshot = JSON.parse(btn.dataset.floveData || '{}');
+    } catch {}
+    const points = parseInt(btn.dataset.flovePoints) || 10;
+    showFeedPublishModal(appName, formType, dataSnapshot, points);
+  });
+}
+
+function renderPublishFloat() {
+  const existing = document.getElementById('flove-api-publish-float');
+  if (existing) existing.remove();
+  if (!currentUser) return;
+
+  const appName = getAppName();
+  const skipPages = ['home', 'apps', 'index', 'apps.html', 'profile'];
+  if (skipPages.includes(appName) || appName === '') return;
+
+  const btn = document.createElement('div');
+  btn.id = 'flove-api-publish-float';
+  btn.setAttribute('data-flove-click', 'false');
+  btn.style.cssText = `
+    position:fixed; bottom:76px; right:20px; z-index:99997;
+    width:40px; height:40px; border-radius:50%;
+    background:rgba(255,255,255,.9); backdrop-filter:blur(12px);
+    border:1px solid rgba(0,0,0,.08);
+    box-shadow:0 4px 16px rgba(0,0,0,.1);
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; cursor:pointer;
+    transition:transform .15s;
+    font-family:system-ui,-apple-system,sans-serif;
+  `;
+  btn.textContent = '📝';
+  btn.title = 'Publicar resultado en mi feed';
+  btn.onmouseenter = () => btn.style.transform = 'scale(1.1)';
+  btn.onmouseleave = () => btn.style.transform = 'scale(1)';
+  btn.onclick = async () => {
+    if (!currentUser) { showModal(); return; }
+    const collected = collectAppData();
+    showFeedPublishModal(collected.appName, collected.formType, collected.data, collected.points);
+  };
+  document.body.appendChild(btn);
+}
+
+function collectAppData() {
+  const appName = getAppName();
+  const forms = document.querySelectorAll('form');
+  const data = {};
+  let formType = 'page';
+
+  if (forms.length > 0) {
+    for (const form of forms) {
+      const fd = new FormData(form);
+      for (const [k, v] of fd.entries()) {
+        if (data[k]) {
+          if (!Array.isArray(data[k])) data[k] = [data[k]];
+          data[k].push(v);
+        } else {
+          data[k] = v;
+        }
+      }
+      formType = form.dataset.type || form.id || form.name || formType;
+    }
+  }
+
+  const inputs = document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]), textarea, select');
+  for (const el of inputs) {
+    if (el.name && !data[el.name]) {
+      data[el.name] = el.value;
+    }
+  }
+
+  const title = document.querySelector('h1, h2, .title, .app-title');
+  if (title) data._title = title.textContent.trim();
+
+  const fieldCount = Object.keys(data).filter(k => !k.startsWith('_')).length;
+  const points = Math.max(10, fieldCount * 2);
+
+  return { appName, formType: formType || 'result', data, points };
+}
+
+function wireFormPublish(form, result) {
+  if (!currentUser || !form || !result) return;
+  if (form.dataset.flovePublish === 'false') return;
+  const appName = form.dataset.app || getAppName();
+  const formType = form.dataset.type || form.id || 'form';
+  const data = {};
+  const fd = new FormData(form);
+  for (const [k, v] of fd.entries()) {
+    if (data[k]) {
+      if (!Array.isArray(data[k])) data[k] = [data[k]];
+      data[k].push(v);
+    } else {
+      data[k] = v;
+    }
+  }
+  const hasChanges = Object.keys(data).length > 0;
+  if (!hasChanges) return;
+  setTimeout(() => {
+    showFeedPublishModal(appName, formType, data, result.points || 10);
+  }, 500);
+}
+
+async function publishPost(appName, formType, content, dataSnapshot, pointsEarned) {
+  return apiPost('/feed/publish', { appName, formType, content, dataSnapshot, pointsEarned });
+}
+
+async function getUserFeed(username, page = 1) {
+  return apiGet(`/feed/@${username}?page=${page}`);
+}
+
+async function getTimeline(page = 1) {
+  return apiGet(`/feed/timeline?page=${page}`);
+}
+
+async function likePost(postId) {
+  return apiPost(`/feed/like/${postId}`);
+}
+
+async function unlikePost(postId) {
+  return apiDel(`/feed/like/${postId}`);
+}
+
+async function deletePost(postId) {
+  return apiDel(`/feed/${postId}`);
+}
+
+async function getUserProfile(username) {
+  return apiGet(`/users/@${username}`);
+}
+
+async function searchUsers(query) {
+  return apiGet(`/users/search?q=${encodeURIComponent(query)}`);
+}
+
+async function followUser(userId) {
+  return apiPost(`/social/follow/${userId}`);
+}
+
+async function unfollowUser(userId) {
+  return apiDel(`/social/follow/${userId}`);
+}
+
+async function getFollowers(userId) {
+  return apiGet(`/social/followers/${userId}`);
+}
+
+async function getFollowing(userId) {
+  return apiGet(`/social/following/${userId}`);
+}
+
+async function getNotifications() {
+  return apiGet('/social/notifications');
+}
+
+async function markNotificationsRead(ids) {
+  return apiPost('/social/notifications/read', { ids });
+}
+
+async function updateProfile(data) {
+  return apiPut('/auth/profile', data);
+}
+
+function showFeedPublishModal(appName, formType, dataSnapshot, pointsEarned) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:100000;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.4); backdrop-filter:blur(6px);
+    font-family:system-ui,-apple-system,sans-serif;
+  `;
+  overlay.innerHTML = `
+    <div style="
+      background:#fff; border-radius:20px; padding:2rem;
+      max-width:440px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,.2);
+      position:relative;
+    ">
+      <h3 style="margin:0 0 .5rem; font-weight:600;">📝 Publicar en mi feed</h3>
+      <p style="margin:0 0 1rem; font-size:.9rem; color:#666;">
+        App: <strong>${appName}</strong> · ✦ ${pointsEarned} pts
+      </p>
+      <textarea id="flove-feed-content" placeholder="Escribe algo... (usa @usuario para mencionar)"
+        style="width:100%; min-height:80px; padding:12px; border:1px solid #ddd; border-radius:10px;
+               font-size:.95rem; font-family:inherit; box-sizing:border-box; resize:vertical;
+      "></textarea>
+      <p id="flove-feed-mentions" style="margin:4px 0 12px; font-size:.85rem; color:#999; min-height:1.2em;"></p>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="flove-feed-cancel" style="
+          padding:10px 20px; background:#eee; color:#1a1820; border:none;
+          border-radius:10px; font-size:.95rem; cursor:pointer;
+        ">Cancelar</button>
+        <button id="flove-feed-submit" style="
+          padding:10px 20px; background:#1a1820; color:#fff; border:none;
+          border-radius:10px; font-size:.95rem; cursor:pointer;
+        ">Publicar</button>
+      </div>
+      <p id="flove-feed-error" style="color:#e44; font-size:.9rem; display:none; margin-top:8px;"></p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const textarea = overlay.querySelector('#flove-feed-content');
+
+  textarea.addEventListener('input', () => {
+    const mentions = textarea.value.match(/@(\w+)/g);
+    const preview = overlay.querySelector('#flove-feed-mentions');
+    if (mentions) {
+      preview.textContent = mentions.join(' · ');
+    } else {
+      preview.textContent = '';
+    }
+  });
+
+  overlay.querySelector('#flove-feed-cancel').onclick = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.querySelector('#flove-feed-submit').onclick = async () => {
+    const content = textarea.value.trim();
+    const errEl = overlay.querySelector('#flove-feed-error');
+    errEl.style.display = 'none';
+    try {
+      await publishPost(appName, formType, content, dataSnapshot, pointsEarned);
+      overlay.remove();
+    } catch (e) {
+      errEl.textContent = e.error || 'Error al publicar';
+      errEl.style.display = 'block';
+    }
+  };
+}
+
+function parseMentions(text) {
+  if (!text) return '';
+  return text.replace(/@(\w+)/g, '<a href="/profile.html?user=@$1" style="color:#1a1820;font-weight:500;">@$1</a>');
 }
 
 window.floveAPI = {
@@ -410,5 +667,26 @@ window.floveAPI = {
   showModal,
   hideModal,
   updateBadge,
+  publishPost,
+  getUserFeed,
+  getTimeline,
+  likePost,
+  unlikePost,
+  deletePost,
+  getUserProfile,
+  searchUsers,
+  followUser,
+  unfollowUser,
+  getFollowers,
+  getFollowing,
+  getNotifications,
+  markNotificationsRead,
+  updateProfile,
+  showFeedPublishModal,
+  parseMentions,
+  collectAppData,
+  setupDeclarativePublish,
+  renderPublishFloat,
+  wireFormPublish,
   get currentUser() { return currentUser; },
 };

@@ -31,18 +31,16 @@ def motion(emo, t):
                  foot=-2*u(t,2), body=1+0.05*u(t,1), esx=1+0.1*u(t,2), esy=1+0.1*u(t,2),
                  msy=0.85+0.25*u(t,2), ex_sc=0.9+0.25*u(t,2), ex_op=0.6+0.4*u(t,2))
     elif emo=='feliz':
-        bl = 0.4 if 0.85<=t<0.95 else 1.0
         d.update(ms=90, hrot=2*s(t,1), hty=-2*u(t,1), aL=6*s(t,2), aR=-6*s(t,2),
-                 foot=-2*u(t,2), body=1+0.05*u(t,1), esy=bl, msy=0.82+0.28*u(t,2),
+                 foot=-2*u(t,2), body=1+0.05*u(t,1),
                  ex_sc=0.85+0.3*u(t,2), ex_op=0.5+0.5*u(t,2), col=('blush',0.6+0.35*u(t,1)))
     elif emo=='enamorado':
         d.update(ms=230, hrot=2*s(t,1), aL=2*s(t,1), aR=-2*s(t,1), foot=-1*u(t,1),
                  body=1+0.03*u(t,1), esx=1+0.16*u(t,2), esy=1+0.16*u(t,2),
                  ex_dy=-28*t, ex_op=ramp(t), col=('blush',0.5+0.45*u(t,1)))
     elif emo=='guino':
-        bl = 0.15 if 0.88<=t<0.96 else 1.0
         d.update(ms=250, hrot=3*s(t,1), aL=9*s(t,2), aR=-2*s(t,1), body=1+0.03*u(t,1),
-                 esy=bl, msy=1+0.06*u(t,1), ex_sc=0.3+0.9*u(t,2), ex_op=u(t,2),
+                 ex_sc=0.3+0.9*u(t,2), ex_op=u(t,2),
                  col=('blush',0.55+0.4*u(t,1)))
     elif emo=='sorprendido':
         j = math.exp(-((t-0.18)/0.12)**2)
@@ -62,7 +60,6 @@ def motion(emo, t):
                  col=('sadblush',0.3+0.3*u(t,1)))
     elif emo=='enfadado':
         d.update(ms=80, hrot=2*s(t,3), aL=4*s(t,3), aR=-4*s(t,3), body=1+0.03*u(t,1),
-                 msy=1+0.18*u(t,1), ex_sc=0.85+0.35*u(t,2), ex_op=0.7+0.3*u(t,2),
                  col=('flush',0.35+0.45*u(t,1)))
     elif emo=='dormido':
         d.update(ms=240, hrot=1*s(t,1), hty=1*u(t,1), body=1+0.05*u(t,1),

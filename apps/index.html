@@ -236,6 +236,73 @@
   /* new scheme has no sub-categories */
   .topbar-row-3 { display:none; }
 
+  /* ── INTRO SPLASH: rainbow left→right; each band fades the grid in filtered ── */
+  .intro-splash {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; flex-direction: column;
+    background: #1a1820;
+    opacity: 1; visibility: visible;
+    transition: opacity .7s ease, visibility .7s ease;
+  }
+  /* once any category is chosen, the splash fades away to reveal the page */
+  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-social:checked, #cat-economy:checked) .intro-splash {
+    opacity: 0; visibility: hidden; pointer-events: none;
+  }
+  .intro-head {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 22px; pointer-events: none;
+    opacity: 0; animation: intro-head-in .8s ease .25s forwards;
+  }
+  .intro-mark { font-size: 30px; color: #fff; filter: drop-shadow(0 0 12px rgba(255,255,255,.55)); }
+  .intro-title { font-family: 'Georgia', serif; font-size: clamp(1.15rem,3vw,1.8rem); color: #fff; letter-spacing: .01em; }
+  @keyframes intro-head-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+
+  .intro-bands { flex: 1 1 auto; display: flex; }
+  .intro-band {
+    flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; text-align: center; padding: 20px;
+    position: relative; overflow: hidden;
+    opacity: 0;
+    animation: band-in .6s cubic-bezier(.2,.8,.2,1) forwards;
+    transition: flex-grow .35s var(--flove-ease, ease), filter .25s ease;
+  }
+  .intro-inside  { background: #ff9b5e; --ink: #3a1a0a; }
+  .intro-mating  { background: #ffd84d; --ink: #3d2a0a; }
+  .intro-social  { background: #6ed089; --ink: #0a3a1f; }
+  .intro-economy { background: #5ea4e6; --ink: #ffffff; }
+  .intro-all     { background: #b27aff; --ink: #ffffff; }
+  .intro-band:nth-child(1) { animation-delay: .15s; }
+  .intro-band:nth-child(2) { animation-delay: .30s; }
+  .intro-band:nth-child(3) { animation-delay: .45s; }
+  .intro-band:nth-child(4) { animation-delay: .60s; }
+  .intro-band:nth-child(5) { animation-delay: .75s; }
+  @keyframes band-in {
+    from { opacity: 0; clip-path: inset(0 100% 0 0); }
+    to   { opacity: 1; clip-path: inset(0 0 0 0); }
+  }
+  .intro-band:hover, .intro-band:focus-visible { flex-grow: 1.7; filter: brightness(1.06); }
+  .ib-name { font-family: 'Georgia', serif; font-weight: 700; color: var(--ink);
+    font-size: clamp(1.1rem, 2.6vw, 2.1rem); letter-spacing: .01em; }
+  .ib-sub  { color: var(--ink); opacity: .82; font-size: clamp(.7rem, 1.4vw, .95rem); }
+
+  /* grid fades in once a category is chosen */
+  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-social:checked, #cat-economy:checked) .grid {
+    animation: grid-fade-in .9s ease both;
+  }
+  @keyframes grid-fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 720px) {
+    .intro-bands { flex-direction: column; }
+    .intro-band { flex-direction: row; gap: 12px; justify-content: flex-start; padding: 0 26px; }
+    .intro-head { position: static; padding: 26px 22px 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .intro-band, .intro-head { animation: none; opacity: 1; clip-path: none; }
+    body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-social:checked, #cat-economy:checked) .grid { animation: none; }
+  }
+
   /* Social chip with multi-select dropdown */
   .cat-wrap { position: relative; flex: 0 0 auto; display: inline-flex; }
   .cat .caret { font-size: .6rem; margin-left: 4px; opacity: .85; }
@@ -2764,14 +2831,30 @@ details.tile-big:hover > summary .tag,
 <input type="checkbox" id="layout-sized" class="vh" />
 <!-- Compass toggle: shows the sort icons inline -->
 <input type="checkbox" id="sort-tog" class="vh" />
-<!-- Category radios (drive .grid filter via :has) -->
-<input type="radio" name="cat" id="cat-all"     class="vh" checked />
+<!-- Category radios (drive .grid filter via :has) — none checked at load → intro splash leads -->
+<input type="radio" name="cat" id="cat-all"     class="vh" />
 <input type="radio" name="cat" id="cat-inside"  class="vh" />
 <input type="radio" name="cat" id="cat-mating"  class="vh" />
 <input type="radio" name="cat" id="cat-social"  class="vh" />
 <input type="radio" name="cat" id="cat-economy" class="vh" />
 <!-- Menu toggle (hamburger) -->
 <input type="checkbox" id="menu-tog" class="vh" />
+
+<!-- ── INTRO SPLASH: rainbow category chooser (hides once a category is picked) ── -->
+<div class="intro-splash" id="introSplash" role="navigation" aria-label="Choose a category">
+  <div class="intro-head">
+    <span class="intro-mark" aria-hidden="true">✺</span>
+    <span class="intro-title">find your way in</span>
+  </div>
+  <div class="intro-bands">
+    <label class="intro-band intro-inside"  for="cat-inside"><span class="ib-name">Inside</span><span class="ib-sub">the inner world</span></label>
+    <label class="intro-band intro-mating"  for="cat-mating"><span class="ib-name">Mating</span><span class="ib-sub">love &amp; bonds</span></label>
+    <label class="intro-band intro-social"  for="cat-social"><span class="ib-name">Social</span><span class="ib-sub">the shared world</span></label>
+    <label class="intro-band intro-economy" for="cat-economy"><span class="ib-name">Economy</span><span class="ib-sub">give &amp; receive</span></label>
+    <label class="intro-band intro-all"     for="cat-all"><span class="ib-name">All</span><span class="ib-sub">everything, at once</span></label>
+  </div>
+</div>
+
 <header class="topbar">
   <div class="topbar-garden" aria-hidden="true">
     <svg class="topbar-water" viewBox="0 0 1200 30" preserveAspectRatio="none">

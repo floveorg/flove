@@ -84,7 +84,7 @@
   }
   .topbar-spacer{flex:1}
 
-  /* ===== flovynormal-style menu panel (anchored under the brand, left) ===== */
+  /* ===== blogynormal-style menu panel (anchored under the brand, left) ===== */
   .menu-panel{
     position:absolute;left:14px;top:calc(100% + 8px);
     width:288px;max-width:calc(100vw - 28px);
@@ -1988,6 +1988,7 @@
 
   /* ============== Intro slider (paginated 1→N) ============== */
   .intro-slider{
+    position:relative;
     margin:0 auto;max-width:720px;width:100%;
     border:1px solid var(--stroke);border-radius:18px;
     background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.012)),var(--panel);
@@ -2022,6 +2023,24 @@
     color:var(--ink);margin:0;font-size:.98rem;max-width:50ch;line-height:1.55;
   }
   .intro-slide b{color:var(--gold);font-weight:600}
+  /* "that" typed into the first slide, with a blinking caret while typing */
+  .intro-slide .typed-that{white-space:pre}
+  .intro-slide .typed-that.typing{border-right:2px solid var(--gold);animation:type-caret .7s steps(1,end) infinite}
+  @keyframes type-caret{50%{border-color:transparent}}
+  /* Pensativo panda rising into the bottom-left corner of the slider */
+  .intro-panda{
+    position:absolute;left:14px;bottom:12px;
+    width:64px;height:auto;pointer-events:none;z-index:2;
+    opacity:0;transform:translateY(24px);
+    filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
+  }
+  .intro-panda.show{animation:panda-rise .5s cubic-bezier(.2,.8,.2,1) forwards}
+  @keyframes panda-rise{to{opacity:1;transform:translateY(0)}}
+  @media (max-width:520px){.intro-panda{width:52px;left:10px;bottom:10px}}
+  @media (prefers-reduced-motion: reduce){
+    .intro-slide .typed-that.typing{animation:none;border-color:transparent}
+    .intro-panda{opacity:1;transform:none;animation:none}
+  }
   .intro-arrows{
     display:flex;gap:24px;justify-content:center;align-items:center;
     padding:14px 16px 6px;border-top:1px dashed var(--stroke);
@@ -3354,7 +3373,7 @@
     </div>
     <span class="topbar-spacer"></span>
 
-    <!-- flovynormal-style menu panel, anchored under the brand on the left.
+    <!-- blogynormal-style menu panel, anchored under the brand on the left.
          Opens by clicking the brand logo (there is no right-side icon). -->
     <div id="menuPanel" class="menu-panel" role="menu" aria-label="Menu" hidden>
       <ul class="menu-list">
@@ -3435,6 +3454,7 @@
   </div>
 
   <section class="intro-slider" id="intro-slider" aria-label="How to play">
+    <img class="intro-panda" id="intro-panda" src="../../others/panda/gifs/pensativo/panda-pensativo.gif" alt="" aria-hidden="true">
     <div class="intro-track" id="intro-track"></div>
     <div class="intro-arrows">
       <button id="intro-prev" type="button" aria-label="Previous">←</button>
@@ -5470,7 +5490,7 @@
   // ============== Intro slider ==============
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
-    { t:'We all have an own view of the Whole',     b:'…gives us calm and joy when we clear it' },
+    { t:'We all have an own view of the Whole',     b:'…that gives us calm and joy when we clear it' },
     { t:'Yes, the whole is big and complex',        b:'…while it can also be simplified' },
     { t:'Keys are well known words', b:'…to be moved up and down' },
     { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also' },
@@ -5486,7 +5506,10 @@
       const slide = document.createElement('div');
       slide.className = 'intro-slide';
       slide.dataset.idx = String(i);
-      slide.innerHTML = `<h2>${s.t}</h2><p>${s.b}</p>`;
+      // First slide: "that" is typed in front of "gives us…" (see typeThat)
+      slide.innerHTML = (i === 0)
+        ? `<h2>${s.t}</h2><p>…<span class="typed-that"></span>gives us calm and joy when we clear it</p>`
+        : `<h2>${s.t}</h2><p>${s.b}</p>`;
       $track.appendChild(slide);
 
       const dot = document.createElement('button');
@@ -5508,6 +5531,27 @@
     }, { root: $track, threshold: 0.6 });
     $track.querySelectorAll('.intro-slide').forEach(s => introObserver.observe(s));
     updateIntroUI();
+  }
+
+  // Types "that" into the first slide while the pensativo panda rises in the
+  // bottom-left corner — both start together. Runs once.
+  function typeThat(){
+    const $typed = document.querySelector('.intro-slide[data-idx="0"] .typed-that');
+    const $panda = document.getElementById('intro-panda');
+    if (!$typed || $typed.dataset.done) return;
+    $typed.dataset.done = '1';
+    if ($panda) $panda.classList.add('show');            // panda fades in upwards
+    const word = 'that ';
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      $typed.textContent = word; return;
+    }
+    $typed.classList.add('typing');
+    let i = 1;
+    (function step(){
+      $typed.textContent = word.slice(0, i);
+      if (i++ <= word.length) setTimeout(step, 95);
+      else $typed.classList.remove('typing');
+    })();
   }
 
   function gotoSlide(i){
@@ -5792,7 +5836,7 @@
     btn.addEventListener('click', handleGoBack);
   })();
 
-  // Topbar menu — flovynormal-style panel opened by clicking the brand logo
+  // Topbar menu — blogynormal-style panel opened by clicking the brand logo
   // (no right-side icon). The panel hosts search, About, language, navigation,
   // related apps and the flove section.
   (function initTopMenu(){
@@ -6891,7 +6935,7 @@
     updateInsightsBtn();
   });
 
-  // ============== Bottom summary panel (flovynormal "is-summary") =========
+  // ============== Bottom summary panel (blogynormal "is-summary") =========
   // Recaps every played group + its order, plus the perspective bars and
   // any Play-more selections, in plain text. A copy + download .txt action
   // row sits below so the user can take the recap with them.
@@ -8732,6 +8776,7 @@
   renderIntro();
   renderPrelude();   // build prelude DOM in advance (hidden by setUIMode)
   setUIMode('intro');
+  typeThat();        // type "that" + raise the panda once the intro is on screen
 })();
 </script>
 </body>

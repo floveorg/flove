@@ -3831,6 +3831,7 @@
       <button class="btn btn-soft" id="btn-analyze" type="button">Analyze →</button>
       <button class="btn btn-primary" id="btn-analyze-extras" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-more-1" type="button" hidden>More</button>
+      <button class="btn btn-primary" id="btn-analyze-keys" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-more-2" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-more-3" type="button" hidden>More</button>
     </div>
@@ -4229,17 +4230,8 @@
     <div class="stage4-end" id="s4-end" hidden>
       <div class="s4-end-row">
         <button class="btn btn-back" id="s4-back" type="button">← Go back</button>
-        <button class="btn btn-primary" id="s4-next" type="button">Continue to Stage 5 →</button>
       </div>
       <button class="btn s4-finish" id="s4-finish" type="button">Finish</button>
-    </div>
-  </section>
-
-  <!-- ===== Stage 5: fivy-style deck fill (revealed by "Continue to Stage 5") ===== -->
-  <section class="stage5" id="stage5" hidden aria-label="Stage 5 · Fivys">
-    <iframe class="s5-frame" id="s5-frame" title="Fivys — decks selection and ordering" loading="lazy"></iframe>
-    <div class="s5-end" id="s5-end" hidden>
-      <button class="s5-finish" id="s5-finish" type="button">Finish</button>
     </div>
   </section>
 
@@ -4647,6 +4639,7 @@
     { id:'analyze',     label:'Analyze',     check:() => _analyzeOn },
     { id:'extras',      label:'Extras',      check:() => _extrasOn },
     { id:'gender',      label:'Gender',      check:() => _finishApplied },
+    { id:'keys',        label:'Keys',        check:() => _playMoreOn },
     { id:'perspective', label:'Perspective', check:() => _barsOn },
     { id:'stats',       label:'Stats',       check:() => _timeStatsOn },
   ];
@@ -4722,7 +4715,7 @@
     // filled (i.e. the user has clicked through every Analyze "More" step).
     const $smBtn = document.getElementById('btn-see-more');
     if ($smBtn){
-      const allDone = isSummary && cur >= 5;
+      const allDone = isSummary && cur >= 7;   // analyzeLevel 6 = Stats (last step)
       if (allDone){
         $smBtn.hidden = false;
       } else {
@@ -5266,12 +5259,15 @@
     _analyzeOn = false;
     _extrasOn  = false;
     _barsOn = false;
+    _playMoreOn = false;
+    $summary.classList.remove('free-play', 'click-me-call');
     touchedSections.clear();
     $summary.classList.remove('swap-design');
     [
       ['btn-analyze',          {text:'Analyze →', hidden:false, cls:'btn-soft'}],
       ['btn-analyze-extras',   {text:'More',       hidden:true,  cls:'btn-primary'}],
       ['btn-analyze-more-1',   {text:'More',       hidden:true,  cls:'btn-primary'}],
+      ['btn-analyze-keys',     {text:'More',       hidden:true,  cls:'btn-primary'}],
       ['btn-analyze-more-2',   {text:'More',       hidden:true,  cls:'btn-primary'}],
       ['btn-analyze-more-3',   {text:'More',       hidden:true,  cls:'btn-primary'}],
     ].forEach(([id, cfg]) => {
@@ -7260,14 +7256,33 @@
       renderSummaryGrid();
       applyFinishIcons();
       $btn.textContent = '✓ Genders';
-      const $btn2 = document.getElementById('btn-analyze-more-2');
-      if ($btn2) $btn2.hidden = false;
+      const $bk = document.getElementById('btn-analyze-keys');   // Genders → Keys
+      if ($bk) $bk.hidden = false;
     }
     $btn.classList.toggle('btn-primary', _finishApplied);
     $btn.classList.toggle('btn-ghost',   !_finishApplied);
     renderStageLabel();
   }
   document.getElementById('btn-analyze-more-1').addEventListener('click', toggleAnalyzeMore1);
+
+  // Keys step: turn the summary keys into a 3-pick multiselect; reveal Perspectives.
+  function toggleKeys(){
+    const $btn = document.getElementById('btn-analyze-keys');
+    togglePlayMore();   // toggles the select-keys mode (_playMoreOn)
+    if (_playMoreOn){
+      bumpAnalyzeLevel(4);
+      markSectionTouched('keys');
+      $btn.textContent = '✓ Keys';
+      const $next = document.getElementById('btn-analyze-more-2');
+      if ($next) $next.hidden = false;
+    } else {
+      $btn.textContent = 'Keys';
+    }
+    $btn.classList.toggle('btn-primary', _playMoreOn);
+    $btn.classList.toggle('btn-ghost',   !_playMoreOn);
+    renderStageLabel();
+  }
+  document.getElementById('btn-analyze-keys').addEventListener('click', toggleKeys);
 
   // ============== Insights: contrast hints across parallel perspectives ==
   // Surfaced via the Insights button in summary-actions. Compares each
@@ -8211,72 +8226,27 @@
   // re-ranking inside every summary deck.
   let _playMoreOn = false;
   function renderPlayMoreBtn(){
-    const $btn  = document.getElementById('btn-play-more');
-    if (!$btn) return;
-    const eligible = (state.analyzeLevel || 0) >= 3;   // featured after Genders, before Perspectives
-    if (!eligible){
-      $btn.hidden = true;
-      // Always tear down free-play if the user backed out.
-      if (_playMoreOn){
-        _playMoreOn = false;
-        $summary.classList.remove('free-play');
-        $summary.classList.remove('click-me-call');
-        $summary.classList.remove('groups-on-top');
-        const $hint = document.getElementById('play-more-hint');
-        if ($hint) $hint.hidden = true;
-        _fpSelectedWords.clear();
-        if (typeof refreshStage4CTA === 'function') refreshStage4CTA();
-      }
-      $btn.textContent = 'Play more';
-      return;
-    }
-    $btn.hidden = _playMoreOn;
-    $btn.textContent = 'Play more';
+    // Play-more button removed — select mode is driven by the Keys cascade step.
+    const $btn = document.getElementById('btn-play-more');
+    if ($btn) $btn.hidden = true;
   }
+  // The "Keys" cascade step turns the summary keys into a clickable multiselect
+  // (pick 3) — without the old groups-on-top reorder of the interface.
   function togglePlayMore(){
     _playMoreOn = !_playMoreOn;
     $summary.classList.toggle('free-play', _playMoreOn);
     const $hint = document.getElementById('play-more-hint');
     if ($hint) $hint.hidden = !_playMoreOn;
     if (_playMoreOn){
-      // Header button hides while play-more is active.
-      const $btn = document.getElementById('btn-play-more');
-      if ($btn) $btn.hidden = true;
-      // Push the groups display to the top so the user works on the decks
-      // first under this "play more" mode.
-      $summary.classList.add('groups-on-top');
-      // Surface the extra decks as untapped (closed) cards while playing more.
-      if (typeof extraOpen !== 'undefined'){
-        Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; });
-      }
+      if (typeof extraOpen !== 'undefined'){ Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; }); }
       renderSummaryGrid();
-      // Persistent strong border "click me click me" call on every group
-      // item until the user actually clicks one.
-      $summary.classList.add('click-me-call');
+      $summary.classList.add('click-me-call');   // a "pick me" border on the keys
       wireFreePlayHandlers();
-      // Pleasant text-float + zoom on every deck item so the user feels the
-      // mode change. Each item gets the animation class for one cycle, with a
-      // tiny stagger across items so the wave reads as a ripple.
-      const items = $summary.querySelectorAll('.deck-done.in-summary li, .ad-deck li');
-      items.forEach((li, i) => {
-        li.classList.remove('pm-anim');
-        setTimeout(() => {
-          // Force a reflow so the animation restarts cleanly if re-triggered.
-          void li.offsetWidth;
-          li.classList.add('pm-anim');
-          setTimeout(() => li.classList.remove('pm-anim'), 1400);
-        }, Math.min(i * 35, 600));
-      });
-      // Bring the groups into view.
-      const $triads = document.getElementById('summary-triads');
-      if ($triads) setTimeout(() => $triads.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
     } else {
-      // Leaving play-more: drop the keyword picks (so the Stage-4 CTAs hide
-      // again) and re-render so the extras drop away unless revealed by Analyze.
       _fpSelectedWords.clear();
       $summary.querySelectorAll('.fp-selected').forEach(el => el.classList.remove('fp-selected'));
+      $summary.classList.remove('click-me-call');
       renderSummaryGrid();
-      renderPlayMoreBtn();
     }
     refreshStage4CTA();
   }
@@ -8636,7 +8606,7 @@
     const $btn   = document.getElementById('btn-analyze-more-2');
     const $btn3  = document.getElementById('btn-analyze-more-3');
     if (_barsOn){
-      bumpAnalyzeLevel(4);
+      bumpAnalyzeLevel(5);
       markSectionTouched('perspective');
       if (!perspClickAt) perspClickAt = Date.now();
       if ($panel) $panel.hidden = true;
@@ -8685,7 +8655,7 @@
         if ($stdT) $stdT.setAttribute('aria-expanded','true');
       }
       $btn.textContent = '✓ Stats';
-      bumpAnalyzeLevel(5);
+      bumpAnalyzeLevel(6);
       markSectionTouched('stats');
       renderStageLabel();
       renderPlayMoreBtn();
@@ -9263,57 +9233,7 @@
     const s4finish = document.getElementById('s4-finish');
     if (s4finish) s4finish.addEventListener('click', finishToSummary);
 
-    // ===== Stage 5 — embeds fivy.html (full decks selection + ordering) =====
-    const s5frame = document.getElementById('s5-frame');
-    // Continue to Stage 5: add a 5th parent bar, reset the sub bar, hide all
-    // content above, and show the embedded fivy decks.
-    function enterStage5(){
-      state.s5Entered = true;
-      const sum = document.getElementById('summary');
-      if (sum) sum.style.display = 'none';
-      stage4.hidden = true;
-      stage5.hidden = false;
-      if (s5frame && !s5frame.getAttribute('src')) s5frame.setAttribute('src', 'fivy.html#embed');
-      if (typeof renderStageLabel === 'function') renderStageLabel();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    function renderFivysTable(){
-      const tbody = document.getElementById('s5-fivy-tbody');
-      const block = document.getElementById('s5-fivy-block');
-      const decks = state.s5Decks || [];
-      if (tbody) tbody.innerHTML = decks.map(d => confRowHTML(d.items || [])).join('');
-      if (block) block.hidden = decks.length === 0;
-    }
-    // Finish Stage 5: bring the content above back, add the fivys table below
-    // the confluences one (the common summary), and return to it.
-    function finishStage5(){
-      const sum = document.getElementById('summary');
-      if (sum) sum.style.display = '';
-      stage4.hidden = false;
-      stage5.hidden = true;
-      renderFivysTable();
-      expandSummary();
-      if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
-    }
-    s4next.addEventListener('click', enterStage5);
-    const s5finish = document.getElementById('s5-finish');
-    if (s5finish) s5finish.addEventListener('click', finishStage5);
-
-    // Embedded fivy → its "Next" (was "Fields") posts its ordered decks. Add a
-    // 6th, highlighted, moving parent bar for 5s, stash the decks, show Finish.
-    window.addEventListener('message', function(e){
-      const d = e.data;
-      if (!d || d.type !== 'fivy-next') return;
-      state.s5Decks = Array.isArray(d.decks) ? d.decks : [];
-      state.s5Next = true; state.s6Pulse = true;
-      if (typeof renderStageLabel === 'function') renderStageLabel();
-      setTimeout(function(){
-        state.s6Pulse = false;
-        if (typeof renderStageLabel === 'function') renderStageLabel();
-      }, 5000);
-      const end = document.getElementById('s5-end');
-      if (end) end.hidden = false;
-    });
+    // Stage 5 removed.
 
     updateSummary();
   })();

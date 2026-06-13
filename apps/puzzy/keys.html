@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='f' x1='14' y1='14' x2='86' y2='86' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23fadc92'/%3E%3Cstop offset='50%25' stop-color='%23ff5fdc'/%3E%3Cstop offset='100%25' stop-color='%23a8e4ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='%230b0b0f'/%3E%3Cg fill='url(%23f)'%3E%3Cg transform='rotate(0 50 50)'%3E%3Cellipse cx='50' cy='26' rx='6.5' ry='17'/%3E%3C/g%3E%3Cg transform='rotate(72 50 50)'%3E%3Cellipse cx='50' cy='26' rx='6.5' ry='17'/%3E%3C/g%3E%3Cg transform='rotate(288 50 50)'%3E%3Cellipse cx='50' cy='26' rx='6.5' ry='17'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='4.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon-keys.svg">
 <title>FLOVE · KEYS</title>
 <style>
   :root{
@@ -79,7 +79,7 @@
   .brand-link[aria-expanded="true"]{background:rgba(255,255,255,.06)}
   .brand-mark{width:30px;height:30px;display:block;flex:none}
   .brand-text{
-    font:600 1.2rem/1 ui-serif,Georgia,serif;letter-spacing:.4px;
+    font:600 1.2rem/1.4 ui-serif,Georgia,serif;letter-spacing:.4px;padding:2px 0;
     background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
@@ -494,6 +494,9 @@
   }
   .deck-panda.dm-l{left:40%}
   .deck-panda.dm-r{left:60%}
+  /* right one fades while drifting left; left one flows in from the right after */
+  @keyframes deck-r-flow{from{opacity:0;transform:translateX(calc(-50% + 26px))}to{opacity:1;transform:translateX(-50%)}}
+  @keyframes deck-l-flow{from{opacity:0;transform:translateX(calc(-50% + 44px))}to{opacity:1;transform:translateX(-50%)}}
   @media (max-width:520px){ .deck-panda{width:40px} }
   /* Centered prompt above the board, shown briefly when the decks appear */
   .deck-question{
@@ -3408,21 +3411,7 @@
     <button type="button" class="brand-link" id="brandLink"
             aria-haspopup="true" aria-expanded="false"
             aria-controls="menuPanel" aria-label="Open menu">
-      <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="g-keys" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-            <stop offset="0%"   stop-color="#fadc92"/>
-            <stop offset="50%"  stop-color="#ff5fdc"/>
-            <stop offset="100%" stop-color="#a8e4ff"/>
-          </linearGradient>
-        </defs>
-        <g fill="url(#g-keys)" stroke="none">
-          <g transform="rotate(0 50 50)"  ><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g>
-          <g transform="rotate(72 50 50)" ><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g>
-          <g transform="rotate(288 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g>
-          <circle cx="50" cy="50" r="4.5"/>
-        </g>
-      </svg>
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#f5a623" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px #f5a623)"><rect x="4.5" y="4.5" width="15" height="15" rx="3.6"/><path d="M12 8.4v7.2M8.8 10.2l6.4 3.6M15.2 10.2l-6.4 3.6"/></svg>
       <span class="brand-text">keys</span>
     </button>
     <!-- Single merged stage-progress bar — lives in the topbar (centred). It
@@ -5652,10 +5641,16 @@
     }, ms || 248);
     return timer;
   }
-  let chooserPandaTimer = null;
+  let chooserPandaStarted = false;
   function startChooserPanda(){
-    if (chooserPandaTimer) return;
-    chooserPandaTimer = cyclePanda(document.getElementById('chooserPanda'), 'neutral', 248, 3);  // 3 loops then stop
+    if (chooserPandaStarted) return;
+    chooserPandaStarted = true;
+    const el = document.getElementById('chooserPanda');
+    if (el) el.style.visibility = 'hidden';
+    setTimeout(() => {                                   // appear 3s after entering
+      if (el) el.style.visibility = '';
+      cyclePanda(el, 'neutral', 248, 2);                 // 2 loops then stop
+    }, 3000);
   }
   // On entering the chooser: type the title and fade the panda in left→right,
   // both over ~5s.
@@ -5760,7 +5755,7 @@
   }
   let deckOverlay = null, deckSlotL = null, deckSlotR = null;
   let deckIdleTimer = null, deckIdleStep = 0, deckClickTimer = null;
-  let deckIdleArmed = false, deckQuestionShown = false;
+  let deckIdleArmed = false, deckQuestionShown = false, deckDoneShown = false;
   const DECK_IDLE = [{ m:'pensativo', ms:10000 }, { m:'dormido', ms:10000 }, { m:'enfadado', ms:5000 }];
   const stageZeroDone = () => [0,1,2].every(i => DECKS[i] && state.done[DECKS[i].id]);
   function ensureDeckOverlay(){
@@ -5802,7 +5797,7 @@
   function updateDeckPandas(){
     if (state.stageIdx !== 0){
       stopDeckIdle(); clearTimeout(deckClickTimer); deckClickTimer = null;
-      deckIdleArmed = false;
+      deckIdleArmed = false; deckDoneShown = false;
       if (deckSlotL) deckSlotL.hide();
       if (deckSlotR) deckSlotR.hide();
       if (deckOverlay && deckOverlay.parentElement) deckOverlay.remove();
@@ -5812,8 +5807,15 @@
     if (stageZeroDone()){
       stopDeckIdle(); clearTimeout(deckClickTimer); deckClickTimer = null;
       deckSlotL.set('enamorado'); deckSlotR.set('enamorado');   // both middles
+      if (!deckDoneShown){       // right one fades/drifts left, then the left flows in after
+        deckDoneShown = true;
+        const R = deckSlotR.el, L = deckSlotL.el;
+        R.style.animation = 'none'; void R.offsetWidth; R.style.animation = 'deck-r-flow .6s ease both';
+        L.style.animation = 'none'; void L.offsetWidth; L.style.animation = 'deck-l-flow .6s ease 600ms both';
+      }
       return;
     }
+    deckDoneShown = false;
     if (!deckIdleArmed){                        // first render of the stage-0 board
       deckIdleArmed = true;
       if (!deckQuestionShown){ deckQuestionShown = true; showDeckQuestion(); }
@@ -6120,6 +6122,8 @@
         const open = moreBox.hidden;
         moreBox.hidden = !open;
         moreBtn.setAttribute('aria-expanded', String(open));
+        const ip = document.getElementById('intro-panda');   // hide the (celebrating) panda
+        if (ip) ip.style.display = open ? 'none' : '';
         if (open){
           if (!built){
             moreBox.innerHTML = `<h4>${ABOUT.h}</h4>` + ABOUT.body.map(p => `<p>${p}</p>`).join('');
@@ -6837,7 +6841,8 @@
     if (parallelRows.length >= 1) return;
     const idx = parallelRows.length;
     const states = {};
-    BARS.forEach(b => { states[b.id] = { phase:0, p1:null, p2:null }; });
+    // Default to Subjective + Momentual (left pole, single point).
+    BARS.forEach(b => { states[b.id] = { phase:1, p1:1, p2:null }; });
     parallelRows.push({ idx, states });
     renderParallelRows();
     renderSecondPlay();

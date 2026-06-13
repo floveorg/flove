@@ -2992,7 +2992,7 @@
 
   /* ---- insight cards (above the phrase) ---- */
   .flv-std .insight-panel{
-    display:none;margin:3.9rem 0 .8rem;padding:.75rem .9rem;border-radius:12px;   /* three rows of space above */
+    display:none;margin:.9rem 0 .4rem;padding:.75rem .9rem;border-radius:12px;   /* shown below the buttons */
     border:1px solid rgba(168,228,255,.28);
     background:linear-gradient(180deg,rgba(168,228,255,.07),transparent);
     color:var(--ink);font-size:.9rem;line-height:1.5;
@@ -3013,7 +3013,7 @@
     color:var(--ink);font:500 1rem/1.55 ui-serif,Georgia,serif;
   }
   .flv-std .clause-magic{display:none;font-style:italic;color:var(--ink)}
-  .flv-std:has(#flv-magic:checked) .clause-default{display:none}
+  /* Magic shows its phrase additively (below) — no content swap, no jump */
   .flv-std:has(#flv-magic:checked) .clause-magic{display:block}
   .flv-std .clause h4{margin:.7rem 0 .25rem;font:700 .74rem/1 system-ui,sans-serif;color:var(--sky);letter-spacing:.14em;text-transform:uppercase}
   .flv-std .clause h4:first-child{margin-top:0}
@@ -3991,25 +3991,6 @@
         <table class="conf-grid-table"><tbody id="s5-fivy-tbody"></tbody></table>
       </div>
 
-      <!-- Insight cards — shown above the row of buttons, one at a time via
-           the insight cycle (0..4). -->
-      <section class="insight-panel insight-1-content" aria-label="Insight 1">
-        <strong>💡 First vs second play</strong> — what changed under the new perspective?
-        <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
-      </section>
-      <section class="insight-panel insight-2-content" aria-label="Insight 2">
-        <strong>💡 Tension</strong> — which decks were hardest to rank?
-        <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
-      </section>
-      <section class="insight-panel insight-3-content" aria-label="Insight 3">
-        <strong>💡 Perspective</strong> — how did the bars shift things?
-        <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
-      </section>
-      <section class="insight-panel insight-4-content" aria-label="Insight 4">
-        <strong>💡 Why</strong> — why this arrangement, for you?
-        <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
-      </section>
-
       <div class="action-grid">
 
         <div class="action-row">
@@ -4025,6 +4006,24 @@
           </label>
           <label class="fbtn copy-btn" for="flv-copy-hint" data-flove-copy="phrase" title="Copy">Copy</label>
         </div>
+
+        <!-- Insight cards — shown BELOW the buttons so the buttons never move -->
+        <section class="insight-panel insight-1-content" aria-label="Insight 1">
+          <strong>💡 First vs second play</strong> — what changed under the new perspective?
+          <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
+        </section>
+        <section class="insight-panel insight-2-content" aria-label="Insight 2">
+          <strong>💡 Tension</strong> — which decks were hardest to rank?
+          <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
+        </section>
+        <section class="insight-panel insight-3-content" aria-label="Insight 3">
+          <strong>💡 Perspective</strong> — how did the bars shift things?
+          <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
+        </section>
+        <section class="insight-panel insight-4-content" aria-label="Insight 4">
+          <strong>💡 Why</strong> — why this arrangement, for you?
+          <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
+        </section>
 
         <div class="copy-hint-panel" role="status">
           Select the phrase above (triple-click selects the whole paragraph), then press
@@ -4174,17 +4173,11 @@
       </div>
     </section>
 
-    <!-- Continue to Stage 4 — two rows above See more. Hidden until three
-         favourite keywords are picked in Play more. -->
-    <div class="stage4-cta">
-      <button class="btn btn-primary" id="btn-stage4" type="button" hidden>Continue to Stage 4 →</button>
-    </div>
+    <!-- Stage 4 is now reached via the "Confluences" cascade step (no Continue button). -->
 
-    <!-- See more + related apps now sit BELOW the Summary section. The duplicate
-         Continue/Go-back lives to the right of See more. -->
+    <!-- See more + related apps sit BELOW the Summary section. -->
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
-      <button class="btn btn-primary" id="btn-stage4-2" type="button" hidden>Continue to Stage 4 →</button>
     </div>
 
     <div class="related-apps" id="related-apps" hidden>
@@ -4228,10 +4221,7 @@
     </div>
 
     <div class="stage4-end" id="s4-end" hidden>
-      <div class="s4-end-row">
-        <button class="btn btn-back" id="s4-back" type="button">← Go back</button>
-      </div>
-      <button class="btn s4-finish" id="s4-finish" type="button">Finish</button>
+      <button class="btn s4-finish" id="s4-finish" type="button">Next →</button>
     </div>
   </section>
 
@@ -4641,7 +4631,7 @@
     { id:'gender',      label:'Gender',      check:() => _finishApplied },
     { id:'keys',        label:'Keys',        check:() => _playMoreOn },
     { id:'perspective', label:'Perspective', check:() => _barsOn },
-    { id:'stats',       label:'Stats',       check:() => _timeStatsOn },
+    { id:'confluences', label:'Confluences', check:() => !!state.s4Entered },
   ];
   function markSectionTouched(id){
     touchedSections.add(id);
@@ -8179,20 +8169,13 @@
     updateInsightsBtn();
     // Fold the second-play result into the bottom std-summary recap.
     if (typeof renderBottomSummary === 'function') renderBottomSummary();
-    // Saving expands the (collapsed-by-default) Summary so the perspective is
-    // recorded there…
-    const $std = document.getElementById('std-summary');
-    const $stdToggle = document.getElementById('std-summary-toggle');
-    if ($std){
-      $std.classList.remove('is-collapsed');
-      if ($stdToggle) $stdToggle.setAttribute('aria-expanded', 'true');
-    }
-    // …and sends the user back up to the next "More" (Stats), highlighted/moving.
+    // Saving expands the Summary (with stats) below the perspective…
+    revealSummary();
+    // …and highlights the next step (Confluences).
     const $more3 = document.getElementById('btn-analyze-more-3');
     if ($more3){
       $more3.hidden = false;
       $more3.classList.add('save-highlight');
-      setTimeout(() => $more3.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
     }
   }
 
@@ -8613,7 +8596,7 @@
       if (parallelRows.length === 0) addParallelRow();
       else { renderSecondPlay(); showCornerPanda('second-play', 'pensativo'); }
       $btn.textContent = '✓ Perspectives';
-      if ($btn3) $btn3.hidden = false;
+      if ($btn3){ $btn3.hidden = false; $btn3.textContent = 'Confluences'; }   // last step = Stage 4
     } else {
       if ($panel) $panel.hidden = true;
       $btn.textContent = 'Perspectives';
@@ -8632,42 +8615,29 @@
   // The inner "More details" (per-step/stage/deck) stays collapsed until the
   // user clicks the toggle inside the panel.
   let _timeStatsOn = false;
-  document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
-    const $ts  = document.getElementById('std-timestats');
+  let _enterStage4 = null;
+  // Show the expanded Summary (with stats) — triggered when a perspective is saved.
+  function revealSummary(){
     const $std = document.getElementById('std-summary');
     const $stdT = document.getElementById('std-summary-toggle');
-    const $top = document.getElementById('std-timestats-top');
-    const $btn  = document.getElementById('btn-analyze-more-3');
-    $btn.classList.remove('save-highlight');   // stop the highlighted/moving effect
-    if (_timeStatsOn){
-      if ($ts) $ts.hidden = true;
-      if ($top) $top.hidden = true;
-      $btn.textContent = 'Stats';
-      _timeStatsOn = false;
-    } else {
+    if (!_timeStatsOn){
       _timeStatsOn = true;
-      if (seeResultsAt) analisysMs = Date.now() - seeResultsAt;   // freeze the Analisys time
-      renderTimeStats();   // refresh so the quick stats + analisys show
-      // Bring the time stats into the Summary section, expanded.
-      if ($std){
-        $std.hidden = false;
-        $std.classList.remove('is-collapsed');
-        if ($stdT) $stdT.setAttribute('aria-expanded','true');
-      }
-      $btn.textContent = '✓ Stats';
-      bumpAnalyzeLevel(6);
-      markSectionTouched('stats');
-      renderStageLabel();
-      renderPlayMoreBtn();
-      // Below the Summary: reveal Continue to Stage 4 + See more (hidden till now).
-      const $sm = document.getElementById('btn-see-more');
-      if ($sm) $sm.hidden = false;
-      const $s4 = document.getElementById('btn-stage4');
-      if ($s4) $s4.hidden = false;
-      if ($std) setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);   // summary top
+      if (seeResultsAt) analisysMs = Date.now() - seeResultsAt;
+      renderTimeStats();
     }
-    $btn.classList.toggle('btn-primary', _timeStatsOn);
-    $btn.classList.toggle('btn-ghost',   !_timeStatsOn);
+    if ($std){ $std.hidden = false; $std.classList.remove('is-collapsed'); if ($stdT) $stdT.setAttribute('aria-expanded','true'); }
+    if ($std) setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
+  }
+  // The last cascade step is now "Confluences" (Stage 4), after Perspectives.
+  document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
+    const $btn = document.getElementById('btn-analyze-more-3');
+    $btn.classList.remove('save-highlight');
+    markSectionTouched('confluences');
+    bumpAnalyzeLevel(6);
+    $btn.textContent = '✓ Confluences';
+    $btn.classList.add('btn-primary'); $btn.classList.remove('btn-ghost');
+    if (typeof _enterStage4 === 'function') _enterStage4();
+    renderStageLabel();
   });
 
   // ============== See more · related flove apps ==============
@@ -9207,12 +9177,12 @@
       const sum = document.getElementById('summary');
       if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
     }
-    btnStage4.addEventListener('click', enterStage4);
-    // Duplicate (right of See more) toggles between Continue and Go back.
+    if (btnStage4) btnStage4.addEventListener('click', enterStage4);
     if (btnStage4b) btnStage4b.addEventListener('click', function(){
       if (stage4.hidden) enterStage4(); else exitStage4();
     });
-    s4back.addEventListener('click', exitStage4);
+    if (s4back) s4back.addEventListener('click', exitStage4);
+    _enterStage4 = enterStage4;   // expose for the cascade "Confluences" step
 
     // Finish (below the row) → surface the confluences in the main summary, run
     // the wave, and scroll up there. (The former "Next" behaviour.)
@@ -9223,10 +9193,12 @@
     function finishToSummary(){
       updateSummary();
       expandSummary();
+      if (typeof revealSummary === 'function') revealSummary();   // ensure the Summary (stats) shows
       if (!stage4.classList.contains('is-animating')){
         stage4.classList.add('is-animating');
         s4anim.setAttribute('aria-pressed', 'true');
       }
+      stage4.hidden = true;   // "Next" returns from Stage 4 to the Summary
       const sum = document.getElementById('summary');
       if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
     }

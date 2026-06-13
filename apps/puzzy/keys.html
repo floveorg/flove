@@ -496,7 +496,7 @@
   #deck-pandas{position:absolute;inset:0;pointer-events:none}
   .deck-panda{
     position:absolute;bottom:4px;width:58px;height:auto;
-    transform:translateX(-50%);pointer-events:none;z-index:4;visibility:hidden;
+    transform:translateX(-50%);pointer-events:auto;cursor:pointer;z-index:4;visibility:hidden;
     filter:drop-shadow(0 5px 12px rgba(0,0,0,.4));
   }
   .deck-panda.dm-l{left:40%}
@@ -508,6 +508,9 @@
   @keyframes deck-fade-in-left{from{opacity:0;transform:translateX(calc(-50% + 30px))}to{opacity:1;transform:translateX(-50%)}}
   @keyframes deck-fade-out-left{from{opacity:1;transform:translateX(-50%)}to{opacity:0;transform:translateX(calc(-50% - 30px))}}
   @keyframes deck-fade-up{from{opacity:0;transform:translate(-50%,18px)}to{opacity:1;transform:translate(-50%,0)}}
+  @keyframes deck-fade-in{from{opacity:0;transform:translateX(-50%)}to{opacity:1;transform:translateX(-50%)}}
+  /* 3 effects in a loop: pulse + tilt left + tilt right */
+  @keyframes deck-3fx{0%,100%{transform:translateX(-50%) scale(1) rotate(0)}33%{transform:translateX(-50%) scale(1.12) rotate(-7deg)}66%{transform:translateX(-50%) scale(1.12) rotate(7deg)}}
   @media (max-width:520px){ .deck-panda{width:40px} }
   /* Centered prompt above the board, shown briefly when the decks appear */
   .deck-question{
@@ -5791,11 +5794,12 @@
   let deckOverlay = null, deckSlotL = null, deckSlotR = null;
   let deckIdleTimer = null, deckIdleStep = 0, deckClickTimer = null;
   let deckIdleArmed = false, deckQuestionShown = false, deckDoneShown = false;
-  // Loop after an enamorado: dormido then neutral, BOTH in the left middle
-  // (neutral fades in down→up over 1s, where dormido was).
-  const DECK_IDLE = [
-    { m:'dormido', slot:'L', anim:'deck-fade-in-left .5s ease both', ms:10000 },
-    { m:'neutral', slot:'L', anim:'deck-fade-up 1s ease both',       ms:7000  },
+  // Left-middle loop (no intro animations between moods): an entrance neutral
+  // first, then dormido → neutral → enfadado, repeating.
+  const DECK_LOOP = [
+    { m:'dormido',  ms:10000 },
+    { m:'neutral',  ms:7000  },
+    { m:'enfadado', ms:5000  },
   ];
   const stageZeroDone = () => [0,1,2].every(i => DECKS[i] && state.done[DECKS[i].id]);
   function ensureDeckOverlay(){
@@ -5806,35 +5810,51 @@
       const b = document.createElement('img'); b.className = 'deck-panda dm-r'; b.alt = ''; b.setAttribute('aria-hidden','true');
       deckOverlay.append(a, b);
       deckSlotL = makePandaSlot(a); deckSlotR = makePandaSlot(b);
+      // Click a panda: if it's in the running loop, load the next mood;
+      // otherwise (enamorado / done) give it a 3-effect wiggle on a loop.
+      a.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (deckIdleTimer && !stageZeroDone()){ clearTimeout(deckIdleTimer); deckLoopTick(); }
+        else playDeckAnim(a, 'deck-3fx 1.2s ease-in-out infinite');
+      });
+      b.addEventListener('click', (e) => { e.stopPropagation(); playDeckAnim(b, 'deck-3fx 1.2s ease-in-out infinite'); });
     }
     if ($board && deckOverlay.parentElement !== $board) $board.appendChild(deckOverlay);
   }
   function playDeckAnim(el, anim){ if (!el) return; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = anim; }
-  function deckIdleTick(){
-    const cur   = DECK_IDLE[deckIdleStep % DECK_IDLE.length];
-    const slot  = cur.slot === 'L' ? deckSlotL : deckSlotR;   // dormido left, neutral right
-    const other = cur.slot === 'L' ? deckSlotR : deckSlotL;
-    slot.set(cur.m); other.hide();
-    playDeckAnim(slot.el, cur.anim);
+  // The left loop just swaps moods — no intro animations between them.
+  function deckLoopTick(){
+    const cur = DECK_LOOP[deckIdleStep % DECK_LOOP.length];
+    deckSlotL.set(cur.m); deckSlotR.hide();
+    deckSlotL.el.style.animation = 'none';
     deckIdleStep++;
-    deckIdleTimer = setTimeout(deckIdleTick, cur.ms);
+    deckIdleTimer = setTimeout(deckLoopTick, cur.ms);
   }
-  function startDeckIdle(){ clearTimeout(deckIdleTimer); deckIdleStep = 0; deckIdleTick(); }
+  // Entrance neutral (fade-up on first show, fade-in-left after an enamorado),
+  // then the mood loop with no further intros.
+  function startDeckIdle(entranceAnim){
+    clearTimeout(deckIdleTimer); deckIdleStep = 0;
+    deckSlotL.set('neutral'); deckSlotR.hide();
+    playDeckAnim(deckSlotL.el, entranceAnim || 'deck-fade-up 1s ease both');
+    deckIdleTimer = setTimeout(deckLoopTick, 7000);
+  }
   function stopDeckIdle(){ clearTimeout(deckIdleTimer); deckIdleTimer = null; }
   function onDeckClickPanda(){
     if (state.stageIdx !== 0) return;
     ensureDeckOverlay();
     if (stageZeroDone()) return;
-    stopDeckIdle(); deckSlotL.hide(); deckSlotR.set('enamorado');   // one enamorado, one middle, 5s
+    stopDeckIdle(); deckSlotL.hide();
+    deckSlotR.set('enamorado');
+    playDeckAnim(deckSlotR.el, 'deck-fade-in .5s ease both');   // enamorado fades in 0.5s on the right
     clearTimeout(deckClickTimer);
     deckClickTimer = setTimeout(() => {
       deckClickTimer = null;
-      const el = deckSlotR.el;                  // enamorado fades out leftwards, then resume idle
-      if (el){ el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'deck-fade-out-left .4s ease forwards'; }
+      playDeckAnim(deckSlotR.el, 'deck-fade-out-left 2s ease forwards');   // fades out leftwards over 2s
       setTimeout(() => {
         deckSlotR.hide();
-        if (state.stageIdx === 0 && !stageZeroDone()) startDeckIdle();
-      }, 400);
+        // neutral travels to the left place, then loops (no fade-up intro)
+        if (state.stageIdx === 0 && !stageZeroDone()) startDeckIdle('deck-fade-in-left .6s ease both');
+      }, 2000);
     }, 5000);
   }
   function showDeckQuestion(){

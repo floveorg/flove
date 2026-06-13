@@ -2814,6 +2814,15 @@
   .std-ts-cols{display:flex;flex-wrap:wrap;gap:1.2rem}
   .std-ts-left{flex:1 1 200px;min-width:0}
   .std-ts-right{flex:1 1 200px;min-width:0}
+  /* Merged nested stats list: level-0 bold + 25% bigger; 1–2 indented counts */
+  .std-tsn-list{display:flex;flex-direction:column;gap:.16rem;text-align:left}
+  .tsn{display:flex;gap:.55rem;align-items:baseline;font-size:.86rem;color:var(--ink)}
+  .tsn b{color:var(--sky);min-width:3.4em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .tsn-l0{font-weight:900;font-size:1.07rem;margin-top:.4rem}
+  .tsn-l0 b{color:var(--ink)}
+  .tsn-l1{padding-left:1.15rem}
+  .tsn-l2{padding-left:2.3rem;font-size:.8rem;opacity:.92}
+  .std-quick.std-tsn-list{flex:1 1 220px}
   /* timing shown before each deck/stage title in the comparison table */
   .pr-time{color:var(--sky);font-weight:700;font-variant-numeric:tabular-nums;font-size:.82em;margin-right:.25rem}
   .pt-newpersp{text-align:center;color:var(--muted);font-size:.84rem;margin:.1rem 0 .5rem}
@@ -5383,7 +5392,7 @@
         if (txt) terms.push(txt);
       });
     });
-    $panel.querySelectorAll('.ts-row').forEach(row => {
+    $panel.querySelectorAll('.ts-row, .tsn').forEach(row => {
       const label = (row.querySelector('span')?.textContent || '').trim().toLowerCase();
       const hit = !!label && terms.some(t => label === t || label.includes(t));
       row.classList.toggle('ts-row-hi', hit);
@@ -5407,37 +5416,34 @@
     const t = state.timing;
     const totalText = (state.t0 && state.tEnd) ? fmtDuration(state.tEnd - state.t0) : '';
     const hintHTML  = buildSlowDeckHintHTML();
-    // a row with the time stat to the LEFT of the title it belongs to
-    const tsRow = (label, ms, extra) => `<div class="ts-row"><b>${fmtDuration(ms)}</b><span>${label}${extra || ''}</span></div>`;
-
     const decksTotal = Object.values(t.perDeck || {}).reduce((a, b) => a + (b || 0), 0);
-    const stepRows = [
-      ['Create groups', t.perStep.step0],
-      ['Main decks',    t.perStep.step1],
-    ].filter(([_, ms]) => ms > 0).map(([n, ms]) => tsRow(n, ms)).join('');
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    // Nested node: time (or a ✓/— mark) + label, indented by level. Level 0 is
+    // bold ("black") and 25% bigger; levels 1–2 are the nested item-counts.
+    const node = (label, ms, lvl, mark) =>
+      `<div class="tsn tsn-l${lvl}"><b>${ms != null ? fmtDuration(ms) : (mark || '')}</b><span>${label}</span></div>`;
+    const dms = (i) => t.perDeck[DECKS[i].id] || 0;
 
-    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);   // use the section name itself
-    const stageRows = STAGES
-      .map((s, i) => ({ idx: i, name: s.name, ms: t.perStage[i] || 0 }))
-      .filter(s => s.ms > 0)
-      .map(s => tsRow(escapeHTML(cap(s.name).replace(/\s*·\s*/g, ' ')), s.ms))
-      .join('');
+    // Decks nested per stage (only the decks first appearing in that stage).
+    const STAGE_LABELS = ['Main Keys', 'Additional triads', 'Fivys center', 'Fivys ends'];
+    const STAGE_NEW    = [[0,1,2], [4,3], [5,6,7], [8,9]];
+    let decksTree = '';
+    STAGES.forEach((s, i) => {
+      const ms = t.perStage[i] || 0;
+      if (!ms) return;
+      decksTree += node(STAGE_LABELS[i] || cap(s.name), ms, 1);
+      (STAGE_NEW[i] || []).forEach(di => { if (dms(di)) decksTree += node(escapeHTML(DECKS[di].title), dms(di), 2); });
+    });
 
-    // Analysis-subsection timings, also listed in the full table below.
-    const analysisRows =
-        (introMs ? tsRow('Intro', introMs) : '')
-      + (decksTotal ? tsRow('Main decks', decksTotal) : '')
-      + (secondPlayMs ? tsRow('Additional perspective', secondPlayMs) : '')
-      + (analisysMs   ? tsRow('Analisys', analisysMs) : '');
-
-    const deckRows = decksActiveSoFar(state.stageIdx)
-      .filter(idx => state.done[DECKS[idx].id])
-      .map(idx => {
-        const d = DECKS[idx];
-        const deckMs = t.perDeck[d.id] || 0;
-        const whyMs  = t.perWhy[d.id]  || 0;
-        return tsRow(escapeHTML(d.title), deckMs, whyMs ? ` <span class="ts-why">why ${fmtDuration(whyMs)}</span>` : '');
-      }).join('');
+    // One merged, title-less nested list (Analysis + By-section merged).
+    let mergedList = '';
+    if (introMs)         mergedList += node('Intro', introMs, 0);
+    if (t.perStep.step0) mergedList += node('Create groups', t.perStep.step0, 0);
+    mergedList += node('Main decks', decksTotal, 0) + decksTree;
+    mergedList += node('Analysis', analisysMs, 0);
+    if (secondPlayMs) mergedList += node('Additional perspective', secondPlayMs, 1);
+    mergedList += node('Ordinals', null, 1, _analyzeOn ? '✓' : '—');
+    mergedList += node('Genders',  null, 1, _finishApplied ? '✓' : '—');
 
     const primaryHint = buildFastDeckHintHTML();
     const cyclePool = [
@@ -5446,32 +5452,28 @@
       buildStageTimeHintHTML(),
       buildContrastHintHTML(),
     ].filter(Boolean);
-    const hasContent = !!(totalText || hintHTML || stepRows || stageRows || deckRows || primaryHint || cyclePool.length);
+    const hasContent = !!(totalText || hintHTML || mergedList || primaryHint || cyclePool.length);
 
-    // Quick stats above the table: Decks (Stage 1 total) · Additional
-    // perspective · Analisys (See results → Summary-More).
+    // Quick stats above the table: Main decks (total) + Analysis (with
+    // Additional perspective as a child) + a comparative insight on the right.
     const $top = document.getElementById('std-timestats-top');
     if ($top){
-      const sq = (ms, label) => `<div class="sq"><b>${fmtDuration(ms)}</b><span class="sq-h">${label}</span></div>`;
-      const quick = sq(decksTotal, 'Decks')
-        + (secondPlayMs ? sq(secondPlayMs, 'Additional perspective') : '')
-        + (analisysMs  ? sq(analisysMs,  'Analisys') : '');
-      // three stats stacked left, a comparative insight on the right
+      let quick = node('Main decks', decksTotal, 0) + node('Analysis', analisysMs, 0);
+      if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 1);
       $top.innerHTML = `<div class="std-quick-wrap">`
-        + `<div class="std-quick">${quick}</div>`
+        + `<div class="std-quick std-tsn-list">${quick}</div>`
         + `<div class="std-quick-insight">${buildQuickInsight(decksTotal, secondPlayMs, analisysMs)}</div>`
         + `</div>`;
       $top.hidden = !_timeStatsOn;
     }
 
-    // Below the table, two columns: the breakdown stats on the left, the
+    // Below the table, two columns: the merged nested list on the left, the
     // Analyze-timings + more insights on the right.
     $panel.innerHTML = `
       <div class="std-ts-cols">
         <div class="std-ts-left">
-          ${totalText ? `<div class="std-sub"><h4 class="std-subhead">Total</h4><div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div></div>` : ''}
-          ${analysisRows ? `<div class="std-sub"><h4 class="std-subhead">Analysis</h4>${analysisRows}</div>` : ''}
-          ${(stepRows || stageRows || deckRows) ? `<div class="std-sub"><h4 class="std-subhead">By section</h4>${stepRows}${stageRows}${deckRows}</div>` : ''}
+          ${totalText ? `<div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div>` : ''}
+          <div class="std-tsn-list">${mergedList}</div>
         </div>
         <div class="std-ts-right">
           ${(hintHTML || primaryHint || cyclePool.length) ? `<div class="std-sub"><h4 class="std-subhead">Analyze</h4>

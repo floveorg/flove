@@ -2800,12 +2800,20 @@
   .std-subhead{margin:0 0 .45rem;font:700 .68rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center}
   .std-timestats .ts-row{display:flex;gap:.55rem;align-items:baseline;justify-content:flex-start;font-size:.86rem;color:var(--ink);margin:.12rem 0}
   .std-stage-head{font-size:.78rem;color:var(--sky);margin-top:.4rem}
-  /* Quick stats above the tables: Decks · Additional perspective · Analisys */
+  /* Quick stats above the tables: three rows left, a comparative insight right */
   .std-timestats-top[hidden]{display:none}
-  .std-quick{display:flex;flex-wrap:wrap;gap:.7rem 1.4rem;justify-content:center;margin:.4rem 0 .8rem}
-  .std-quick .sq{display:flex;flex-direction:column;align-items:center;gap:2px}
-  .std-quick .sq b{color:var(--gold);font:700 1.05rem/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}
-  .std-quick .sq-h{color:var(--muted);font:600 .66rem/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+  .std-quick-wrap{display:flex;flex-wrap:wrap;gap:1rem 1.4rem;align-items:flex-start;margin:.4rem 0 .8rem}
+  .std-quick{display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;flex:1 1 200px}
+  .std-quick .sq{display:flex;flex-direction:row;align-items:baseline;gap:.5rem}
+  .std-quick .sq b{color:var(--gold);font:700 1.05rem/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;min-width:3.4em;text-align:right}
+  .std-quick .sq-h{color:var(--muted);font:600 .68rem/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+  .std-quick-insight{flex:1 1 220px;color:var(--ink);font-size:.88rem;line-height:1.5;text-align:left;border-left:1px solid var(--stroke);padding-left:1rem}
+  .std-quick-insight:empty{display:none}
+  .std-quick-insight b{color:var(--gold);font-weight:600}
+  /* Detailed time stats: breakdown left, analyze/more right */
+  .std-ts-cols{display:flex;flex-wrap:wrap;gap:1.2rem}
+  .std-ts-left{flex:1 1 200px;min-width:0}
+  .std-ts-right{flex:1 1 200px;min-width:0}
   /* timing shown before each deck/stage title in the comparison table */
   .pr-time{color:var(--sky);font-weight:700;font-variant-numeric:tabular-nums;font-size:.82em;margin-right:.25rem}
   .pt-newpersp{text-align:center;color:var(--muted);font-size:.84rem;margin:.1rem 0 .5rem}
@@ -5382,6 +5390,17 @@
     });
   }
 
+  // A short comparative read across the three quick stats.
+  function buildQuickInsight(decksMs, perspMs, analMs){
+    const items = [['the decks', decksMs], ['the extra perspective', perspMs], ['the analysis', analMs]].filter(x => x[1] > 0);
+    if (!items.length) return '';
+    items.sort((a, b) => b[1] - a[1]);
+    if (items.length === 1) return `All the time here went to <b>${items[0][0]}</b>.`;
+    const most = items[0], least = items[items.length - 1];
+    const ratio = least[1] ? most[1] / least[1] : 0;
+    const cmp = ratio >= 2 ? `about ${Math.round(ratio)}× more than` : 'more than';
+    return `You spent the most on <b>${most[0]}</b> — ${cmp} on <b>${least[0]}</b>.`;
+  }
   function renderTimeStats(){
     const $panel = document.getElementById('std-timestats');   // lives inside the Summary section
     if (!$panel) return;
@@ -5392,15 +5411,16 @@
     const tsRow = (label, ms, extra) => `<div class="ts-row"><b>${fmtDuration(ms)}</b><span>${label}${extra || ''}</span></div>`;
 
     const stepRows = [
-      ['Step 0 (warm-up)', t.perStep.step0],
-      ['Step 1 (keys)',    t.perStep.step1],
+      ['Create groups',  t.perStep.step0],
+      ['Order the keys', t.perStep.step1],
     ].filter(([_, ms]) => ms > 0).map(([n, ms]) => tsRow(n, ms)
     ).join('');
 
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);   // use the section name itself
     const stageRows = STAGES
       .map((s, i) => ({ idx: i, name: s.name, ms: t.perStage[i] || 0 }))
       .filter(s => s.ms > 0)
-      .map(s => tsRow(`Stage ${s.idx+1} · ${escapeHTML(s.name)}`, s.ms))
+      .map(s => tsRow(escapeHTML(cap(s.name)), s.ms))
       .join('');
 
     const deckRows = decksActiveSoFar(state.stageIdx)
@@ -5426,29 +5446,40 @@
     const $top = document.getElementById('std-timestats-top');
     if ($top){
       const decksTotal = Object.values(t.perDeck || {}).reduce((a, b) => a + (b || 0), 0);
-      $top.innerHTML = `<div class="std-quick">`
-        + `<div class="sq"><b>${fmtDuration(decksTotal)}</b><span class="sq-h">Decks</span></div>`
-        + (secondPlayMs ? `<div class="sq"><b>${fmtDuration(secondPlayMs)}</b><span class="sq-h">Additional perspective</span></div>` : '')
-        + (analisysMs  ? `<div class="sq"><b>${fmtDuration(analisysMs)}</b><span class="sq-h">Analisys</span></div>` : '')
+      const sq = (ms, label) => `<div class="sq"><b>${fmtDuration(ms)}</b><span class="sq-h">${label}</span></div>`;
+      const quick = sq(decksTotal, 'Decks')
+        + (secondPlayMs ? sq(secondPlayMs, 'Additional perspective') : '')
+        + (analisysMs  ? sq(analisysMs,  'Analisys') : '');
+      // three stats stacked left, a comparative insight on the right
+      $top.innerHTML = `<div class="std-quick-wrap">`
+        + `<div class="std-quick">${quick}</div>`
+        + `<div class="std-quick-insight">${buildQuickInsight(decksTotal, secondPlayMs, analisysMs)}</div>`
         + `</div>`;
       $top.hidden = !_timeStatsOn;
     }
 
-    // Below the table: the full (repeated) detailed breakdown, then the buttons.
+    // Below the table, two columns: the breakdown stats on the left, the
+    // Analyze-timings + more insights on the right.
     $panel.innerHTML = `
-      ${totalText ? `<div class="std-sub"><h4 class="std-subhead">Total</h4><div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div></div>` : ''}
-      ${(stepRows || stageRows || deckRows) ? `<div class="std-sub"><h4 class="std-subhead">By step · stage · deck</h4>${stepRows}${stageRows}${deckRows}</div>` : ''}
-      ${(hintHTML || primaryHint || cyclePool.length) ? `<div class="std-sub"><h4 class="std-subhead">Insights</h4>
-        ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
-        ${(primaryHint || cyclePool.length) ? `<div class="ts-expanded">
-          <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze timings</button>
-          <div class="ts-further" id="ts-further" hidden>
-            ${primaryHint ? `<div class="ts-hint ts-further-hint">${primaryHint}</div>` : ''}
-            <div class="ts-cycle" id="ts-cycle"></div>
-            ${cyclePool.length ? `<button class="btn btn-soft ts-more-btn" id="ts-more-btn" type="button">More</button>` : ''}
-          </div>
-        </div>` : ''}
-      </div>` : ''}
+      <div class="std-ts-cols">
+        <div class="std-ts-left">
+          ${totalText ? `<div class="std-sub"><h4 class="std-subhead">Total</h4><div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div></div>` : ''}
+          ${(stepRows || stageRows || deckRows) ? `<div class="std-sub"><h4 class="std-subhead">By section</h4>${stepRows}${stageRows}${deckRows}</div>` : ''}
+        </div>
+        <div class="std-ts-right">
+          ${(hintHTML || primaryHint || cyclePool.length) ? `<div class="std-sub"><h4 class="std-subhead">Analyze</h4>
+            ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
+            ${(primaryHint || cyclePool.length) ? `<div class="ts-expanded">
+              <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze timings</button>
+              <div class="ts-further" id="ts-further" hidden>
+                ${primaryHint ? `<div class="ts-hint ts-further-hint">${primaryHint}</div>` : ''}
+                <div class="ts-cycle" id="ts-cycle"></div>
+                ${cyclePool.length ? `<button class="btn btn-soft ts-more-btn" id="ts-more-btn" type="button">More</button>` : ''}
+              </div>
+            </div>` : ''}
+          </div>` : ''}
+        </div>
+      </div>
     `;
     // Analyze reveals the further insights below it.
     const $tsAnalyze = document.getElementById('ts-analyze-btn');

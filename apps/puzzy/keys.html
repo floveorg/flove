@@ -2029,14 +2029,14 @@
   @keyframes type-caret{50%{border-color:transparent}}
   /* Pensativo panda rising into the bottom-left corner of the slider */
   .intro-panda{
-    position:absolute;left:14px;bottom:12px;
-    width:64px;height:auto;pointer-events:none;z-index:2;
+    position:absolute;left:14px;bottom:0;
+    width:83px;height:auto;pointer-events:none;z-index:2;
     opacity:0;transform:translateY(24px);
     filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
   }
   .intro-panda.show{animation:panda-rise .5s cubic-bezier(.2,.8,.2,1) forwards}
   @keyframes panda-rise{to{opacity:1;transform:translateY(0)}}
-  @media (max-width:520px){.intro-panda{width:52px;left:10px;bottom:10px}}
+  @media (max-width:520px){.intro-panda{width:68px;left:10px}}
   @media (prefers-reduced-motion: reduce){
     .intro-slide .typed-that.typing{animation:none;border-color:transparent}
     .intro-panda{opacity:1;transform:none;animation:none}
@@ -3454,7 +3454,7 @@
   </div>
 
   <section class="intro-slider" id="intro-slider" aria-label="How to play">
-    <img class="intro-panda" id="intro-panda" src="../../others/panda/gifs/pensativo/panda-pensativo.gif" alt="" aria-hidden="true">
+    <img class="intro-panda" id="intro-panda" src="../../others/panda/gifs/pensativo/frame-00.svg" alt="" aria-hidden="true">
     <div class="intro-track" id="intro-track"></div>
     <div class="intro-arrows">
       <button id="intro-prev" type="button" aria-label="Previous">←</button>
@@ -5533,6 +5533,23 @@
     updateIntroUI();
   }
 
+  // Cycles the lone pensativo frames consecutively (the gif itself doesn't
+  // move), giving a live "thinking" loop on a transparent background.
+  function startPandaFrames($panda){
+    if (!$panda || $panda.dataset.cycling) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    $panda.dataset.cycling = '1';
+    const base = '../../others/panda/gifs/pensativo/frame-';
+    const frames = [];
+    for (let i = 0; i < 12; i++){
+      const src = base + String(i).padStart(2, '0') + '.svg';
+      new Image().src = src;          // preload to avoid first-loop flicker
+      frames.push(src);
+    }
+    let f = 0;
+    setInterval(() => { f = (f + 1) % frames.length; $panda.src = frames[f]; }, 110);
+  }
+
   // Types "that" into the first slide while the pensativo panda rises in the
   // bottom-left corner — both start together. Runs once.
   function typeThat(){
@@ -5540,7 +5557,7 @@
     const $panda = document.getElementById('intro-panda');
     if (!$typed || $typed.dataset.done) return;
     $typed.dataset.done = '1';
-    if ($panda) $panda.classList.add('show');            // panda fades in upwards
+    if ($panda){ $panda.classList.add('show'); startPandaFrames($panda); } // rises in, then breathes
     const word = 'that ';
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
       $typed.textContent = word; return;

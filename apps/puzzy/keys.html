@@ -2829,6 +2829,16 @@
   .pr-time{color:var(--sky);font-weight:700;font-variant-numeric:tabular-nums;font-size:.82em;margin-right:.25rem}
   .pt-newpersp{text-align:center;color:var(--muted);font-size:.84rem;margin:.1rem 0 .5rem}
   .pt-newpersp b{color:var(--sky)}
+  /* Decks tables + a perspective-comparison insight column on the right */
+  .pt-2col{display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-start}
+  .pt-tables{flex:2 1 320px;min-width:0}
+  .pt-insight-col{flex:1 1 200px;min-width:0;text-align:left}
+  .pt-insight-col:empty{display:none}
+  .pt-insight-h{margin:0 0 .5rem;font:700 .7rem/1 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .pt-insight-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.6rem}
+  .pt-insight{margin:0;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(168,228,255,.25);
+    background:linear-gradient(180deg,rgba(168,228,255,.06),transparent);color:var(--ink);font-size:.86rem;line-height:1.5}
+  .pt-insight-more{padding:.45rem .9rem}
   .std-timestats .ts-row b{color:var(--sky);min-width:3.4em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
   .std-timestats .ts-total{margin:0;font-size:.95rem}
   .std-timestats .ts-total b{color:var(--gold)}
@@ -7604,7 +7614,11 @@
         : '';
       return `<div class="pr-group">${firstRow}${secondRow}</div>`;
     }).join('');
-    return `<div class="play-rows">${groups}</div>`
+    // Decks tables on the left, a perspective-comparison insight column on the right.
+    return `<div class="pt-2col">`
+      +   `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
+      +   `<div class="pt-insight-col" id="pt-insight-col"></div>`
+      + `</div>`
       + buildPerspectivesHTML()
       + buildCombosKeysHTML();
   }
@@ -7686,8 +7700,36 @@
     // available behind the Magic toggle.
     if ($def) $def.innerHTML = buildPlayTablesHTML();
     if ($mag) $mag.innerHTML = buildMagicPhraseHTML();
+    wirePtInsight();   // the right-hand perspective-comparison insight column
     // Re-apply the comparison highlight if it has been turned on.
     applyPlayHighlight(_showPlayCompare);
+  }
+
+  // Right-of-the-tables column: a perspective-comparison insight. The "Insights"
+  // button loads the next general insight below it; after 5 the 6th click
+  // resets to none, then it loops.
+  const PERSP_INSIGHTS = [
+    'The order you chose says as much as the words themselves.',
+    'A perspective is a lens — switching it re-weights the same keys without changing them.',
+    'Where your two plays agree is a settled view; where they differ is where the framing did real work.',
+    'Subjective ↔ objective, momentual ↔ general — most keys sit somewhere in between.',
+    'Holding two perspectives at once is the point: the tension between them is the insight.',
+  ];
+  function wirePtInsight(){
+    const col = document.getElementById('pt-insight-col');
+    if (!col) return;
+    col.innerHTML = `<h4 class="pt-insight-h">Compare perspectives</h4>`
+      + `<div class="pt-insight-list" id="pt-insight-list"></div>`
+      + `<button class="btn btn-soft pt-insight-more" id="pt-insight-more" type="button">Insights</button>`;
+    const list = col.querySelector('#pt-insight-list');
+    const btn  = col.querySelector('#pt-insight-more');
+    let shown = 0;
+    btn.addEventListener('click', () => {
+      if (shown >= PERSP_INSIGHTS.length){ shown = 0; list.innerHTML = ''; btn.textContent = 'Insights'; return; }  // 6th → none
+      list.insertAdjacentHTML('beforeend', `<p class="pt-insight">${PERSP_INSIGHTS[shown]}</p>`);
+      shown++;
+      btn.textContent = (shown >= PERSP_INSIGHTS.length) ? 'Reset' : 'More';
+    });
   }
 
   // Paint the perspective bars into the Views chart slot (Bars / Vertical /

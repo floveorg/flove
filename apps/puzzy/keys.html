@@ -700,7 +700,11 @@
     text-align:center;
   }
   .summary p{color:var(--muted);margin:0 0 1rem;text-align:center}
-  .deck-time{font:600 .7rem/1 system-ui,sans-serif;color:var(--sky);white-space:nowrap;margin-left:.3rem}
+  .deck-time{display:none;font:600 .7rem/1 system-ui,sans-serif;color:var(--sky);white-space:nowrap;margin-left:.3rem}
+  .summary.stats-on .deck-time{display:inline}   /* per-row stat only in the unified stats view */
+  .summary-general{margin:.2rem auto .6rem;text-align:center}
+  .summary-general[hidden]{display:none}
+  .summary-general .ts-total{margin-bottom:.4rem}
   .summary-triads-wrap{position:relative;margin-top:.4rem}
   .summary-triads,
   .summary-fivys{
@@ -945,7 +949,8 @@
   /* Insights panel rides right under the summary button row (its trigger). */
   .summary.groups-on-top .insights-panel{order:0}
   .summary.groups-on-top .simplex-cta{order:7}
-  .summary.groups-on-top .time-stats{order:7}   /* time stats integrated lower in the box */
+  .summary.groups-on-top .summary-general{order:0}   /* general stats above the tables */
+  .summary.groups-on-top .time-stats{order:6}        /* insight + analyze/more hints below the table */
   .summary.groups-on-top .play-more-row{order:8}
   .summary.groups-on-top .flv-std{order:12}
   /* See more + related apps now live below the Summary panel. */
@@ -3749,6 +3754,9 @@
          "new perspective" bars + reorder decks live below (in #second-play). -->
     <div class="analyze-bars" id="analyze-bars" hidden></div>
 
+    <!-- General time stats, shown above the tables in the unified summary -->
+    <div class="summary-general" id="summary-general" hidden></div>
+
     <div class="summary-triads-wrap">
       <div class="summary-triads" id="summary-triads"></div>
       <div class="analyze-arrows" id="analyze-arrows" aria-hidden="true">
@@ -5379,14 +5387,17 @@
     const hasFurther = !!(primaryHint || cyclePool.length || breakdown);
     const hasContent = !!(totalText || hintHTML || hasFurther);
 
-    // First insight + the expanded stats show immediately. The Analyze button
-    // sits BELOW the expanded stats (centered); clicking it reveals the primary
-    // further hint + a cycling "More" button beneath it.
+    // Unified summary: no "Time stats" title. The general stats (total +
+    // breakdown) render above the tables in #summary-general; the insight hint
+    // + Analyze/More (and their hints) render below in #time-stats.
+    const $general = document.getElementById('summary-general');
+    if ($general){
+      $general.innerHTML =
+        `${totalText ? `<div class="ts-total">Total time · <b>${escapeHTML(totalText)}</b></div>` : ''}`
+      + `${breakdown ? `<div class="ts-stats">${breakdown}</div>` : ''}`;
+    }
     $panel.innerHTML = `
-      <h3>Time stats</h3>
-      ${totalText ? `<div class="ts-total">Total time · <b>${escapeHTML(totalText)}</b></div>` : ''}
       ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
-      ${breakdown ? `<div class="ts-stats">${breakdown}</div>` : ''}
       ${(primaryHint || cyclePool.length) ? `<div class="ts-expanded">
         <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze</button>
         <div class="ts-further" id="ts-further" hidden>
@@ -5426,10 +5437,14 @@
     }
     // Light up the breakdown rows named by whichever insights are visible.
     highlightMentionedStats($panel);
-    // Merged into the Summary: the general stats show above the tables (no
-    // longer gated behind the Stats toggle).
+    // Hidden on entry (See result shows only the ordinals); the Stats "More"
+    // reveals the unified general/details split.
     $panel.dataset.populated = hasContent ? '1' : '0';
-    $panel.hidden = !hasContent;
+    $panel.hidden = !_timeStatsOn;
+    if ($general){
+      $general.dataset.populated = (totalText || breakdown) ? '1' : '0';
+      $general.hidden = !_timeStatsOn;
+    }
   }
 
   // ============== Actions ==============
@@ -8457,21 +8472,24 @@
   let _timeStatsOn = false;
   document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
     const $time = document.getElementById('time-stats');
+    const $general = document.getElementById('summary-general');
     const $btn  = document.getElementById('btn-analyze-more-3');
     if (_timeStatsOn){
       if ($time) $time.hidden = true;
+      if ($general) $general.hidden = true;
       $btn.textContent = 'Stats';
       _timeStatsOn = false;
     } else {
-      if ($time && $time.dataset.populated === '1'){
-        $time.hidden = false;
+      if (($time && $time.dataset.populated === '1') || ($general && $general.dataset.populated === '1')){
+        if ($time) $time.hidden = false;
+        if ($general) $general.hidden = false;     // general stats above the tables
         _timeStatsOn = true;
         $btn.textContent = '✓ Stats';
         bumpAnalyzeLevel(5);
         markSectionTouched('stats');
         renderStageLabel();
         renderPlayMoreBtn();
-        $time.scrollIntoView({ behavior:'smooth', block:'start' });
+        if ($general) $general.scrollIntoView({ behavior:'smooth', block:'start' });
       } else {
         // Nothing measurable to show — but still count this as "last more"
         // for progression so the stage bar can fill and the Play more / See
@@ -8484,6 +8502,7 @@
     }
     $btn.classList.toggle('btn-primary', _timeStatsOn);
     $btn.classList.toggle('btn-ghost',   !_timeStatsOn);
+    $summary.classList.toggle('stats-on', _timeStatsOn);   // reveal the inline per-row times
   });
 
   // ============== See more · related flove apps ==============

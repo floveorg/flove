@@ -1062,12 +1062,16 @@
      30% wider than the standard summary block, with a 10px gap between
      the two pairs and a centered title + helper line. */
   .analyze-bars{
+    position:relative;
     margin-top:.8rem;padding:16px 18px 12px;
     border:1px solid var(--stroke);border-radius:14px;
     background:linear-gradient(180deg,rgba(168,228,255,.05),rgba(255,255,255,.015)),var(--fx);
     animation:fadein .25s ease;
     max-width:760px;margin-left:auto;margin-right:auto;
   }
+  /* room so the corner panda doesn't sit on top of the bars */
+  .analyze-bars{padding-left:104px}
+  @media (max-width:520px){ .analyze-bars{padding-left:70px} }
   .analyze-bars[hidden]{display:none}
   .ab-title{
     margin:0 0 .8rem;text-align:center;
@@ -6706,6 +6710,10 @@
 
   function renderBarsPanel(){
     const $panel = document.getElementById('analyze-bars');
+    // Skip the "declare what has been your perspective" step: go straight to the
+    // alternative perspective, pre-set to Objective + General (a single point in
+    // each bar). The user can move the points, but no area selection.
+    BARS.forEach(b => { const s = barState[b.id]; if (s.p1 == null){ s.phase = 1; s.p1 = 100; s.p2 = null; } });
     const rows = BARS.map(b => `
       <div class="ab-row" data-bar="${b.id}">
         <div class="ab-poles"><b>${b.leftLabel}</b><b>${b.rightLabel}</b></div>
@@ -6716,17 +6724,12 @@
       </div>
     `).join('');
     $panel.innerHTML = `
-      <h3 class="ab-title">Declare what has been your perspective</h3>
+      <h3 class="ab-title">Your alternative perspective</h3>
       <div class="ab-grid">${rows}</div>
-      <p class="ab-help">Select a point or an area in the bars.</p>
-      <div class="ab-plus-wrap">
-        <button class="ab-plus-btn" id="ab-plus-btn" type="button" aria-label="Add a parallel perspective" title="Add a parallel perspective">+</button>
-      </div>
+      <p class="ab-help">Move the point in each bar.</p>
     `;
-    BARS.forEach(b => wireBar(b));
-    renderParallelRows();
-    document.getElementById('ab-plus-btn').addEventListener('click', addParallelRow);
-    updatePlusBtn();
+    BARS.forEach(b => { wireBar(b); paintBar(b); });
+    showCornerPanda('analyze-bars', 'pensativo');   // pensativo, bottom-left
   }
 
   function addParallelRow(){
@@ -6932,13 +6935,8 @@
       const x = (e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0) - rect.left;
       const pct = Math.max(1, Math.min(100, Math.round((x / rect.width) * 100)));
       const s = barState[b.id];
-      if (s.phase === 0){
-        s.phase = 1; s.p1 = pct; s.p2 = null;
-      } else if (s.phase === 1){
-        s.phase = 2; s.p2 = pct;
-      } else { // phase 2 → reset to single node at this click
-        s.phase = 1; s.p1 = pct; s.p2 = null;
-      }
+      // Single point only — no area selection. Every click just moves the node.
+      s.phase = 1; s.p1 = pct; s.p2 = null;
       paintBar(b);
       // Keep the bottom std-summary recap in sync with the perspective.
       if (typeof renderBottomSummary === 'function') renderBottomSummary();

@@ -655,7 +655,7 @@
 
   /* ============== Finished view ============== */
   .summary{
-    display:none;
+    display:none;position:relative;
     border:1px solid var(--stroke);border-radius:18px;
     background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.012)),var(--panel);
     padding:18px 18px 16px;
@@ -958,12 +958,19 @@
 
   /* Related apps — revealed by See more (3 first, then + reveals 6 more) */
   .related-apps{
+    position:relative;
     margin-top:1rem;
     display:flex;flex-direction:column;align-items:center;gap:10px;
     padding:14px 16px;border:1px dashed var(--stroke);border-radius:14px;
     background:linear-gradient(180deg,rgba(168,228,255,.05),transparent);
   }
   .related-apps[hidden]{display:none}
+  /* Small panda perched in the bottom-left corner of a section */
+  .corner-panda{
+    position:absolute;left:10px;bottom:8px;width:84px;height:auto;
+    pointer-events:none;z-index:3;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));
+  }
+  @media (max-width:520px){ .corner-panda{ width:58px } }
   .related-row{
     display:grid;gap:8px;
     grid-template-columns:repeat(3,minmax(0,1fr));
@@ -2676,6 +2683,7 @@
      Total time + Analyze hint sit at the top; "More details" reveals
      the per-step / per-stage / per-deck breakdown below. */
   .time-stats{
+    position:relative;
     margin-top:1.2rem;padding:14px 16px 12px;
     border:1px solid var(--stroke);border-radius:14px;
     background:linear-gradient(180deg,rgba(168,228,255,.05),rgba(255,255,255,.015)),var(--fx);
@@ -5147,6 +5155,7 @@
     resetSummaryStage();
 
     $summary.classList.add('active');
+    showCornerPanda('summary', 'neutral');     // neutral panda, bottom-left
     document.querySelector('.wrap').classList.add('summary-mode');
     renderSummaryGrid();
     renderTimeStats();
@@ -5328,6 +5337,7 @@
         </div>
       </div>` : ''}
     `;
+    showCornerPanda('time-stats', 'celebrando');   // feliz/celebrando, bottom-left
     // Analyze reveals the further insights below it.
     const $tsAnalyze = document.getElementById('ts-analyze-btn');
     const $tsFurther = document.getElementById('ts-further');
@@ -5588,6 +5598,21 @@
   function startChooserPanda(){
     if (chooserPandaTimer) return;
     chooserPandaTimer = cyclePanda(document.getElementById('chooserPanda'), 'neutral', 248);
+  }
+  // A small panda cycling in the bottom-left corner of a section. Survives the
+  // container's innerHTML rebuilds (re-appended + re-armed when wiped).
+  const cornerTimers = {};
+  function showCornerPanda(containerId, emotion){
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    let img = c.querySelector(':scope > .corner-panda');
+    if (!img){
+      if (cornerTimers[containerId]){ clearInterval(cornerTimers[containerId]); cornerTimers[containerId] = null; }
+      img = document.createElement('img');
+      img.className = 'corner-panda'; img.alt = ''; img.setAttribute('aria-hidden', 'true');
+      c.appendChild(img);
+    }
+    if (!cornerTimers[containerId]) cornerTimers[containerId] = cyclePanda(img, emotion, 248);
   }
 
   // Idle moods: after 10s without a click the panda gets enfadado, 10s later
@@ -8581,6 +8606,7 @@
     $panel.hidden = !open;
     if ($help) $help.hidden = !open;
     $btn.textContent = open ? 'Hide apps' : 'See more';
+    if (open) showCornerPanda('related-apps', 'enamorado');  // enamorado, bottom-left
   });
   // Replace the fixed RELATED_MORE 6-app reveal with apps derived from the
   // user's Play more multiselect: each selected word becomes an app card

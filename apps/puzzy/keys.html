@@ -2053,6 +2053,7 @@
   .chooser-modes .opt .opt-body{display:none;margin-top:.5rem}
   .chooser-modes .opt.open .opt-body{display:block}
   .chooser-modes .opt.open{border-color:var(--accent);box-shadow:0 8px 22px rgba(255,95,220,.18)}
+  .chooser-modes .opt.creative.open{border-color:var(--stroke);box-shadow:none}   /* don't highlight Creative's border */
   .chooser-modes .opt-go{margin:.6rem auto 0;display:block;padding:.42rem 1.1rem;font-size:.82rem}
 
   /* ============== Intro slider (paginated 1→N) ============== */
@@ -2792,6 +2793,16 @@
     margin:0 0 .6rem;
   }
   .ts-total b{color:var(--gold);font-weight:700;font-size:1.05rem}
+  /* Time stats as subtle subsections inside the Summary section */
+  .std-timestats[hidden]{display:none}
+  .std-timestats{display:flex;flex-direction:column;gap:.9rem;margin-top:.9rem}
+  .std-sub{border-top:1px dashed var(--stroke);padding-top:.6rem}
+  .std-subhead{margin:0 0 .45rem;font:700 .68rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center}
+  .std-timestats .ts-row{display:flex;gap:.55rem;align-items:baseline;justify-content:center;font-size:.86rem;color:var(--ink);margin:.12rem 0}
+  .std-timestats .ts-row b{color:var(--sky);min-width:3.4em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .std-timestats .ts-total{margin:0;font-size:.95rem}
+  .std-timestats .ts-total b{color:var(--gold)}
+  .std-timestats .ts-why{color:var(--muted);font-weight:500;font-size:.8em}
   .ts-hint{
     margin:0 auto .8rem;max-width:560px;
     padding:.6rem .8rem;border-radius:10px;
@@ -3900,6 +3911,9 @@
       <output class="clause clause-magic" spellcheck="false" aria-label="Magic phrase">
         ✨ A warmer retelling of the same keys will show up here.
       </output>
+
+      <!-- Time stats — subtle subsections within the Summary, by the comparison tables -->
+      <div class="std-timestats" id="std-timestats" hidden></div>
 
       <!-- Stage 4 / 5 results, inside the summary text area, below the keys.
            Confluences read as a 7-column table with the centre swelling. -->
@@ -5354,23 +5368,24 @@
   }
 
   function renderTimeStats(){
-    const $panel = document.getElementById('time-stats');
+    const $panel = document.getElementById('std-timestats');   // lives inside the Summary section
     if (!$panel) return;
     const t = state.timing;
     const totalText = (state.t0 && state.tEnd) ? fmtDuration(state.tEnd - state.t0) : '';
     const hintHTML  = buildSlowDeckHintHTML();
+    // a row with the time stat to the LEFT of the title it belongs to
+    const tsRow = (label, ms, extra) => `<div class="ts-row"><b>${fmtDuration(ms)}</b><span>${label}${extra || ''}</span></div>`;
 
     const stepRows = [
       ['Step 0 (warm-up)', t.perStep.step0],
       ['Step 1 (keys)',    t.perStep.step1],
-    ].filter(([_, ms]) => ms > 0).map(([n, ms]) =>
-      `<div class="ts-row"><span>${n}</span><b>${fmtDuration(ms)}</b></div>`
+    ].filter(([_, ms]) => ms > 0).map(([n, ms]) => tsRow(n, ms)
     ).join('');
 
     const stageRows = STAGES
       .map((s, i) => ({ idx: i, name: s.name, ms: t.perStage[i] || 0 }))
       .filter(s => s.ms > 0)
-      .map(s => `<div class="ts-row"><span>Stage ${s.idx+1} · ${escapeHTML(s.name)}</span><b>${fmtDuration(s.ms)}</b></div>`)
+      .map(s => tsRow(`Stage ${s.idx+1} · ${escapeHTML(s.name)}`, s.ms))
       .join('');
 
     const deckRows = decksActiveSoFar(state.stageIdx)
@@ -5379,21 +5394,9 @@
         const d = DECKS[idx];
         const deckMs = t.perDeck[d.id] || 0;
         const whyMs  = t.perWhy[d.id]  || 0;
-        return `<div class="ts-row ts-deck">
-          <span>${escapeHTML(d.title)}</span>
-          <b>${fmtDuration(deckMs)}${whyMs ? ` <span class="ts-why">why ${fmtDuration(whyMs)}</span>` : ''}</b>
-        </div>`;
+        return tsRow(escapeHTML(d.title), deckMs, whyMs ? ` <span class="ts-why">why ${fmtDuration(whyMs)}</span>` : '');
       }).join('');
 
-    // Per-deck times now live inline on each summary deck (see renderDoneDeck);
-    // keep only the more general step/stage breakdown here.
-    void deckRows;
-    const breakdown =
-        `${stepRows ? `<div class="ts-group"><div class="ts-cap">Steps</div>${stepRows}</div>` : ''}`
-      + `${stageRows ? `<div class="ts-group"><div class="ts-cap">Stages</div>${stageRows}</div>` : ''}`;
-    // Analyze reveals one primary insight; a "More" button then cycles through
-    // a pool of extra hints two at a time, resetting (and looping) on the 3rd
-    // click.
     const primaryHint = buildFastDeckHintHTML();
     const cyclePool = [
       buildWhyTimeHintHTML(),
@@ -5401,30 +5404,24 @@
       buildStageTimeHintHTML(),
       buildContrastHintHTML(),
     ].filter(Boolean);
-    const hasFurther = !!(primaryHint || cyclePool.length || breakdown);
-    const hasContent = !!(totalText || hintHTML || hasFurther);
+    const hasContent = !!(totalText || hintHTML || stepRows || stageRows || deckRows || primaryHint || cyclePool.length);
 
-    // Unified summary: no "Time stats" title. The general stats (total +
-    // breakdown) render above the tables in #summary-general; the insight hint
-    // + Analyze/More (and their hints) render below in #time-stats.
-    const $general = document.getElementById('summary-general');
-    if ($general){
-      $general.innerHTML =
-        `${totalText ? `<div class="ts-total">Total time · <b>${escapeHTML(totalText)}</b></div>` : ''}`
-      + `${breakdown ? `<div class="ts-stats">${breakdown}</div>` : ''}`;
-    }
+    // Subtle subsections within the Summary section, by the comparison tables.
     $panel.innerHTML = `
-      ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
-      ${(primaryHint || cyclePool.length) ? `<div class="ts-expanded">
-        <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze</button>
-        <div class="ts-further" id="ts-further" hidden>
-          ${primaryHint ? `<div class="ts-hint ts-further-hint">${primaryHint}</div>` : ''}
-          <div class="ts-cycle" id="ts-cycle"></div>
-          ${cyclePool.length ? `<button class="btn btn-soft ts-more-btn" id="ts-more-btn" type="button">More</button>` : ''}
-        </div>
+      ${totalText ? `<div class="std-sub"><h4 class="std-subhead">Time</h4><div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div></div>` : ''}
+      ${(stepRows || stageRows || deckRows) ? `<div class="std-sub"><h4 class="std-subhead">By step · stage · deck</h4>${stepRows}${stageRows}${deckRows}</div>` : ''}
+      ${(hintHTML || primaryHint || cyclePool.length) ? `<div class="std-sub"><h4 class="std-subhead">Insights</h4>
+        ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
+        ${(primaryHint || cyclePool.length) ? `<div class="ts-expanded">
+          <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze</button>
+          <div class="ts-further" id="ts-further" hidden>
+            ${primaryHint ? `<div class="ts-hint ts-further-hint">${primaryHint}</div>` : ''}
+            <div class="ts-cycle" id="ts-cycle"></div>
+            ${cyclePool.length ? `<button class="btn btn-soft ts-more-btn" id="ts-more-btn" type="button">More</button>` : ''}
+          </div>
+        </div>` : ''}
       </div>` : ''}
     `;
-    showCornerPanda('time-stats', 'sorprendido');   // sorprendido, bottom-left
     // Analyze reveals the further insights below it.
     const $tsAnalyze = document.getElementById('ts-analyze-btn');
     const $tsFurther = document.getElementById('ts-further');
@@ -5454,14 +5451,9 @@
     }
     // Light up the breakdown rows named by whichever insights are visible.
     highlightMentionedStats($panel);
-    // Hidden on entry (See result shows only the ordinals); the Stats "More"
-    // reveals the unified general/details split.
+    // Hidden until the Stats "More" expands the Summary section.
     $panel.dataset.populated = hasContent ? '1' : '0';
     $panel.hidden = !_timeStatsOn;
-    if ($general){
-      $general.dataset.populated = (totalText || breakdown) ? '1' : '0';
-      $general.hidden = !_timeStatsOn;
-    }
   }
 
   // ============== Actions ==============
@@ -8517,42 +8509,32 @@
   // user clicks the toggle inside the panel.
   let _timeStatsOn = false;
   document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
-    const $time = document.getElementById('time-stats');
-    const $general = document.getElementById('summary-general');
+    const $ts  = document.getElementById('std-timestats');
+    const $std = document.getElementById('std-summary');
+    const $stdT = document.getElementById('std-summary-toggle');
     const $btn  = document.getElementById('btn-analyze-more-3');
     if (_timeStatsOn){
-      if ($time) $time.hidden = true;
-      if ($general) $general.hidden = true;
+      if ($ts) $ts.hidden = true;
       $btn.textContent = 'Stats';
       _timeStatsOn = false;
     } else {
-      if (($time && $time.dataset.populated === '1') || ($general && $general.dataset.populated === '1')){
-        if ($time) $time.hidden = false;
-        if ($general) $general.hidden = false;     // general stats above the tables
-        // Expand the (previously hidden) Summary content recap
-        const $std = document.getElementById('std-summary');
-        const $stdT = document.getElementById('std-summary-toggle');
-        if ($std){ $std.classList.remove('is-collapsed'); if ($stdT) $stdT.setAttribute('aria-expanded','true'); }
-        _timeStatsOn = true;
-        $btn.textContent = '✓ Stats';
-        bumpAnalyzeLevel(5);
-        markSectionTouched('stats');
-        renderStageLabel();
-        renderPlayMoreBtn();
-        if ($general) $general.scrollIntoView({ behavior:'smooth', block:'start' });
-      } else {
-        // Nothing measurable to show — but still count this as "last more"
-        // for progression so the stage bar can fill and the Play more / See
-        // more flow can proceed.
-        bumpAnalyzeLevel(5);
-        markSectionTouched('stats');
-        renderStageLabel();
-        renderPlayMoreBtn();
+      _timeStatsOn = true;
+      // Bring the time stats into the Summary section, expanded.
+      if ($std){
+        $std.hidden = false;
+        $std.classList.remove('is-collapsed');
+        if ($stdT) $stdT.setAttribute('aria-expanded','true');
       }
+      if ($ts) $ts.hidden = false;
+      $btn.textContent = '✓ Stats';
+      bumpAnalyzeLevel(5);
+      markSectionTouched('stats');
+      renderStageLabel();
+      renderPlayMoreBtn();
+      if ($ts) setTimeout(() => $ts.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
     }
     $btn.classList.toggle('btn-primary', _timeStatsOn);
     $btn.classList.toggle('btn-ghost',   !_timeStatsOn);
-    $summary.classList.toggle('stats-on', _timeStatsOn);   // reveal the inline per-row times
   });
 
   // ============== See more · related flove apps ==============

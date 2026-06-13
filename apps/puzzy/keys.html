@@ -942,7 +942,7 @@
   /* Insights panel rides right under the summary button row (its trigger). */
   .summary.groups-on-top .insights-panel{order:0}
   .summary.groups-on-top .simplex-cta{order:7}
-  .summary.groups-on-top .time-stats{order:0}   /* general stats above the tables */
+  .summary.groups-on-top .time-stats{order:7}   /* time stats integrated lower in the box */
   .summary.groups-on-top .play-more-row{order:8}
   .summary.groups-on-top .flv-std{order:12}
   /* See more + related apps now live below the Summary panel. */
@@ -1403,8 +1403,9 @@
      reordering, then a Finish button below. After finishing, the summary
      highlights any deck whose position changed under the new perspective. */
   .second-play{
+    position:relative;
     margin:1rem auto 0;max-width:760px;
-    padding:14px 16px;border-radius:14px;
+    padding:14px 16px 92px;border-radius:14px;text-align:center;
     border:1px solid rgba(255,95,220,.35);
     background:linear-gradient(180deg,rgba(255,95,220,.06),rgba(255,255,255,.02)),var(--fx);
     animation:fadein .25s ease;
@@ -5561,8 +5562,8 @@
   // ============== Intro slider ==============
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
+    { t:'We all have an own view of the Whole', b:'…that gives us calm and joy when we clear it' },
     { t:'Play with flove Keys of Everything', b:'Key small groups of words can represent a Whole...' },
-    { t:'Small groups of words can represent it all…', b:'Play with flove Key sets of words here.' },
     { t:'Flove Keys are well known words', b:'…to be moved up and down' },
     { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also' },
   ];
@@ -5667,10 +5668,10 @@
     chooserPandaStarted = true;
     const el = document.getElementById('chooserPanda');
     if (el) el.style.visibility = 'hidden';
-    setTimeout(() => {                                   // appear 3s after entering
+    setTimeout(() => {                                   // appear 2s after entering
       if (el) el.style.visibility = '';
       cyclePanda(el, 'neutral', 248, 2);                 // 2 loops then stop
-    }, 3000);
+    }, 2000);
   }
   // On entering the chooser: type the title and fade the panda in left→right,
   // both over ~5s.
@@ -5689,9 +5690,9 @@
     // Panda stays fixed; the info boxes fade in left → right over 5s.
     const opts = Array.from(document.querySelectorAll('#chooser .opt'));
     if (reduce){ opts.forEach(el => { el.style.animation = ''; }); return; }
-    opts.sort((a, b) => {
+    opts.sort((a, b) => {                                 // per rows: top first, then left
       const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-      return (ra.left - rb.left) || (ra.top - rb.top);
+      return (ra.top - rb.top) || (ra.left - rb.left);
     });
     const N = opts.length || 1, dur = 800, span = 5000;
     opts.forEach((el, i) => {
@@ -5887,7 +5888,7 @@
       let i = 1;
       (function step(){
         $typed.textContent = sentence.slice(0, i);
-        if (i++ <= sentence.length) setTimeout(step, 60);
+        if (i++ <= sentence.length) setTimeout(step, 90);   // 50% slower
         else { $typed.classList.remove('typing'); raisePanda(); }   // panda rises after the sentence
       })();
     }, 3000);
@@ -6870,6 +6871,7 @@
     if ($ab) $ab.hidden = true;
     renderParallelRows();
     renderSecondPlay();
+    showCornerPanda('second-play', 'pensativo');   // pensativo now lives with the new perspective
     updatePlusBtn();
     updateInsightsBtn();
     // Adding a new perspective shows the comparison table (+ Insights block)
@@ -7076,12 +7078,13 @@
     if (_barsOn){
       bumpAnalyzeLevel(3);
       markSectionTouched('perspective');
-      renderBarsPanel();
-      $panel.hidden = false;
+      // No "Add a perspective" panel — go straight to the new perspective
+      // section (bars + magic + cards + Save), centered above the main decks.
+      if ($panel) $panel.hidden = true;
+      if (parallelRows.length === 0) addParallelRow();
+      else { renderSecondPlay(); showCornerPanda('second-play', 'pensativo'); }
       $btn.textContent = '✓ Perspectives';
       $btn2.hidden = false;
-      // Re-show the second play if the user already added a parallel row.
-      renderSecondPlay();
     } else {
       $panel.hidden = true;
       $btn.textContent = 'Perspectives';

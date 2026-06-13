@@ -84,6 +84,13 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .topbar-spacer{flex:1}
+  /* "More" button highlighted + moving after a perspective is saved */
+  @keyframes save-attn{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.06) translateY(-3px)}}
+  .save-highlight{
+    animation:save-attn 1.2s ease-in-out infinite;
+    box-shadow:0 0 0 2px var(--brand),0 0 18px 4px rgba(0,247,167,.45);
+    border-color:var(--brand) !important;
+  }
 
   /* ===== blogynormal-style menu panel (anchored under the brand, left) ===== */
   .menu-panel{
@@ -930,7 +937,7 @@
   .summary.groups-on-top .summary-fivys{order:1}
   .summary.groups-on-top .summary-second-play{order:2}
   .summary.groups-on-top .analyze-bars{order:1}
-  .summary.groups-on-top .second-play{order:6}
+  .summary.groups-on-top .second-play{order:0}   /* new perspective bars + cards above the main decks */
   /* Insights panel rides right under the summary button row (its trigger). */
   .summary.groups-on-top .insights-panel{order:0}
   .summary.groups-on-top .simplex-cta{order:7}
@@ -1072,9 +1079,8 @@
     animation:fadein .25s ease;
     max-width:760px;margin-left:auto;margin-right:auto;
   }
-  /* room so the corner panda doesn't sit on top of the bars */
-  .analyze-bars{padding-left:104px}
-  @media (max-width:520px){ .analyze-bars{padding-left:70px} }
+  /* centered text; bottom room reserved for the corner panda */
+  .analyze-bars{text-align:center;padding-bottom:92px}
   .analyze-bars[hidden]{display:none}
   .ab-title{
     margin:0 0 .4rem;text-align:center;
@@ -2073,6 +2079,12 @@
   /* "that" typed into the first slide, with a blinking caret while typing */
   .intro-slide .typed-that{white-space:pre}
   .intro-slide .typed-that.typing{border-right:2px solid var(--gold);animation:type-caret .7s steps(1,end) infinite}
+  /* Intro hero: logo + title fading in over 2s, then the typed sentence */
+  .intro-hero{display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:intro-hero-in 2s ease both}
+  @keyframes intro-hero-in{to{opacity:1}}
+  .intro-logo{width:54px;height:54px;display:block}
+  .intro-hero-sentence{color:var(--ink);margin:0;font-size:.98rem;max-width:50ch;line-height:1.55;min-height:1.6em}
+  .intro-slide .typed-sentence.typing{border-right:2px solid var(--gold);animation:type-caret .7s steps(1,end) infinite}
   @keyframes type-caret{50%{border-color:transparent}}
   /* Pensativo panda rising into the bottom-left corner of the slider */
   .intro-panda{
@@ -2081,7 +2093,7 @@
     opacity:0;transform:translateY(24px);
     filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
   }
-  .intro-panda.show{animation:panda-rise .5s cubic-bezier(.2,.8,.2,1) forwards}
+  .intro-panda.show{animation:panda-rise 3s cubic-bezier(.2,.8,.2,1) forwards}
   @keyframes panda-rise{to{opacity:1;transform:translateY(0)}}
   @media (max-width:520px){.intro-panda{width:136px}}
   @media (prefers-reduced-motion: reduce){
@@ -3750,7 +3762,7 @@
       <div class="ab-parallel-rows" id="ab-parallel-rows"></div>
       <div class="sp-decks" id="sp-decks"></div>
       <div class="sp-actions">
-        <button class="btn btn-primary" id="sp-finish-btn" type="button">Finish second play →</button>
+        <button class="btn btn-primary" id="sp-finish-btn" type="button">Save perspective →</button>
         <button class="btn btn-ghost" id="sp-edit-btn" type="button" hidden>Edit selections</button>
       </div>
     </section>
@@ -5545,7 +5557,7 @@
   // ============== Intro slider ==============
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
-    { t:'We all have an own view of the Whole',     b:'…that gives us calm and joy when we clear it' },
+    { t:'Play with flove Keys of Everything', b:'Key small groups of words can represent a Whole...' },
     { t:'Small groups of words can represent it all…', b:'Play with flove Key sets of words here.' },
     { t:'Flove Keys are well known words', b:'…to be moved up and down' },
     { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also' },
@@ -5561,9 +5573,13 @@
       const slide = document.createElement('div');
       slide.className = 'intro-slide';
       slide.dataset.idx = String(i);
-      // First slide: "that" is typed in front of "gives us…" (see typeThat)
+      // First slide: logo + title fade in, then the sentence types in (see typeThat)
       slide.innerHTML = (i === 0)
-        ? `<h2>${s.t}</h2><p>…<span class="typed-that"></span>gives us calm and joy when we clear it</p>`
+        ? `<div class="intro-hero">
+             <svg class="intro-logo" viewBox="0 0 100 100" aria-hidden="true"><g fill="url(#g-keys)" stroke="none"><g transform="rotate(0 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(72 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(288 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><circle cx="50" cy="50" r="4.5"/></g></svg>
+             <h2>${s.t}</h2>
+           </div>
+           <p class="intro-hero-sentence"><span class="typed-sentence"></span></p>`
         : `<h2>${s.t}</h2><p>${s.b}</p>`;
       $track.appendChild(slide);
 
@@ -5850,25 +5866,27 @@
     idleTimer = setTimeout(idleAdvance, 10000);
   }
 
-  // Types "that" into the first slide while the pensativo panda rises in the
-  // bottom-left corner — both start together. Runs once.
+  // Intro reveal: the logo + title fade in (CSS, 2s); 3s in, the first sentence
+  // types out; once it's done the panda fades in from down→up (3s). Runs once.
   function typeThat(){
-    const $typed = document.querySelector('.intro-slide[data-idx="0"] .typed-that');
+    const $typed = document.querySelector('.intro-slide[data-idx="0"] .typed-sentence');
     const $panda = document.getElementById('intro-panda');
     if (!$typed || $typed.dataset.done) return;
     $typed.dataset.done = '1';
-    if ($panda){ $panda.classList.add('show'); startPandaFrames($panda); } // rises in, then breathes
-    const word = 'that ';
+    const sentence = INTRO_SLIDES[0].b;
+    const raisePanda = () => { if ($panda){ $panda.classList.add('show'); startPandaFrames($panda); } };
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-      $typed.textContent = word; return;
+      $typed.textContent = sentence; raisePanda(); return;
     }
-    $typed.classList.add('typing');
-    let i = 1;
-    (function step(){
-      $typed.textContent = word.slice(0, i);
-      if (i++ <= word.length) setTimeout(step, 95);
-      else $typed.classList.remove('typing');
-    })();
+    setTimeout(() => {                       // first sentence starts ~3s after entering
+      $typed.classList.add('typing');
+      let i = 1;
+      (function step(){
+        $typed.textContent = sentence.slice(0, i);
+        if (i++ <= sentence.length) setTimeout(step, 60);
+        else { $typed.classList.remove('typing'); raisePanda(); }   // panda rises after the sentence
+      })();
+    }, 3000);
   }
 
   function gotoSlide(i){
@@ -6844,6 +6862,8 @@
     // Default to Subjective + Momentual (left pole, single point).
     BARS.forEach(b => { states[b.id] = { phase:1, p1:1, p2:null }; });
     parallelRows.push({ idx, states });
+    const $ab = document.getElementById('analyze-bars');   // hide the "Add a perspective" block once added
+    if ($ab) $ab.hidden = true;
     renderParallelRows();
     renderSecondPlay();
     updatePlusBtn();
@@ -7927,13 +7947,20 @@
     updateInsightsBtn();
     // Fold the second-play result into the bottom std-summary recap.
     if (typeof renderBottomSummary === 'function') renderBottomSummary();
-    // Finishing the second play expands the (collapsed-by-default) Summary.
+    // Saving expands the (collapsed-by-default) Summary so the perspective is
+    // recorded there…
     const $std = document.getElementById('std-summary');
     const $stdToggle = document.getElementById('std-summary-toggle');
     if ($std){
       $std.classList.remove('is-collapsed');
       if ($stdToggle) $stdToggle.setAttribute('aria-expanded', 'true');
-      setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
+    }
+    // …and sends the user back up to the next "More" button, highlighted/moving.
+    const $more2 = document.getElementById('btn-analyze-more-2');
+    if ($more2){
+      $more2.hidden = false;
+      $more2.classList.add('save-highlight');
+      setTimeout(() => $more2.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
     }
   }
 

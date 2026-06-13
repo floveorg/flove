@@ -5206,7 +5206,6 @@
     resetSummaryStage();
 
     $summary.classList.add('active');
-    showCornerPanda('summary', 'neutral');     // neutral panda, bottom-left
     document.querySelector('.wrap').classList.add('summary-mode');
     renderSummaryGrid();
     renderTimeStats();
@@ -5449,6 +5448,8 @@
     state.openDeckIdx = null;
     state.porQuePanelOpen = false;
     state.porQueDraft = '';
+    const q = document.getElementById('deck-question');   // also hide the prompt on done
+    if (q){ q.classList.remove('show'); q.hidden = true; }
     render();
   }
   function moveByDelta(deckId, pos, delta){
@@ -5637,19 +5638,24 @@
   }
   // Generic standalone cycler for the secondary pandas (chooser, section corners).
   // Returns the interval id (or null) so a caller can stop/swap it.
-  function cyclePanda(el, emotion, ms){
+  function cyclePanda(el, emotion, ms, maxLoops){
     if (!el) return null;
     const frames = pandaFrameSrcs(emotion);
     frames.forEach(s => { new Image().src = s; });
     el.src = frames[0];
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
-    let f = 0;
-    return setInterval(() => { f = (f + 1) % frames.length; el.src = frames[f]; }, ms || 248);
+    let f = 0, loops = 0;
+    const timer = setInterval(() => {
+      f = (f + 1) % frames.length;
+      el.src = frames[f];
+      if (f === 0 && maxLoops){ loops++; if (loops >= maxLoops) clearInterval(timer); }
+    }, ms || 248);
+    return timer;
   }
   let chooserPandaTimer = null;
   function startChooserPanda(){
     if (chooserPandaTimer) return;
-    chooserPandaTimer = cyclePanda(document.getElementById('chooserPanda'), 'neutral', 248);
+    chooserPandaTimer = cyclePanda(document.getElementById('chooserPanda'), 'neutral', 248, 3);  // 3 loops then stop
   }
   // On entering the chooser: type the title and fade the panda in left→right,
   // both over ~5s.
@@ -5660,7 +5666,7 @@
       const full = 'Choose a way to start';
       if (reduce){ h.textContent = full; }
       else {
-        const step = Math.max(40, Math.round(5000 / full.length));
+        const step = Math.max(20, Math.round(2500 / full.length));   // 2× faster
         let i = 0; h.textContent = '';
         (function t(){ h.textContent = full.slice(0, i); if (i++ <= full.length) setTimeout(t, step); })();
       }
@@ -6811,29 +6817,15 @@
 
   function renderBarsPanel(){
     const $panel = document.getElementById('analyze-bars');
-    // Skip the "declare what has been your perspective" step: go straight to the
-    // alternative perspective, pre-set to Objective + General (a single point in
-    // each bar). The user can move the points, but no area selection.
-    BARS.forEach(b => { const s = barState[b.id]; if (s.p1 == null){ s.phase = 1; s.p1 = 100; s.p2 = null; } });
-    const rows = BARS.map(b => `
-      <div class="ab-row" data-bar="${b.id}">
-        <div class="ab-poles"><b>${b.leftLabel}</b><b>${b.rightLabel}</b></div>
-        <div class="ab-track" id="${b.id}" role="slider" tabindex="0" aria-label="${b.leftLabel} to ${b.rightLabel}" aria-valuemin="1" aria-valuemax="100">
-          <div class="ab-fill" style="display:none"></div>
-          <div class="ab-node hidden"></div>
-        </div>
-      </div>
-    `).join('');
+    // No first "your perspective" raters — just add another perspective. The
+    // new-perspective raters (single point) render below via the "+".
     $panel.innerHTML = `
-      <h3 class="ab-title">Your alternative perspective</h3>
+      <h3 class="ab-title">Add a perspective</h3>
       <p class="ab-legend">Add another order in another perspective, specially if the perspective of your play has been Subjective and Mommentual.</p>
-      <div class="ab-grid">${rows}</div>
-      <p class="ab-help">Move the point in each bar.</p>
       <div class="ab-plus-wrap">
         <button class="ab-plus-btn" id="ab-plus-btn" type="button" aria-label="Add another order in another perspective" title="Add another order in another perspective">+</button>
       </div>
     `;
-    BARS.forEach(b => { wireBar(b); paintBar(b); });
     renderParallelRows();
     document.getElementById('ab-plus-btn').addEventListener('click', addParallelRow);
     updatePlusBtn();
@@ -6955,37 +6947,11 @@
   function magicSuggestForRow(rowI){
     const row = parallelRows[rowI];
     if (!row) return;
+    // Magic positions both raters on General + Objective (the right poles),
+    // single point.
     BARS.forEach(b => {
-      const parent = barState[b.id];
       const s = row.states[b.id];
-      let p1, p2 = null, phase = 1;
-      const hasParent = parent && parent.p1 != null;
-      if (hasParent){
-        const parentMid = (parent.p2 == null) ? parent.p1 : (parent.p1 + parent.p2) / 2;
-        // Sample p1 from the far half of the bar (≥40 away from parentMid).
-        let lo, hi;
-        if (parentMid >= 50){ lo = 1;  hi = Math.max(2,  Math.round(parentMid - 40)); }
-        else                { lo = Math.min(99, Math.round(parentMid + 40)); hi = 100; }
-        if (hi <= lo) hi = lo + 1;
-        p1 = lo + Math.floor(Math.random() * (hi - lo + 1));
-        // 60% chance to make it a range; widen toward the same far side.
-        if (Math.random() < 0.6){
-          const width = 8 + Math.floor(Math.random() * 22); // 8..29
-          const dir = (p1 < 50) ? 1 : -1;
-          p2 = Math.max(1, Math.min(100, p1 + dir * width));
-          phase = 2;
-        }
-      } else {
-        // No parent baseline — sample a meaningful starting selection.
-        p1 = 8 + Math.floor(Math.random() * 84);
-        if (Math.random() < 0.5){
-          const width = 8 + Math.floor(Math.random() * 22);
-          const dir = (p1 < 50) ? 1 : -1;
-          p2 = Math.max(1, Math.min(100, p1 + dir * width));
-          phase = 2;
-        }
-      }
-      s.phase = phase; s.p1 = p1; s.p2 = p2;
+      s.phase = 1; s.p1 = 100; s.p2 = null;
       paintFreeBar(`bar-free-${rowI}-${b.id}`, s);
     });
     updateInsightsBtn();
@@ -7023,13 +6989,8 @@
       const rect = $track.getBoundingClientRect();
       const x = (e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0) - rect.left;
       const pct = Math.max(1, Math.min(100, Math.round((x / rect.width) * 100)));
-      if (s.phase === 0){
-        s.phase = 1; s.p1 = pct; s.p2 = null;
-      } else if (s.phase === 1){
-        s.phase = 2; s.p2 = pct;
-      } else {
-        s.phase = 1; s.p1 = pct; s.p2 = null;
-      }
+      // Single point only — no area selection.
+      s.phase = 1; s.p1 = pct; s.p2 = null;
       paint();
       updateInsightsBtn();
     });

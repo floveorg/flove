@@ -5491,7 +5491,7 @@
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
     { t:'We all have an own view of the Whole',     b:'…that gives us calm and joy when we clear it' },
-    { t:'Yes, the whole is big and complex',        b:'…while it can also be simplified' },
+    { t:'Small groups of words can represent it all…', b:'Play with flove Key sets of words here.' },
     { t:'Keys are well known words', b:'…to be moved up and down' },
     { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also' },
   ];
@@ -5533,21 +5533,34 @@
     updateIntroUI();
   }
 
-  // Cycles the lone pensativo frames consecutively (the gif itself doesn't
-  // move), giving a live "thinking" loop on a transparent background.
-  function startPandaFrames($panda){
-    if (!$panda || $panda.dataset.cycling) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    $panda.dataset.cycling = '1';
-    const base = '../../others/panda/gifs/pensativo/frame-';
-    const frames = [];
+  // Cycles a panda emotion's lone frames consecutively (the gifs themselves
+  // don't move), giving a live loop on a transparent background. The emotion
+  // set swaps as the intro slides change, keeping size/position untouched.
+  const PANDA_BASE = '../../others/panda/gifs/';
+  let pandaFrames = [];
+  let pandaFrameIdx = 0;
+  let pandaTimer = null;
+  let pandaEmotion = '';
+  function setPandaEmotion(name){
+    if (name === pandaEmotion) return;
+    pandaEmotion = name; pandaFrameIdx = 0; pandaFrames = [];
     for (let i = 0; i < 12; i++){
-      const src = base + String(i).padStart(2, '0') + '.svg';
+      const src = PANDA_BASE + name + '/frame-' + String(i).padStart(2, '0') + '.svg';
       new Image().src = src;          // preload to avoid first-loop flicker
-      frames.push(src);
+      pandaFrames.push(src);
     }
-    let f = 0;
-    setInterval(() => { f = (f + 1) % frames.length; $panda.src = frames[f]; }, 110);
+    const $panda = document.getElementById('intro-panda');
+    if ($panda) $panda.src = pandaFrames[0];
+  }
+  function startPandaFrames($panda){
+    if (!$panda) return;
+    $panda.classList.add('show');
+    if (pandaTimer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    pandaTimer = setInterval(() => {
+      if (!pandaFrames.length) return;
+      pandaFrameIdx = (pandaFrameIdx + 1) % pandaFrames.length;
+      $panda.src = pandaFrames[pandaFrameIdx];
+    }, 110);
   }
 
   // Types "that" into the first slide while the pensativo panda rises in the
@@ -5584,6 +5597,8 @@
     Array.from($dots.children).forEach((d, i) => d.classList.toggle('active', i === introSlide));
     document.getElementById('intro-prev').disabled = introSlide === 0;
     document.getElementById('intro-next').disabled = introSlide === INTRO_SLIDES.length - 1;
+    // Second slide winks (guiño); the rest keep the pensativo panda
+    setPandaEmotion(introSlide === 1 ? 'guino' : 'pensativo');
     // CTA buttons (More info + Start) only appear once the user has reached the last slide
     const reachedLast = introSlide >= INTRO_SLIDES.length - 1;
     document.getElementById('intro-cta').classList.toggle('gated', !reachedLast);

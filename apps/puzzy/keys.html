@@ -504,6 +504,9 @@
   /* right one fades while drifting left; left one flows in from the right after */
   @keyframes deck-r-flow{from{opacity:0;transform:translateX(calc(-50% + 26px))}to{opacity:1;transform:translateX(-50%)}}
   @keyframes deck-l-flow{from{opacity:0;transform:translateX(calc(-50% + 44px))}to{opacity:1;transform:translateX(-50%)}}
+  /* idle panda fades in moving left; enamorado fades out moving left */
+  @keyframes deck-fade-in-left{from{opacity:0;transform:translateX(calc(-50% + 30px))}to{opacity:1;transform:translateX(-50%)}}
+  @keyframes deck-fade-out-left{from{opacity:1;transform:translateX(-50%)}to{opacity:0;transform:translateX(calc(-50% - 30px))}}
   @media (max-width:520px){ .deck-panda{width:40px} }
   /* Centered prompt above the board, shown briefly when the decks appear */
   .deck-question{
@@ -5666,12 +5669,7 @@
   function startChooserPanda(){
     if (chooserPandaStarted) return;
     chooserPandaStarted = true;
-    const el = document.getElementById('chooserPanda');
-    if (el) el.style.visibility = 'hidden';
-    setTimeout(() => {                                   // appear 2s after entering
-      if (el) el.style.visibility = '';
-      cyclePanda(el, 'neutral', 248, 2);                 // 2 loops then stop
-    }, 2000);
+    cyclePanda(document.getElementById('chooserPanda'), 'neutral', 248, 2);  // from the start, 2 loops
   }
   // On entering the chooser: type the title and fade the panda in left→right,
   // both over ~5s.
@@ -5763,8 +5761,8 @@
     })();
   }
 
-  // ---- Stage-0 deck pandas: idle (pensativo 10s → dormido 10s → enfadado 5s)
-  // between the decks when not clicking, enamorado in a middle 5s on a click,
+  // ---- Stage-0 deck pandas: idle (neutral 7s → dormido 10s) between the decks
+  // when not clicking, enamorado in a middle 5s on a click,
   // and an enamorado in BOTH middles once the three decks are done. ----
   function makePandaSlot(el){
     let t = null;
@@ -5777,7 +5775,7 @@
   let deckOverlay = null, deckSlotL = null, deckSlotR = null;
   let deckIdleTimer = null, deckIdleStep = 0, deckClickTimer = null;
   let deckIdleArmed = false, deckQuestionShown = false, deckDoneShown = false;
-  const DECK_IDLE = [{ m:'pensativo', ms:10000 }, { m:'dormido', ms:10000 }, { m:'enfadado', ms:5000 }];
+  const DECK_IDLE = [{ m:'neutral', ms:7000 }, { m:'dormido', ms:10000 }];   // neutral 7s, then sleeps
   const stageZeroDone = () => [0,1,2].every(i => DECKS[i] && state.done[DECKS[i].id]);
   function ensureDeckOverlay(){
     if (!deckOverlay){
@@ -5790,9 +5788,11 @@
     }
     if ($board && deckOverlay.parentElement !== $board) $board.appendChild(deckOverlay);
   }
+  function fadeInLeft(el){ if (!el) return; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'deck-fade-in-left .5s ease both'; }
   function deckIdleTick(){
     const cur = DECK_IDLE[deckIdleStep % DECK_IDLE.length];
     deckSlotL.set(cur.m); deckSlotR.hide();
+    fadeInLeft(deckSlotL.el);                  // idle panda fades in leftwards
     deckIdleStep++;
     deckIdleTimer = setTimeout(deckIdleTick, cur.ms);
   }
@@ -5805,8 +5805,13 @@
     stopDeckIdle(); deckSlotL.hide(); deckSlotR.set('enamorado');   // one enamorado, one middle, 5s
     clearTimeout(deckClickTimer);
     deckClickTimer = setTimeout(() => {
-      deckClickTimer = null; deckSlotR.hide();
-      if (state.stageIdx === 0 && !stageZeroDone()) startDeckIdle();
+      deckClickTimer = null;
+      const el = deckSlotR.el;                  // enamorado fades out leftwards, then resume idle
+      if (el){ el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'deck-fade-out-left .4s ease forwards'; }
+      setTimeout(() => {
+        deckSlotR.hide();
+        if (state.stageIdx === 0 && !stageZeroDone()) startDeckIdle();
+      }, 400);
     }, 5000);
   }
   function showDeckQuestion(){

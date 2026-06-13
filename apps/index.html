@@ -595,7 +595,6 @@
   /* Botón brújula = ordenar por colores (arcoíris) */
   .topbar .compass-btn {
     flex: 0 0 auto;
-    margin-left: auto;          /* push compass + sort cluster to the right edge */
     width: 36px; height: 36px;
     display: grid; place-items: center;
     border-radius: 10px;
@@ -2990,15 +2989,12 @@
     gap: 18px;
     max-width: 1100px;
   }
-  body:has(#layout-bubbles:checked) .grid > .tile,
-  body:has(#layout-bubbles:checked) .grid > details.tile-big {
+  body:has(#layout-bubbles:checked) .grid > .tile {
     aspect-ratio: 1 !important;
     grid-column: auto !important;
     grid-row: auto !important;
     flex: 0 0 auto;
     border-radius: 50%;
-  }
-  body:has(#layout-bubbles:checked) .grid > .tile {
     width: 116px;
     height: 116px;
     flex-direction: column;
@@ -3011,9 +3007,55 @@
        so neighbours never invade each other */
     animation: bubble-rise-a 7s ease-in-out infinite;
   }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big { width: 150px; height: 150px; }
-  body:has(#layout-bubbles:checked) .grid > .tile .tag,
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .tile-big-children { display: none; }
+  body:has(#layout-bubbles:checked) .grid > .tile .tag { display: none; }
+
+  /* Folder cards in Bubbles view → a CLUSTER of equal bubbles: the parent
+     becomes one bubble and every sub becomes its own same-size bubble. */
+  body:has(#layout-bubbles:checked) .grid > details.tile-big {
+    aspect-ratio: auto !important;
+    grid-column: auto !important; grid-row: auto !important;
+    flex: 1 1 100%; width: 100%; height: auto;
+    background: none; border: 0; box-shadow: none; border-radius: 0;
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: center; justify-content: center;
+    padding: 4px 0; overflow: visible;
+  }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary.tile-big-main {
+    flex: 0 0 auto; flex-basis: auto;
+    width: 116px; height: 116px; border-radius: 50%;
+    background: linear-gradient(150deg, var(--grad-1), var(--grad-2));
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 10px; text-align: center;
+    box-shadow: 0 8px 22px rgba(40,20,80,.12);
+    animation: bubble-rise-a 7.4s ease-in-out infinite;
+  }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .chev,
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .tag,
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .depth-pulse { display: none; }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .icon { font-size: 30px; }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .name { font-size: .8rem; }
+  /* flatten the wrappers so each sub is a sibling bubble in the cluster */
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > .tile-big-children,
+  body:has(#layout-bubbles:checked) .grid > details.tile-big > .tile-big-children > .children-list {
+    display: contents;
+  }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn {
+    flex: 0 0 auto;
+    width: 116px; height: 116px; min-height: 0;
+    border-radius: 50%;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; padding: 10px; text-align: center;
+    background: var(--c-cur); border: 0; color: var(--c-ink);
+    text-shadow: none;
+    animation: bubble-rise-b 7.8s ease-in-out infinite;
+  }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn .child-icon { font-size: 28px; }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn .child-name { font-size: .72rem; }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn:nth-child(3n)   { animation-name: bubble-rise-a; animation-duration: 6.6s; animation-delay: -1.2s; }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn:nth-child(3n+1) { animation-name: bubble-rise-c; animation-duration: 8.2s; animation-delay: -2.8s; }
+  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn:nth-child(4n+2) { animation-duration: 7.1s; animation-delay: -3.9s; }
+  /* the centred launcher chip would overlap the cluster — hide it in bubbles */
+  body:has(#layout-bubbles:checked) .launcher-chip { display: none; }
   /* random-feeling mix of paths, durations and offsets */
   body:has(#layout-bubbles:checked) .grid > .tile:nth-child(3n)   { animation-name: bubble-rise-b; animation-duration: 8.4s;  animation-delay: -1.5s; }
   body:has(#layout-bubbles:checked) .grid > .tile:nth-child(3n+1) { animation-name: bubble-rise-c; animation-duration: 6.3s;  animation-delay: -3.2s; }
@@ -3144,6 +3186,15 @@ details.tile-big:hover > summary .tag,
 <linearGradient id="grad-g-violet" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#8a3aff"/><stop offset="50%" stop-color="#b27aff"/><stop offset="100%" stop-color="#e0c8ff"/></linearGradient>
 </defs>
 <symbol id="mark-puzzy" viewBox="0 0 100 100"><g transform="translate(8 8) scale(3.5)" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.2"/><path d="M12 4.8v2.6a1.4 1.4 0 1 1 0 2.8v1.2a1.4 1.4 0 1 0 0 2.8v2.6"/><path d="M7.7 11Q9 11.3 10.2 12.3"/><path d="M16.3 11Q15 11.3 13.8 12.3"/></g></symbol>
+<!-- Puzzy sub logos (line-art, from puzzy/logos.html) -->
+<symbol id="mark-wisy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6 12 9.6 18 6"/><path d="M7.5 11 12 13.8 16.5 11"/><path d="M9 16 12 17.8 15 16"/><circle fill="currentColor" stroke="none" cx="12" cy="20.6" r="1.3"/></symbol>
+<symbol id="mark-vizy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.6-5.5 9-5.5 9 5.5 9 5.5-3.6 5.5-9 5.5-9-5.5-9-5.5z"/><circle cx="12" cy="12" r="2.4"/><circle fill="currentColor" stroke="none" cx="12" cy="12" r="0.9"/></symbol>
+<symbol id="mark-vizy2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 20 12M12 12 16 5M12 12 8 5M12 12 4 12M12 12 8 19M12 12 16 19"/><circle fill="currentColor" stroke="none" cx="12" cy="12" r="2"/><circle cx="20" cy="12" r="1.2"/><circle cx="16" cy="5" r="1.2"/><circle cx="8" cy="5" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="8" cy="19" r="1.2"/><circle cx="16" cy="19" r="1.2"/></symbol>
+<symbol id="mark-raty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M7 17a5 5 0 0 1 10 0"/><path d="M9.5 17a2.5 2.5 0 0 1 5 0"/><circle fill="currentColor" stroke="none" cx="12" cy="17" r="1.3"/></symbol>
+<symbol id="mark-comby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="5"/><circle cx="8.8" cy="14" r="5"/><circle cx="15.2" cy="14" r="5"/></symbol>
+<symbol id="mark-triady" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5 6.2 16.5 17.8 16.5Z"/><circle fill="currentColor" stroke="none" cx="12" cy="5" r="1.6"/><circle fill="currentColor" stroke="none" cx="6.2" cy="16.5" r="1.6"/><circle fill="currentColor" stroke="none" cx="17.8" cy="16.5" r="1.6"/></symbol>
+<symbol id="mark-poly" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a4 4 0 0 0 0 8 4 4 0 0 1 0 8"/><circle fill="currentColor" stroke="none" cx="12" cy="8" r="1.1"/><circle cx="12" cy="16" r="1.1"/></symbol>
+<symbol id="mark-confluenty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h7.2"/><path d="M7.6 8.4 11 12 7.6 15.6"/><path d="M21 12h-7.2"/><path d="M16.4 8.4 13 12 16.4 15.6"/><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1"/></symbol>
 <symbol id="mark-blogy" viewBox="0 0 100 100"><g fill="url(#grad-g-social)" stroke="none"><rect x="20" y="62" width="13" height="20" rx="3"/><rect x="37" y="48" width="13" height="34" rx="3"/><rect x="54" y="34" width="13" height="48" rx="3"/><rect x="71" y="20" width="13" height="62" rx="3"/></g></symbol>
 <symbol id="mark-dealy" viewBox="0 0 100 100"><g fill="none" stroke="url(#grad-g-economy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="44" width="56" height="38" rx="4"/><line x1="50" y1="44" x2="50" y2="82"/><line x1="22" y1="58" x2="78" y2="58"/></g><g fill="url(#grad-g-economy)" stroke="none"><path d="M50 44 C 38 44, 30 26, 40 22 C 50 18, 50 36, 50 44 Z"/><path d="M50 44 C 62 44, 70 26, 60 22 C 50 18, 50 36, 50 44 Z"/></g></symbol>
 <symbol id="mark-pracsys" viewBox="0 0 100 100"><g fill="none" stroke="url(#grad-g-inside)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M36 16 C 64 30, 64 44, 50 50 C 36 56, 36 70, 64 84"/><path d="M64 16 C 36 30, 36 44, 50 50 C 64 56, 64 70, 36 84"/></g><g stroke="url(#grad-g-inside)" stroke-width="3" stroke-linecap="round"><line x1="43" y1="24" x2="57" y2="24"/><line x1="43" y1="76" x2="57" y2="76"/></g></symbol>
@@ -3203,7 +3254,6 @@ details.tile-big:hover > summary .tag,
 <input type="radio" name="sortmode" id="sort-random"  class="vh" />
 <!-- Layout modes (wanty-style compass: drive .grid layout via :has) -->
 <input type="radio" name="layoutmode" id="layout-grid"    class="vh" checked />
-<input type="radio" name="layoutmode" id="layout-cloud"   class="vh" />
 <input type="radio" name="layoutmode" id="layout-bubbles" class="vh" />
 <input type="radio" name="layoutmode" id="layout-list"    class="vh" />
 <input type="checkbox" id="layout-sized" class="vh" />
@@ -3380,9 +3430,6 @@ details.tile-big:hover > summary .tag,
       <label class="sort-icon-btn mode-icon-btn" for="layout-grid" data-tip="Grid · default layout" aria-label="Grid layout">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></g></svg>
       </label>
-      <label class="sort-icon-btn mode-icon-btn" for="layout-cloud" data-tip="Cloud · free-form scattered" aria-label="Cloud layout">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 18 h10 a4 4 0 0 0 .4-7.98 A5.6 5.6 0 0 0 6.5 9.1 A3.85 3.85 0 0 0 7 18 Z" fill="currentColor"/></svg>
-      </label>
       <label class="sort-icon-btn mode-icon-btn" for="layout-bubbles" data-tip="Bubbles · drifting and floating" aria-label="Bubbles layout">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="8.6" cy="14" r="5.4" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/><circle cx="16.6" cy="9.4" r="3.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.4"/><circle cx="17" cy="17.2" r="2.3" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.3"/></svg>
       </label>
@@ -3536,28 +3583,28 @@ details.tile-big:hover > summary .tag,
         <a class="launcher-chip" href="#launch-puzzy" aria-label="About the Puzzy launcher"><span class="lc-i" aria-hidden="true"><svg class="flove-mark"><use href="#mark-puzzy"/></svg></span><span class="lc-t">Launcher</span></a>
         <div class="tile-big-children">
           <div class="children-list"><a class="child-btn" href="puzzy/wisy.html" style="--c-cur:#ff8a8a;--c-ink:#3a0e0e;">
-            <span class="child-icon">🦉</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-wisy"/></svg></span>
             <span class="child-name">Wisy</span>
           </a><a class="child-btn" href="puzzy/vizy.html" style="--c-cur:#ff9b5e;--c-ink:#3a1a0a;">
-            <span class="child-icon">👁️</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-vizy"/></svg></span>
             <span class="child-name">View</span>
           </a><a class="child-btn" href="puzzy/vizy2.html" style="--c-cur:#ffd84d;--c-ink:#3d2a0a;">
-            <span class="child-icon">🔗</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-vizy2"/></svg></span>
             <span class="child-name">Relate</span>
           </a><a class="child-btn" href="puzzy/raty.html" style="--c-cur:#6ed089;--c-ink:#0a3a1f;">
-            <span class="child-icon">🎚️</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-raty"/></svg></span>
             <span class="child-name">Rate</span>
           </a><a class="child-btn" href="puzzy/comby.html" style="--c-cur:#5ea4e6;--c-ink:#ffffff;">
-            <span class="child-icon">🔀</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-comby"/></svg></span>
             <span class="child-name">Combos</span>
           </a><a class="child-btn" href="puzzy/triady.html" style="--c-cur:#6b6bd9;--c-ink:#ffffff;">
-            <span class="child-icon">🔺</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-triady"/></svg></span>
             <span class="child-name">Triads</span>
           </a><a class="child-btn" href="puzzy/poly.html" style="--c-cur:#b27aff;--c-ink:#28104a;">
-            <span class="child-icon">☯️</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-poly"/></svg></span>
             <span class="child-name">Polarities</span>
           </a><a class="child-btn" href="puzzy/confluenty.html" style="--c-cur:#ff8a8a;--c-ink:#3a0e0e;">
-            <span class="child-icon">🌊</span>
+            <span class="child-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-confluenty"/></svg></span>
             <span class="child-name">Confluences</span>
           </a></div>
         </div>
@@ -3638,7 +3685,7 @@ details.tile-big:hover > summary .tag,
 
       <a class="tile tile-rb-g cat-ling cat-social" href="#app-keys" style="--ord-rb:12; --ord-rd:23;">
         <div class="icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-keys"/></svg></div>
-        <img class="keys-panda" src="../others/panda/animated/panda-neutral-talk.gif" alt="" aria-hidden="true">
+        <img class="keys-panda" src="../others/panda/panda-neutral.svg" alt="" aria-hidden="true">
         <div class="meta">
           <div class="name">Keys</div>
           <div class="tag">visual keys &amp; glyphs</div>

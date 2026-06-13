@@ -2800,6 +2800,12 @@
   .std-subhead{margin:0 0 .45rem;font:700 .68rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center}
   .std-timestats .ts-row{display:flex;gap:.55rem;align-items:baseline;justify-content:flex-start;font-size:.86rem;color:var(--ink);margin:.12rem 0}
   .std-stage-head{font-size:.78rem;color:var(--sky);margin-top:.4rem}
+  /* Quick stats above the tables: Decks · Additional perspective · Analisys */
+  .std-timestats-top[hidden]{display:none}
+  .std-quick{display:flex;flex-wrap:wrap;gap:.7rem 1.4rem;justify-content:center;margin:.4rem 0 .8rem}
+  .std-quick .sq{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .std-quick .sq b{color:var(--gold);font:700 1.05rem/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  .std-quick .sq-h{color:var(--muted);font:600 .66rem/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}
   /* timing shown before each deck/stage title in the comparison table */
   .pr-time{color:var(--sky);font-weight:700;font-variant-numeric:tabular-nums;font-size:.82em;margin-right:.25rem}
   .pt-newpersp{text-align:center;color:var(--muted);font-size:.84rem;margin:.1rem 0 .5rem}
@@ -3909,6 +3915,9 @@
 
       <h2 class="std-toggle" id="std-summary-toggle" role="button" tabindex="0" aria-expanded="false">✦ Summary <span class="std-chev" aria-hidden="true">▸</span></h2>
 
+      <!-- Quick stats above the tables: Decks (Stage 1) · Additional perspective · Analisys -->
+      <div class="std-timestats-top" id="std-timestats-top" hidden></div>
+
       <!-- two phrase variants: default recap + a warmer "magic" retelling -->
       <output class="clause clause-default" data-flove-phrase spellcheck="false" aria-label="Summary phrase">
         Your summary will show up here once you finish a play.
@@ -4570,8 +4579,8 @@
   const SECTION_DEFS = [
     { id:'analyze',     label:'Analyze',     check:() => _analyzeOn },
     { id:'extras',      label:'Extras',      check:() => _extrasOn },
-    { id:'perspective', label:'Perspective', check:() => _barsOn },
     { id:'gender',      label:'Gender',      check:() => _finishApplied },
+    { id:'perspective', label:'Perspective', check:() => _barsOn },
     { id:'stats',       label:'Stats',       check:() => _timeStatsOn },
   ];
   function markSectionTouched(id){
@@ -5250,6 +5259,7 @@
   function showSummary(){
     finalizeTiming();
     stopTimer();
+    if (seeResultsAt === null) seeResultsAt = Date.now();   // start the Analisys clock
     // Returning to the results from the embedded fivys flow: tear that UI down
     state.embeddedFivysMode = false;
     const $etc = document.getElementById('embedded-triads-collapse');
@@ -5411,10 +5421,22 @@
     ].filter(Boolean);
     const hasContent = !!(totalText || hintHTML || stepRows || stageRows || deckRows || primaryHint || cyclePool.length);
 
-    // Subtle subsections within the Summary section, by the comparison tables.
+    // Quick stats above the table: Decks (Stage 1 total) · Additional
+    // perspective · Analisys (See results → Summary-More).
+    const $top = document.getElementById('std-timestats-top');
+    if ($top){
+      const decksTotal = Object.values(t.perDeck || {}).reduce((a, b) => a + (b || 0), 0);
+      $top.innerHTML = `<div class="std-quick">`
+        + `<div class="sq"><b>${fmtDuration(decksTotal)}</b><span class="sq-h">Decks</span></div>`
+        + (secondPlayMs ? `<div class="sq"><b>${fmtDuration(secondPlayMs)}</b><span class="sq-h">Additional perspective</span></div>` : '')
+        + (analisysMs  ? `<div class="sq"><b>${fmtDuration(analisysMs)}</b><span class="sq-h">Analisys</span></div>` : '')
+        + `</div>`;
+      $top.hidden = !_timeStatsOn;
+    }
+
+    // Below the table: the full (repeated) detailed breakdown, then the buttons.
     $panel.innerHTML = `
-      <h4 class="std-subhead std-stage-head">Stage 2: Analisys</h4>
-      ${totalText ? `<div class="std-sub"><h4 class="std-subhead">Time</h4><div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div></div>` : ''}
+      ${totalText ? `<div class="std-sub"><h4 class="std-subhead">Total</h4><div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div></div>` : ''}
       ${(stepRows || stageRows || deckRows) ? `<div class="std-sub"><h4 class="std-subhead">By step · stage · deck</h4>${stepRows}${stageRows}${deckRows}</div>` : ''}
       ${(hintHTML || primaryHint || cyclePool.length) ? `<div class="std-sub"><h4 class="std-subhead">Insights</h4>
         ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
@@ -7134,35 +7156,25 @@
   }
 
   let _barsOn = false;
+  // 1st More now = Genders (moved before Perspectives). Reveals the 2nd More.
   function toggleAnalyzeMore1(){
-    _barsOn = !_barsOn;
-    const $panel = document.getElementById('analyze-bars');
-    const $btn   = document.getElementById('btn-analyze-more-1');
-    const $btn2  = document.getElementById('btn-analyze-more-2');
-    if (_barsOn){
-      bumpAnalyzeLevel(3);
-      markSectionTouched('perspective');
-      // No "Add a perspective" panel — go straight to the new perspective
-      // section (bars + magic + cards + Save), centered above the main decks.
-      if ($panel) $panel.hidden = true;
-      if (parallelRows.length === 0) addParallelRow();
-      else { renderSecondPlay(); showCornerPanda('second-play', 'pensativo'); }
-      $btn.textContent = '✓ Perspectives';
-      $btn2.hidden = false;
+    const $btn  = document.getElementById('btn-analyze-more-1');
+    if (_finishApplied){
+      removeFinishIcons();
+      $btn.textContent = 'Genders';
     } else {
-      $panel.hidden = true;
-      $btn.textContent = 'Perspectives';
-      // Hiding perspectives also collapses the second play — they live inside
-      // the same flow. The Insights button stays as-is if the user has data,
-      // but the second-play UI itself is dependent on the bars being open.
-      const $secPlay = document.getElementById('second-play');
-      if ($secPlay) $secPlay.hidden = true;
-      // Keep the second "More" visible once revealed; do not re-hide
+      bumpAnalyzeLevel(3);
+      markSectionTouched('gender');
+      ['x1','x2','x4'].forEach(id => { extraOpen[id] = true; });
+      renderSummaryGrid();
+      applyFinishIcons();
+      $btn.textContent = '✓ Genders';
+      const $btn2 = document.getElementById('btn-analyze-more-2');
+      if ($btn2) $btn2.hidden = false;
     }
-    $btn.classList.toggle('btn-primary', _barsOn);
-    $btn.classList.toggle('btn-ghost',   !_barsOn);
+    $btn.classList.toggle('btn-primary', _finishApplied);
+    $btn.classList.toggle('btn-ghost',   !_finishApplied);
     renderStageLabel();
-    if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
   document.getElementById('btn-analyze-more-1').addEventListener('click', toggleAnalyzeMore1);
 
@@ -7543,7 +7555,7 @@
       const firstRow = `<div class="pr-line"><span class="pr-label">${dt(g.id)}${escapeHTML(g.title)}:</span>`
         + `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span></div>`;
       const secondRow = showSecond
-        ? `<div class="pr-line pr-second"><span class="pr-label">${dt(g.id)}${escapeHTML(g.title)} ·</span>`
+        ? `<div class="pr-line pr-second"><span class="pr-label"></span>`
           + `<span class="pr-cells">${cellsHTML(g.id, secondMap[g.id] || g.words)}</span></div>`
         : '';
       return `<div class="pr-group">${firstRow}${secondRow}</div>`;
@@ -7837,6 +7849,7 @@
   let secondPlayItemOrders = null;  // { deckId: [itemIdx, …] } per-deck item order under the new perspective
   let secondPlayFinished = false;
   let secondPlayStart = null, secondPlayMs = 0;   // new-perspective timing
+  let seeResultsAt = null, analisysMs = 0;        // time from See results → Summary-More
   let _spDrag = null;
 
   function initSecondPlayItemOrders(){
@@ -8033,12 +8046,12 @@
       $std.classList.remove('is-collapsed');
       if ($stdToggle) $stdToggle.setAttribute('aria-expanded', 'true');
     }
-    // …and sends the user back up to the next "More" button, highlighted/moving.
-    const $more2 = document.getElementById('btn-analyze-more-2');
-    if ($more2){
-      $more2.hidden = false;
-      $more2.classList.add('save-highlight');
-      setTimeout(() => $more2.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
+    // …and sends the user back up to the next "More" (Stats), highlighted/moving.
+    const $more3 = document.getElementById('btn-analyze-more-3');
+    if ($more3){
+      $more3.hidden = false;
+      $more3.classList.add('save-highlight');
+      setTimeout(() => $more3.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
     }
   }
 
@@ -8490,30 +8503,30 @@
   // 2nd "More" toggles the Yin/Yang gender icons across every key. Replaces
   // the old keyword-help cascade now that the "Choose your favourite…" copy
   // has been removed.
+  // 2nd More now = Perspectives (after Genders). Reveals the 3rd More (Stats).
   function toggleAnalyzeMore2(){
-    const $btn  = document.getElementById('btn-analyze-more-2');
-    $btn.classList.remove('save-highlight');   // stop the highlighted/moving effect
-    if (_finishApplied){
-      removeFinishIcons();
-      $btn.textContent = 'Genders';
-    } else {
+    _barsOn = !_barsOn;
+    const $panel = document.getElementById('analyze-bars');
+    const $btn   = document.getElementById('btn-analyze-more-2');
+    const $btn3  = document.getElementById('btn-analyze-more-3');
+    if (_barsOn){
       bumpAnalyzeLevel(4);
-      markSectionTouched('gender');
-      // Gender icons live inside Time (x1) and Sectors (x4) ad-decks and are
-      // derived from Yin/Yang positions in Metaphysics (x2). All three are
-      // closed-by-default after the previous redesign, so opening them is a
-      // pre-requisite for anything to be visible. Re-render the grid so the
-      // opened decks paint their items, then stamp the icons + alt arrows.
-      ['x1','x2','x4'].forEach(id => { extraOpen[id] = true; });
-      renderSummaryGrid();
-      applyFinishIcons();
-      $btn.textContent = '✓ Genders';
-      const $btn3 = document.getElementById('btn-analyze-more-3');
+      markSectionTouched('perspective');
+      if ($panel) $panel.hidden = true;
+      if (parallelRows.length === 0) addParallelRow();
+      else { renderSecondPlay(); showCornerPanda('second-play', 'pensativo'); }
+      $btn.textContent = '✓ Perspectives';
       if ($btn3) $btn3.hidden = false;
+    } else {
+      if ($panel) $panel.hidden = true;
+      $btn.textContent = 'Perspectives';
+      const $secPlay = document.getElementById('second-play');
+      if ($secPlay) $secPlay.hidden = true;
     }
-    $btn.classList.toggle('btn-primary', _finishApplied);
-    $btn.classList.toggle('btn-ghost',   !_finishApplied);
+    $btn.classList.toggle('btn-primary', _barsOn);
+    $btn.classList.toggle('btn-ghost',   !_barsOn);
     renderStageLabel();
+    if (_analyzeOn) requestAnimationFrame(positionAnalyzeArrows);
   }
   document.getElementById('btn-analyze-more-2').addEventListener('click', toggleAnalyzeMore2);
 
@@ -8526,26 +8539,30 @@
     const $ts  = document.getElementById('std-timestats');
     const $std = document.getElementById('std-summary');
     const $stdT = document.getElementById('std-summary-toggle');
+    const $top = document.getElementById('std-timestats-top');
     const $btn  = document.getElementById('btn-analyze-more-3');
+    $btn.classList.remove('save-highlight');   // stop the highlighted/moving effect
     if (_timeStatsOn){
       if ($ts) $ts.hidden = true;
+      if ($top) $top.hidden = true;
       $btn.textContent = 'Stats';
       _timeStatsOn = false;
     } else {
       _timeStatsOn = true;
+      if (seeResultsAt) analisysMs = Date.now() - seeResultsAt;   // freeze the Analisys time
+      renderTimeStats();   // refresh so the quick stats + analisys show
       // Bring the time stats into the Summary section, expanded.
       if ($std){
         $std.hidden = false;
         $std.classList.remove('is-collapsed');
         if ($stdT) $stdT.setAttribute('aria-expanded','true');
       }
-      if ($ts) $ts.hidden = false;
       $btn.textContent = '✓ Stats';
       bumpAnalyzeLevel(5);
       markSectionTouched('stats');
       renderStageLabel();
       renderPlayMoreBtn();
-      if ($ts) setTimeout(() => $ts.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
+      if ($std) setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);   // summary top
     }
     $btn.classList.toggle('btn-primary', _timeStatsOn);
     $btn.classList.toggle('btn-ghost',   !_timeStatsOn);

@@ -476,6 +476,7 @@
   /* Done decks land back in their original slot — same position as the
      closed deck they replace, so they stay near where they were tapped. */
   .board{
+    position:relative;
     display:grid;gap:14px;
     grid-template-columns:repeat(5,minmax(0,1fr));
     align-items:start;justify-items:center;
@@ -484,6 +485,26 @@
     border:1px dashed var(--stroke);border-radius:18px;
     background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
   }
+  /* Stage-0 pandas living in the two gaps between the three decks */
+  #deck-pandas{position:absolute;inset:0;pointer-events:none}
+  .deck-panda{
+    position:absolute;bottom:4px;width:58px;height:auto;
+    transform:translateX(-50%);pointer-events:none;z-index:4;visibility:hidden;
+    filter:drop-shadow(0 5px 12px rgba(0,0,0,.4));
+  }
+  .deck-panda.dm-l{left:40%}
+  .deck-panda.dm-r{left:60%}
+  @media (max-width:520px){ .deck-panda{width:40px} }
+  /* Centered prompt above the board, shown briefly when the decks appear */
+  .deck-question{
+    text-align:center;margin:0 auto 10px;max-width:40ch;
+    font:600 1.15rem/1.3 ui-serif,Georgia,serif;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    opacity:0;transition:opacity .4s ease;
+  }
+  .deck-question.show{opacity:1}
+  .deck-question[hidden]{display:none}
   .slot{width:100%;display:flex;justify-content:center;align-items:flex-start}
   .slot.empty{
     width:var(--slot-w);min-height:var(--slot-h);
@@ -3658,6 +3679,7 @@
   </section>
 
   <div class="play-area" id="play-area">
+    <div class="deck-question" id="deck-question" hidden>What is more important for you now?</div>
     <div class="spotlight" id="spotlight" aria-live="polite"></div>
     <div class="board" id="board"></div>
   </div>
@@ -4440,6 +4462,7 @@
     renderBoard();
     renderSpotlight();
     renderCTA();
+    updateDeckPandas();
   }
 
   // "Go back" in the play-area CTA (stages 0 and 1):
@@ -5385,6 +5408,7 @@
     $summary.classList.remove('active');
     document.querySelector('.wrap').classList.remove('summary-mode');
     render();
+    onDeckClickPanda();        // a click → one enamorado in a middle for 5s
   }
   function doneDeck(deckIdx){
     stopRecording();
@@ -5613,6 +5637,80 @@
       c.appendChild(img);
     }
     if (!cornerTimers[containerId]) cornerTimers[containerId] = cyclePanda(img, emotion, 248);
+  }
+
+  // ---- Stage-0 deck pandas: idle (dormido 10s → enfadado 5s) between the
+  // decks when not clicking, one enamorado in a middle for 5s on a deck click,
+  // and an enamorado in BOTH middles once the three decks are done. ----
+  function makePandaSlot(el){
+    let t = null;
+    return {
+      el,
+      set(emotion){ if (t){ clearInterval(t); t = null; } t = cyclePanda(el, emotion, 248); el.style.visibility = 'visible'; },
+      hide(){ if (t){ clearInterval(t); t = null; } el.style.visibility = 'hidden'; },
+    };
+  }
+  let deckOverlay = null, deckSlotL = null, deckSlotR = null;
+  let deckIdleTimer = null, deckIdleStep = 0, deckClickTimer = null;
+  let deckIdleArmed = false, deckQuestionShown = false;
+  const DECK_IDLE = [{ m:'dormido', ms:10000 }, { m:'enfadado', ms:5000 }];
+  const stageZeroDone = () => [0,1,2].every(i => DECKS[i] && state.done[DECKS[i].id]);
+  function ensureDeckOverlay(){
+    if (!deckOverlay){
+      deckOverlay = document.createElement('div');
+      deckOverlay.id = 'deck-pandas';
+      const a = document.createElement('img'); a.className = 'deck-panda dm-l'; a.alt = ''; a.setAttribute('aria-hidden','true');
+      const b = document.createElement('img'); b.className = 'deck-panda dm-r'; b.alt = ''; b.setAttribute('aria-hidden','true');
+      deckOverlay.append(a, b);
+      deckSlotL = makePandaSlot(a); deckSlotR = makePandaSlot(b);
+    }
+    if ($board && deckOverlay.parentElement !== $board) $board.appendChild(deckOverlay);
+  }
+  function deckIdleTick(){
+    const cur = DECK_IDLE[deckIdleStep % DECK_IDLE.length];
+    deckSlotL.set(cur.m); deckSlotR.hide();
+    deckIdleStep++;
+    deckIdleTimer = setTimeout(deckIdleTick, cur.ms);
+  }
+  function startDeckIdle(){ clearTimeout(deckIdleTimer); deckIdleStep = 0; deckIdleTick(); }
+  function stopDeckIdle(){ clearTimeout(deckIdleTimer); deckIdleTimer = null; }
+  function onDeckClickPanda(){
+    if (state.stageIdx !== 0) return;
+    ensureDeckOverlay();
+    if (stageZeroDone()) return;
+    stopDeckIdle(); deckSlotL.hide(); deckSlotR.set('enamorado');   // one enamorado, one middle, 5s
+    clearTimeout(deckClickTimer);
+    deckClickTimer = setTimeout(() => {
+      deckClickTimer = null; deckSlotR.hide();
+      if (state.stageIdx === 0 && !stageZeroDone()) startDeckIdle();
+    }, 5000);
+  }
+  function showDeckQuestion(){
+    const q = document.getElementById('deck-question');
+    if (!q) return;
+    q.hidden = false; requestAnimationFrame(() => q.classList.add('show'));
+    setTimeout(() => { q.classList.remove('show'); setTimeout(() => { q.hidden = true; }, 400); }, 10000);
+  }
+  function updateDeckPandas(){
+    if (state.stageIdx !== 0){
+      stopDeckIdle(); clearTimeout(deckClickTimer); deckClickTimer = null;
+      deckIdleArmed = false;
+      if (deckSlotL) deckSlotL.hide();
+      if (deckSlotR) deckSlotR.hide();
+      if (deckOverlay && deckOverlay.parentElement) deckOverlay.remove();
+      return;
+    }
+    ensureDeckOverlay();                       // (re)attach after each renderBoard
+    if (stageZeroDone()){
+      stopDeckIdle(); clearTimeout(deckClickTimer); deckClickTimer = null;
+      deckSlotL.set('enamorado'); deckSlotR.set('enamorado');   // both middles
+      return;
+    }
+    if (!deckIdleArmed){                        // first render of the stage-0 board
+      deckIdleArmed = true;
+      if (!deckQuestionShown){ deckQuestionShown = true; showDeckQuestion(); }
+      if (!deckClickTimer) startDeckIdle();
+    }
   }
 
   // Idle moods: after 10s without a click the panda gets enfadado, 10s later

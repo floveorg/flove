@@ -369,12 +369,12 @@
     transform:rotate(180deg);
   }
   .pcard .arrows{
-    display:flex;justify-content:space-between;gap:4px;margin-top:4px;
+    display:flex;justify-content:space-between;gap:2px;margin-top:2px;
   }
   .pcard .arrows button{
-    flex:1;height:1.7rem;border-radius:8px;
-    background:#3a3a52;border:1px solid #5a5a76;color:var(--ink);
-    font:700 .85rem/1 system-ui,sans-serif;cursor:pointer;
+    flex:1;height:2.12rem;border-radius:3px;             /* 25% taller, sharper ends */
+    background:#3a3a52;border:1.5px solid #5a5a76;color:var(--ink);   /* 50% thicker */
+    font:800 1.06rem/1 system-ui,sans-serif;cursor:pointer;          /* 25% bigger glyph */
     transition:transform .12s ease, border-color .18s ease, color .18s ease, background .18s ease;
   }
   .pcard .arrows button:hover{transform:translateY(-1px);border-color:var(--accent);color:var(--accent)}
@@ -943,7 +943,7 @@
   /* "Groups to top" — when Play more is engaged we shove the groups display
      above analyze-bars + the second-play strip so the user works on the
      decks first. */
-  .summary.groups-on-top .summary-actions{order:5}   /* analyze/more buttons below the tables */
+  .summary.groups-on-top .summary-actions{order:11}   /* analyze/more buttons merged at the bottom */
   .summary.groups-on-top .play-more-hint{order:1}
   .summary.groups-on-top .summary-triads-wrap{order:1}
   .summary.groups-on-top .summary-fivys{order:1}
@@ -1528,11 +1528,11 @@
     flex:1;min-width:0;text-align:center;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .sp-item-arrows{display:flex;gap:3px;flex:none}
+  .sp-item-arrows{display:flex;gap:5px;flex:none}
   .sp-item-arrows button{
-    width:1.35rem;height:1.35rem;border-radius:6px;
-    background:#3a3a52;border:1px solid #5a5a76;color:var(--ink);
-    font:700 .75rem/1 system-ui,sans-serif;cursor:pointer;padding:0;
+    width:2rem;height:2rem;border-radius:7px;            /* bigger, easier to click */
+    background:#3a3a52;border:1.5px solid #5a5a76;color:var(--ink);
+    font:800 1rem/1 system-ui,sans-serif;cursor:pointer;padding:0;
     display:grid;place-items:center;
     transition:color .15s ease, border-color .15s ease, transform .12s ease;
   }
@@ -4775,7 +4775,7 @@
       const t = document.createElement('div');
       t.className = 'deck-title';
       const ms = (state.timing && state.timing.perDeck) ? (state.timing.perDeck[deck.id] || 0) : 0;
-      t.innerHTML = `${escapeHTML(deck.title)}${ms ? ` <span class="deck-time">⏱ ${fmtDuration(ms)}</span>` : ''}`;
+      t.innerHTML = `${ms ? `<span class="deck-time">⏱ ${fmtDuration(ms)}</span> ` : ''}${escapeHTML(deck.title)}`;
       el.appendChild(t);
     }
 
@@ -5929,9 +5929,10 @@
     const sentence = INTRO_SLIDES[0].b;
     const raisePanda = () => { if ($panda){ $panda.classList.add('show'); startPandaFrames($panda); } };
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-      $typed.textContent = sentence; raisePanda(); return;
+      $typed.textContent = sentence; setPandaEmotion('neutral'); raisePanda(); return;
     }
-    setTimeout(raisePanda, 5000);            // panda rises 5s after entering
+    setTimeout(() => { setPandaEmotion('neutral'); raisePanda(); }, 3000);   // neutral appears at 3s
+    setTimeout(() => setPandaEmotion('dormido'), 8000);                      // dormido 5s later
     setTimeout(() => {                       // first sentence starts ~3s after entering
       $typed.classList.add('typing');
       let i = 1;
@@ -6913,8 +6914,8 @@
     if (parallelRows.length >= 1) return;
     const idx = parallelRows.length;
     const states = {};
-    // Default to Subjective + Momentual (left pole, single point).
-    BARS.forEach(b => { states[b.id] = { phase:1, p1:1, p2:null }; });
+    // Default to Objective + General (right pole, single point).
+    BARS.forEach(b => { states[b.id] = { phase:1, p1:100, p2:null }; });
     parallelRows.push({ idx, states });
     const $ab = document.getElementById('analyze-bars');   // hide the "Add a perspective" block once added
     if ($ab) $ab.hidden = true;
@@ -6971,12 +6972,6 @@
         <button class="ab-parallel-remove" data-act="remove" aria-label="Remove this perspective" title="remove">✕</button>`;
       block.appendChild(head);
       block.appendChild(grid);
-      // Magic suggest: bars filled with a complementary selection far from
-      // the parent's original BARS state.
-      const magicWrap = document.createElement('div');
-      magicWrap.className = 'ab-magic-wrap';
-      magicWrap.innerHTML = `<button class="ab-magic-btn" type="button" data-act="magic" aria-label="Suggest a complementary perspective" title="Suggest a complementary perspective">✨</button>`;
-      block.appendChild(magicWrap);
       $wrap.appendChild(block);
       block.querySelector('[data-act="remove"]').addEventListener('click', () => {
         parallelRows.splice(rowI, 1);
@@ -6984,9 +6979,6 @@
         renderSecondPlay();
         updatePlusBtn();
         updateInsightsBtn();
-      });
-      magicWrap.querySelector('[data-act="magic"]').addEventListener('click', () => {
-        magicSuggestForRow(rowI);
       });
       BARS.forEach(b => {
         wireCycleBar(`bar-free-${rowI}-${b.id}`, row.states[b.id]);
@@ -8470,6 +8462,7 @@
   // has been removed.
   function toggleAnalyzeMore2(){
     const $btn  = document.getElementById('btn-analyze-more-2');
+    $btn.classList.remove('save-highlight');   // stop the highlighted/moving effect
     if (_finishApplied){
       removeFinishIcons();
       $btn.textContent = 'Genders';
@@ -8512,6 +8505,10 @@
       if (($time && $time.dataset.populated === '1') || ($general && $general.dataset.populated === '1')){
         if ($time) $time.hidden = false;
         if ($general) $general.hidden = false;     // general stats above the tables
+        // Expand the (previously hidden) Summary content recap
+        const $std = document.getElementById('std-summary');
+        const $stdT = document.getElementById('std-summary-toggle');
+        if ($std){ $std.classList.remove('is-collapsed'); if ($stdT) $stdT.setAttribute('aria-expanded','true'); }
         _timeStatsOn = true;
         $btn.textContent = '✓ Stats';
         bumpAnalyzeLevel(5);

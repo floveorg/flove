@@ -357,7 +357,7 @@
     transition: opacity .7s ease, visibility .7s ease;
   }
   /* once any category is chosen, the splash fades away to reveal the page */
-  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .intro-splash {
+  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked, #allbubbles:checked) .intro-splash {
     opacity: 0; visibility: hidden; pointer-events: none;
   }
   .intro-head {
@@ -502,7 +502,7 @@
   }
 
   /* grid fades in once a category is chosen */
-  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid {
+  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked, #allbubbles:checked) .grid {
     animation: grid-fade-in .9s ease both;
   }
   @keyframes grid-fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -514,7 +514,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .intro-band, .intro-head, .intro-band::after { animation: none; opacity: 1; clip-path: none; }
-    body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid { animation: none; }
+    body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked, #allbubbles:checked) .grid { animation: none; }
   }
 
   /* Social chip with multi-select dropdown */
@@ -945,7 +945,7 @@
   details.tile-big[open] > .launcher-chip { left: 50%; }
   /* in cloud/bubbles the card shrinks — keep the chip readable, hide its label */
   body:has(#layout-cloud:checked)   .launcher-chip .lc-t,
-  body:has(#layout-bubbles:checked) .launcher-chip .lc-t { display: none; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .launcher-chip .lc-t { display: none; }
 
   /* ── FLOWING SUBS · open folder card → subs use the WHOLE card, drifting as
      transparent logo-above-name chips (no fill, no border) around the launcher ── */
@@ -2052,6 +2052,85 @@
     box-shadow: 0 8px 22px rgba(178,122,255,.40), inset 0 0 0 1px rgba(255,255,255,.4);
   }
   .modal-tune-btn:hover { filter: brightness(1.08); }
+
+  /* ── CUSTOM FLOW (full-screen, pure CSS) ──────────────────────────────
+     Custom opens a full overlay with two fixed buttons — Bubbles (top) and
+     Replies (bottom). Bubbles reveals 5 mood bubbles; Replies reveals the
+     questions + Go. Go flips the whole grid to all-random-bubbles. */
+  .custom-modal { overflow-y: auto; }
+  .custom-modal:target { display: block; }
+  .custom-modal .custom-stage {
+    position: relative; z-index: 1;
+    width: 100%; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 96px 20px; text-align: center;
+  }
+  .custom-modal .modal-close { position: fixed; top: 16px; right: 18px; z-index: 6; }
+  .cust-fixed {
+    position: fixed; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 11px 32px; border-radius: 999px;
+    font: 800 1rem 'Inter', sans-serif; letter-spacing: .04em;
+    cursor: pointer; user-select: none;
+    background: rgba(255,255,255,.92); color: #1a1820;
+    border: 1.5px solid var(--launch-line-strong);
+    box-shadow: 0 10px 28px rgba(40,20,80,.34);
+    transition: transform .15s, background .15s, box-shadow .15s, color .15s;
+  }
+  .cust-fixed:hover { transform: translateX(-50%) translateY(-2px); }
+  .cust-fixed-top { top: 22px; }
+  .cust-fixed-bottom { bottom: 22px; }
+  body:has(#cust-bubbles:checked) .cust-fixed-top,
+  body:has(#cust-replies:checked) .cust-fixed-bottom {
+    background: linear-gradient(135deg, #ff8a8a, #b27aff); color: #fff; border-color: transparent;
+  }
+  .cust-panel { width: 100%; max-width: 640px; max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height .42s var(--flove-ease, ease), opacity .35s ease; }
+  body:has(#cust-bubbles:checked) .cust-panel-bubbles { max-height: 360px; opacity: 1; }
+  body:has(#cust-replies:checked) .cust-panel-replies { max-height: 560px; opacity: 1; }
+  .cust-caption { color: #fff; font-weight: 700; font-size: .98rem; letter-spacing: .02em;
+    margin: 0 0 18px; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+  .cust-moods { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center; }
+  .cmood {
+    width: 94px; height: 94px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), rgba(255,255,255,.12));
+    border: 2px solid rgba(255,255,255,.6); color: #fff;
+    font: 700 .82rem 'Inter', sans-serif;
+    box-shadow: 0 8px 22px rgba(40,20,80,.32);
+    animation: cmood-float 6s ease-in-out infinite;
+    transition: transform .15s, border-color .15s, box-shadow .15s, background .15s;
+  }
+  .cust-moods .cmood:nth-child(2n) { animation-duration: 7.5s; animation-delay: -2s; }
+  .cust-moods .cmood:nth-child(3n) { animation-duration: 5.4s; animation-delay: -3.4s; }
+  .cmood:hover { transform: scale(1.07); border-color: #fff; }
+  body:has(#cmood-1:checked) .cmood[for="cmood-1"],
+  body:has(#cmood-2:checked) .cmood[for="cmood-2"],
+  body:has(#cmood-3:checked) .cmood[for="cmood-3"],
+  body:has(#cmood-4:checked) .cmood[for="cmood-4"],
+  body:has(#cmood-5:checked) .cmood[for="cmood-5"] {
+    background: linear-gradient(135deg, #ff8a8a, #b27aff);
+    border-color: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.4), 0 10px 26px rgba(40,20,80,.42);
+  }
+  @keyframes cmood-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  .cust-title { color: #fff; justify-content: center; margin: 0; }
+  .cust-title .ster { color: #ffd9d9; }
+  .cust-panel-replies .modal-form { max-width: 460px; margin: 0 auto; }
+  .cust-panel-replies .modal-form label { color: rgba(255,255,255,.9); text-align: left; }
+  .cust-go {
+    align-self: center; margin: 4px auto 0;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 36px; border-radius: 999px; cursor: pointer;
+    font: 800 1.06rem 'Inter', sans-serif; letter-spacing: .04em;
+    color: #1a1820; background: #fff; border: 0;
+    box-shadow: 0 10px 28px rgba(255,255,255,.28);
+    transition: transform .15s;
+  }
+  .cust-go:hover { transform: scale(1.05); }
+  @media (prefers-reduced-motion: reduce) { .cmood { animation: none; } }
+  /* Go → hide the custom overlay; the grid is already flipped to all-bubbles */
+  body:has(#allbubbles:checked) #custom-form { display: none !important; }
+
   .modal-close {
     position: absolute;
     top: 12px; right: 14px;
@@ -2853,10 +2932,10 @@
      when Inside is active (the topbar sub-strip can't show there). */
   .grid > .sub-float { display: none; }
   body:has(#cat-inside:checked):has(#layout-cloud:checked)   .grid > .sub-float,
-  body:has(#cat-inside:checked):has(#layout-bubbles:checked) .grid > .sub-float { display: flex; }
+  body:has(#cat-inside:checked):has(#layout-bubbles:checked, #allbubbles:checked) .grid > .sub-float { display: flex; }
   /* In Cloud/Bubbles, hide the topbar sub-strip — the floating items replace it. */
   body:has(#layout-cloud:checked)   .inside-subs,
-  body:has(#layout-bubbles:checked) .inside-subs { max-width: 0; opacity: 0; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .inside-subs { max-width: 0; opacity: 0; }
 
   /* Floating sub-items: highlighted, sharing the parent Inside orange + each
      the same distinct border it wears up in the topbar. */
@@ -2944,7 +3023,7 @@
      inline. Default = source order (popular distribution). */
   .grid > * { order: 0; }
   body:has(#sort-rainbow:checked) .grid > * { order: var(--ord-rb, 0); }
-  body:has(#sort-random:checked)  .grid > * { order: var(--ord-rd, 0); }
+  body:has(#sort-random:checked, #allbubbles:checked)  .grid > * { order: var(--ord-rd, 0); }
 
   /* Active sort chip styles */
   body:has(#sort-popular:checked) .sort-icon-btn[for="sort-popular"],
@@ -2975,7 +3054,7 @@
   /* Active layout/size chip — blue→indigo, distinct from the purple sort chips. */
   body:has(#layout-grid:checked)    .sort-icon-btn[for="layout-grid"],
   body:has(#layout-cloud:checked)   .sort-icon-btn[for="layout-cloud"],
-  body:has(#layout-bubbles:checked) .sort-icon-btn[for="layout-bubbles"],
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .sort-icon-btn[for="layout-bubbles"],
   body:has(#layout-list:checked)    .sort-icon-btn[for="layout-list"],
   body:has(#layout-sized:checked)   .sort-icon-btn[for="layout-sized"] {
     background: linear-gradient(135deg,#5ea4e6,#6b6bd9);
@@ -2986,7 +3065,7 @@
 
   /* The grid-fall filler only makes sense in the default grid. */
   body:has(#layout-cloud:checked)   .grid-fall,
-  body:has(#layout-bubbles:checked) .grid-fall,
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid-fall,
   body:has(#layout-list:checked)    .grid-fall { display: none; }
 
   /* ───── LIST · ordered (numbered) rows ───── */
@@ -3058,7 +3137,7 @@
   body:has(#layout-cloud:checked) .grid > .tile:hover { transform: translateY(-3px) scale(1.05); }
 
   /* ───── BUBBLES · circular, drifting ───── */
-  body:has(#layout-bubbles:checked) .grid {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -3066,7 +3145,7 @@
     gap: 18px;
     max-width: 1100px;
   }
-  body:has(#layout-bubbles:checked) .grid > .tile {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile {
     aspect-ratio: 1 !important;
     grid-column: auto !important;
     grid-row: auto !important;
@@ -3083,18 +3162,18 @@
     /* bubbles drift freely up and down on slow loops, mixing on screen */
     animation: bubble-rise-a 21.6s ease-in-out infinite;
   }
-  body:has(#layout-bubbles:checked) .grid > .tile .tag { display: none; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile .tag { display: none; }
   /* Keys bubble: its title sits 20px below the bubble */
-  body:has(#layout-bubbles:checked) .grid > .tile[href="#app-keys"] { overflow: visible; }
-  body:has(#layout-bubbles:checked) .grid > .tile[href="#app-keys"] .meta {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile[href="#app-keys"] { overflow: visible; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile[href="#app-keys"] .meta {
     position: absolute; top: calc(100% + 20px); left: 50%;
     transform: translateX(-50%); margin: 0;
   }
-  body:has(#layout-bubbles:checked) .grid > .tile[href="#app-keys"] .name { font-size: .82rem; white-space: nowrap; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile[href="#app-keys"] .name { font-size: .82rem; white-space: nowrap; }
 
   /* Folder cards in Bubbles view → a CLUSTER of equal bubbles: the parent
      becomes one bubble and every sub becomes its own same-size bubble. */
-  body:has(#layout-bubbles:checked) .grid > details.tile-big {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big {
     aspect-ratio: auto !important;
     grid-column: auto !important; grid-row: auto !important;
     flex: 1 1 100%; width: 100%; height: auto;
@@ -3103,7 +3182,7 @@
     align-items: center; justify-content: center;
     padding: 4px 0; overflow: visible;
   }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary.tile-big-main {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > summary.tile-big-main {
     flex: 0 0 auto; flex-basis: auto;
     width: 116px; height: 116px; border-radius: 50%;
     background: linear-gradient(150deg, var(--grad-1), var(--grad-2));
@@ -3112,17 +3191,17 @@
     box-shadow: 0 8px 22px rgba(40,20,80,.12);
     animation: bubble-rise-a 22.8s ease-in-out infinite;
   }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .chev,
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .tag,
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .depth-pulse { display: none; }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .icon { font-size: 30px; }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > summary .name { font-size: .8rem; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > summary .chev,
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > summary .tag,
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > summary .depth-pulse { display: none; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > summary .icon { font-size: 30px; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > summary .name { font-size: .8rem; }
   /* flatten the wrappers so each sub is a sibling bubble in the cluster */
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > .tile-big-children,
-  body:has(#layout-bubbles:checked) .grid > details.tile-big > .tile-big-children > .children-list {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > .tile-big-children,
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big > .tile-big-children > .children-list {
     display: contents;
   }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big .child-btn {
     flex: 0 0 auto;
     width: 116px; height: 116px; min-height: 0;
     border-radius: 50%;
@@ -3132,20 +3211,20 @@
     text-shadow: none;
     animation: bubble-rise-b 21.6s ease-in-out infinite;
   }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn .child-icon { font-size: 28px; }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn .child-name { font-size: .72rem; }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn:nth-child(3n)   { animation-name: bubble-rise-a; animation-duration: 19.2s; animation-delay: -4.2s; }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn:nth-child(3n+1) { animation-name: bubble-rise-c; animation-duration: 25.2s; animation-delay: -9.8s; }
-  body:has(#layout-bubbles:checked) .grid > details.tile-big .child-btn:nth-child(4n+2) { animation-duration: 20.4s; animation-delay: -6.9s; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big .child-btn .child-icon { font-size: 28px; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big .child-btn .child-name { font-size: .72rem; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big .child-btn:nth-child(3n)   { animation-name: bubble-rise-a; animation-duration: 19.2s; animation-delay: -4.2s; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big .child-btn:nth-child(3n+1) { animation-name: bubble-rise-c; animation-duration: 25.2s; animation-delay: -9.8s; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > details.tile-big .child-btn:nth-child(4n+2) { animation-duration: 20.4s; animation-delay: -6.9s; }
   /* the centred launcher chip would overlap the cluster — hide it in bubbles */
-  body:has(#layout-bubbles:checked) .launcher-chip { display: none; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .launcher-chip { display: none; }
   /* random-feeling mix of paths, durations and offsets */
-  body:has(#layout-bubbles:checked) .grid > .tile:nth-child(3n)   { animation-name: bubble-rise-b; animation-duration: 24s; animation-delay: -3.5s;  }
-  body:has(#layout-bubbles:checked) .grid > .tile:nth-child(3n+1) { animation-name: bubble-rise-c; animation-duration: 18s; animation-delay: -8.2s;  }
-  body:has(#layout-bubbles:checked) .grid > .tile:nth-child(4n)   { animation-duration: 26.4s; animation-delay: -11.6s; }
-  body:has(#layout-bubbles:checked) .grid > .tile:nth-child(5n+2) { animation-name: bubble-rise-b; animation-duration: 20.4s; animation-delay: -6.2s;  }
-  body:has(#layout-bubbles:checked) .grid > .tile:nth-child(7n+3) { animation-name: bubble-rise-c; animation-duration: 28.8s; animation-delay: -14.4s; }
-  body:has(#layout-bubbles:checked) .grid > .tile:hover {
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(3n)   { animation-name: bubble-rise-b; animation-duration: 24s; animation-delay: -3.5s;  }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(3n+1) { animation-name: bubble-rise-c; animation-duration: 18s; animation-delay: -8.2s;  }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(4n)   { animation-duration: 26.4s; animation-delay: -11.6s; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(5n+2) { animation-name: bubble-rise-b; animation-duration: 20.4s; animation-delay: -6.2s;  }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(7n+3) { animation-name: bubble-rise-c; animation-duration: 28.8s; animation-delay: -14.4s; }
+  body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:hover {
     animation: none;
     transform: scale(1.08);
     z-index: 3;
@@ -3177,13 +3256,13 @@
     86% { transform: translate(48px,20px); }
   }
   @media (prefers-reduced-motion: reduce) {
-    body:has(#layout-bubbles:checked) .grid > .tile { animation: none; }
+    body:has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile { animation: none; }
   }
 
   /* ───── SIZE modifier · varied item sizes (Cloud · Bubbles · List) ───── */
-  body:has(#layout-sized:checked):has(#layout-bubbles:checked) .grid > .tile:nth-child(5n)   { width: 150px; height: 150px; }
-  body:has(#layout-sized:checked):has(#layout-bubbles:checked) .grid > .tile:nth-child(5n+2) { width: 94px;  height: 94px;  }
-  body:has(#layout-sized:checked):has(#layout-bubbles:checked) .grid > .tile:nth-child(5n+3) { width: 132px; height: 132px; }
+  body:has(#layout-sized:checked):has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(5n)   { width: 150px; height: 150px; }
+  body:has(#layout-sized:checked):has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(5n+2) { width: 94px;  height: 94px;  }
+  body:has(#layout-sized:checked):has(#layout-bubbles:checked, #allbubbles:checked) .grid > .tile:nth-child(5n+3) { width: 132px; height: 132px; }
   body:has(#layout-sized:checked):has(#layout-cloud:checked)   .grid > .tile:nth-child(4n)   .name { font-size: 1.35rem; }
   body:has(#layout-sized:checked):has(#layout-cloud:checked)   .grid > .tile:nth-child(4n+2) .name { font-size: .78rem;  }
   body:has(#layout-sized:checked):has(#layout-cloud:checked)   .grid > .tile:nth-child(3n+1) .name { font-size: 1.08rem; }
@@ -3354,6 +3433,15 @@ details.tile-big:hover > summary .tag,
 <input type="checkbox" id="layout-sized" class="vh" />
 <!-- Compass toggle: shows the sort icons inline -->
 <input type="checkbox" id="sort-tog" class="vh" />
+<!-- Custom flow: Bubbles/Replies panels, 5 mood picks, and the All-random-bubbles result -->
+<input type="checkbox" id="cust-bubbles" class="vh" />
+<input type="checkbox" id="cust-replies" class="vh" />
+<input type="checkbox" id="cmood-1" class="vh" />
+<input type="checkbox" id="cmood-2" class="vh" />
+<input type="checkbox" id="cmood-3" class="vh" />
+<input type="checkbox" id="cmood-4" class="vh" />
+<input type="checkbox" id="cmood-5" class="vh" />
+<input type="checkbox" id="allbubbles" class="vh" />
 <!-- Category radios (drive .grid filter via :has) — none checked at load → intro splash leads -->
 <!-- Category filters are checkboxes → multi-select (show the union) -->
 <input type="checkbox" id="cat-all"     class="vh" />
@@ -4168,31 +4256,53 @@ details.tile-big:hover > summary .tag,
 </main>
 
 <!-- Custom sort modal (CSS-only via :target) -->
-<div id="custom-form" class="modal" role="dialog" aria-modal="true" aria-labelledby="customTitle">
+<div id="custom-form" class="modal custom-modal" role="dialog" aria-modal="true" aria-labelledby="customTitle">
   <a href="#close" class="modal-backdrop" aria-label="close" tabindex="-1"></a>
-  <div class="modal-card">
+  <div class="custom-stage">
     <a href="#close" class="modal-close" aria-label="close">×</a>
-    <h2 id="customTitle">
+
+    <!-- Fixed top button: Bubbles -->
+    <label class="cust-fixed cust-fixed-top" for="cust-bubbles">Bubbles</label>
+
+    <!-- Bubbles panel — five mood bubbles, up there -->
+    <div class="cust-panel cust-panel-bubbles" aria-hidden="true">
+      <p class="cust-caption">You can only click 2</p>
+      <div class="cust-moods">
+        <label class="cmood" for="cmood-1"><span class="cmood-name">Calm</span></label>
+        <label class="cmood" for="cmood-2"><span class="cmood-name">Curious</span></label>
+        <label class="cmood" for="cmood-3"><span class="cmood-name">Tender</span></label>
+        <label class="cmood" for="cmood-4"><span class="cmood-name">Restless</span></label>
+        <label class="cmood" for="cmood-5"><span class="cmood-name">Playful</span></label>
+      </div>
+    </div>
+
+    <h2 id="customTitle" class="cust-title">
       <span class="ster flove-asterism flove-asterism--still" aria-hidden="true">✺</span>
       <span>You tell, we tune</span>
       <span class="ster flove-asterism flove-asterism--still" aria-hidden="true">✺</span>
     </h2>
-    <p class="lead">Three tiny questions about your moment — the list will follow your mood.</p>
-    <div class="modal-form">
-      <label>
-        <span><span class="qnum">1.</span>What's the weather inside your chest right now?</span>
-        <input type="text" placeholder="warm gentle sunshine" />
-      </label>
-      <label>
-        <span><span class="qnum">2.</span>Closer to a hug or to a long quiet walk?</span>
-        <input type="text" placeholder="a really long walk" />
-      </label>
-      <label>
-        <span><span class="qnum">3.</span>If today were a fruit, would it be ripe yet?</span>
-        <input type="text" placeholder="peach at its peak" />
-      </label>
-      <a href="#close" class="modal-tune-btn">Tune my list →</a>
+
+    <!-- Replies panel — the questions, there below -->
+    <div class="cust-panel cust-panel-replies" aria-hidden="true">
+      <div class="modal-form">
+        <label>
+          <span><span class="qnum">1.</span>What's the weather inside your chest right now?</span>
+          <input type="text" placeholder="warm gentle sunshine" />
+        </label>
+        <label>
+          <span><span class="qnum">2.</span>Closer to a hug or to a long quiet walk?</span>
+          <input type="text" placeholder="a really long walk" />
+        </label>
+        <label>
+          <span><span class="qnum">3.</span>If today were a fruit, would it be ripe yet?</span>
+          <input type="text" placeholder="peach at its peak" />
+        </label>
+        <label class="cust-go" for="allbubbles">Go →</label>
+      </div>
     </div>
+
+    <!-- Fixed bottom button: Replies -->
+    <label class="cust-fixed cust-fixed-bottom" for="cust-replies">Replies</label>
   </div>
 </div>
 

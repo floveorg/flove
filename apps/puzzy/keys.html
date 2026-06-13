@@ -2814,6 +2814,7 @@
   .std-ts-cols{display:flex;flex-wrap:wrap;gap:1.2rem}
   .std-ts-left{flex:1 1 200px;min-width:0}
   .std-ts-right{flex:1 1 200px;min-width:0}
+  .ts-insight-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.6rem}
   /* Merged nested stats list: level-0 bold + 25% bigger; 1–2 indented counts */
   .std-tsn-list{display:flex;flex-direction:column;gap:.16rem;text-align:left}
   .tsn{display:flex;gap:.55rem;align-items:baseline;font-size:.86rem;color:var(--ink)}
@@ -2974,12 +2975,12 @@
 
   /* ---- insight cards (above the phrase) ---- */
   .flv-std .insight-panel{
-    display:none;margin:2.6rem 0 .8rem;padding:.75rem .9rem;border-radius:12px;   /* two rows of space above */
+    display:none;margin:3.9rem 0 .8rem;padding:.75rem .9rem;border-radius:12px;   /* three rows of space above */
     border:1px solid rgba(168,228,255,.28);
     background:linear-gradient(180deg,rgba(168,228,255,.07),transparent);
     color:var(--ink);font-size:.9rem;line-height:1.5;
   }
-  .flv-std .action-grid{margin-top:2.6rem}   /* two rows of space above the buttons */
+  .flv-std .action-grid{margin-top:3.9rem}   /* three rows of space above the buttons */
   .flv-std .insight-panel strong{color:var(--sky)}
   .flv-std .insight-panel p{margin:.35rem 0 0;color:var(--muted)}
   .flv-std:has(#flv-insight-1:checked) .insight-1-content,
@@ -5423,6 +5424,25 @@
     const cmp = ratio >= 2 ? `about ${Math.round(ratio)}× more than` : 'more than';
     return `You spent the most on <b>${most[0]}</b> — ${cmp} on <b>${least[0]}</b>.`;
   }
+  // Right timing column: one insight shown, "More" loads the next, "Hide" resets.
+  function wireTsInsight(pool){
+    const col = document.getElementById('ts-insight-col');
+    if (!col) return;
+    if (!pool.length){ col.innerHTML = ''; return; }
+    col.innerHTML = `<div class="ts-insight-list" id="ts-insight-list"></div>`
+      + `<button class="btn btn-soft" id="ts-insight-more" type="button">More</button>`;
+    const list = col.querySelector('#ts-insight-list');
+    const btn  = col.querySelector('#ts-insight-more');
+    const MAX = pool.length;
+    const render = (n) => {
+      list.innerHTML = pool.slice(0, n).map(h => `<div class="ts-hint">${h}</div>`).join('');
+      btn.textContent = (n >= MAX) ? 'Hide' : 'More';
+      highlightMentionedStats(document.getElementById('std-timestats'));
+    };
+    let shown = 1;
+    render(1);
+    btn.addEventListener('click', () => { shown = (shown >= MAX) ? 1 : shown + 1; render(shown); });
+  }
   function renderTimeStats(){
     const $panel = document.getElementById('std-timestats');   // lives inside the Summary section
     if (!$panel) return;
@@ -5453,10 +5473,14 @@
     if (introMs)         mergedList += node('Intro', introMs, 0);
     if (t.perStep.step0) mergedList += node('Create groups', t.perStep.step0, 0);
     mergedList += node('Main decks', decksTotal, 0) + decksTree;
+    // Analysis sub-steps in cascade order, each with its own measured time.
+    const _now = Date.now();
+    const ordinalsMs = analyzeClickAt ? ((gendersClickAt || perspClickAt || _now) - analyzeClickAt) : 0;
+    const gendersMs  = gendersClickAt ? ((perspClickAt || _now) - gendersClickAt) : 0;
     mergedList += node('Analysis', analisysMs, 0);
+    if (ordinalsMs)   mergedList += node('Ordinals', ordinalsMs, 1);
+    if (gendersMs)    mergedList += node('Genders', gendersMs, 1);
     if (secondPlayMs) mergedList += node('Additional perspective', secondPlayMs, 1);
-    mergedList += node('Ordinals', null, 1, _analyzeOn ? '✓' : '—');
-    mergedList += node('Genders',  null, 1, _finishApplied ? '✓' : '—');
 
     const primaryHint = buildFastDeckHintHTML();
     const cyclePool = [
@@ -5488,48 +5512,11 @@
           ${totalText ? `<div class="ts-total"><b>${escapeHTML(totalText)}</b> total</div>` : ''}
           <div class="std-tsn-list">${mergedList}</div>
         </div>
-        <div class="std-ts-right">
-          ${(hintHTML || primaryHint || cyclePool.length) ? `<div class="std-sub"><h4 class="std-subhead">Analyze</h4>
-            ${hintHTML ? `<div class="ts-hint" id="ts-insight">${hintHTML}</div>` : ''}
-            ${(primaryHint || cyclePool.length) ? `<div class="ts-expanded">
-              <button class="btn btn-soft ts-analyze-btn" id="ts-analyze-btn" type="button" aria-expanded="false">Analyze timings</button>
-              <div class="ts-further" id="ts-further" hidden>
-                ${primaryHint ? `<div class="ts-hint ts-further-hint">${primaryHint}</div>` : ''}
-                <div class="ts-cycle" id="ts-cycle"></div>
-                ${cyclePool.length ? `<button class="btn btn-soft ts-more-btn" id="ts-more-btn" type="button">More</button>` : ''}
-              </div>
-            </div>` : ''}
-          </div>` : ''}
-        </div>
+        <div class="std-ts-right" id="ts-insight-col"></div>
       </div>
     `;
-    // Analyze reveals the further insights below it.
-    const $tsAnalyze = document.getElementById('ts-analyze-btn');
-    const $tsFurther = document.getElementById('ts-further');
-    if ($tsAnalyze && $tsFurther){
-      $tsAnalyze.addEventListener('click', () => {
-        const willShow = $tsFurther.hidden;
-        $tsFurther.hidden = !willShow;
-        $tsAnalyze.setAttribute('aria-expanded', String(willShow));
-        $tsAnalyze.textContent = willShow ? 'Hide' : 'Analyze timings';
-        highlightMentionedStats($panel);
-      });
-    }
-    // More: 1st click → 2 hints, 2nd → 4 hints, 3rd → reset (none), then loops.
-    const $tsMore  = document.getElementById('ts-more-btn');
-    const $tsCycle = document.getElementById('ts-cycle');
-    if ($tsMore && $tsCycle){
-      let c = 0;
-      $tsMore.addEventListener('click', () => {
-        c = (c + 1) % 3;
-        $tsCycle.innerHTML = cyclePool.slice(0, c * 2)
-          .map(h => `<div class="ts-hint ts-further-hint ts-cycle-hint">${h}</div>`)
-          .join('');
-        // At the last expansion the next click hides everything → label it so.
-        $tsMore.textContent = (c === 2) ? 'Hide insights' : 'More';
-        highlightMentionedStats($panel);
-      });
-    }
+    // Right column: one insight by default, "More" loads the next, "Hide" at the end.
+    wireTsInsight([hintHTML, primaryHint, ...cyclePool].filter(Boolean));
     // Light up the breakdown rows named by whichever insights are visible.
     highlightMentionedStats($panel);
     // Hidden until the Stats "More" expands the Summary section.
@@ -6926,7 +6913,7 @@
   // (revealed by Analyze) handles the pair layout / medal swap.
   function toggleAnalyze(){
     _analyzeOn = !_analyzeOn;
-    if (_analyzeOn) { bumpAnalyzeLevel(1); markSectionTouched('analyze'); }
+    if (_analyzeOn) { bumpAnalyzeLevel(1); markSectionTouched('analyze'); if (!analyzeClickAt) analyzeClickAt = Date.now(); }
     const overlay  = document.getElementById('analyze-arrows');
     const extrasBtn= document.getElementById('btn-analyze-extras');
     const btn      = document.getElementById('btn-analyze');
@@ -7219,6 +7206,7 @@
     } else {
       bumpAnalyzeLevel(3);
       markSectionTouched('gender');
+      if (!gendersClickAt) gendersClickAt = Date.now();
       ['x1','x2','x4'].forEach(id => { extraOpen[id] = true; });
       renderSummaryGrid();
       applyFinishIcons();
@@ -7718,17 +7706,20 @@
   function wirePtInsight(){
     const col = document.getElementById('pt-insight-col');
     if (!col) return;
-    col.innerHTML = `<h4 class="pt-insight-h">Compare perspectives</h4>`
-      + `<div class="pt-insight-list" id="pt-insight-list"></div>`
-      + `<button class="btn btn-soft pt-insight-more" id="pt-insight-more" type="button">Insights</button>`;
+    col.innerHTML = `<div class="pt-insight-list" id="pt-insight-list"></div>`
+      + `<button class="btn btn-soft pt-insight-more" id="pt-insight-more" type="button">More</button>`;
     const list = col.querySelector('#pt-insight-list');
     const btn  = col.querySelector('#pt-insight-more');
-    let shown = 0;
+    const MAX = 3;
+    const render = (n) => {
+      list.innerHTML = PERSP_INSIGHTS.slice(0, n).map(x => `<p class="pt-insight">${x}</p>`).join('');
+      btn.textContent = (n >= MAX) ? 'Hide' : 'More';
+    };
+    let shown = 1;
+    render(1);   // default: one insight + a More button
     btn.addEventListener('click', () => {
-      if (shown >= PERSP_INSIGHTS.length){ shown = 0; list.innerHTML = ''; btn.textContent = 'Insights'; return; }  // 6th → none
-      list.insertAdjacentHTML('beforeend', `<p class="pt-insight">${PERSP_INSIGHTS[shown]}</p>`);
-      shown++;
-      btn.textContent = (shown >= PERSP_INSIGHTS.length) ? 'Reset' : 'More';
+      shown = (shown >= MAX) ? 1 : shown + 1;   // …up to 3, then Hide resets to one
+      render(shown);
     });
   }
 
@@ -7935,6 +7926,7 @@
   let secondPlayStart = null, secondPlayMs = 0;   // new-perspective timing
   let seeResultsAt = null, analisysMs = 0;        // time from See results → Summary-More
   let introStart = null, introMs = 0;             // time spent in the intro (timer hidden there)
+  let analyzeClickAt = null, gendersClickAt = null, perspClickAt = null;   // analysis-step timestamps
   let _spDrag = null;
 
   function initSecondPlayItemOrders(){
@@ -8597,6 +8589,7 @@
     if (_barsOn){
       bumpAnalyzeLevel(4);
       markSectionTouched('perspective');
+      if (!perspClickAt) perspClickAt = Date.now();
       if ($panel) $panel.hidden = true;
       if (parallelRows.length === 0) addParallelRow();
       else { renderSecondPlay(); showCornerPanda('second-play', 'pensativo'); }

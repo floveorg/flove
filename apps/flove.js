@@ -1,21 +1,21 @@
 /* ============================================================
-   flove.js · CSS-friendly behaviors for flovy.html (sound engine + summary actions)
+   flove.js · CSS-friendly behaviors for blogy.html (sound engine + summary actions)
    ============================================================
    • One click listener on <body> (capture phase).
    • Reads `data-sound="key"` from the clicked element (or ancestor),
      or falls back to a class→key map.
    • Plays only when #opt-sound is checked (the Sound switch).
-   • Sounds in `window.flovySounds[key]` can be:
+   • Sounds in `window.blogySounds[key]` can be:
        - string  → URL or data-URI (HTMLAudio)
        - object  → { freq, dur, type, gain } (Web Audio synth tone)
        - null/undefined → silent
    • Public API for the addnewsound form (via window.parent):
-       window.flovySoundsRegistry.keys()         list of stable keys
-       window.flovySoundsRegistry.classMap       class→key mapping
-       window.flovySoundsRegistry.set(key, src)  assign
-       window.flovySoundsRegistry.get(key)       read
-       window.flovySoundsRegistry.preview(key)   play once (ignores Sound toggle)
-       window.flovySoundsRegistry.applyPack(map) bulk assign
+       window.blogySoundsRegistry.keys()         list of stable keys
+       window.blogySoundsRegistry.classMap       class→key mapping
+       window.blogySoundsRegistry.set(key, src)  assign
+       window.blogySoundsRegistry.get(key)       read
+       window.blogySoundsRegistry.preview(key)   play once (ignores Sound toggle)
+       window.blogySoundsRegistry.applyPack(map) bulk assign
    ============================================================ */
 (() => {
   'use strict';
@@ -62,7 +62,7 @@
   };
 
   /* default registry (silent) — user/form fills it */
-  const sounds = window.flovySounds = window.flovySounds || {};
+  const sounds = window.blogySounds = window.blogySounds || {};
 
   /* Web Audio context (lazy-init on first play) */
   let ctx = null;
@@ -170,7 +170,7 @@
 
   /* ─── Apply a preset pack to all keys in an area (= keys whose prefix matches) ─── */
   function applyPackToArea(area, packId){
-    const pack = (window.flovySoundsRegistry && window.flovySoundsRegistry.packs && window.flovySoundsRegistry.packs[packId]) || {};
+    const pack = (window.blogySoundsRegistry && window.blogySoundsRegistry.packs && window.blogySoundsRegistry.packs[packId]) || {};
     Object.keys(sounds).forEach(key => {
       const prefix = key.split(':')[0];
       if (prefix !== area) return;
@@ -198,7 +198,7 @@
     return { freq: Math.round(base), dur: 80 + (h % 200), type: p.type, gain: p.gain };
   }
 
-  /* ─── Listen for area-level dropdown changes + file uploads in flovy.html ─── */
+  /* ─── Listen for area-level dropdown changes + file uploads in blogy.html ─── */
   document.addEventListener('change', (ev) => {
     const sel = ev.target.closest('select[data-sound-area]');
     if (sel){
@@ -224,14 +224,14 @@
   });
 
   /* public API for the addnewsound form */
-  window.flovySoundsRegistry = {
+  window.blogySoundsRegistry = {
     keys: () => [...new Set(Object.values(CLASS_MAP))],
     classMap: CLASS_MAP,
     set:  (key, src) => { sounds[key] = src; audioCache[key] = null; },
     get:  (key) => sounds[key],
     preview: (key) => play(key, true),
     applyPack: (pack) => {
-      for (const k in pack) window.flovySoundsRegistry.set(k, pack[k]);
+      for (const k in pack) window.blogySoundsRegistry.set(k, pack[k]);
     },
     applyPackToArea,
     setArea: (area, src) => {
@@ -253,7 +253,7 @@
    SUMMARY ACTIONS — generic, opt-in via data-attributes
    ============================================================
    Any host file can wire these by adding attributes to its buttons.
-   No HTML edits to flovy.html / worthing.html are needed here — they
+   No HTML edits to blogy.html / worthing.html are needed here — they
    opt in only when their authors add the attributes.
 
    ┌─ SAVE ─ data-flove-save="txt|csv|xml|json|html|jpg|zip"
@@ -296,7 +296,7 @@
       const t = wrap.textContent.replace(el.value || '', '').trim();
       if (t) return t;
     }
-    // For variant textareas with no id/name (flovy.html pattern) the
+    // For variant textareas with no id/name (blogy.html pattern) the
     // placeholder ("What's in your love") is the most meaningful label.
     return el.getAttribute('aria-label') || el.name || el.id
         || (el.getAttribute && el.getAttribute('placeholder')) || '';
@@ -916,7 +916,7 @@ ${cardBody(d)}
    • Normal    reads section titles aloud whenever the visible section
                changes. Generic opt-in: any element with
                data-flove-speak="title" will be spoken when it becomes
-               visible. Flovy's <section class="step-panel"> h2s are
+               visible. Blogy's <section class="step-panel"> h2s are
                picked up automatically by listening to its step radios.
    • Advanced  reads the contents of fields (input / textarea /
                contenteditable) when they lose focus. Opt-out a field
@@ -931,7 +931,7 @@ ${cardBody(d)}
      window.flove.setSoundLevel(n)   programmatic level pick
      window.flove.soundLevelAtLeast('normal')
 
-   This module makes no assumptions specific to flovy beyond looking
+   This module makes no assumptions specific to blogy beyond looking
    for the standard ids — any other app can drop the same radio group
    in and opt in to titles/fields/bot texts via the data-attributes.
    ============================================================ */
@@ -993,11 +993,11 @@ ${cardBody(d)}
       titleObs.observe(el);
     });
   }
-  // 2) Flovy-specific: react to step radio changes — speak the h2 of the
+  // 2) Blogy-specific: react to step radio changes — speak the h2 of the
   //    newly-visible .step-panel. The mapping is by nth-of-type: step-0 →
   //    1st panel, step-1 → 2nd, …
   const STEP_PANEL_SELECTOR = '.step-panel';
-  function flovyStepHeading(stepId){
+  function blogyStepHeading(stepId){
     // strip "step-" prefix; if not numeric, skip.
     const n = Number(stepId.replace(/^step-/, ''));
     if (!Number.isFinite(n)) return null;
@@ -1012,7 +1012,7 @@ ${cardBody(d)}
     const t = ev.target;
     if (!t || !t.id) return;
     if (t.matches('input[type="radio"][name="step"]')){
-      const txt = flovyStepHeading(t.id);
+      const txt = blogyStepHeading(t.id);
       if (txt) speak(txt);
     }
   }, true);
@@ -1037,7 +1037,7 @@ ${cardBody(d)}
   /* ── SUPER: speak bot-inserted texts when the bot changes ── */
   // Generic opt-in: [data-flove-speak="bot"]. After any bot-* radio
   // toggle, scan the page for visible bot-text elements (matching the
-  // generic data attr OR flovy's bot textarea classes) and speak the
+  // generic data attr OR blogy's bot textarea classes) and speak the
   // first one. A short timeout gives the :has()/display CSS rules a
   // chance to flip visibility before we read the DOM.
   function isVisible(el){
@@ -1051,7 +1051,7 @@ ${cardBody(d)}
     for (const el of document.querySelectorAll('[data-flove-speak="bot"]')){
       if (isVisible(el)) return el.value || el.textContent;
     }
-    // 2) flovy auto-discovery
+    // 2) blogy auto-discovery
     const SELECTORS = [
       '.entry-field--main:not(.entry-field--dup) .entry-textarea--magic',
       '.entry-field--main:not(.entry-field--dup) .entry-textarea--lovely',
@@ -1435,7 +1435,7 @@ ${cardBody(d)}
                                   Clicking the parent cycles to the
                                   next child's text — useful when
                                   CSS-only cycling isn't enough.
-                                  (flovy.html's CSS-only cycle keeps
+                                  (blogy.html's CSS-only cycle keeps
                                   working without this attribute.)
 
    • data-flove-magic              Toggles the .is-magic class on
@@ -1699,12 +1699,12 @@ ${cardBody(d)}
 
   /* ── Sound extras: master volume + apply-all + test-all ── */
   // Master volume: a <input type="range" data-flove-volume min="0" max="1" step=".01">.
-  // Scales every synth tone in window.flovySounds (and audio elements get .volume).
+  // Scales every synth tone in window.blogySounds (and audio elements get .volume).
   let masterVolume = 1;
   Object.defineProperty(window, 'floveMasterVolume', { get: () => masterVolume });
   function applyMasterVolume(v){
     masterVolume = v;
-    const sounds = window.flovySounds || {};
+    const sounds = window.blogySounds || {};
     Object.keys(sounds).forEach(k => {
       const s = sounds[k];
       if (s && typeof s === 'object' && (s.freq || s.f)){
@@ -1723,10 +1723,10 @@ ${cardBody(d)}
   // Markup: <select data-flove-sound-apply-all><option value="soft|chimes|retro|synth|mystic|off">…</option></select>
   // Or: <button data-flove-sound-apply-all="soft">…</button>
   function applyPackToAllAreas(packId){
-    const reg = window.flovySoundsRegistry;
+    const reg = window.blogySoundsRegistry;
     if (!reg || !reg.applyPackToArea) return;
     // discover known areas by reading every sound key's prefix
-    const sounds = window.flovySounds || {};
+    const sounds = window.blogySounds || {};
     const areas = new Set();
     Object.keys(sounds).forEach(k => { const p = k.split(':')[0]; if (p) areas.add(p); });
     areas.forEach(area => reg.applyPackToArea(area, packId));
@@ -1754,7 +1754,7 @@ ${cardBody(d)}
     const b = ev.target.closest('[data-flove-sound-test-all]');
     if (!b) return;
     ev.preventDefault();
-    const reg = window.flovySoundsRegistry;
+    const reg = window.blogySoundsRegistry;
     if (!reg || !reg.preview) return;
     const keys = reg.keys();
     if (testAllT){ clearTimeout(testAllT); testAllT = null; }
@@ -1773,12 +1773,12 @@ ${cardBody(d)}
     const b = ev.target.closest('[data-flove-sound-preview]');
     if (!b) return;
     ev.preventDefault();
-    const reg = window.flovySoundsRegistry;
+    const reg = window.blogySoundsRegistry;
     if (!reg || !reg.preview) return;
     const area = b.dataset.floveSoundPreview;
     if (!area) return;
     // pick any sound whose key starts with that area
-    const sounds = window.flovySounds || {};
+    const sounds = window.blogySounds || {};
     const k = Object.keys(sounds).find(k => k.split(':')[0] === area);
     if (k) reg.preview(k);
   });
@@ -1810,9 +1810,9 @@ ${cardBody(d)}
 })();
 
 /* ============================================================
-   flove.autowire · zero-config decoration for flovy.html
+   flove.autowire · zero-config decoration for blogy.html
    ============================================================
-   Lights up a flovy.html copy that does nothing more than add
+   Lights up a blogy.html copy that does nothing more than add
    <script src="flove.js" defer></script>. No HTML edits required:
 
    • Tags the summary panel (.step-panel.is-summary) as
@@ -1835,7 +1835,7 @@ ${cardBody(d)}
 
   function decorate(){
     // 1) Tag summary panel as flove root ONLY if the page doesn't already
-    //    declare a root (e.g. flovylibs uses <main data-flove-root>). Two
+    //    declare a root (e.g. blogylibs uses <main data-flove-root>). Two
     //    roots would split closest() / first-match() in subtle ways and
     //    break view-class wiring.
     if (!document.querySelector('[data-flove-root]')){
@@ -1863,7 +1863,7 @@ ${cardBody(d)}
       row.appendChild(mob);
     });
 
-    // 4) Wire the Print share-sub (CSS-only span in flovy.html) to actually print.
+    // 4) Wire the Print share-sub (CSS-only span in blogy.html) to actually print.
     document.querySelectorAll('.share-sub').forEach(el => {
       if (el.hasAttribute('data-flove-print')) return;
       if (el.hasAttribute('data-flove-share-menu')) return;
@@ -2065,7 +2065,7 @@ ${cardBody(d)}
     const a = (-90 + i * (360 / count)) * Math.PI / 180;
     return { x: Math.cos(a), y: Math.sin(a) };
   }
-  // flovy adapter: the 8 rater axes (4 main 😊😆👏🤔 + 4 side 🪞🌟🤝🕯),
+  // blogy adapter: the 8 rater axes (4 main 😊😆👏🤔 + 4 side 🪞🌟🤝🕯),
   // each carrying its own scale. Other apps can build their own array and
   // pass it straight to the renderers below.
   function axisData(){
@@ -2175,7 +2175,7 @@ ${cardBody(d)}
       + dots + p.labels);
   }
 
-  // Render the chart for `view` from `axes` (defaults to flovy's rater).
+  // Render the chart for `view` from `axes` (defaults to blogy's rater).
   function vizFor(view, axes){
     axes = axes || axisData();
     if (view === 'vertical') return vizVertical(axes);
@@ -2227,7 +2227,7 @@ ${cardBody(d)}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'flovy-' + currentView() + '.svg';
+    a.download = 'blogy-' + currentView() + '.svg';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -2339,7 +2339,7 @@ ${cardBody(d)}
   }
 
   function bind(){
-    // Listen on document — flovy/flovylibs keep many .ctl radios
+    // Listen on document — blogy/blogylibs keep many .ctl radios
     // (rater, views, magic-toggle) OUTSIDE the [data-flove-root] <main>,
     // so a root-bound listener would miss their change events. Document
     // captures every bubble path on the page.
@@ -2363,7 +2363,7 @@ ${cardBody(d)}
   window.flove = Object.assign(window.flove || {}, {
     renderPhrase: render,
     // Visualizations — reusable by other apps. Pass your own axes array
-    // (each item { emoji, label, n, max }) or omit it to read flovy's
+    // (each item { emoji, label, n, max }) or omit it to read blogy's
     // own rater. `viz.block()` returns the chart for the active view.
     viz: {
       bars:     vizBars,
@@ -2372,7 +2372,7 @@ ${cardBody(d)}
       spider:   vizSpider,
       render:   vizFor,     // (view, axes?) → <svg> string
       block:    vizBlock,   // active view: chart + extras + download btn
-      axes:     axisData,   // flovy's 8 rater axes
+      axes:     axisData,   // blogy's 8 rater axes
       views:    VIZ_VIEWS,
       download: downloadViz,// save the current chart as .svg
     },
@@ -2885,7 +2885,7 @@ ${cardBody(d)}
      advanced needs clicks ≥ 20, selections ≥ 10, stars ≥ 2.
      super is locked indefinitely until thresholds are defined. */
   const UNLOCK = {
-    advanced: { href: 'flovyadvanced.html', clicks: 20, selections: 10, stars: 2 },
+    advanced: { href: 'blogyadvanced.html', clicks: 20, selections: 10, stars: 2 },
   };
   const unlocked = {};
   function checkUnlocks() {
@@ -3059,7 +3059,7 @@ ${cardBody(d)}
 })();
 
 /* ============================================================
-   flove.wizard auto-wirer for the flovy "wizard-arm" pattern
+   flove.wizard auto-wirer for the blogy "wizard-arm" pattern
    ============================================================
    Activates on pages whose entry fields use the legacy markup:
 

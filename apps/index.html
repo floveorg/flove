@@ -411,6 +411,88 @@
     font-size: clamp(1.1rem, 2.6vw, 2.1rem); letter-spacing: .01em; }
   .ib-sub  { color: var(--ink); opacity: .82; font-size: clamp(.7rem, 1.4vw, .95rem); }
 
+  /* ── ENTRANCE PREVIEW · click a colour → its title hides, 3 apps flow
+     within the colour, and an All button drops below to enter the list ── */
+  .preview-band { position: relative; }
+  .preview-band .ib-cover {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; cursor: pointer; text-align: center; padding: 16px;
+    transition: opacity .35s ease;
+  }
+  .preview-band .ib-stage {
+    position: absolute; inset: 0; z-index: 2;
+    opacity: 0; pointer-events: none;
+    transition: opacity .45s ease;
+  }
+  .preview-band:has(input:checked) .ib-cover { opacity: 0; pointer-events: none; }
+  .preview-band:has(input:checked) .ib-stage { opacity: 1; pointer-events: auto; }
+  /* the chosen colour widens to give its apps room; the others recede */
+  .preview-band:has(input:checked) { flex-grow: 3.2; }
+  .intro-bands:has(.preview-band input:checked) .intro-band:not(:has(input:checked)) {
+    flex-grow: .55; filter: saturate(.9) brightness(.97);
+  }
+
+  /* flowing app — logo above name, transparent fill + soft border, drifting
+     out from the centre (where the title was) and clipped to the colour */
+  .ib-app {
+    position: absolute; left: 50%; top: 46%;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 8px 12px; border-radius: 16px;
+    background: transparent; border: 1.5px solid rgba(255,255,255,.55);
+    color: var(--ink); text-decoration: none;
+    transform: translate(-50%, -50%);
+    transition: border-color .15s;
+  }
+  .ib-app .flove-mark { width: 1em; height: 1em; font-size: 30px; }
+  .ib-app .ib-app-n   { font: 700 .74rem/1 'Inter', sans-serif; white-space: nowrap; }
+  .ib-app:hover { border-color: #fff; z-index: 6; }
+  .preview-band:has(input:checked) .ia1 { animation: ib-drift-a 9s  ease-in-out infinite; }
+  .preview-band:has(input:checked) .ia2 { animation: ib-drift-b 11s ease-in-out infinite; }
+  .preview-band:has(input:checked) .ia3 { animation: ib-drift-c 10s ease-in-out infinite; }
+  @keyframes ib-drift-a {
+    0%,100% { transform: translate(-50%,-50%); }
+    25% { transform: translate(-95%,-150%); }
+    50% { transform: translate(10%,-185%); }
+    75% { transform: translate(-120%,10%); }
+  }
+  @keyframes ib-drift-b {
+    0%,100% { transform: translate(-50%,-50%); }
+    25% { transform: translate(40%,-60%); }
+    50% { transform: translate(-30%,90%); }
+    75% { transform: translate(70%,30%); }
+  }
+  @keyframes ib-drift-c {
+    0%,100% { transform: translate(-50%,-50%); }
+    25% { transform: translate(-150%,70%); }
+    50% { transform: translate(-20%,160%); }
+    75% { transform: translate(30%,130%); }
+  }
+  /* All button — 50% bg, borderless, bobbing with a colour halo spreading */
+  .ib-all {
+    position: absolute; left: 50%; bottom: 28px; z-index: 4;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 9px 30px; border: 0; border-radius: 999px;
+    background: rgba(255,255,255,.5);
+    color: var(--ink); cursor: pointer;
+    font: 800 .92rem/1 'Inter', sans-serif; letter-spacing: .05em;
+    box-shadow: 0 6px 20px rgba(0,0,0,.15);
+    animation: ib-all-bob 2.6s ease-in-out infinite;
+  }
+  .ib-all::before {
+    content: ''; position: absolute; inset: -8px; z-index: -1; border-radius: inherit;
+    background: radial-gradient(closest-side, rgba(255,255,255,.6), transparent 72%);
+    animation: ib-all-spread 2.6s ease-in-out infinite;
+  }
+  .ib-all:hover { animation-play-state: paused; }
+  @keyframes ib-all-bob    { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
+  @keyframes ib-all-spread { 0%,100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.55); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .preview-band .ia1, .preview-band .ia2, .preview-band .ia3,
+    .ib-all, .ib-all::before { animation: none; }
+  }
+
   /* grid fades in once a category is chosen */
   body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid {
     animation: grid-fade-in .9s ease both;
@@ -841,13 +923,43 @@
     background: rgba(20,16,40,1);
     box-shadow: 0 12px 30px rgba(20,16,40,.5), inset 0 0 0 1px rgba(255,255,255,.4);
   }
-  .launcher-chip .lc-i { font-size: .9rem; line-height: 1; }
+  .launcher-chip .lc-i { font-size: .9rem; line-height: 1; display:inline-flex; }
+  .launcher-chip .lc-i .flove-mark { width: 1.15em; height: 1.15em; font-size: 1.05rem; }
   /* when the folder is open, tuck the chip into the summary half so it
      doesn't sit on top of the children list */
   details.tile-big[open] > .launcher-chip { left: 25%; }
   /* in cloud/bubbles the card shrinks — keep the chip readable, hide its label */
   body:has(#layout-cloud:checked)   .launcher-chip .lc-t,
   body:has(#layout-bubbles:checked) .launcher-chip .lc-t { display: none; }
+
+  /* ── FLOWING SUBS · open folder card → subs drift inside it as logo-above
+     -name chips (shareful "reasons" style), gently moving within the card ── */
+  details.tile-big[open] > .tile-big-children > .children-list {
+    flex-direction: row; flex-wrap: wrap;
+    align-content: center; justify-content: center;
+    gap: 9px; padding: 6px;
+  }
+  details.tile-big > .tile-big-children > .children-list > .child-btn {
+    flex: 0 0 auto;
+    flex-direction: column; align-items: center; gap: 4px;
+    min-height: 0; padding: 8px 12px;
+    border-radius: 14px;
+  }
+  details.tile-big > .tile-big-children > .children-list > .child-btn .child-icon { font-size: 24px; }
+  details.tile-big > .tile-big-children > .children-list > .child-btn .child-name { font-size: .72rem; }
+  /* gentle drift once the card is open (staggered, clipped to the card) */
+  details.tile-big[open] .children-list > .child-btn { animation: sub-drift 5s ease-in-out infinite; }
+  details.tile-big[open] .children-list > .child-btn:nth-child(3n)   { animation-duration: 6.2s; animation-delay: -1.4s; }
+  details.tile-big[open] .children-list > .child-btn:nth-child(3n+1) { animation-duration: 4.6s; animation-delay: -2.6s; }
+  details.tile-big[open] .children-list > .child-btn:nth-child(4n+2) { animation-duration: 5.6s; animation-delay: -3.3s; }
+  @keyframes sub-drift {
+    0%,100% { transform: translate(0,0); }
+    33%     { transform: translate(3px,-5px); }
+    66%     { transform: translate(-4px,3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    details.tile-big[open] .children-list > .child-btn { animation: none; }
+  }
 
   /* ── KEYS card · neutral panda in the middle ──────────────── */
   .keys-panda {
@@ -888,8 +1000,9 @@
   }
 
   /* ── CUBE (modal opened on tile click via :target) ───────── */
+  /* z-index 300 so app intros open above the intro splash (z 200) too */
   .cube {
-    position: fixed; inset: 0; z-index: 100;
+    position: fixed; inset: 0; z-index: 300;
     display: none;
   }
   .cube:target { display: block; }
@@ -3016,7 +3129,7 @@ details.tile-big:hover > summary .tag,
 </defs>
 <symbol id="mark-puzzy" viewBox="0 0 100 100"><path d="M26 26 H44 A7 7 0 1 1 56 26 H74 V44 A7 7 0 1 0 74 56 V74 H56 A7 7 0 1 1 44 74 H26 V56 A7 7 0 1 0 26 44 Z" fill="url(#grad-g-inside)" stroke="none"/></symbol>
 <symbol id="mark-blogy" viewBox="0 0 100 100"><g fill="url(#grad-g-social)" stroke="none"><rect x="20" y="62" width="13" height="20" rx="3"/><rect x="37" y="48" width="13" height="34" rx="3"/><rect x="54" y="34" width="13" height="48" rx="3"/><rect x="71" y="20" width="13" height="62" rx="3"/></g></symbol>
-<symbol id="mark-offer" viewBox="0 0 100 100"><g fill="none" stroke="url(#grad-g-economy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="44" width="56" height="38" rx="4"/><line x1="50" y1="44" x2="50" y2="82"/><line x1="22" y1="58" x2="78" y2="58"/></g><g fill="url(#grad-g-economy)" stroke="none"><path d="M50 44 C 38 44, 30 26, 40 22 C 50 18, 50 36, 50 44 Z"/><path d="M50 44 C 62 44, 70 26, 60 22 C 50 18, 50 36, 50 44 Z"/></g></symbol>
+<symbol id="mark-dealy" viewBox="0 0 100 100"><g fill="none" stroke="url(#grad-g-economy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="44" width="56" height="38" rx="4"/><line x1="50" y1="44" x2="50" y2="82"/><line x1="22" y1="58" x2="78" y2="58"/></g><g fill="url(#grad-g-economy)" stroke="none"><path d="M50 44 C 38 44, 30 26, 40 22 C 50 18, 50 36, 50 44 Z"/><path d="M50 44 C 62 44, 70 26, 60 22 C 50 18, 50 36, 50 44 Z"/></g></symbol>
 <symbol id="mark-pracsys" viewBox="0 0 100 100"><g fill="none" stroke="url(#grad-g-inside)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M36 16 C 64 30, 64 44, 50 50 C 36 56, 36 70, 64 84"/><path d="M64 16 C 36 30, 36 44, 50 50 C 64 56, 64 70, 36 84"/></g><g stroke="url(#grad-g-inside)" stroke-width="3" stroke-linecap="round"><line x1="43" y1="24" x2="57" y2="24"/><line x1="43" y1="76" x2="57" y2="76"/></g></symbol>
 <symbol id="mark-evily" viewBox="0 0 100 100"><path d="M58 20 a34 34 0 1 0 0 60 a20 20 0 1 1 0 -60 z" fill="url(#grad-g-mating)" stroke="none"/></symbol>
 <symbol id="mark-trusty" viewBox="0 0 100 100"><g fill="none" stroke="url(#grad-g-mating)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M54 28 a22 22 0 1 0 0 44"/><path d="M46 28 a22 22 0 1 1 0 44"/></g></symbol>
@@ -3099,12 +3212,63 @@ details.tile-big:hover > summary .tag,
 <div class="intro-splash" id="introSplash" role="navigation" aria-label="Choose a category">
   <a class="flow-btn flow-know intro-flow-top" href="nety.html" aria-label="Know more · about the network"><span class="flow-txt">Know more</span></a>
   <div class="intro-bands">
-    <a     class="intro-band intro-tune"   href="#custom-form"><span class="ib-name">Custom</span><span class="ib-sub">you tell, we tune</span></a>
-    <label class="intro-band intro-inside"  for="cat-inside"><span class="ib-name">Inside</span><span class="ib-sub">My inner self</span></label>
-    <label class="intro-band intro-mating"  for="cat-mating"><span class="ib-name">Mating</span><span class="ib-sub">My close network</span></label>
-    <label class="intro-band intro-ling"    for="cat-ling"><span class="ib-name">Linguistics</span><span class="ib-sub">Words &amp; meaning</span></label>
-    <label class="intro-band intro-social"  for="cat-social"><span class="ib-name">Social</span><span class="ib-sub">Sharing with all</span></label>
-    <label class="intro-band intro-economy" for="cat-economy"><span class="ib-name">Economy</span><span class="ib-sub">Thriving resources</span></label>
+    <a     class="intro-band intro-tune"   href="#custom-form"><span class="ib-name">Custom</span><span class="ib-sub">My momentum</span></a>
+
+    <div class="intro-band intro-inside preview-band">
+      <input type="radio" name="preview" id="prev-inside" class="vh">
+      <label class="ib-cover" for="prev-inside"><span class="ib-name">Inside</span><span class="ib-sub">My inner self</span></label>
+      <div class="ib-stage">
+        <a class="ib-app ia1" href="#app-goddess"><svg class="flove-mark" aria-hidden="true"><use href="#mark-goddess"/></svg><span class="ib-app-n">Goddy</span></a>
+        <a class="ib-app ia2" href="#app-hacky"><svg class="flove-mark" aria-hidden="true"><use href="#mark-hacky"/></svg><span class="ib-app-n">Hacky</span></a>
+        <a class="ib-app ia3" href="#app-sensy"><svg class="flove-mark" aria-hidden="true"><use href="#mark-sensy"/></svg><span class="ib-app-n">Sensy</span></a>
+        <label class="ib-all" for="cat-inside">All</label>
+      </div>
+    </div>
+
+    <div class="intro-band intro-mating preview-band">
+      <input type="radio" name="preview" id="prev-mating" class="vh">
+      <label class="ib-cover" for="prev-mating"><span class="ib-name">Mating</span><span class="ib-sub">My close network</span></label>
+      <div class="ib-stage">
+        <a class="ib-app ia1" href="#app-daty"><svg class="flove-mark" aria-hidden="true"><use href="#mark-daty"/></svg><span class="ib-app-n">Daty</span></a>
+        <a class="ib-app ia2" href="#app-myfamily"><svg class="flove-mark" aria-hidden="true"><use href="#mark-myfamily"/></svg><span class="ib-app-n">MyFamily</span></a>
+        <a class="ib-app ia3" href="#app-trusty"><svg class="flove-mark" aria-hidden="true"><use href="#mark-trusty"/></svg><span class="ib-app-n">Trusty</span></a>
+        <label class="ib-all" for="cat-mating">All</label>
+      </div>
+    </div>
+
+    <div class="intro-band intro-ling preview-band">
+      <input type="radio" name="preview" id="prev-ling" class="vh">
+      <label class="ib-cover" for="prev-ling"><span class="ib-name">Linguistics</span><span class="ib-sub">Word plays that matter</span></label>
+      <div class="ib-stage">
+        <a class="ib-app ia1" href="#app-keys"><svg class="flove-mark" aria-hidden="true"><use href="#mark-keys"/></svg><span class="ib-app-n">Keys</span></a>
+        <a class="ib-app ia2" href="#app-fivy"><svg class="flove-mark" aria-hidden="true"><use href="#mark-fivy"/></svg><span class="ib-app-n">Fivy</span></a>
+        <a class="ib-app ia3" href="puzzy/index.html"><svg class="flove-mark" aria-hidden="true"><use href="#mark-puzzy"/></svg><span class="ib-app-n">Puzzy</span></a>
+        <label class="ib-all" for="cat-ling">All</label>
+      </div>
+    </div>
+
+    <div class="intro-band intro-social preview-band">
+      <input type="radio" name="preview" id="prev-social" class="vh">
+      <label class="ib-cover" for="prev-social"><span class="ib-name">Social</span><span class="ib-sub">Sharing with all</span></label>
+      <div class="ib-stage">
+        <a class="ib-app ia1" href="#app-realy"><svg class="flove-mark" aria-hidden="true"><use href="#mark-realy"/></svg><span class="ib-app-n">Realy</span></a>
+        <a class="ib-app ia2" href="#app-nety"><svg class="flove-mark" aria-hidden="true"><use href="#mark-nety"/></svg><span class="ib-app-n">Nety</span></a>
+        <a class="ib-app ia3" href="#app-freedoms"><svg class="flove-mark" aria-hidden="true"><use href="#mark-freedoms"/></svg><span class="ib-app-n">Freedoms</span></a>
+        <label class="ib-all" for="cat-social">All</label>
+      </div>
+    </div>
+
+    <div class="intro-band intro-economy preview-band">
+      <input type="radio" name="preview" id="prev-economy" class="vh">
+      <label class="ib-cover" for="prev-economy"><span class="ib-name">Economy</span><span class="ib-sub">Thriving resources</span></label>
+      <div class="ib-stage">
+        <a class="ib-app ia1" href="#app-crowdcrafting"><svg class="flove-mark" aria-hidden="true"><use href="#mark-crowdcrafting"/></svg><span class="ib-app-n">Crafty</span></a>
+        <a class="ib-app ia2" href="#app-worthing"><svg class="flove-mark" aria-hidden="true"><use href="#mark-worthing"/></svg><span class="ib-app-n">Worthing</span></a>
+        <a class="ib-app ia3" href="#app-loves"><svg class="flove-mark" aria-hidden="true"><use href="#mark-loves"/></svg><span class="ib-app-n">Lovy</span></a>
+        <label class="ib-all" for="cat-economy">All</label>
+      </div>
+    </div>
+
     <a     class="intro-band intro-keys"    href="puzzy/keys.html"><span class="ib-name">Keys</span><span class="ib-sub">of Everything</span></a>
   </div>
   <label class="flow-btn flow-all intro-flow-bot" for="cat-all" aria-label="All · show every app"><span class="flow-txt">All</span></label>
@@ -3358,7 +3522,7 @@ details.tile-big:hover > summary .tag,
             <span class="depth-ring"></span>
           </span>
         </summary>
-        <a class="launcher-chip" href="puzzy/index.html" aria-label="Open Puzzy launcher"><span class="lc-i" aria-hidden="true">⤢</span><span class="lc-t">Launcher</span></a>
+        <a class="launcher-chip" href="#launch-puzzy" aria-label="About the Puzzy launcher"><span class="lc-i" aria-hidden="true"><svg class="flove-mark"><use href="#mark-puzzy"/></svg></span><span class="lc-t">Launcher</span></a>
         <div class="tile-big-children">
           <div class="children-list"><a class="child-btn" href="puzzy/wisy.html" style="--c-cur:#ff8a8a;--c-ink:#3a0e0e;">
             <span class="child-icon">🦉</span>
@@ -3402,7 +3566,7 @@ details.tile-big:hover > summary .tag,
             <span class="depth-ring"></span>
           </span>
         </summary>
-        <a class="launcher-chip" href="blogy/index.html" aria-label="Open Blogy launcher"><span class="lc-i" aria-hidden="true">⤢</span><span class="lc-t">Launcher</span></a>
+        <a class="launcher-chip" href="#launch-blogy" aria-label="About the Blogy launcher"><span class="lc-i" aria-hidden="true"><svg class="flove-mark"><use href="#mark-blogy"/></svg></span><span class="lc-t">Launcher</span></a>
         <div class="tile-big-children">
           <div class="children-list"><a class="child-btn" href="blogy/blogymini.html" style="--c-cur:#ff8a8a;--c-ink:#3a0e0e;">
             <span class="child-icon">🌱</span>
@@ -3545,9 +3709,9 @@ details.tile-big:hover > summary .tag,
       <details class="tile tile-big tile-big-wide tile-rb-i cat-economy" style="--ord-rb:22; --ord-rd:22;">
         <summary class="tile-big-main">
           <span class="chev">›</span>
-          <div class="icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-offer"/></svg></div>
+          <div class="icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-dealy"/></svg></div>
           <div class="meta">
-            <div class="name">Offer</div>
+            <div class="name">Dealy</div>
             <div class="tag">have · ask · give</div>
           </div>
           <span class="depth-pulse" aria-hidden="true">
@@ -3556,24 +3720,24 @@ details.tile-big:hover > summary .tag,
             <span class="depth-ring"></span>
           </span>
         </summary>
-        <a class="launcher-chip" href="economy/offer/index.html" aria-label="Open Offer launcher"><span class="lc-i" aria-hidden="true">⤢</span><span class="lc-t">Launcher</span></a>
+        <a class="launcher-chip" href="#launch-offer" aria-label="About the Dealy launcher"><span class="lc-i" aria-hidden="true"><svg class="flove-mark"><use href="#mark-dealy"/></svg></span><span class="lc-t">Launcher</span></a>
         <div class="tile-big-children">
-          <div class="children-list"><a class="child-btn" href="economy/offer/inventary.html" style="--c-cur:#ff8a8a;--c-ink:#3a0e0e;">
+          <div class="children-list"><a class="child-btn" href="economy/dealy/inventary.html" style="--c-cur:#ff8a8a;--c-ink:#3a0e0e;">
             <span class="child-icon">📦</span>
             <span class="child-name">Inventary</span>
-          </a><a class="child-btn" href="economy/offer/wanty.html" style="--c-cur:#ff9b5e;--c-ink:#3a1a0a;">
+          </a><a class="child-btn" href="economy/dealy/wanty.html" style="--c-cur:#ff9b5e;--c-ink:#3a1a0a;">
             <span class="child-icon">🙋</span>
             <span class="child-name">Wanty</span>
-          </a><a class="child-btn" href="economy/offer/offeradvanced.html" style="--c-cur:#ffd84d;--c-ink:#3d2a0a;">
+          </a><a class="child-btn" href="economy/dealy/dealyadvanced.html" style="--c-cur:#ffd84d;--c-ink:#3d2a0a;">
             <span class="child-icon">🎯</span>
-            <span class="child-name">Offer</span>
-          </a><a class="child-btn" href="economy/offer/freed.html" style="--c-cur:#6ed089;--c-ink:#0a3a1f;">
+            <span class="child-name">Dealy</span>
+          </a><a class="child-btn" href="economy/dealy/freed.html" style="--c-cur:#6ed089;--c-ink:#0a3a1f;">
             <span class="child-icon">🕊️</span>
             <span class="child-name">Freed</span>
-          </a><a class="child-btn" href="economy/offer/shareful.html" style="--c-cur:#5ea4e6;--c-ink:#ffffff;">
+          </a><a class="child-btn" href="economy/dealy/shareful.html" style="--c-cur:#5ea4e6;--c-ink:#ffffff;">
             <span class="child-icon">🤲</span>
             <span class="child-name">Shareful</span>
-          </a><a class="child-btn" href="economy/offer/rewardy.html" style="--c-cur:#6b6bd9;--c-ink:#ffffff;">
+          </a><a class="child-btn" href="economy/dealy/rewardy.html" style="--c-cur:#6b6bd9;--c-ink:#ffffff;">
             <span class="child-icon">🏅</span>
             <span class="child-name">Rewardy</span>
           </a></div>
@@ -3673,13 +3837,13 @@ details.tile-big:hover > summary .tag,
             <li>
               <details>
                 <summary><span class="data-num">28</span><span class="data-label">apps in flove</span></summary>
-                <p class="data-detail">25 standalone apps + 3 folders (Puzzy · Blogy · Offer). 3 metas · 1 sci · 2 bio · 2 lang · 6 psico · 9 social · 2 economy. Each one a small gesture, part of a slower internet.</p>
+                <p class="data-detail">25 standalone apps + 3 folders (Puzzy · Blogy · Dealy). 3 metas · 1 sci · 2 bio · 2 lang · 6 psico · 9 social · 2 economy. Each one a small gesture, part of a slower internet.</p>
               </details>
             </li>
             <li>
               <details>
                 <summary><span class="data-num">21</span><span class="data-label">subapps inside folders</span></summary>
-                <p class="data-detail">Puzzy 8 (Wisy · View · Relate · Rate · Combos · Triads · Polarities · Confluences) · Blogy 7 (Mini → Super) · Offer 6 (Inventary · Wanty · Offer · Freed · Shareful · Rewardy).</p>
+                <p class="data-detail">Puzzy 8 (Wisy · View · Relate · Rate · Combos · Triads · Polarities · Confluences) · Blogy 7 (Mini → Super) · Dealy 6 (Inventary · Wanty · Dealy · Freed · Shareful · Rewardy).</p>
               </details>
             </li>
             <li>
@@ -3860,6 +4024,64 @@ details.tile-big:hover > summary .tag,
 
 <!-- Cube modals (one per app) — JS injects them all here -->
 <div id="cubes">
+
+    <!-- Folder launcher info modals -->
+    <div class="cube cube-rb-g cube-cat-ling" id="launch-puzzy">
+      <a class="cube-backdrop" href="#close" aria-label="close"></a>
+      <div class="cube-inner">
+        <a class="cube-close" href="#close" aria-label="close">×</a>
+        <header class="cube-head">
+          <div class="cube-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-puzzy"/></svg></div>
+          <div>
+            <h2>Puzzy · Launcher</h2>
+            <p class="cube-tag">relate &amp; reason</p>
+            <span class="cube-cat-pill">Linguistics</span>
+          </div>
+        </header>
+        <div class="cube-desc"><p>The <strong>Puzzy</strong> launcher is the folder's own home — eight small apps to relate, rate and reason (Wisy · View · Relate · Rate · Combos · Triads · Polarities · Confluences).</p></div>
+        <div class="cube-actions">
+          <a class="btn primary" href="puzzy/index.html">▶ Open launcher</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="cube cube-rb-b cube-cat-social" id="launch-blogy">
+      <a class="cube-backdrop" href="#close" aria-label="close"></a>
+      <div class="cube-inner">
+        <a class="cube-close" href="#close" aria-label="close">×</a>
+        <header class="cube-head">
+          <div class="cube-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-blogy"/></svg></div>
+          <div>
+            <h2>Blogy · Launcher</h2>
+            <p class="cube-tag">the flove tiers</p>
+            <span class="cube-cat-pill">Social</span>
+          </div>
+        </header>
+        <div class="cube-desc"><p>The <strong>Blogy</strong> launcher gathers the seven tiers — from Mini (pure CSS) to Super — each the same idea at a different level of depth.</p></div>
+        <div class="cube-actions">
+          <a class="btn primary" href="blogy/index.html">▶ Open launcher</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="cube cube-rb-i cube-cat-economy" id="launch-offer">
+      <a class="cube-backdrop" href="#close" aria-label="close"></a>
+      <div class="cube-inner">
+        <a class="cube-close" href="#close" aria-label="close">×</a>
+        <header class="cube-head">
+          <div class="cube-icon"><svg class="flove-mark" aria-hidden="true"><use href="#mark-dealy"/></svg></div>
+          <div>
+            <h2>Dealy · Launcher</h2>
+            <p class="cube-tag">have · ask · give</p>
+            <span class="cube-cat-pill">Economy</span>
+          </div>
+        </header>
+        <div class="cube-desc"><p>The <strong>Dealy</strong> launcher opens the giving folder — Inventary, Wanty, Dealy, Freed, Shareful and Rewardy — to move resources without money.</p></div>
+        <div class="cube-actions">
+          <a class="btn primary" href="economy/dealy/index.html">▶ Open launcher</a>
+        </div>
+      </div>
+    </div>
 
     <div class="cube cube-rb-o cube-cat-inside" id="app-goddess">
       <a class="cube-backdrop" href="#close" aria-label="close"></a>
@@ -4214,13 +4436,13 @@ details.tile-big:hover > summary .tag,
           </div>
           <div class="cube-block">
             <p class="cube-block-label">video</p>
-            <a class="cube-video" href="economy/offer/wanty.html" aria-label="watch video for Wanty"></a>
+            <a class="cube-video" href="economy/dealy/wanty.html" aria-label="watch video for Wanty"></a>
           </div>
         </div>
         <div class="cube-actions">
           <label for="more-wanty" class="btn ghost cube-more-btn">View more ↓</label>
-          <a class="btn ghost cube-download" href="offer/wanty.zip" download>⬇ Download</a>
-          <a class="btn primary" href="economy/offer/wanty.html">▶ Play</a>
+          <a class="btn ghost cube-download" href="dealy/wanty.zip" download>⬇ Download</a>
+          <a class="btn primary" href="economy/dealy/wanty.html">▶ Play</a>
         </div>
         <input type="checkbox" id="more-wanty" class="vh">
         <div class="cube-extra">
@@ -4665,13 +4887,13 @@ details.tile-big:hover > summary .tag,
           </div>
           <div class="cube-block">
             <p class="cube-block-label">video</p>
-            <a class="cube-video" href="economy/offer/inventary.html" aria-label="watch video for Inventary"></a>
+            <a class="cube-video" href="economy/dealy/inventary.html" aria-label="watch video for Inventary"></a>
           </div>
         </div>
         <div class="cube-actions">
           <label for="more-inventary" class="btn ghost cube-more-btn">View more ↓</label>
-          <a class="btn ghost cube-download" href="offer/inventary.zip" download>⬇ Download</a>
-          <a class="btn primary" href="economy/offer/inventary.html">▶ Play</a>
+          <a class="btn ghost cube-download" href="dealy/inventary.zip" download>⬇ Download</a>
+          <a class="btn primary" href="economy/dealy/inventary.html">▶ Play</a>
         </div>
         <input type="checkbox" id="more-inventary" class="vh">
         <div class="cube-extra">
@@ -4793,8 +5015,8 @@ details.tile-big:hover > summary .tag,
         </div>
         <div class="cube-actions">
           <label for="more-reward" class="btn ghost cube-more-btn">View more ↓</label>
-          <a class="btn ghost cube-download" href="offer/rewardy.zip" download>⬇ Download</a>
-          <a class="btn primary" href="economy/offer/rewardy.html">▶ Play</a>
+          <a class="btn ghost cube-download" href="dealy/rewardy.zip" download>⬇ Download</a>
+          <a class="btn primary" href="economy/dealy/rewardy.html">▶ Play</a>
         </div>
         <input type="checkbox" id="more-reward" class="vh">
         <div class="cube-extra">
@@ -4834,8 +5056,8 @@ details.tile-big:hover > summary .tag,
         </div>
         <div class="cube-actions">
           <label for="more-freed" class="btn ghost cube-more-btn">View more ↓</label>
-          <a class="btn ghost cube-download" href="offer/freed.zip" download>⬇ Download</a>
-          <a class="btn primary" href="economy/offer/freed.html">▶ Play</a>
+          <a class="btn ghost cube-download" href="dealy/freed.zip" download>⬇ Download</a>
+          <a class="btn primary" href="economy/dealy/freed.html">▶ Play</a>
         </div>
         <input type="checkbox" id="more-freed" class="vh">
         <div class="cube-extra">
@@ -4875,8 +5097,8 @@ details.tile-big:hover > summary .tag,
         </div>
         <div class="cube-actions">
           <label for="more-shareful" class="btn ghost cube-more-btn">View more ↓</label>
-          <a class="btn ghost cube-download" href="offer/shareful.zip" download>⬇ Download</a>
-          <a class="btn primary" href="economy/offer/shareful.html">▶ Play</a>
+          <a class="btn ghost cube-download" href="dealy/shareful.zip" download>⬇ Download</a>
+          <a class="btn primary" href="economy/dealy/shareful.html">▶ Play</a>
         </div>
         <input type="checkbox" id="more-shareful" class="vh">
         <div class="cube-extra">

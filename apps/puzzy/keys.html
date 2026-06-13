@@ -5564,17 +5564,24 @@
   // dormido, then loops between the two every 10s. Any click resets it back
   // to the current slide's mood.
   const SLIDE_MOODS = ['pensativo','guino','feliz','celebrando'];
-  const IDLE_MOODS = ['enfadado','dormido'];
+  // Idle loop: dormido first (10s), then preocupado for just 5s, repeating.
+  const IDLE_SEQ = [
+    { mood:'dormido',    ms:10000 },
+    { mood:'preocupado', ms:5000  },
+  ];
   const slideMood = () => SLIDE_MOODS[introSlide] || 'pensativo';
   let idleStep = 0;
   let idleTimer = null;
+  let custOpen = false;        // customize panel open → panda stays preocupado
   function idleAdvance(){
-    if ($intro.classList.contains('hidden')) return;   // only while the intro shows
-    setPandaEmotion(IDLE_MOODS[idleStep % IDLE_MOODS.length]);
+    if (custOpen || $intro.classList.contains('hidden')) return;   // only while the intro shows
+    const cur = IDLE_SEQ[idleStep % IDLE_SEQ.length];
+    setPandaEmotion(cur.mood);
     idleStep++;
-    idleTimer = setTimeout(idleAdvance, 10000);
+    idleTimer = setTimeout(idleAdvance, cur.ms);
   }
   function resetIdle(){
+    if (custOpen) return;      // keep preocupado while customizing
     clearTimeout(idleTimer);
     if (idleStep > 0){ idleStep = 0; setPandaEmotion(slideMood()); }
     idleTimer = setTimeout(idleAdvance, 10000);
@@ -5614,8 +5621,8 @@
     Array.from($dots.children).forEach((d, i) => d.classList.toggle('active', i === introSlide));
     document.getElementById('intro-prev').disabled = introSlide === 0;
     document.getElementById('intro-next').disabled = introSlide === INTRO_SLIDES.length - 1;
-    // Each slide gets its own panda mood (unless an idle mood is showing)
-    if (idleStep === 0) setPandaEmotion(slideMood());
+    // Each slide gets its own panda mood (unless an idle/customize mood shows)
+    if (!custOpen && idleStep === 0) setPandaEmotion(slideMood());
     // CTA buttons (More info + Start) only appear once the user has reached the last slide
     const reachedLast = introSlide >= INTRO_SLIDES.length - 1;
     document.getElementById('intro-cta').classList.toggle('gated', !reachedLast);
@@ -5673,7 +5680,13 @@
         const open = panel.hidden;
         panel.hidden = !open;
         btn.setAttribute('aria-expanded', String(open));
-        if (open) syncPlayFill();
+        if (open){
+          syncPlayFill();
+          custOpen = true; clearTimeout(idleTimer); idleStep = 0;
+          setPandaEmotion('preocupado');          // worried while customizing
+        } else {
+          custOpen = false; setPandaEmotion(slideMood()); resetIdle();
+        }
       });
     }
 

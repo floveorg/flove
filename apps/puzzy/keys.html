@@ -2817,11 +2817,13 @@
   /* Merged nested stats list: level-0 bold + 25% bigger; 1–2 indented counts */
   .std-tsn-list{display:flex;flex-direction:column;gap:.16rem;text-align:left}
   .tsn{display:flex;gap:.55rem;align-items:baseline;font-size:.86rem;color:var(--ink)}
-  .tsn b{color:var(--sky);min-width:3.4em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-  .tsn-l0{font-weight:900;font-size:1.07rem;margin-top:.4rem}
+  /* time stays in one fixed left column — only the text nests + resizes */
+  .tsn b{color:var(--sky);flex:none;min-width:3.6em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .tsn-l0{margin-top:.4rem}
   .tsn-l0 b{color:var(--ink)}
-  .tsn-l1{padding-left:1.15rem}
-  .tsn-l2{padding-left:2.3rem;font-size:.8rem;opacity:.92}
+  .tsn-l0 span{font-weight:900;font-size:1.07rem}
+  .tsn-l1 span{margin-left:1.15rem}
+  .tsn-l2 span{margin-left:2.3rem;font-size:.8rem;opacity:.92}
   .std-quick.std-tsn-list{flex:1 1 220px}
   /* timing shown before each deck/stage title in the comparison table */
   .pr-time{color:var(--sky);font-weight:700;font-variant-numeric:tabular-nums;font-size:.82em;margin-right:.25rem}
@@ -5458,8 +5460,8 @@
     // Additional perspective as a child) + a comparative insight on the right.
     const $top = document.getElementById('std-timestats-top');
     if ($top){
-      let quick = node('Main decks', decksTotal, 0) + node('Analysis', analisysMs, 0);
-      if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 1);
+      let quick = node('Main decks', decksTotal, 0);   // no Analisys above the table
+      if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 0);
       $top.innerHTML = `<div class="std-quick-wrap">`
         + `<div class="std-quick std-tsn-list">${quick}</div>`
         + `<div class="std-quick-insight">${buildQuickInsight(decksTotal, secondPlayMs, analisysMs)}</div>`
@@ -7676,7 +7678,8 @@
     // into a panel that this function had hidden.
     const extra = !!(document.querySelector('#s4-conf-tbody tr') || document.querySelector('#s5-fivy-tbody tr'));
     const hasContent = !!buildBottomSummaryHTML().trim() || extra;
-    $sec.hidden = !hasContent;
+    // The Summary section stays hidden until the Stats "More" reveals it.
+    $sec.hidden = !(_timeStatsOn && hasContent);
     if (!hasContent) return;
     const $def = $sec.querySelector('.clause-default');
     const $mag = $sec.querySelector('.clause-magic');
@@ -8129,7 +8132,7 @@
   function renderPlayMoreBtn(){
     const $btn  = document.getElementById('btn-play-more');
     if (!$btn) return;
-    const eligible = (state.analyzeLevel || 0) >= 5;
+    const eligible = (state.analyzeLevel || 0) >= 3;   // featured after Genders, before Perspectives
     if (!eligible){
       $btn.hidden = true;
       // Always tear down free-play if the user backed out.
@@ -8604,6 +8607,11 @@
       markSectionTouched('stats');
       renderStageLabel();
       renderPlayMoreBtn();
+      // Below the Summary: reveal Continue to Stage 4 + See more (hidden till now).
+      const $sm = document.getElementById('btn-see-more');
+      if ($sm) $sm.hidden = false;
+      const $s4 = document.getElementById('btn-stage4');
+      if ($s4) $s4.hidden = false;
       if ($std) setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);   // summary top
     }
     $btn.classList.toggle('btn-primary', _timeStatsOn);

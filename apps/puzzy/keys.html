@@ -1962,6 +1962,12 @@
     margin:0 0 .25rem;font:600 1.05rem/1.2 ui-serif,Georgia,serif;color:var(--ink);
   }
   .chooser-actions .opt .desc{font-size:.84rem;color:var(--muted);line-height:1.45}
+  /* Neutral panda standing between the two main start options */
+  .chooser-panda{
+    flex:0 0 auto;align-self:center;width:90px;height:auto;
+    pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));
+  }
+  @media (max-width:520px){ .chooser-panda{ width:64px } }
   /* Secondary row of smaller "More …" alternatives. Sits below the main two
      chooser opts with reduced padding + smaller heading + 60% width cap. */
   .chooser-actions-sm{margin-top:14px}
@@ -3564,6 +3570,7 @@
         <h3>Start from Step 0</h3>
         <div class="desc">Sort 15 cards into 5 triads, then order the triads from abstract to concrete.</div>
       </button>
+      <img class="chooser-panda" id="chooserPanda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">
       <button class="opt easy" id="chooser-step1" type="button">
         <span class="tag">easier</span>
         <h3>Skip to Step 1</h3>
@@ -5559,6 +5566,30 @@
     }, 248);   // slowed a further 50% (was 165ms)
   }
 
+  // Frame sources for any emotion. "neutral" lives in animated/ (10 frames);
+  // every other mood is a 12-frame set under gifs/<emotion>/.
+  function pandaFrameSrcs(emotion){
+    if (emotion === 'neutral')
+      return Array.from({length:10}, (_,i) => `../../others/panda/animated/frame-${String(i).padStart(2,'0')}.svg`);
+    return Array.from({length:12}, (_,i) => `${PANDA_BASE}${emotion}/frame-${String(i).padStart(2,'0')}.svg`);
+  }
+  // Generic standalone cycler for the secondary pandas (chooser, section corners).
+  // Returns the interval id (or null) so a caller can stop/swap it.
+  function cyclePanda(el, emotion, ms){
+    if (!el) return null;
+    const frames = pandaFrameSrcs(emotion);
+    frames.forEach(s => { new Image().src = s; });
+    el.src = frames[0];
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+    let f = 0;
+    return setInterval(() => { f = (f + 1) % frames.length; el.src = frames[f]; }, ms || 248);
+  }
+  let chooserPandaTimer = null;
+  function startChooserPanda(){
+    if (chooserPandaTimer) return;
+    chooserPandaTimer = cyclePanda(document.getElementById('chooserPanda'), 'neutral', 248);
+  }
+
   // Idle moods: after 10s without a click the panda gets enfadado, 10s later
   // dormido, then loops between the two every 10s. Any click resets it back
   // to the current slide's mood.
@@ -5686,7 +5717,7 @@
         if (open){
           syncPlayFill();
           custOpen = true; clearTimeout(idleTimer); idleStep = 0;
-          setPandaEmotion('preocupado');          // worried while customizing
+          setPandaEmotion('pensativo');           // thoughtful while customizing
         } else {
           custOpen = false; setPandaEmotion(slideMood()); resetIdle();
           if (p){ p.style.top = ''; p.style.bottom = ''; }   // back to bottom-anchored
@@ -6077,6 +6108,7 @@
   function setUIMode(mode){
     $intro.classList.toggle('hidden', mode !== 'intro');
     $chooser.classList.toggle('active', mode === 'chooser');
+    if (mode === 'chooser') startChooserPanda();
     $prelude.classList.toggle('active', mode === 'prelude');
     const showMain = mode === 'main';
     ['play-area','stage-progress','stage-cta','stage-cta-below','stage-back-below'].forEach(id => {

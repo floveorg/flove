@@ -2003,10 +2003,8 @@
     flex:0 0 auto;align-self:center;width:90px;height:auto;
     pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));
   }
-  .chooser-panda.enter{animation:chooser-panda-in 5s ease both}
-  @keyframes chooser-panda-in{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes chooser-box-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   @media (max-width:520px){ .chooser-panda{ width:64px } }
-  @media (prefers-reduced-motion: reduce){ .chooser-panda.enter{animation:none} }
   /* Secondary row of smaller "More …" alternatives. Sits below the main two
      chooser opts with reduced padding + smaller heading + 60% width cap. */
   .chooser-actions-sm{margin-top:14px}
@@ -2527,17 +2525,20 @@
   }
   .prelude .phase-a-section, .prelude .phase-b-section{position:relative}
   .prelude-title{
-    margin:0 0 14px;text-align:center;
+    margin:0 0 14px;text-align:center;min-height:1.5em;
     font:600 1.35rem/1.2 ui-serif,Georgia,serif;
     background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
     -webkit-background-clip:text;background-clip:text;color:transparent;
+    transition:opacity 3s ease;
   }
+  .prelude-title.fade-out{opacity:0}
+  .prelude-title[hidden]{display:none}
   @media (max-width:520px){ .prelude-title{font-size:1.12rem} }
-  /* Mood panda shown in the bottom-right of the prelude section after a Check,
-     in the same row as the results */
+  /* Mood panda shown just before the stars (bottom border of the section)
+     after a Check */
   .prelude-check-panda{
-    position:absolute;right:10px;bottom:10px;width:74px;height:auto;
-    pointer-events:none;z-index:3;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));
+    display:block;margin:10px auto 0;width:74px;height:auto;
+    pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));
   }
   @media (max-width:520px){ .prelude-check-panda{width:52px} }
   .stars-block.empty{display:none}
@@ -3207,12 +3208,6 @@
     max-width:1100px; margin:1.4rem auto 0; display:block;
   }
   #stage4[hidden]{display:none}
-  /* Neutral panda fixed at the top-left while Stage 4 is open */
-  .stage4-panda{
-    position:fixed;top:64px;left:12px;width:80px;height:auto;
-    pointer-events:none;z-index:60;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
-  }
-  @media (max-width:520px){ .stage4-panda{width:54px;top:56px;left:6px} }
   #stage4 .s4-board{ display:grid; gap:14px; padding:0 4px }
   #stage4 .list{
     margin:0; padding:10px; list-style:none; border-radius:16px;
@@ -4091,7 +4086,6 @@
 
   <!-- ===== Stage 4: embedded Confluences (revealed by "Continue to Stage 4") ===== -->
   <section class="stage4" id="stage4" hidden aria-label="Stage 4 · Confluences">
-    <img class="stage4-panda" id="stage4Panda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">
     <div class="controls">
       <div class="controls-row">
         <div class="nodebar" role="group" aria-label="List sizes — pick any">
@@ -5671,8 +5665,19 @@
         (function t(){ h.textContent = full.slice(0, i); if (i++ <= full.length) setTimeout(t, step); })();
       }
     }
-    const p = document.getElementById('chooserPanda');
-    if (p){ p.classList.remove('enter'); void p.offsetWidth; p.classList.add('enter'); }
+    // Panda stays fixed; the info boxes fade in left → right over 5s.
+    const opts = Array.from(document.querySelectorAll('#chooser .opt'));
+    if (reduce){ opts.forEach(el => { el.style.animation = ''; }); return; }
+    opts.sort((a, b) => {
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      return (ra.left - rb.left) || (ra.top - rb.top);
+    });
+    const N = opts.length || 1, dur = 800, span = 5000;
+    opts.forEach((el, i) => {
+      el.style.animation = 'none'; void el.offsetWidth;
+      const delay = N > 1 ? Math.round(i * (span - dur) / (N - 1)) : 0;
+      el.style.animation = `chooser-box-in ${dur}ms ease ${delay}ms both`;
+    });
   }
   // A small panda cycling in the bottom-left corner of a section. Survives the
   // container's innerHTML rebuilds (re-appended + re-armed when wiped).
@@ -5698,17 +5703,42 @@
     if (n === 3) return 'enfadado';
     return 'preocupado';               // 0, 1, 2
   }
-  function showPreludeCheckPanda(sectionSel, n){
+  function showPreludeCheckPanda(sectionSel, n, starsId){
     const sec = document.querySelector(sectionSel);
-    if (!sec) return;
+    const stars = document.getElementById(starsId);
+    if (!sec || !stars) return;
     let img = sec.querySelector(':scope > .prelude-check-panda');
     if (!img){
       img = document.createElement('img');
       img.className = 'prelude-check-panda'; img.alt = ''; img.setAttribute('aria-hidden', 'true');
-      sec.appendChild(img);
     }
+    sec.insertBefore(img, stars);   // just before the stars, at the section's bottom
     if (img._timer) clearInterval(img._timer);
     img._timer = cyclePanda(img, preludeMoodFor(n), 248);
+  }
+
+  // Prelude title: typed out, held 10s after it's fully typed, then fades out
+  // over 3s and disappears.
+  function animatePreludeTitle(){
+    const h = document.querySelector('.prelude-title');
+    if (!h) return;
+    const full = 'Create the 5 more easy groups of 3';
+    if (h._type) clearTimeout(h._type);
+    if (h._t1)   clearTimeout(h._t1);
+    if (h._t2)   clearTimeout(h._t2);
+    h.classList.remove('fade-out'); h.hidden = false;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){ h.textContent = full; return; }
+    let i = 0; h.textContent = '';
+    (function t(){
+      h.textContent = full.slice(0, i);
+      if (i++ <= full.length){ h._type = setTimeout(t, 55); }
+      else {
+        h._t1 = setTimeout(() => {                       // hold 10s once fully typed
+          h.classList.add('fade-out');                   // then fade out over 3s
+          h._t2 = setTimeout(() => { h.hidden = true; }, 3000);
+        }, 10000);
+      }
+    })();
   }
 
   // ---- Stage-0 deck pandas: idle (pensativo 10s → dormido 10s → enfadado 5s)
@@ -6222,6 +6252,7 @@
     initPrelude();
     setUIMode('prelude');
     renderPrelude();
+    animatePreludeTitle();
   });
   document.getElementById('chooser-back').addEventListener('click', () => {
     state.introActive = true;
@@ -6505,7 +6536,7 @@
     state.preludeStars = stars;
     state.preludeGroupToDeck = groupToDeck;
     renderStars();
-    showPreludeCheckPanda('.phase-a-section', stars);
+    showPreludeCheckPanda('.phase-a-section', stars, 'prelude-stars');
     if (stars === 5){
       // Transition to phase B (shuffle so the user actively re-orders)
       state.preludeAxisOrder = shuffle([0,1,2,3,4]);
@@ -6637,7 +6668,7 @@
     }
     renderStarsB();
     renderAxis();
-    showPreludeCheckPanda('.phase-b-section', state.preludeAxisStars);
+    showPreludeCheckPanda('.phase-b-section', state.preludeAxisStars, 'prelude-stars-b');
   }
 
   function finishPrelude(){
@@ -8821,7 +8852,6 @@
     const s4next   = document.getElementById('s4-next');
     const btnStage4b = document.getElementById('btn-stage4-2');
     const PH = '';   // new cells start empty (no placeholder glyph)
-    let stage4PandaTimer = null;
 
     const allEntries   = () => Array.from(stage4.querySelectorAll('.s4-entry'));
     const savedEntries = () => Array.from(stage4.querySelectorAll('.s4-entry.saved'));
@@ -8977,7 +9007,6 @@
     function enterStage4(){
       state.s4Entered = true;
       stage4.hidden = false;
-      if (!stage4PandaTimer) stage4PandaTimer = cyclePanda(document.getElementById('stage4Panda'), 'neutral', 248);
       refreshEnd();
       if (typeof renderStageLabel === 'function') renderStageLabel();
       if (btnStage4b) btnStage4b.textContent = '← Go back';

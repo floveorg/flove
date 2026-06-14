@@ -2,134 +2,167 @@
 
 Parallel design track for `trusty.html`. Two new buttons/axes:
 
-- **People** — *trusting someone for different issues-areas*, split into **Popular** (mainstream) and **Original** (flove-distinctive) lists, within the 8 main categories. Plus a cross-cutting layer of **generic trust-types** (the qualities every area is made of).
+- **People** — *trusting someone for different issue-areas*, organized in **9 categories** (Heart-first; Loyalty folded into Heart). Each category is a three-layer stack:
+  - **Main** — the broad, informal *container phrase* (the headline you recognize first).
+  - **Formal** — mainstream, everyday trust items.
+  - **Original** — flove-distinctive items.
 - **Conditions** — the trust conditions list, **optimized against `dealy.html`'s clause taxonomy** (reframed from *lending a thing* to *trusting a person*).
 
-Handoffs to specialized sibling apps are tagged `→ app` (daty · maty · hoty · parenty · myfamily · crumbly · evily; Dealy = economy folder).
+Handoffs to specialized sibling apps are tagged `→ app` (daty · maty · hoty · parenty · myfamily · crumbly · evily; Dealy = economy folder). Tagged items should render as a **handoff callout** (a "→ Open [App]" button), not a plain checkbox, so trusty stays broad and never duplicates a sibling.
+
+> Mains for Heart · Care · Comm · Other are the current recommended picks — easy to swap. The rest were selected directly.
 
 ---
 
 ## PART A · People — trusting someone for…
 
-### 1 · ⏱️ Time
-**Popular**
-1. Show up on time
-2. Meet a deadline
-3. Cover / swap a shift
-4. Give notice before cancelling
-5. Reply within a reasonable time
+### 1 · 💗 Heart  *(includes Loyalty)*
+**Main:** *"They hold my heart, and have my back"*
+
+**Formal**
+1. Be there when I'm low
+2. Hold space for my feelings
+3. Have my back / take my side
+4. Stay loyal — don't betray me
+5. Keep loving me when I'm hard to love
 
 **Original**
-6. Guard my deep-work hours (don't interrupt)
-7. Be honest about real bandwidth (don't over-promise)
-8. Keep a slow pace with me, no rushing
-9. Remember the dates that matter to me
+6. Let me be unfinished, still becoming
+7. See I'm not okay before I say it
+8. Speak well of me when I'm not in the room
 
-### 2 · 🔒 Privacy
-**Popular**
-10. Keep a secret
-11. Not share my photos / messages
-12. Handle my data / passwords safely
-13. Respect my space (knock, ask)
-14. Not read my phone / mail
-15. Not screenshot or forward private chats
-16. Keep my address / whereabouts private
-17. Delete things when I ask
+### 2 · ⏱️ Time
+**Main:** *"They won't waste my time"*
+
+**Formal**
+9. Show up on time
+10. Meet a deadline
+11. Cover / swap a shift
+12. Give notice before cancelling
+13. Reply within a reasonable time
 
 **Original**
-18. Hold something heavy without making it about them
-19. Let a thing go unrepeated (forget on purpose)
-20. Not perform our privacy online (no soft-bragging)
-21. Keep my evolving self private until I'm ready → daty/maty
+14. Keep a slow pace with me, no rushing
+15. Remember the dates that matter to me
 
-### 3 · 💶 Money
-**Popular**
-22. Pay me back
-23. Split fairly
-24. Not overspend shared funds
-25. Be transparent about costs
-26. Return what they borrow
-27. Handle cash / a payment honestly
-28. Keep receipts
+### 3 · 🔒 Privacy
+**Main:** *"My stuff is safe with them"*
 
-**Original**
-29. Tell me early if they can't pay (no silent default)
-30. Not let money change how we treat each other
-31. Receive help without shame / give without scorekeeping
-32. Steward a windfall or hardship together → Dealy
-
-### 4 · 🛠️ Skills
-**Popular**
-33. Do the job to standard
-34. Not cut corners
-35. Admit when out of their depth
-36. Give honest advice
-37. Clean up after the work
-38. Stand by their work / fix mistakes
+**Formal**
+16. Keep a secret
+17. Not share my photos / messages
+18. Handle my data / passwords safely
+19. Not read my phone / mail
+20. Not screenshot or forward private chats
+21. Keep my address / whereabouts private
+22. Delete things when I ask
 
 **Original**
-39. Teach me instead of doing it for me
-40. Let me fail safely while learning
-41. Credit my part of the work
-42. Tell me when their skill / opinion has changed
+23. Not perform our privacy online (no soft-bragging)
 
-### 5 · 🤝 Care
-**Popular**
+### 4 · 💶 Money  *(broad only — transactional specifics → Dealy)*
+**Main:** *"They're straight about cash"*
+
+**Formal**
+24. Pay me back
+25. Split fairly
+26. Not overspend shared funds
+27. Be transparent about costs
+28. Return what they borrow
+29. Handle cash / a payment honestly
+30. Keep receipts
+
+**Original**
+31. Tell me early if they can't pay (no silent default)
+32. Not let money change how we treat each other
+33. Receive help without shame / give without scorekeeping
+
+### 5 · 🛠️ Skills
+**Main:** *"They stand by their work"*
+
+**Formal**
+34. Do the job to standard
+35. Not cut corners
+36. Admit when out of their depth
+37. Give honest advice
+38. Clean up after the work
+39. Stand by their work / fix mistakes
+
+**Original**
+40. Teach me instead of doing it for me
+41. Let me fail safely while learning
+42. Credit my part of the work
+
+### 6 · 🤝 Care
+**Main:** *"They'll look after what I love"*
+
+**Formal**
 43. Look after my kid → parenty
 44. Care for my pet / plants
 45. Be there in an emergency
-46. Check on me when I'm low
-47. Give me meals / medication on time
-48. Drive me / pick me up
-49. House-sit / watch my home
-50. Help when I'm sick
-51. Keep an eye on an elder or dependent
+46. Give me meals / medication on time
+47. Drive me / pick me up
+48. House-sit / watch my home
+49. Help when I'm sick
+50. Keep an eye on an elder or dependent
 
 **Original**
-52. Notice I'm not okay before I say it
-53. Care without taking over my autonomy
-54. Keep caring when it's boring, not just dramatic
-55. Tend a shared bond over years → myfamily
+51. Keep caring when it's boring, not just dramatic
+52. Tend a shared bond over years → myfamily
+53. Let a bond end kindly when it's run its course → myfamily
 
-### 6 · 📣 Comm
-**Popular**
-56. Represent me accurately
-57. Reply / keep in touch
-58. Not gossip about me
-59. Pass on messages faithfully
-60. Tell me the truth
-61. Keep me in the loop
-62. Answer when it matters / pick up
-63. Not interrupt or talk over me
-64. Give a straight answer
+### 7 · 📣 Comm
+**Main:** *"Straight with me, and kind about it"*
 
-**Original**
-65. Tell me the hard thing kindly (don't avoid)
-66. Say "I don't know" instead of bluffing
-67. Speak well of me when I'm not in the room
-68. Repair after a misunderstanding → maty
-
-### 7 · 🦺 Safety
-**Popular**
-69. Keep me physically safe
-70. Respect a "no" / a limit
-71. Not put me at risk
-72. Have a backup plan
-73. Drive safely
-74. Lock up / not lose my keys
-75. Follow the rules / agreements
-76. Call for help when needed
+**Formal**
+54. Reply / keep in touch
+55. Pass on messages faithfully
+56. Tell me the truth
+57. Keep me in the loop
+58. Answer when it matters / pick up
+59. Not interrupt or talk over me
+60. Give a straight answer
 
 **Original**
-77. Honor a safe-word the first time → evily
-78. Warn me of a risk even when inconvenient
-79. Protect my emotional safety, not just physical
-80. Name the worst case with me in advance → evily
+61. Tell me the hard thing kindly (don't avoid)
+62. Say "I don't know" instead of bluffing
+63. Repair after a misunderstanding → maty
 
-### 8 · ➕ Other / custom
-81. Trust them with my unfinished self
-82. Trust them to change and still hold "us"
-83. Custom area: name it + one popular + one original item
+### 8 · 🦺 Safety
+**Main:** *"They won't put me at risk"*
+
+**Formal**
+64. Keep me physically safe
+65. Respect a "no" / a limit (knock, ask, personal space)
+66. Not put me at risk
+67. Have a backup plan
+68. Drive safely
+69. Lock up / not lose my keys
+70. Follow the rules / agreements
+71. Call for help when needed
+
+**Original**
+72. Warn me of a risk even when inconvenient
+73. Honor a safe-word the first time → evily
+74. Name the worst case with me in advance → evily
+
+### 9 · ➕ Other / custom
+**Main:** *"Whatever it is, I'd trust them with it"*
+
+75. Custom area — name it + one formal + one original
+
+---
+
+## Overlap resolutions (applied)
+
+| Overlap | Decision | Effect |
+|---|---|---|
+| Noticing "I'm low" — Heart vs Care | → **Heart** | Heart keeps it; Care's main is caretaking ("look after what I love"). |
+| "Unfinished / evolving self" — Heart vs Privacy | → **Heart** | Removed Privacy's "keep my evolving self private". |
+| "Speak well of me when absent" — Heart vs Comm | → **Heart** | Removed Comm's "represent me accurately". |
+| "Holding emotional weight" — Heart vs Privacy | → **Heart** | Removed Privacy's "hold something heavy without making it about them". |
+| "Money as relationship" — Money vs Heart | stays **Money** | Money keeps "not let money change how we treat each other". |
+| Consent / limits — Safety vs Privacy | → **Safety** | Privacy's "respect my space (knock, ask)" merged into Safety's limit item. |
 
 ### Generic trust-types (cross-cutting fields)
 
@@ -148,6 +181,7 @@ The qualities every area is really made of — the actual fields; the numbered i
 
 | Category | Primary trust-types |
 |---|---|
+| 💗 Heart | **G4 Goodwill** · G6 Respect · G5 Integrity (+ loyalty) |
 | ⏱️ Time | **G1 Reliability** · G4 Goodwill |
 | 🔒 Privacy | **G7 Discretion** · G5 Integrity |
 | 💶 Money | **G1 Reliability** · G2 Honesty · G3 Accountability |
@@ -228,7 +262,8 @@ Source families reused → Dealy: `tempo-clause`, `place-clause`, `purpose-claus
 ---
 
 ## Open questions
-1. **People button** — Popular/Original as two switchable tab-lists, or one list with Original items marked (✦)?
-2. **Money handoff (32)** — keep loans inside trusty, or send to **Dealy** for full deal terms?
+1. **People button** — Formal/Original as two switchable tab-lists, or one list with Original items marked (✦)?
+2. ~~**Money handoff**~~ — resolved: transactional specifics (amounts, schedules, interest, collateral) → **Dealy**; trusty keeps the broad/relational money items only.
 3. **Conditions overlap** — C-D/C-E overlap trusty's existing "Additional Protection" fields (40–42). Merge them into this taxonomy, or keep Protection as the free-text version and Conditions as the pick-list?
 4. **Granular mode** — when a trust accrues many small conditions, offer `→ crumbly` for the fine tick-list?
+5. **Mains** — confirm or swap the recommended Main phrases for Heart · Care · Comm · Other.

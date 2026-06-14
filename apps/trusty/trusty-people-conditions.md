@@ -10,7 +10,7 @@ Parallel design track for `trusty.html`. Two new buttons/axes:
 
 Handoffs to specialized sibling apps are tagged `→ app` (daty · maty · hoty · parenty · myfamily · crumbly · evily; Dealy = economy folder). Tagged items should render as a **handoff callout** (a "→ Open [App]" button), not a plain checkbox, so trusty stays broad and never duplicates a sibling.
 
-> Mains for Heart · Care · Comm · Other are the current recommended picks — easy to swap. The rest were selected directly.
+> All Mains confirmed. The People list renders as a **single list with Original items highlighted differently** (not separate tabs).
 
 ---
 
@@ -262,8 +262,8 @@ Source families reused → Dealy: `tempo-clause`, `place-clause`, `purpose-claus
 ---
 
 ## Open questions
-1. **People button** — Formal/Original as two switchable tab-lists, or one list with Original items marked (✦)?
+1. ~~**People button**~~ — resolved: **one list, Original items highlighted differently** (not separate tabs).
 2. ~~**Money handoff**~~ — resolved: transactional specifics (amounts, schedules, interest, collateral) → **Dealy**; trusty keeps the broad/relational money items only.
 3. **Conditions overlap** — C-D/C-E overlap trusty's existing "Additional Protection" fields (40–42). Merge them into this taxonomy, or keep Protection as the free-text version and Conditions as the pick-list?
 4. **Granular mode** — when a trust accrues many small conditions, offer `→ crumbly` for the fine tick-list?
-5. **Mains** — confirm or swap the recommended Main phrases for Heart · Care · Comm · Other.
+5. ~~**Mains**~~ — confirmed (Heart · Care · Comm · Other).

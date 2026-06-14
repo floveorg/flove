@@ -1111,6 +1111,21 @@
   .related-app.featured .ra-label{display:block}
   /* Per-app accent colors — pulled from each app's brand palette. */
   .related-app.featured.app-combos  { --c-acc:#a8e4ff; }  /* sky · sci */
+  /* Comby is highlighted specially — it's the keys' own next step. */
+  .related-app.featured.app-combos{
+    border:1px solid var(--c-acc);
+    background:
+      linear-gradient(180deg,rgba(168,228,255,.16),rgba(168,228,255,.04)),
+      var(--fx);
+    box-shadow:0 0 0 1px rgba(168,228,255,.35), 0 8px 22px rgba(168,228,255,.22);
+    animation:comby-glow 2.4s ease-in-out infinite;
+  }
+  .related-app.featured.app-combos .ra-label{color:#dff3ff;letter-spacing:.3px}
+  @keyframes comby-glow{
+    0%,100%{box-shadow:0 0 0 1px rgba(168,228,255,.30), 0 8px 22px rgba(168,228,255,.18)}
+    50%{box-shadow:0 0 0 1px rgba(168,228,255,.55), 0 10px 28px rgba(168,228,255,.34)}
+  }
+  @media (prefers-reduced-motion: reduce){ .related-app.featured.app-combos{animation:none} }
   .related-app.featured.app-confluences { --c-acc:#00f7a7; }  /* brand */
   .related-app.featured.app-fivys { --c-acc:#ff5fdc; }  /* accent */
   .related-app.featured.app-pracsys { --c-acc:#fadc92; }  /* gold */
@@ -1439,6 +1454,11 @@
   .ai-phrase{
     margin:0 0 .9rem;color:var(--ink);font-size:.95rem;line-height:1.5;
   }
+  .ai-phrase[hidden]{display:none}
+  /* Comby: icon + title link through to the full app (comby.html). */
+  .ai-linked{cursor:pointer;transition:transform .15s ease,filter .15s ease}
+  .ai-icon.ai-linked:hover{transform:translateY(-2px);filter:brightness(1.15)}
+  .ai-name.ai-linked:hover{filter:brightness(1.2);text-decoration:underline}
   .ai-chips{
     display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
     margin:0 0 1rem;
@@ -1456,6 +1476,45 @@
     font:600 .82rem/1 ui-serif,Georgia,serif;letter-spacing:.3px;
   }
   .ai-actions{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}
+
+  /* ---- Comby: pairwise combinations + record/transcribe field ---- */
+  .ai-comby{display:flex;flex-direction:column;gap:.5rem;margin:0 0 1rem;text-align:left}
+  .ai-comby[hidden]{display:none}
+  .comby-combo{border:1px solid var(--stroke);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.02)}
+  .comby-combo-head{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+    padding:.55rem .8rem;background:transparent;border:0;cursor:pointer;
+    color:var(--ink);font:700 .95rem/1.1 ui-serif,Georgia,serif;letter-spacing:.3px;
+  }
+  .comby-combo-head:hover{background:rgba(168,228,255,.06)}
+  .comby-combo-head .comby-chev{color:var(--muted);transition:transform .18s ease}
+  .comby-combo.is-open .comby-combo-head .comby-chev{transform:rotate(90deg);color:var(--sky)}
+  .comby-rec{display:none;flex-direction:column;gap:.5rem;padding:.6rem .8rem .7rem;border-top:1px solid var(--stroke)}
+  .comby-combo.is-open .comby-rec{display:flex}
+  .comby-rec-row{display:flex;align-items:stretch;gap:.45rem}
+  .comby-mic{
+    flex:none;width:2.2rem;border-radius:9px;border:1px solid var(--stroke);
+    background:#3a3a52;color:var(--ink);cursor:pointer;font-size:1rem;
+    display:grid;place-items:center;transition:background .15s ease,border-color .15s ease,color .15s ease;
+  }
+  .comby-mic:hover{border-color:var(--sky);color:var(--sky)}
+  .comby-mic.is-recording{background:var(--accent);border-color:var(--accent);color:#1a1a28;animation:comby-rec-pulse 1.1s ease-in-out infinite}
+  @keyframes comby-rec-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,95,220,.5)}50%{box-shadow:0 0 0 7px rgba(255,95,220,0)}}
+  .comby-field{
+    flex:1;min-width:0;min-height:2.2rem;padding:.4rem .55rem;
+    border:1px solid var(--stroke);border-radius:9px;background:var(--fx);
+    color:var(--ink);font:500 .9rem/1.35 ui-serif,Georgia,serif;outline:none;
+    overflow:auto;
+  }
+  .comby-field:focus{border-color:var(--sky)}
+  .comby-field:empty::before{content:attr(data-ph);color:var(--muted);opacity:.7;font-style:italic}
+  .comby-save{align-self:flex-end;padding:.32rem .9rem;font-size:.82rem}
+  .comby-save:disabled{opacity:.4;cursor:not-allowed}
+  .comby-unsupported{color:var(--muted);font-size:.74rem;font-style:italic}
+  /* Saved combinations listed in the Summary, below the Favourite Keys block. */
+  .flv-std .combos-saved{margin:.4rem 0 0;display:flex;flex-direction:column;gap:.4rem}
+  .flv-std .combos-saved-item{padding:.45rem .7rem;border-radius:10px;border:1px solid var(--stroke);background:rgba(255,255,255,.02);color:var(--ink);font-size:.88rem;line-height:1.4}
+  .flv-std .combos-saved-item b{color:var(--sky);font-weight:700}
 
   /* Second play — surfaced once a parallel perspective is added. Shows every
      completed deck as a closed face-down card with up/down arrows + DnD
@@ -1787,46 +1846,38 @@
     border-color:var(--sky);background:rgba(168,228,255,.1);
   }
   .ad-deck-custom li.notes-slot{
-    flex:1;display:flex;align-items:center;justify-content:space-between;gap:.3rem;
-    padding:.35rem .4rem;
+    flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;
+    padding:.4rem .5rem;
   }
-  /* Empty Notes slot — keep dashed-placeholder look even under swap-design,
-     which would otherwise paint the first / second / third items gold /
-     silver / bronze. */
-  .summary .ad-deck-custom li.notes-empty,
-  .summary.swap-design .ad-deck-custom li.notes-empty{
-    border:1px dashed rgba(168,228,255,.4) !important;
-    background:linear-gradient(170deg,rgba(168,228,255,.05),rgba(255,255,255,.01)) !important;
-    color:var(--muted) !important;
-    box-shadow:none !important;
-    text-shadow:none !important;
+  /* Gold / silver / bronze medal design on the three custom items — applies to
+     both the editable fields and the frozen (reordered) words. */
+  .ad-deck-custom ol > li:nth-child(1){
+    background:linear-gradient(135deg,rgba(255,224,130,.72),rgba(214,162,60,.48)),linear-gradient(170deg,#4a3a18,#2f2410);
+    border:2px solid #fadc92;color:#fffae0;
+    box-shadow:0 0 14px rgba(250,220,146,.45),0 2px 5px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25);
+    text-shadow:0 0 8px rgba(250,220,146,.5),0 1px 1px rgba(0,0,0,.35);
   }
-  .ad-deck-custom .notes-input{
-    flex:1;min-width:0;background:transparent;border:0;
-    color:var(--ink);font:500 .88rem/1.2 ui-serif,Georgia,serif;
-    padding:.15rem .25rem;
+  .ad-deck-custom ol > li:nth-child(2){
+    background:linear-gradient(135deg,rgba(221,226,236,.5),rgba(150,160,180,.32)),linear-gradient(170deg,#3a3f4a,#2a2e36);
+    border:2px solid var(--silver);color:#f2f5fa;
+    box-shadow:0 2px 5px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18);
   }
-  .ad-deck-custom .notes-input::placeholder{color:var(--muted);opacity:.7}
-  .ad-deck-custom .notes-input:focus{outline:1px solid var(--sky);outline-offset:1px;border-radius:5px}
-  .ad-deck-custom .notes-text{
-    flex:1;text-align:center;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  .ad-deck-custom ol > li:nth-child(3){
+    background:linear-gradient(135deg,rgba(219,160,102,.42),rgba(150,100,55,.3)),linear-gradient(170deg,#3a2e22,#2a2018);
+    border:2px solid var(--bronze);color:#f6e6d6;
+    box-shadow:0 2px 5px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  /* An empty field keeps a softer, dashed placeholder look over the medal tint. */
+  .ad-deck-custom li.notes-empty{ border-style:dashed !important; filter:saturate(.65) brightness(.9); }
+  .ad-deck-custom .notes-field{
+    flex:1;text-align:center;min-width:0;outline:none;
     font:600 .92rem/1.15 ui-serif,Georgia,serif;
+    overflow:hidden;white-space:nowrap;
   }
-  .ad-deck-custom .notes-actions{display:flex;gap:3px;align-items:center;flex:none}
-  .ad-deck-custom .notes-actions button{
-    width:1.5rem;height:1.5rem;border-radius:6px;
-    background:#3a3a52;border:1px solid #5a5a76;color:var(--ink);
-    font:700 .85rem/1 system-ui,sans-serif;cursor:pointer;padding:0;
-    display:grid;place-items:center;
-    transition:color .15s ease, border-color .15s ease, transform .12s ease;
+  .ad-deck-custom .notes-field:empty::before{
+    content:attr(data-ph);color:var(--muted);opacity:.75;font-style:italic;font-weight:500;
   }
-  .ad-deck-custom .notes-actions .notes-save{color:var(--brand);border-color:rgba(0,247,167,.4)}
-  .ad-deck-custom .notes-actions .notes-save:hover{transform:translateY(-1px);color:#1a1a28;background:var(--brand);border-color:var(--brand)}
-  .ad-deck-custom .notes-actions .notes-remove{color:var(--accent);border-color:rgba(255,95,220,.35)}
-  .ad-deck-custom .notes-actions .notes-remove:hover{color:#1a1a28;background:var(--accent);border-color:var(--accent)}
-  .ad-deck-custom .notes-actions .notes-edit:hover{color:var(--sky);border-color:var(--sky)}
-  /* Deck-level Save: promotes the filled custom group into a reorderable deck. */
+  /* Deck-level Save: freezes the filled custom group into a reorderable deck. */
   .ad-deck-custom .notes-savedeck{display:flex;justify-content:center;margin-top:.5rem}
   .notes-savedeck-btn{padding:.3rem .9rem;font-size:.82rem}
   /* Companion ("alt") arrow rendered next to the actual one in the Time and
@@ -2911,16 +2962,25 @@
   .pr-time{color:var(--sky);font-weight:700;font-variant-numeric:tabular-nums;font-size:.82em;margin-right:.25rem}
   .pt-newpersp{text-align:center;color:var(--muted);font-size:.84rem;margin:.1rem 0 .5rem}
   .pt-newpersp b{color:var(--sky)}
-  /* Decks tables + a perspective-comparison insight column on the right */
-  .pt-2col{display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-start}
-  .pt-tables{flex:2 1 320px;min-width:0}
-  .pt-insight-col{flex:1 1 200px;min-width:0;text-align:left}
-  .pt-insight-col:empty{display:none}
-  .pt-insight-h{margin:0 0 .5rem;font:700 .7rem/1 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .pt-insight-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.6rem}
+  /* Decks tables (full width now; insights moved above the table). */
+  .pt-tables{min-width:0}
   .pt-insight{margin:0;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(168,228,255,.25);
     background:linear-gradient(180deg,rgba(168,228,255,.06),transparent);color:var(--ink);font-size:.86rem;line-height:1.5}
-  .pt-insight-more{padding:.45rem .9rem}
+  /* Perspective insights moved above the table: a "More" button + revealed list. */
+  .std-quick-persp{display:flex;flex-direction:column;align-items:center;gap:.55rem;margin:.7rem 0 .2rem}
+  .persp-more-btn{padding:.35rem 1rem;font-size:.84rem}
+  .persp-insight-list{display:flex;flex-direction:column;gap:.5rem;width:100%;max-width:640px}
+  .persp-insight-list[hidden]{display:none}
+  /* Two-column table rows: main triad (with perspective pair) | its extra triad. */
+  .flv-std .pr-pair{display:flex;gap:1.1rem;align-items:flex-start}
+  .flv-std .pr-pair .pr-main{flex:1 1 0;min-width:0}
+  .flv-std .pr-pair .pr-extra{flex:1 1 0;min-width:0;border-left:1px solid var(--stroke);padding-left:1rem}
+  .flv-std .pr-extra-empty{border-left:1px solid transparent}
+  .flv-std .pr-extra-title{display:block;color:var(--gold);font:700 .68rem/1 system-ui,sans-serif;
+    letter-spacing:.08em;text-transform:uppercase;margin:.1rem 0 .3rem}
+  .flv-std .pt-cell-extra{opacity:.92;font-style:italic}
+  @media (max-width:560px){ .flv-std .pr-pair{flex-direction:column;gap:.35rem}
+    .flv-std .pr-pair .pr-extra{border-left:0;padding-left:0;border-top:1px solid var(--stroke);padding-top:.35rem} }
   .std-timestats .ts-row b{color:var(--sky);min-width:3.4em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
   .std-timestats .ts-total{margin:0;font-size:.95rem}
   .std-timestats .ts-total b{color:var(--gold)}
@@ -3748,6 +3808,9 @@
         <h3 class="ai-name" id="ai-name"></h3>
         <p class="ai-phrase" id="ai-phrase"></p>
         <div class="ai-chips" id="ai-chips" hidden></div>
+        <!-- Comby: the pairwise combinations of the three favourite keys; each
+             opens a record/transcribe + Save field that feeds the Summary. -->
+        <div class="ai-comby" id="ai-comby" hidden></div>
         <p class="ai-note" id="ai-note" hidden></p>
         <div class="ai-actions">
           <button class="btn btn-ghost" id="ai-cancel" type="button">Cancel</button>
@@ -5338,7 +5401,8 @@
     const persp  = (typeof parallelRows !== 'undefined') ? parallelRows.length : 0;
     const triads = state.preludeStars || 0;                       // correct triad groups
     const lvl0   = (state.preludeStars === 5) ? 10 : 0;           // completing level 0
-    const stars  = whys + persp + triads + lvl0;
+    const groupStar = (typeof notesSaved !== 'undefined' && notesSaved) ? 1 : 0;   // +1 for adding a new group
+    const stars  = whys + persp + triads + lvl0 + groupStar;
     const c = (n, label) => `<div class="cc"><b>${n}</b><span>${label}</span></div>`;
     const ps = pandaStats();
     // Pandas: clicks done (≤2 each) over total possible (2 · placeholders) + %.
@@ -5396,27 +5460,28 @@
     const dms = (i) => t.perDeck[DECKS[i].id] || 0;
 
     // Decks nested per stage (only the decks first appearing in that stage).
-    const STAGE_LABELS = ['Main Keys', 'Additional triads', 'Fivys center', 'Fivys ends'];
+    // "Main triads" (stage 0) is the top-level deck stat; its triads nest under it.
+    const STAGE_LABELS = ['Main triads', 'Additional triads', 'Fivys center', 'Fivys ends'];
     const STAGE_NEW    = [[0,1,2], [4,3], [5,6,7], [8,9]];
     let decksTree = '';
     STAGES.forEach((s, i) => {
       const ms = t.perStage[i] || 0;
       if (!ms) return;
-      decksTree += node(STAGE_LABELS[i] || cap(s.name), ms, 1);
-      (STAGE_NEW[i] || []).forEach(di => { if (dms(di)) decksTree += node(escapeHTML(DECKS[di].title), dms(di), 2); });
+      decksTree += node(STAGE_LABELS[i] || cap(s.name), ms, 0);
+      (STAGE_NEW[i] || []).forEach(di => { if (dms(di)) decksTree += node(escapeHTML(DECKS[di].title), dms(di), 1); });
     });
 
     // One merged, title-less nested list (Analysis + By-section merged).
     let mergedList = '';
     if (introMs)         mergedList += node('Intro', introMs, 0);
     if (t.perStep.step0) mergedList += node('Create groups', t.perStep.step0, 0);
-    mergedList += node('Main decks', decksTotal, 0) + decksTree;
+    mergedList += decksTree;   // "Main triads" + per-triad breakdown (no "Main decks" total)
     // Analysis sub-steps in cascade order, each with its own measured time.
     const _now = Date.now();
     const ordinalsMs = analyzeClickAt ? ((gendersClickAt || perspClickAt || _now) - analyzeClickAt) : 0;
     const gendersMs  = gendersClickAt ? ((perspClickAt || _now) - gendersClickAt) : 0;
     mergedList += node('Analysis', analisysMs, 0);
-    if (ordinalsMs)   mergedList += node('Ordinals', ordinalsMs, 1);
+    if (ordinalsMs)   mergedList += node('Extra Triads', ordinalsMs, 1);
     if (gendersMs)    mergedList += node('Genders', gendersMs, 1);
     if (secondPlayMs) mergedList += node('Additional perspective', secondPlayMs, 1);
 
@@ -5433,13 +5498,21 @@
     // Additional perspective as a child) + a comparative insight on the right.
     const $top = document.getElementById('std-timestats-top');
     if ($top){
-      let quick = node('Main decks', decksTotal, 0);   // no Analisys above the table
+      let quick = node('Main triads', decksTotal, 0);   // renamed from Main decks / Main Keys
+      if (ordinalsMs)   quick += node('Extra Triads', ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 0);
       $top.innerHTML = `<div class="std-quick-wrap">`
         + `<div class="std-quick std-tsn-list">${quick}</div>`
         + `<div class="std-quick-insight">${buildQuickInsight(decksTotal, secondPlayMs, analisysMs)}</div>`
+        + `</div>`
+        // The perspective insights moved here (above the table): a "More" button
+        // under the hint reveals/cycles them. (Was the table's right column.)
+        + `<div class="std-quick-persp">`
+        +   `<button class="btn btn-soft persp-more-btn" id="persp-more" type="button">More</button>`
+        +   `<div class="persp-insight-list" id="persp-insight-list" hidden></div>`
         + `</div>`;
       $top.hidden = !_timeStatsOn;
+      wirePerspInsights();
     }
 
     // Below the table, two columns: the merged nested list on the left, the
@@ -7497,8 +7570,17 @@
       // Go to the apps index filtered by this key.
       return `<a class="combos-key" href="index.html?filter=${slug}">${escapeHTML(w)}</a>`;
     }).join('');
+    // Saved Comby combinations (recorded/typed against each pair) sit below.
+    let saved = '';
+    if (typeof _combySaved !== 'undefined' && _combySaved.length){
+      const items = _combySaved.map(s =>
+        `<div class="combos-saved-item"><b>${escapeHTML(s.combo)}</b> — ${escapeHTML(s.text)}</div>`
+      ).join('');
+      saved = `<div class="combos-saved">${items}</div>`;
+    }
     return `<div class="combos-keys"><span class="combos-keys-title">Favourite Keys</span>${links}</div>`
-      + `<p class="combos-keys-help">Clicking in any of them will direct you to its specific apps.</p>`;
+      + `<p class="combos-keys-help">Clicking in any of them will direct you to its specific apps.</p>`
+      + saved;
   }
   // Chosen perspectives. Two columns (original | new), two rows each (one per
   // bar), percentages only, no titles; the new-perspective column is italic.
@@ -7557,21 +7639,37 @@
       `<span class="pt-cell" data-group="${id}" data-rank="${rank}">${escapeHTML(w)}</span>`
     ).join('');
     const groups = first.map(g => {
+      // Left: the main triad, with its first + second perspective rows stacked.
       const firstRow = `<div class="pr-line"><span class="pr-label">${dt(g.id)}${escapeHTML(g.title)}:</span>`
         + `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span></div>`;
       const secondRow = showSecond
         ? `<div class="pr-line pr-second"><span class="pr-label"></span>`
           + `<span class="pr-cells">${cellsHTML(g.id, secondMap[g.id] || g.words)}</span></div>`
         : '';
-      return `<div class="pr-group">${firstRow}${secondRow}</div>`;
+      // Right: the extra triad paired with this main triad (EXTRA_PAIR).
+      const extra = extraTriadFor(g.id);
+      const extraCell = (extra && extra.words.length)
+        ? `<div class="pr-extra"><span class="pr-extra-title">${escapeHTML(extra.title)}</span>`
+          + `<span class="pr-cells">${extra.words.map(w => `<span class="pt-cell pt-cell-extra">${escapeHTML(w)}</span>`).join('')}</span></div>`
+        : `<div class="pr-extra pr-extra-empty"></div>`;
+      return `<div class="pr-group pr-pair"><div class="pr-main">${firstRow}${secondRow}</div>${extraCell}</div>`;
     }).join('');
-    // Decks tables on the left, a perspective-comparison insight column on the right.
-    return `<div class="pt-2col">`
-      +   `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
-      +   `<div class="pt-insight-col" id="pt-insight-col"></div>`
-      + `</div>`
+    // Main triads (with perspective pairs) on the left, their extra triads on the right.
+    return `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
       + buildPerspectivesHTML()
       + buildCombosKeysHTML();
+  }
+  // The extra triad (Metaphysics / Space / Sectors / Time / custom group) paired
+  // with a given main triad via EXTRA_PAIR, in its current order.
+  function extraTriadFor(mainId){
+    const xid = EXTRA_PAIR[mainId];
+    if (!xid) return null;
+    const d = EXTRA_DECKS.find(e => e.id === xid);
+    if (!d) return null;
+    const order = extraOrders[xid] || d.items.map((_, i) => i);
+    const items = (d.custom && notesSaved) ? notesState.slice() : d.items;
+    const words = order.map(i => items[i]).filter(w => w != null && String(w).trim() !== '');
+    return { title: d.custom ? notesTitle : d.title, words };
   }
   // Word at each (group, rank) for quick lookups when comparing the plays.
   function playWordMap(which){
@@ -7647,7 +7745,6 @@
     // available behind the Magic toggle.
     if ($def) $def.innerHTML = buildPlayTablesHTML();
     if ($mag) $mag.innerHTML = buildMagicPhraseHTML();
-    wirePtInsight();   // the right-hand perspective-comparison insight column
     // Re-apply the comparison highlight if it has been turned on.
     applyPlayHighlight(_showPlayCompare);
   }
@@ -7662,24 +7759,22 @@
     'Subjective ↔ objective, momentual ↔ general — most keys sit somewhere in between.',
     'Holding two perspectives at once is the point: the tension between them is the insight.',
   ];
-  function wirePtInsight(){
-    const col = document.getElementById('pt-insight-col');
-    if (!col) return;
-    col.innerHTML = `<div class="pt-insight-list" id="pt-insight-list"></div>`
-      + `<button class="btn btn-soft pt-insight-more" id="pt-insight-more" type="button">More</button>`;
-    const list = col.querySelector('#pt-insight-list');
-    const btn  = col.querySelector('#pt-insight-more');
-    const MAX = 3;
-    const render = (n) => {
-      list.innerHTML = PERSP_INSIGHTS.slice(0, n).map(x => `<p class="pt-insight">${x}</p>`).join('');
-      btn.textContent = (n >= MAX) ? 'Hide' : 'More';
+  // Perspective insights now live ABOVE the table (under the time-stat hint):
+  // the "More" button reveals/cycles them, "Hide" collapses them again.
+  function wirePerspInsights(){
+    const list = document.getElementById('persp-insight-list');
+    const btn  = document.getElementById('persp-more');
+    if (!list || !btn) return;
+    const MAX = PERSP_INSIGHTS.length;
+    let shown = 0;   // 0 = collapsed
+    const render = () => {
+      if (shown === 0){ list.hidden = true; list.innerHTML = ''; btn.textContent = 'More'; return; }
+      list.hidden = false;
+      list.innerHTML = PERSP_INSIGHTS.slice(0, shown).map(x => `<p class="pt-insight">${x}</p>`).join('');
+      btn.textContent = (shown >= MAX) ? 'Hide' : 'More';
     };
-    let shown = 1;
-    render(1);   // default: one insight + a More button
-    btn.addEventListener('click', () => {
-      shown = (shown >= MAX) ? 1 : shown + 1;   // …up to 3, then Hide resets to one
-      render(shown);
-    });
+    render();
+    btn.addEventListener('click', () => { shown = (shown >= MAX) ? 0 : shown + 1; render(); });
   }
 
   // Paint the perspective bars into the Views chart slot (Bars / Vertical /
@@ -8139,6 +8234,9 @@
   // selected words drives the "more apps" surfaced via the See more "+"
   // button — those apps point to flove.org/{word} for every selected key.
   const _fpSelectedWords = new Set();
+  // Comby notes: { combo, text } saved against each pairwise combination,
+  // surfaced in the Summary below the Favourite Keys block.
+  const _combySaved = [];
   // When the user advances (next More) without choosing any favourite, seed the
   // three picks with the top (gold) item of each main triad: t1 Philosophy,
   // t2 Psicosocial, t3 Service.
@@ -8318,77 +8416,59 @@
   // "placeholder" (empty input + save) and "saved" (read-only text + edit /
   // remove). Mirrors the visual rhythm of the other ad-decks so Service ends
   // up the same width and height as the other paired triads.
+  // Show / refresh the deck-level Save button (appears once all three fields
+  // are filled). Updating only this row keeps the editable fields focused.
+  function refreshNotesSave(el){
+    el.querySelector('.notes-savedeck')?.remove();
+    const allFilled = notesState.every(v => v != null && String(v).trim() !== '');
+    if (!allFilled) return;
+    const saveRow = document.createElement('div');
+    saveRow.className = 'notes-savedeck';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-soft notes-savedeck-btn';
+    btn.textContent = 'Save';
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      notesSaved = true;
+      renderSummaryGrid();   // freeze → gold/silver/bronze deck with ↑/↓ arrows
+      if (typeof renderCounters === 'function') renderCounters();   // +1 star for the new group
+      if (typeof renderBottomSummary === 'function') renderBottomSummary();   // show it in the extra-triads column
+    });
+    saveRow.appendChild(btn);
+    el.appendChild(saveRow);
+  }
+  // Three inline-editable "new word" fields styled gold / silver / bronze (no
+  // per-field checkbox). The deck-level Save below freezes them once all filled.
   function paintNotesDeck(el){
     const list = el.querySelector('ol');
     list.innerHTML = '';
-    el.querySelector('.notes-savedeck')?.remove();   // drop any prior save row
     notesState.forEach((val, idx) => {
       const li = document.createElement('li');
-      li.className = 'notes-slot' + (val == null ? ' notes-empty' : ' notes-saved');
-      if (val == null){
-        li.innerHTML = `
-          <input type="text" class="notes-input" placeholder="new item" aria-label="Item ${idx+1}" />
-          <span class="notes-actions">
-            <button class="notes-save" data-act="save" aria-label="Save item" title="save">✓</button>
-          </span>
-        `;
-        const $inp  = li.querySelector('.notes-input');
-        const $save = li.querySelector('[data-act="save"]');
-        const commit = () => {
-          const txt = $inp.value.trim();
-          if (!txt) return;
-          notesState[idx] = txt;
-          paintNotesDeck(el);
-        };
-        $save.addEventListener('click', e => { e.stopPropagation(); commit(); });
-        $inp.addEventListener('keydown', e => {
-          if (e.key === 'Enter'){ e.preventDefault(); commit(); }
-        });
-      } else {
-        li.innerHTML = `
-          <span class="nm notes-text">${escapeHTML(val)}</span>
-          <span class="notes-actions">
-            <button class="notes-edit"   data-act="edit"   aria-label="Edit item"   title="edit">✎</button>
-            <button class="notes-remove" data-act="remove" aria-label="Remove item" title="remove">✕</button>
-          </span>
-        `;
-        li.querySelector('[data-act="edit"]').addEventListener('click', e => {
-          e.stopPropagation();
-          notesState[idx] = null;
-          paintNotesDeck(el);
-          requestAnimationFrame(() => {
-            const $inp = el.querySelectorAll('.notes-input')[
-              notesState.slice(0, idx).filter(v => v == null).length
-            ];
-            if ($inp){ $inp.value = val; $inp.focus(); }
-          });
-        });
-        li.querySelector('[data-act="remove"]').addEventListener('click', e => {
-          e.stopPropagation();
-          notesState[idx] = null;
-          paintNotesDeck(el);
-        });
-      }
+      const filled = val != null && String(val).trim() !== '';
+      li.className = 'notes-slot' + (filled ? ' notes-filled' : ' notes-empty');
+      const field = document.createElement('span');
+      field.className = 'nm notes-field';
+      field.contentEditable = 'true';
+      field.spellcheck = false;
+      field.dataset.ph = 'new word';
+      if (filled) field.textContent = val;
+      field.addEventListener('input', () => {
+        const t = field.textContent.trim();
+        notesState[idx] = t === '' ? null : t;
+        li.classList.toggle('notes-empty', t === '');
+        li.classList.toggle('notes-filled', t !== '');
+        refreshNotesSave(el);
+      });
+      field.addEventListener('keydown', e => {
+        if (e.key === 'Enter'){ e.preventDefault(); field.blur(); }
+      });
+      // Clicking the field shouldn't bubble up to the deck (which would collapse it).
+      field.addEventListener('click', e => e.stopPropagation());
+      li.appendChild(field);
       list.appendChild(li);
     });
-    // Once all three items are filled, offer a deck-level Save that promotes the
-    // group to a normal reorderable deck.
-    const allFilled = notesState.every(v => v != null && String(v).trim() !== '');
-    if (allFilled){
-      const saveRow = document.createElement('div');
-      saveRow.className = 'notes-savedeck';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-soft notes-savedeck-btn';
-      btn.textContent = 'Save';
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        notesSaved = true;
-        renderSummaryGrid();   // re-render → promoted deck with ↑/↓ arrows
-      });
-      saveRow.appendChild(btn);
-      el.appendChild(saveRow);
-    }
+    refreshNotesSave(el);
   }
 
   function paintExtraDeck(d, el){
@@ -8580,8 +8660,8 @@
     confluences: '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M26 16 L50 54 L74 16"/><path d="M50 54 L50 86"/></g></svg>',
   };
   const RELATED_FIRST = [
-    { key:'combos',      label:'Combos',      href:'combos.html' },
-    { key:'confluences', label:'Confluences', href:'confluenty.html' },
+    { key:'combos',      label:'Comby',       href:'comby.html' },
+    { key:'confluences', label:'Confluenty',  href:'confluenty.html' },
     { key:'fivys',       label:'Fivy',        fivysTrigger:true },
   ];
   const RELATED_MORE = [
@@ -8595,8 +8675,8 @@
   // Per-app intro phrase shown in the overlay before navigating. Falls back
   // to APP_INTROS.default for any unmapped app.
   const APP_INTROS = {
-    combos:   "Combos blends your keys into new shapes — pick which to take with you.",
-    confluences: "Confluences finds where your keys flow together.",
+    combos:   "Comby blends your keys into new shapes — pick which to take with you.",
+    confluences: "Confluenty finds where your keys flow together.",
     fivys:  "Fivy expands your triads into five-pointed keys, right here on this same page.",
     pracsys:  "PracSys maps your practice into a system of acts you can practise.",
     souls:    "Souls invites you to name what moves your inner world.",
@@ -8802,19 +8882,35 @@
       $chips.hidden = true;
       $chips.innerHTML = '';
     }
-    // Combos gets an extra prompt to take the keywords further.
-    const $note = document.getElementById('ai-note');
-    if ($note){
-      if (opts.key === 'combos'){
-        $note.hidden = false;
-        $note.textContent = 'Define these keywords further';
+    const $note  = document.getElementById('ai-note');
+    const $comby = document.getElementById('ai-comby');
+    const isComby = opts.key === 'combos';
+    // Comby: the icon + title open the full Comby app (comby.html); the overlay
+    // body lists the pairwise combinations with a record/transcribe + Save field.
+    const combyHref = isComby ? (opts.href || 'comby.html') : '';
+    [$icon, $name].forEach($el => {
+      if (!$el) return;
+      $el.classList.toggle('ai-linked', isComby);
+      $el.onclick = isComby ? (() => { window.location.href = combyHref; }) : null;
+    });
+    if ($comby){
+      if (isComby){
+        $phr.hidden = true;
+        if ($note) $note.hidden = true;
+        $comby.hidden = false;
+        buildCombyUI($comby);
+        $go.textContent = 'Done';
       } else {
-        $note.hidden = true;
-        $note.textContent = '';
+        $phr.hidden = false;
+        $comby.hidden = true;
+        $comby.innerHTML = '';
+        $go.textContent = 'Go →';
+        if ($note){ $note.hidden = true; $note.textContent = ''; }
       }
     }
     $go.onclick = () => {
       $bd.hidden = true;
+      if (isComby) return;   // Comby: Done just closes; combinations live in the Summary
       if (typeof opts.onGo === 'function'){ opts.onGo(); return; }
       if (opts.href){
         if (opts.external) window.open(opts.href, '_blank', 'noopener');
@@ -8822,6 +8918,77 @@
       }
     };
     $bd.hidden = false;
+  }
+  // Build the pairwise (A+B, A+C, B+C) combinations of the three favourite keys,
+  // each expandable into a record/transcribe + Save field that feeds the Summary.
+  function buildCombyUI($comby){
+    const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
+    $comby.innerHTML = '';
+    if (picks.length < 2){
+      $comby.innerHTML = `<p class="comby-unsupported">Pick your three favourite keys first to combine them.</p>`;
+      return;
+    }
+    // Pairwise combinations only (no repeats, unordered).
+    const pairs = [];
+    for (let i = 0; i < picks.length; i++)
+      for (let j = i + 1; j < picks.length; j++)
+        pairs.push([picks[i], picks[j]]);
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    pairs.forEach(([a, b]) => {
+      const label = `${a} ${b}`;   // no "+" between the chosen words
+      const combo = document.createElement('div');
+      combo.className = 'comby-combo';
+      combo.innerHTML = `
+        <button class="comby-combo-head" type="button">
+          <span>${escapeHTML(label)}</span><span class="comby-chev" aria-hidden="true">›</span>
+        </button>
+        <div class="comby-rec">
+          <div class="comby-rec-row">
+            <button class="comby-mic" type="button" title="${SR ? 'Record' : 'Type below'}" aria-label="Record">🎤</button>
+            <div class="comby-field" contenteditable="true" role="textbox" aria-label="Transcript for ${escapeHTML(label)}" data-ph="Say or type something about ${escapeHTML(label)}…"></div>
+          </div>
+          <button class="comby-save btn btn-soft" type="button" disabled>Save</button>
+        </div>`;
+      const head  = combo.querySelector('.comby-combo-head');
+      const mic   = combo.querySelector('.comby-mic');
+      const field = combo.querySelector('.comby-field');
+      const save  = combo.querySelector('.comby-save');
+      head.addEventListener('click', () => combo.classList.toggle('is-open'));
+      const refreshSave = () => { save.disabled = field.textContent.trim() === ''; };
+      field.addEventListener('input', refreshSave);
+      // Web Speech API recorder (toggle). Transcribes into the field.
+      let rec = null;
+      mic.addEventListener('click', () => {
+        if (!SR){ field.focus(); return; }
+        if (rec){ rec.stop(); return; }
+        rec = new SR();
+        rec.lang = navigator.language || 'en-US';
+        rec.interimResults = true;
+        rec.continuous = true;
+        const base = field.textContent ? field.textContent + ' ' : '';
+        rec.onresult = (e) => {
+          let txt = '';
+          for (let k = 0; k < e.results.length; k++) txt += e.results[k][0].transcript;
+          field.textContent = (base + txt).trim();
+          refreshSave();
+        };
+        const stop = () => { mic.classList.remove('is-recording'); rec = null; };
+        rec.onerror = stop; rec.onend = stop;
+        mic.classList.add('is-recording');
+        rec.start();
+      });
+      save.addEventListener('click', () => {
+        const text = field.textContent.trim();
+        if (!text) return;
+        if (rec){ rec.stop(); }
+        _combySaved.push({ combo: label, text });
+        if (typeof renderBottomSummary === 'function') renderBottomSummary();
+        field.textContent = '';   // leave it empty to add another
+        refreshSave();
+        field.focus();
+      });
+      $comby.appendChild(combo);
+    });
   }
 
   // Global cancel + Esc handling for the app-intro overlay.

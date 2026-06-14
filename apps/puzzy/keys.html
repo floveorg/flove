@@ -84,13 +84,6 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .topbar-spacer{flex:1}
-  /* "More" button highlighted + moving after a perspective is saved */
-  @keyframes save-attn{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.06) translateY(-3px)}}
-  .save-highlight{
-    animation:save-attn 1.2s ease-in-out infinite;
-    box-shadow:0 0 0 2px var(--brand),0 0 18px 4px rgba(0,247,167,.45);
-    border-color:var(--brand) !important;
-  }
 
   /* ===== blogynormal-style menu panel (anchored under the brand, left) ===== */
   .menu-panel{
@@ -513,10 +506,35 @@
   /* All pandas clickable, with two looping fun effects (scale/rotate keep
      each panda's own transform/centering intact). */
   .corner-panda, .intro-panda, .chooser-panda, .prelude-check-panda, .deck-panda{pointer-events:auto;cursor:pointer}
-  .pfx-a{animation:pfx-a .6s ease}
-  .pfx-b{animation:pfx-b .65s ease}
-  @keyframes pfx-a{0%,100%{scale:1;rotate:0deg}30%{scale:1.28;rotate:-14deg}60%{scale:1.08;rotate:11deg}}
-  @keyframes pfx-b{0%,100%{scale:1;rotate:0deg;filter:none}50%{scale:1.2;rotate:9deg;filter:drop-shadow(0 0 14px rgba(255,95,220,.85)) hue-rotate(45deg)}}
+  /* Per-panda click effects — a distinct one keyed to each panda placeholder.
+     All use the individual scale/rotate/filter properties so the element's own
+     transform (e.g. translateX(-50%) centering on deck pandas) stays intact. */
+  .pfx-1{animation:pfx-1 .60s ease}
+  .pfx-2{animation:pfx-2 .65s ease}
+  .pfx-3{animation:pfx-3 .60s ease}
+  .pfx-4{animation:pfx-4 .70s ease}
+  .pfx-5{animation:pfx-5 .55s ease}
+  .pfx-6{animation:pfx-6 .60s ease}
+  @keyframes pfx-1{0%,100%{scale:1;rotate:0deg}30%{scale:1.32;rotate:-15deg}60%{scale:1.08;rotate:12deg}}                                  /* big bounce + tilt */
+  @keyframes pfx-2{0%,100%{scale:1;rotate:0deg;filter:none}50%{scale:1.2;rotate:8deg;filter:drop-shadow(0 0 14px rgba(255,95,220,.85)) hue-rotate(50deg)}} /* glow pulse */
+  @keyframes pfx-3{0%,100%{rotate:0deg}18%{rotate:-17deg}38%{rotate:13deg}58%{rotate:-9deg}80%{rotate:5deg}}                               /* wobble side-to-side */
+  @keyframes pfx-4{0%{rotate:0deg;scale:1}50%{scale:1.16}100%{rotate:360deg;scale:1}}                                                      /* full spin */
+  @keyframes pfx-5{0%,100%{scale:1 1}30%{scale:1.32 .76}62%{scale:.82 1.22}}                                                              /* squash & stretch */
+  @keyframes pfx-6{0%,100%{scale:1;filter:none}25%{scale:1.12;filter:brightness(1.6)}55%{scale:1.05;filter:brightness(1) saturate(2)}80%{scale:1.13;filter:brightness(1.4)}} /* shiver + flash */
+  /* Floating particles that burst around a panda on click. */
+  .panda-particle{
+    position:fixed;z-index:120;pointer-events:none;user-select:none;
+    font-size:1.05rem;line-height:1;will-change:transform,opacity;
+    animation:panda-particle-float .9s ease-out forwards;
+  }
+  @keyframes panda-particle-float{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+    18%{opacity:1}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,-44px))) scale(1.15)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .panda-particle{animation-duration:.5s}
+  }
   @keyframes deck-fade-in{from{opacity:0;transform:translateX(-50%)}to{opacity:1;transform:translateX(-50%)}}
   /* 3 effects in a loop: pulse + tilt left + tilt right */
   @keyframes deck-3fx{0%,100%{transform:translateX(-50%) scale(1) rotate(0)}33%{transform:translateX(-50%) scale(1.12) rotate(-7deg)}66%{transform:translateX(-50%) scale(1.12) rotate(7deg)}}
@@ -700,6 +718,24 @@
   /* ============== Stage CTAs ============== */
   .stage-cta{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;margin-top:6px}
   .stage-cta:empty{display:none}
+
+  /* ---- Stage-0 (and play) buttons: refined serif font + a satisfying press.
+     Targets the deck "Done" button and the play CTA. ---- */
+  #done-btn,
+  .stage-cta .btn,
+  .stage-cta-below .btn{
+    font:700 1rem/1 ui-serif,Georgia,serif;letter-spacing:.5px;
+    transition:transform .12s ease, box-shadow .2s ease, filter .15s ease;
+  }
+  #done-btn:hover,
+  .stage-cta .btn:hover,
+  .stage-cta-below .btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+  #done-btn:active,
+  .stage-cta .btn:active,
+  .stage-cta-below .btn:active{transform:translateY(1px) scale(.97)}
+  @keyframes btn-press-pop{0%{box-shadow:0 0 0 0 rgba(0,247,167,.55)}100%{box-shadow:0 0 0 16px rgba(0,247,167,0)}}
+  #done-btn:active{animation:btn-press-pop .45s ease-out}
+  @media (prefers-reduced-motion: reduce){ #done-btn:active{animation:none} }
 
   /* ============== Finished view ============== */
   .summary{
@@ -918,7 +954,8 @@
   .play-more-row:not(:has(.play-more-btn:not([hidden]))){display:none}
   /* Prompt shown above the decks while Play more is engaged. */
   .play-more-hint{
-    margin:.2rem auto .8rem;max-width:60ch;text-align:center;align-self:center;
+    display:block;width:100%;margin:.2rem auto .8rem;max-width:60ch;
+    text-align:center;align-self:center;
     color:var(--sky);font-size:.98rem;font-weight:600;letter-spacing:.2px;
   }
   .play-more-hint[hidden]{display:none}
@@ -1720,6 +1757,20 @@
   }
   .ad-deck li .ad-arrows button:hover{color:var(--accent);border-color:var(--accent)}
   .ad-deck li .ad-arrows button:disabled{opacity:.3;cursor:not-allowed}
+  /* ---- Card names clearer + reorder arrows sharper ---- */
+  .deck-done li .nm,
+  .summary-triads .deck-done.in-summary li .nm,
+  .ad-deck li .nm,
+  .sp-deck-open .sp-nm{
+    font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.55);
+  }
+  .ad-deck li .ad-arrows button,
+  .sp-item-arrows button,
+  .deck-done .ad-arrows button{
+    font-weight:800;font-size:.98rem;line-height:1;border-width:1.5px;
+    text-shadow:0 1px 1px rgba(0,0,0,.4);
+    -webkit-font-smoothing:antialiased;font-feature-settings:"ss01";
+  }
   /* Notes (x5) — user-editable placeholder paired with Service. Same outer
      proportions as the other ad-decks; each row is either an input (empty)
      or a saved note with edit / remove controls. */
@@ -1775,6 +1826,9 @@
   .ad-deck-custom .notes-actions .notes-remove{color:var(--accent);border-color:rgba(255,95,220,.35)}
   .ad-deck-custom .notes-actions .notes-remove:hover{color:#1a1a28;background:var(--accent);border-color:var(--accent)}
   .ad-deck-custom .notes-actions .notes-edit:hover{color:var(--sky);border-color:var(--sky)}
+  /* Deck-level Save: promotes the filled custom group into a reorderable deck. */
+  .ad-deck-custom .notes-savedeck{display:flex;justify-content:center;margin-top:.5rem}
+  .notes-savedeck-btn{padding:.3rem .9rem;font-size:.82rem}
   /* Companion ("alt") arrow rendered next to the actual one in the Time and
      Sectors extras (paired with Journalism / Economy). Different colour,
      slightly larger / glowier, but non-interactive — purely decorative. */
@@ -2832,6 +2886,16 @@
   .std-counters-grid .cc{display:flex;flex-direction:column;align-items:center;gap:2px}
   .std-counters-grid .cc b{color:var(--gold);font:700 1.25rem/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}
   .std-counters-grid .cc span{color:var(--muted);font:600 .66rem/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+  /* Two-column counters: one stat per row; right column holds the panda stats. */
+  .std-counters-grid.two-col{align-items:flex-start;gap:0 2.6rem}
+  .std-counters-grid.two-col .cc-col{display:flex;flex-direction:column;gap:.9rem;min-width:0}
+  .std-counters-grid.two-col .cc-col-right{border-left:1px solid var(--stroke);padding-left:2.4rem}
+  .std-counters-grid.two-col .cc-pandas b{color:var(--gold)}
+  .std-counters-grid.two-col .cc-col-title{
+    margin:0 0 .2rem;text-align:center;
+    font:700 .64rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);
+  }
   /* Merged nested stats list: level-0 bold + 25% bigger; 1–2 indented counts */
   .std-tsn-list{display:flex;flex-direction:column;gap:.16rem;text-align:left}
   .tsn{display:flex;gap:.55rem;align-items:baseline;font-size:.86rem;color:var(--ink)}
@@ -3306,213 +3370,7 @@
     .flv-std .action-row.right{justify-content:flex-start}
     .flv-std .wizardry-grid{grid-template-columns:repeat(2,1fr)}
   }
-  /* ================= Stage 4 — embedded Confluences ==================
-     Ported from puzzy/relate/confluences, fully scoped under #stage4 so it
-     can't collide with keys' own .list/.clause/.step-panel/.summary etc. */
-  #stage4{
-    --c1:#565a68; --c2:#6a6790; --c3:#8d89ff; --c4:#70f0d3;
-    --c5:#74d6e6; --c6:#5f7796; --c7:#565a68;
-    --g1:var(--ink); --g2:var(--ink);
-    --g3:#0b0b14; --g4:#0b0b14; --g5:#0b0b14;
-    --g6:var(--ink); --g7:var(--ink);
-    --line:var(--stroke); --field:var(--fx);
-    --app-accent:#8d89ff; --app-accent-soft:#c9c6ff; --app-ink-on-accent:#0b0b14; --accent2:#70f0d3;
-    max-width:1100px; margin:1.4rem auto 0; display:block;
-  }
-  #stage4[hidden]{display:none}
-  #stage4 .s4-board{ display:grid; gap:14px; padding:0 4px }
-  #stage4 .list{
-    margin:0; padding:10px; list-style:none; border-radius:16px;
-    display:grid; grid-template-columns:repeat(7,1fr); align-items:center; min-height:72px;
-    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
-    border:1px solid var(--line);
-  }
-  #stage4 .list > li{
-    justify-self:stretch; align-self:center; text-align:center;
-    padding:.85rem 2px; font-weight:700; font-size:1.05rem; border-radius:12px; border:none;
-    background:var(--col, #888); color:var(--fg, var(--app-ink-on-accent));
-    box-shadow:0 10px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  #stage4 .list.len-1 > li:nth-child(1){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
-  #stage4 .list.len-3 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
-  #stage4 .list.len-3 > li:nth-child(2){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
-  #stage4 .list.len-3 > li:nth-child(3){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
-  #stage4 .list.len-5 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
-  #stage4 .list.len-5 > li:nth-child(2){ grid-column:3/4; --col:var(--c3); --fg:var(--g3); }
-  #stage4 .list.len-5 > li:nth-child(3){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
-  #stage4 .list.len-5 > li:nth-child(4){ grid-column:5/6; --col:var(--c5); --fg:var(--g5); }
-  #stage4 .list.len-5 > li:nth-child(5){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); }
-  #stage4 .list.len-7 > li:nth-child(1){ grid-column:1/2; --col:var(--c1); --fg:var(--g1); }
-  #stage4 .list.len-7 > li:nth-child(2){ grid-column:2/3; --col:var(--c2); --fg:var(--g2); }
-  #stage4 .list.len-7 > li:nth-child(3){ grid-column:3/4; --col:var(--c3); --fg:var(--g3); }
-  #stage4 .list.len-7 > li:nth-child(4){ grid-column:4/5; --col:var(--c4); --fg:var(--g4); }
-  #stage4 .list.len-7 > li:nth-child(5){ grid-column:5/6; --col:var(--c5); --fg:var(--g5); }
-  #stage4 .list.len-7 > li:nth-child(6){ grid-column:6/7; --col:var(--c6); --fg:var(--g6); position:relative; z-index:2; border-right:2px solid var(--line); }
-  #stage4 .list.len-7 > li:nth-child(7){ grid-column:7/8; --col:var(--c7); --fg:var(--g7); border-left:0; margin-left:-2px; }
-  /* Confluence centre emphasis */
-  #stage4 .list.len-1 > li:nth-child(1),
-  #stage4 .list.len-3 > li:nth-child(2),
-  #stage4 .list.len-5 > li:nth-child(3),
-  #stage4 .list.len-7 > li:nth-child(4){
-    position:relative; z-index:2; transform:scale(1.1); font-size:1.2rem;
-    box-shadow:0 0 0 2px var(--accent2), 0 0 22px rgba(112,240,211,.45), 0 16px 32px rgba(0,0,0,.5);
-    filter:saturate(1.15) brightness(1.06);
-  }
-  /* Animate — confluence wave (toggled by #stage4.is-animating) */
-  @keyframes s4Wave-mid  { 0%,100%{ transform:scale(1.5)  } 50%{ transform:scale(1) } }
-  @keyframes s4Wave-flank{ 0%,100%{ transform:scale(1.25) } 50%{ transform:scale(1) } }
-  @keyframes s4Wave-edge { 0%,100%{ transform:scale(1)    } 40%,60%{ transform:scale(1.5) } }
-  @keyframes s4Wave-r3   { 0%,100%{ transform:scale(1.3)  } 50%{ transform:scale(1.15) } }
-  @keyframes s4Wave-r2   { 0%,100%{ transform:scale(1.15) } 50%{ transform:scale(1.3)  } }
-  #stage4.is-animating .list > li{ transform-origin:center center; position:relative; }
-  #stage4.is-animating .list.len-3 > li:nth-child(1){ animation:s4Wave-edge 7s ease-in-out infinite; z-index:1 }
-  #stage4.is-animating .list.len-3 > li:nth-child(2){ animation:s4Wave-mid  7s ease-in-out infinite; z-index:3 }
-  #stage4.is-animating .list.len-3 > li:nth-child(3){ animation:s4Wave-edge 7s ease-in-out infinite; z-index:1 }
-  #stage4.is-animating .list.len-5 > li:nth-child(1){ animation:s4Wave-edge  7s ease-in-out infinite; z-index:1 }
-  #stage4.is-animating .list.len-5 > li:nth-child(2){ animation:s4Wave-flank 7s ease-in-out infinite; z-index:2 }
-  #stage4.is-animating .list.len-5 > li:nth-child(3){ animation:s4Wave-mid   7s ease-in-out infinite; z-index:3 }
-  #stage4.is-animating .list.len-5 > li:nth-child(4){ animation:s4Wave-flank 7s ease-in-out infinite; z-index:2 }
-  #stage4.is-animating .list.len-5 > li:nth-child(5){ animation:s4Wave-edge  7s ease-in-out infinite; z-index:1 }
-  #stage4.is-animating .list.len-7 > li:nth-child(1){ animation:s4Wave-edge 7s ease-in-out infinite; z-index:1 }
-  #stage4.is-animating .list.len-7 > li:nth-child(2){ animation:s4Wave-r2   7s ease-in-out infinite; z-index:2 }
-  #stage4.is-animating .list.len-7 > li:nth-child(3){ animation:s4Wave-r3   7s ease-in-out infinite; z-index:3 }
-  #stage4.is-animating .list.len-7 > li:nth-child(4){ animation:s4Wave-mid  7s ease-in-out infinite; z-index:4 }
-  #stage4.is-animating .list.len-7 > li:nth-child(5){ animation:s4Wave-r3   7s ease-in-out infinite; z-index:3 }
-  #stage4.is-animating .list.len-7 > li:nth-child(6){ animation:s4Wave-r2   7s ease-in-out infinite; z-index:2 }
-  #stage4.is-animating .list.len-7 > li:nth-child(7){ animation:s4Wave-edge 7s ease-in-out infinite; z-index:1 }
-  @media (prefers-reduced-motion: reduce){ #stage4.is-animating .list > li{ animation:none !important; } }
-  /* Controls */
-  #stage4 .controls{ display:flex; flex-direction:column; align-items:center; gap:16px; margin:0 auto 1rem; }
-  #stage4 .controls-row{ display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; }
-  #stage4 .nodebar{ position:relative; display:flex; align-items:center; flex:1 1 320px; max-width:440px; }
-  #stage4 .nodebar::before{ content:""; position:absolute; left:9%; right:calc(9% + 10px); top:24px; height:3px; background:var(--line); border-radius:2px; z-index:0; }
-  #stage4 .node{ position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 4px 4px; cursor:pointer; }
-  #stage4 .node input{ position:absolute; opacity:0; pointer-events:none; }
-  #stage4 .node-dot{ width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:var(--field); transition:background .15s,border-color .15s,box-shadow .15s; }
-  #stage4 .node-num{ font-weight:700; font-size:.95rem; color:var(--muted); transition:color .15s; }
-  #stage4 .node input:checked ~ .node-dot{ background:var(--app-accent); border-color:var(--app-accent); box-shadow:0 0 0 4px rgba(141,137,255,.22); }
-  #stage4 .node input:checked ~ .node-num{ color:var(--ink); }
-  #stage4 .top-btn{ font-size:.85rem; font-weight:700; padding:6px 16px; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--muted); cursor:pointer; user-select:none; }
-  #stage4:has(#s4-top:checked) .top-btn{ background:var(--app-accent); border-color:var(--app-accent); color:var(--app-ink-on-accent); }
-  #stage4 .anim-btn{ font-size:.85rem; font-weight:700; padding:6px 16px; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--muted); cursor:pointer; }
-  #stage4 .anim-btn[aria-pressed="true"]{ background:var(--accent2); border-color:var(--accent2); color:var(--app-ink-on-accent); }
-  #stage4 .create-btn{ font:inherit; font-weight:700; font-size:1rem; padding:.7rem 1.5rem; border-radius:12px; border:none; background:var(--app-accent); color:var(--app-ink-on-accent); cursor:pointer; box-shadow:0 8px 20px rgba(141,137,255,.3); }
-  /* Progressive reveal: bar + numbers first; See some/Create on a checked node;
-     Animate once See some is on or a row exists. */
-  #stage4 .top-btn, #stage4 .create-btn, #stage4 .anim-btn{ display:none; }
-  #stage4:has(.node-cb:checked) .top-btn{ display:inline-block; }
-  #stage4:has(.node-cb:checked) .create-btn{ display:inline-block; }
-  #stage4:has(#s4-top:checked) .anim-btn,
-  #stage4:has(.s4-entry) .anim-btn{ display:inline-block; }
-  #stage4 .create-btn:hover{ filter:brightness(1.06); }
-  #stage4 #s4-rows{ display:grid; gap:14px; }
-  #stage4 #s4-rows:empty{ display:none; }
-  #stage4 #s4-favs{ display:none; }
-  #stage4:has(#s4-top:checked) #s4-favs{ display:grid; gap:14px; }
-  #stage4:has(#s4-top:checked) #s4-favs .fav-entry{ display:none; }
-  #stage4:has(#s4-top:checked):has(.node-cb[value="3"]:checked) #s4-favs .fav-entry:has(.list.len-3){ display:flex; }
-  #stage4:has(#s4-top:checked):has(.node-cb[value="5"]:checked) #s4-favs .fav-entry:has(.list.len-5){ display:flex; }
-  #stage4:has(#s4-top:checked):has(.node-cb[value="7"]:checked) #s4-favs .fav-entry:has(.list.len-7){ display:flex; }
-  #stage4 .crow{ display:flex; align-items:stretch; gap:8px; }
-  #stage4 .crow .list{ flex:1; margin:0; }
-  #stage4 .crow-side{ display:flex; flex-direction:column; justify-content:center; gap:5px; }
-  #stage4 .crow-side button{ width:36px; height:26px; border-radius:8px; border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; line-height:1; display:grid; place-items:center; font-size:.95rem; }
-  #stage4 .crow-side button:hover{ border-color:var(--app-accent); color:var(--app-accent); }
-  #stage4 .list > li.ph{ outline:none; min-width:0; }
-  #stage4 .list > li.ph:empty::before{ content:attr(data-ph); opacity:.5; font-weight:600; }
-  #stage4 .list > li.ph:focus{ box-shadow:0 0 0 3px var(--app-accent-soft), 0 10px 22px rgba(0,0,0,.35); }
-  /* Per-row Save (shown once every cell is filled) → saved row shows ↑/↓ + ✕ */
-  #stage4 .s4-entry .crow-save{
-    display:none; margin:.5rem auto 0; padding:.4rem 1.1rem; cursor:pointer;
-    border-radius:999px; border:1px solid var(--accent2); background:transparent;
-    color:var(--accent2); font-weight:700; font-size:.8rem;
-  }
-  #stage4 .s4-entry.fillable .crow-save{ display:block; }
-  #stage4 .s4-entry.saved .crow-save{ display:none; }
-  #stage4 .cr-del{ display:none; }
-  /* Up/down arrows only appear once a row is saved; unsaved shows just ＋ */
-  #stage4 .cr-up, #stage4 .cr-down{ display:none; }
-  #stage4 .s4-entry.saved .cr-up, #stage4 .s4-entry.saved .cr-down{ display:grid; }
-  /* "add" button below each row's list (replaces the old ＋); hidden once saved */
-  #stage4 .crow-add{
-    display:block; margin:.45rem auto 0; padding:.32rem .9rem; cursor:pointer;
-    border-radius:999px; border:1px dashed var(--line); background:transparent;
-    color:var(--app-accent-soft); font-weight:700; font-size:.78rem;
-  }
-  #stage4 .crow-add:hover{ border-color:var(--app-accent); color:var(--app-accent); }
-  #stage4 .s4-entry.saved .crow-add{ display:none; }
-  #stage4 .s4-entry.saved .cr-del{ display:grid; color:#ff8a8a; }
-  #stage4 .s4-entry.saved .cr-del:hover{ border-color:#ff8a8a; color:#ff8a8a; }
-  #stage4 #s4-saved:empty{ display:none; }
-  /* Love button at the right end of every Top (favourite) confluence */
-  #stage4 .fav-entry{ display:flex; align-items:center; gap:8px; }
-  #stage4 .fav-entry .list{ flex:1; margin:0; }
-  #stage4 .fav-love{
-    flex:none; background:none; border:none; cursor:pointer; padding:0 6px;
-    font-size:2rem; line-height:1; color:var(--accent2); opacity:.5;
-    transition:opacity .15s ease, transform .15s ease;
-  }
-  #stage4 .fav-love:hover{ opacity:.85; transform:scale(1.08); }
-  #stage4 .fav-love[aria-pressed="true"]{ opacity:1; }
-  /* Stage-4 (Confluences) phrase, surfaced inside the main keys summary */
-  /* Results tables inside the summary text area (below the keys). 7 columns,
-     items placed on the confluence positions, the centre swelling outward:
-     col 1/7 base · 2/6 +25% · 3/5 +50% · 4 +75%. */
-  .conf-results{ margin:1rem 0 .2rem; }
-  .conf-results[hidden]{ display:none; }
-  .conf-centred{ margin:1.2rem auto .4rem; max-width:760px; text-align:center; }
-  .conf-centred .conf-grid-table{ margin:0 auto; }
-  .conf-results h4{ margin:.6rem 0 .4rem; text-align:center; color:var(--gold); font:700 .85rem/1 ui-serif,Georgia,serif; letter-spacing:.4px; }
-  .conf-grid-table{ width:100%; border-collapse:collapse; table-layout:fixed; }
-  .conf-grid-table td{ text-align:center; padding:.3rem .15rem; color:var(--ink); line-height:1.2; word-break:break-word; }
-  .conf-grid-table td:nth-child(1), .conf-grid-table td:nth-child(7){ font-size:.8rem; }
-  .conf-grid-table td:nth-child(2), .conf-grid-table td:nth-child(6){ font-size:1rem; }
-  .conf-grid-table td:nth-child(3), .conf-grid-table td:nth-child(5){ font-size:1.2rem; }
-  .conf-grid-table td:nth-child(4){ font-size:1.4rem; }
-  .conf-grid-table tr + tr td{ border-top:1px solid var(--stroke); }
 
-  /* Stage 5 iframe (embedded fivy) + the 6th highlighted/moving progress bar */
-  .s5-frame{ width:100%; height:80vh; border:0; border-radius:14px; background:transparent; }
-  .stage-progress .seg.seg-new{
-    animation:segNew 1s ease-in-out infinite;
-    box-shadow:0 0 10px var(--accent), 0 0 4px var(--accent);
-  }
-  @keyframes segNew{
-    0%,100%{ transform:translateX(0); opacity:1; }
-    50%{ transform:translateX(4px); opacity:.55; }
-  }
-  /* End actions: [Go back · Continue to Stage 5] row, with Finish below */
-  #stage4 .stage4-end{ display:flex; flex-direction:column; align-items:center; gap:10px; margin:1.4rem 0 2rem; }
-  #stage4 .stage4-end[hidden]{ display:none }
-  #stage4 .s4-end-row{ display:flex; justify-content:center; gap:12px; }
-  #stage4 .stage4-end .btn{ font:inherit; font-weight:700; padding:.6rem 1.3rem; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; }
-  /* Continue to Stage 5 + Finish share the app-accent look + hover of Create. */
-  #stage4 .stage4-end .btn-primary,
-  #stage4 .stage4-end .s4-finish{
-    background:var(--app-accent); border-color:var(--app-accent); color:var(--app-ink-on-accent);
-    box-shadow:0 8px 20px rgba(141,137,255,.3);
-  }
-  #stage4 .stage4-end .btn-primary:hover,
-  #stage4 .stage4-end .s4-finish:hover{ filter:brightness(1.06); }
-
-  /* ===== Stage 5 — fivy-style deck fill (4 untapped decks + 1 void) ===== */
-  #stage5{ max-width:1100px; margin:1.4rem auto 0; }
-  #stage5[hidden]{ display:none; }
-  #stage5 .s5-head{ text-align:center; color:var(--muted); font-size:.95rem; margin:.4rem 0 1rem; }
-  #stage5 .s5-decks{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; }
-  #stage5 .s5-deck{ min-width:160px; flex:0 1 180px; padding:.7rem .8rem; border:1px solid var(--stroke); border-radius:12px; background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02)); }
-  #stage5 .s5-deck.void{ border-color:rgba(112,240,211,.5); }
-  #stage5 .s5-deck h4{ margin:0 0 .5rem; text-align:center; color:var(--gold); font:700 .78rem/1 ui-serif,Georgia,serif; text-transform:uppercase; letter-spacing:.4px; }
-  #stage5 .s5-deck ol{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px; }
-  #stage5 .s5-deck li{ padding:.42rem .5rem; border-radius:8px; background:var(--fx); border:1px solid var(--stroke); color:var(--ink); font-size:.85rem; text-align:center; }
-  #stage5 .s5-deck li.ph{ outline:none; }
-  #stage5 .s5-deck li.ph:empty::before{ content:"+ add"; opacity:.4; }
-  #stage5 .s5-end{ display:flex; justify-content:center; margin:1.6rem 0 2rem; }
-  #stage5 .s5-end[hidden]{ display:none; }
-  #stage5 .s5-finish{ font:inherit; font-weight:700; padding:.7rem 1.5rem; border-radius:999px; border:1px solid var(--gold); background:transparent; color:var(--gold); cursor:pointer; }
-  /* The "Continue to Stage 4" CTA in the summary */
-  .stage4-cta{ display:flex; justify-content:center; margin:14px 0 6px; }
 </style>
 </head>
 <body>
@@ -3522,13 +3380,13 @@
     <button type="button" class="brand-link" id="brandLink"
             aria-haspopup="true" aria-expanded="false"
             aria-controls="menuPanel" aria-label="Open menu">
-      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#f5a623" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px #f5a623)"><rect x="4.5" y="4.5" width="15" height="15" rx="3.6"/><path d="M12 8.4v7.2M8.8 10.2l6.4 3.6M15.2 10.2l-6.4 3.6"/></svg>
-      <span class="brand-text">keys</span>
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="url(#brandGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 6px rgba(167,99,250,.75))"><defs><linearGradient id="brandGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8b5cf6"/><stop offset=".55" stop-color="#c084fc"/><stop offset="1" stop-color="#ff5fdc"/></linearGradient></defs><path d="M12 7.4v9.2M8.2 9.6l7.6 4.8M15.8 9.6l-7.6 4.8"/></svg>
+      <span class="brand-text">Keys</span>
     </button>
     <!-- Single merged stage-progress bar — lives in the topbar (centred). It
          tracks stage progress while playing and the dynamic Analyze labels in
          the summary. -->
-    <div class="stage-progress in-topbar" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
+    <div class="stage-progress in-topbar" id="stage-progress" role="progressbar" aria-label="Stage progress" aria-valuemin="1" aria-valuemax="6" aria-valuenow="1">
       <div class="sp-parent"></div>
       <div class="sp-sub"></div>
     </div>
@@ -3833,7 +3691,6 @@
       <button class="btn btn-primary" id="btn-analyze-more-1" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-keys" type="button" hidden>More</button>
       <button class="btn btn-primary" id="btn-analyze-more-2" type="button" hidden>More</button>
-      <button class="btn btn-primary" id="btn-analyze-more-3" type="button" hidden>More</button>
     </div>
 
 
@@ -3918,7 +3775,6 @@
       <input type="checkbox" id="flv-view-vertical" class="flv-ctl">
       <input type="checkbox" id="flv-view-axial"    class="flv-ctl">
       <input type="checkbox" id="flv-view-spider"   class="flv-ctl">
-      <input type="checkbox" id="flv-magic"         class="flv-ctl">
       <input type="checkbox" id="flv-copy-hint"     class="flv-ctl">
       <input type="checkbox" id="flv-pub-cal-open"  class="flv-ctl">
       <input type="checkbox" id="flv-pub-all"       class="flv-ctl">
@@ -3935,12 +3791,6 @@
       <input type="radio" name="flv-cycle" id="flv-cycle-save" class="flv-ctl">
       <input type="radio" name="flv-cycle" id="flv-cycle-share" class="flv-ctl">
       <input type="radio" name="flv-cycle" id="flv-cycle-pub"  class="flv-ctl">
-      <!-- insight cycle: 0 = none, 1..4 = cards -->
-      <input type="radio" name="flv-insight" id="flv-insight-0" class="flv-ctl" checked>
-      <input type="radio" name="flv-insight" id="flv-insight-1" class="flv-ctl">
-      <input type="radio" name="flv-insight" id="flv-insight-2" class="flv-ctl">
-      <input type="radio" name="flv-insight" id="flv-insight-3" class="flv-ctl">
-      <input type="radio" name="flv-insight" id="flv-insight-4" class="flv-ctl">
       <!-- publish platform + 3-pane slider state -->
       <input type="radio" name="flv-plat" id="flv-plat-none"     class="flv-ctl" checked>
       <input type="radio" name="flv-plat" id="flv-plat-wizardry" class="flv-ctl">
@@ -3977,19 +3827,22 @@
         ✨ A warmer retelling of the same keys will show up here.
       </output>
 
-      <!-- My confluences — directly below the comparison columns, centred, no title -->
-      <div class="conf-results conf-centred" id="s4-conf-block" hidden>
-        <table class="conf-grid-table"><tbody id="s4-conf-tbody"></tbody></table>
-      </div>
-
       <!-- Time stats — subtle subsections within the Summary, by the comparison tables -->
       <div class="std-timestats" id="std-timestats" hidden></div>
-      <!-- Counters: clicks · selections · panda clicks · stars -->
+      <!-- Counters: clicks · selections · pandas · stars -->
       <div class="std-counters" id="std-counters" hidden></div>
-      <div class="conf-results" id="s5-fivy-block" hidden>
-        <h4>My fivys</h4>
-        <table class="conf-grid-table"><tbody id="s5-fivy-tbody"></tbody></table>
-      </div>
+
+      <!-- Insight + Magic state inputs live next to their buttons (not at the top
+           of the section) so clicking the labels doesn't scroll focus up to the
+           ✦ Summary header. The :has() selectors are .flv-std-scoped, so position
+           inside the section is irrelevant. -->
+      <input type="checkbox" id="flv-magic" class="flv-ctl">
+      <!-- insight cycle: 0 = none, 1..4 = cards -->
+      <input type="radio" name="flv-insight" id="flv-insight-0" class="flv-ctl" checked>
+      <input type="radio" name="flv-insight" id="flv-insight-1" class="flv-ctl">
+      <input type="radio" name="flv-insight" id="flv-insight-2" class="flv-ctl">
+      <input type="radio" name="flv-insight" id="flv-insight-3" class="flv-ctl">
+      <input type="radio" name="flv-insight" id="flv-insight-4" class="flv-ctl">
 
       <div class="action-grid">
 
@@ -4173,8 +4026,6 @@
       </div>
     </section>
 
-    <!-- Stage 4 is now reached via the "Confluences" cascade step (no Continue button). -->
-
     <!-- See more + related apps sit BELOW the Summary section. -->
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
@@ -4186,44 +4037,6 @@
       <div class="related-row" id="related-row-6" hidden></div>
     </div>
   </div>
-
-  <!-- ===== Stage 4: embedded Confluences (revealed by "Continue to Stage 4") ===== -->
-  <section class="stage4" id="stage4" hidden aria-label="Stage 4 · Confluences">
-    <div class="controls">
-      <div class="controls-row">
-        <div class="nodebar" role="group" aria-label="List sizes — pick any">
-          <label class="node"><input type="checkbox" class="node-cb" value="3"><span class="node-dot"></span><span class="node-num">3</span></label>
-          <label class="node"><input type="checkbox" class="node-cb" value="5"><span class="node-dot"></span><span class="node-num">5</span></label>
-          <label class="node"><input type="checkbox" class="node-cb" value="7"><span class="node-dot"></span><span class="node-num">7</span></label>
-        </div>
-        <input type="checkbox" id="s4-top" hidden>
-        <label class="top-btn" for="s4-top" tabindex="0">See some</label>
-        <button class="anim-btn" id="s4-anim" type="button" aria-pressed="false">Animate</button>
-      </div>
-      <button class="create-btn" id="s4-create" type="button">Create</button>
-    </div>
-
-    <div class="s4-board">
-      <div class="rows" id="s4-saved"></div>
-      <div class="rows" id="s4-rows"></div>
-      <div class="favs" id="s4-favs">
-        <ul class="list len-1"><li>Organism</li></ul>
-        <ul class="list len-3"><li>Inner</li><li>Middle</li><li>Outer</li></ul>
-        <ul class="list len-3"><li>Past</li><li>Present</li><li>Future</li></ul>
-        <ul class="list len-3"><li>Transform</li><li>Conjugate</li><li>Transduct</li></ul>
-        <ul class="list len-5"><li>Taste</li><li>Smell</li><li>Hear</li><li>Touch</li><li>View</li></ul>
-        <ul class="list len-5"><li>Fire</li><li>Air</li><li>Plasma</li><li>Water</li><li>Earth</li></ul>
-        <ul class="list len-5"><li>I</li><li>E</li><li>A</li><li>O</li><li>U</li></ul>
-        <ul class="list len-5"><li>Sour</li><li>Bitter</li><li>Umami</li><li>Salty</li><li>Sweet</li></ul>
-        <ul class="list len-5"><li>Political</li><li>Economical</li><li>Media</li><li>Legal</li><li>Military</li></ul>
-        <ul class="list len-7"><li>Adrenal</li><li>Gonads</li><li>Pancreas</li><li>Thymus</li><li>Thyroid</li><li>Pituitary</li><li>Hypothalamus</li></ul>
-      </div>
-    </div>
-
-    <div class="stage4-end" id="s4-end" hidden>
-      <button class="btn s4-finish" id="s4-finish" type="button">Next →</button>
-    </div>
-  </section>
 
 </div>
 
@@ -4409,15 +4222,90 @@
     }
   }
   document.addEventListener('click', () => bumpCounter('clicks'));
-  // Clicking any panda → an alternating fun effect (two, looping) + a counter.
-  let _pandaFx = 0;
+  // Clicking any panda → a per-panda fun effect + particle burst + stats.
+  // ---- Panda click tracking ----------------------------------------------
+  // Each distinct panda placeholder (a looping panda in one place = one panda)
+  // is registered when it appears. Clicks are counted per placeholder; the
+  // first two clicks of each feed the "Pandas" stat (done / 2·placeholders),
+  // any further clicks feed "Over panda".
+  const _pandaClicks = {};        // key → number of clicks
+  const _pandaSeen   = new Set(); // keys of pandas that have appeared
+  function registerPanda(key){ if (key) _pandaSeen.add(key); }
+  // Stable key per placeholder. Dynamic pandas carry it in data-pkey; static
+  // ones map from their id / class.
+  function pandaKey(el){
+    if (!el) return 'panda';
+    if (el.dataset && el.dataset.pkey) return el.dataset.pkey;
+    if (el.id === 'intro-panda')   return 'intro';
+    if (el.id === 'chooserPanda')  return 'chooser';
+    if (el.classList.contains('deck-panda'))         return el.classList.contains('dm-r') ? 'deck-r' : 'deck-l';
+    if (el.classList.contains('corner-panda')){      const p = el.closest('[id]'); return 'corner-'   + (p && p.id ? p.id : 'x'); }
+    if (el.classList.contains('prelude-check-panda')){const p = el.closest('[id]'); return 'precheck-' + (p && p.id ? p.id : 'x'); }
+    return 'panda';
+  }
+  // A distinct effect + particle set per panda. Unknown keys fall back by family.
+  const PANDA_FX = {
+    intro:     { cls:'pfx-1', em:['💗','✨','💕'] },
+    chooser:   { cls:'pfx-4', em:['✨','🌟','⭐'] },
+    'deck-l':  { cls:'pfx-3', em:['🍃','🌿','💚'] },
+    'deck-r':  { cls:'pfx-5', em:['🎵','🎶','💫'] },
+    corner:    { cls:'pfx-2', em:['🌸','💮','🌟'] },
+    precheck:  { cls:'pfx-6', em:['🎉','🎊','🥳'] },
+    panda:     { cls:'pfx-1', em:['🐾','💗','✨'] },
+  };
+  function pandaFxFor(key){
+    if (PANDA_FX[key]) return PANDA_FX[key];
+    if (key.indexOf('corner-')   === 0) return PANDA_FX.corner;
+    if (key.indexOf('precheck-') === 0) return PANDA_FX.precheck;
+    return PANDA_FX.panda;
+  }
+  // Burst a few floating emojis around the panda.
+  function pandaBurst(el, emojis){
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const n = 6;
+    for (let i = 0; i < n; i++){
+      const s = document.createElement('span');
+      s.className = 'panda-particle';
+      s.textContent = emojis[i % emojis.length];
+      const ang  = (Math.PI * 2) * (i / n) + Math.random() * 0.6;
+      const dist = 34 + Math.random() * 22;
+      s.style.left = cx + 'px';
+      s.style.top  = cy + 'px';
+      s.style.setProperty('--dx', (Math.cos(ang) * dist).toFixed(1) + 'px');
+      s.style.setProperty('--dy', (Math.sin(ang) * dist - 28).toFixed(1) + 'px');
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 1000);
+    }
+  }
+  const _PFX_CLASSES = ['pfx-1','pfx-2','pfx-3','pfx-4','pfx-5','pfx-6'];
   function pandaClickFx(el){
-    el.classList.remove('pfx-a', 'pfx-b');
+    const key = pandaKey(el);
+    // Prelude "Check" pandas get the fun effect but are NOT counted toward the
+    // stats — only the intro / decks / summary pandas feed the 2-click rule.
+    const counted = key.indexOf('precheck-') !== 0;
+    if (counted){
+      registerPanda(key);
+      _pandaClicks[key] = (_pandaClicks[key] || 0) + 1;
+    }
+    const fx = pandaFxFor(key);
+    el.classList.remove(..._PFX_CLASSES);
     void el.offsetWidth;
-    el.classList.add(_pandaFx % 2 === 0 ? 'pfx-a' : 'pfx-b');
-    _pandaFx++;
-    bumpCounter('pandas');
-    if (typeof renderCounters === 'function') renderCounters();
+    el.classList.add(fx.cls);
+    pandaBurst(el, fx.em);
+    if (counted && typeof renderCounters === 'function') renderCounters();
+  }
+  // Aggregate the two panda stats from the per-placeholder click counts.
+  function pandaStats(){
+    let done = 0, over = 0;
+    Object.keys(_pandaClicks).forEach(k => {
+      const nClicks = _pandaClicks[k];
+      done += Math.min(nClicks, 2);
+      over += Math.max(0, nClicks - 2);
+    });
+    const total = 2 * _pandaSeen.size;
+    const pct   = total ? Math.round(100 * done / total) : 0;
+    return { done, total, over, pct };
   }
   document.addEventListener('click', (e) => {
     const p = e.target.closest && e.target.closest('.deck-panda, #intro-panda, #chooserPanda, .corner-panda, .prelude-check-panda');
@@ -4592,6 +4480,10 @@
   }
   function isFinalStage(){ return state.stageIdx === STAGES.length - 1; }
 
+  // Whether the stats-summary (✦ Summary panel) has been revealed. Declared
+  // early so renderStageLabel can read it during boot.
+  let _timeStatsOn = false;
+
   // ============== Render ==============
   function render(){
     renderStageLabel();
@@ -4629,9 +4521,8 @@
     { id:'analyze',     label:'Analyze',     check:() => _analyzeOn },
     { id:'extras',      label:'Extras',      check:() => _extrasOn },
     { id:'gender',      label:'Gender',      check:() => _finishApplied },
-    { id:'keys',        label:'Keys',        check:() => _playMoreOn },
+    { id:'keys',        label:'Favourites',  check:() => _playMoreOn },
     { id:'perspective', label:'Perspective', check:() => _barsOn },
-    { id:'confluences', label:'Confluences', check:() => !!state.s4Entered },
   ];
   function markSectionTouched(id){
     touchedSections.add(id);
@@ -4666,23 +4557,11 @@
     // The main (parent) bar always shows exactly three bars.
     const PARENT = 3;
     if (isSummary){
-      // Parent: stages 1-3 done; a 4th bar fills on entering Stage 4; a 5th on
-      // entering Stage 5.
-      let ph = seg('done') + seg('done') + seg('done');
-      if (state.s5Entered){
-        ph += seg('done');                                              // 4th
-        ph += seg(state.s5Next ? 'done' : 'current');                   // 5th
-        if (state.s5Next) ph += seg(state.s6Pulse ? 'current seg-new' : 'current'); // 6th
-      } else {
-        ph += seg(state.s4Entered ? 'current' : '');
-      }
-      $parent.innerHTML = ph;
-      // Sub: each stage resets the sub bar to 1. Stage 4 then adds one per
-      // distinct row type (3/5/7) created; otherwise it tracks Analyze/More.
-      let subCount;
-      if (state.s5Entered)      subCount = 1;
-      else if (state.s4Entered) subCount = 1 + (state.s4TypesCount || 0);
-      else                      subCount = 1 + touchedSections.size;
+      // Parent: the three played stages, all done. (No 4th Confluences bar —
+      // those features now live on confluenty.html.)
+      $parent.innerHTML = seg('done') + seg('done') + seg('done');
+      // Sub: the sub bar tracks how many Analyze / More steps were touched.
+      const subCount = 1 + touchedSections.size;
       let sh = '';
       for (let i = 0; i < subCount; i++) sh += seg('done');
       $sub.innerHTML = sh;
@@ -4705,7 +4584,10 @@
     // filled (i.e. the user has clicked through every Analyze "More" step).
     const $smBtn = document.getElementById('btn-see-more');
     if ($smBtn){
-      const allDone = isSummary && cur >= 7;   // analyzeLevel 6 = Stats (last step)
+      // See more surfaces once the Analyze cascade reaches its last step
+      // (Perspectives = analyzeLevel 5 → cur 6, now that Confluences moved to
+      // confluenty.html) or the stats-summary is on screen (perspective saved).
+      const allDone = isSummary && (cur >= 6 || _timeStatsOn);
       if (allDone){
         $smBtn.hidden = false;
       } else {
@@ -5259,7 +5141,6 @@
       ['btn-analyze-more-1',   {text:'More',       hidden:true,  cls:'btn-primary'}],
       ['btn-analyze-keys',     {text:'More',       hidden:true,  cls:'btn-primary'}],
       ['btn-analyze-more-2',   {text:'More',       hidden:true,  cls:'btn-primary'}],
-      ['btn-analyze-more-3',   {text:'More',       hidden:true,  cls:'btn-primary'}],
     ].forEach(([id, cfg]) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -5459,11 +5340,26 @@
     const lvl0   = (state.preludeStars === 5) ? 10 : 0;           // completing level 0
     const stars  = whys + persp + triads + lvl0;
     const c = (n, label) => `<div class="cc"><b>${n}</b><span>${label}</span></div>`;
-    el.innerHTML = `<h4 class="std-subhead">Counters</h4><div class="std-counters-grid">`
-      + c(state.clicks || 0, 'Clicks')
-      + c(state.selections || 0, 'Selections')
-      + c(state.pandas || 0, 'Panda clicks')
-      + c(stars, 'Stars')
+    const ps = pandaStats();
+    // Pandas: clicks done (≤2 each) over total possible (2 · placeholders) + %.
+    // The column is titled "Pandas", so the row itself shows only the figures.
+    const pandasCell = `<div class="cc cc-pandas"><b>${ps.done}/${ps.total}</b>`
+      + `<span>${ps.pct}%</span></div>`;
+    const overCell   = c(ps.over, 'Too much');
+    // Two columns, one stat per row. Left = General, right = Pandas stats.
+    el.innerHTML = `<h4 class="std-subhead">Counters</h4>`
+      + `<div class="std-counters-grid two-col">`
+      +   `<div class="cc-col cc-col-left">`
+      +     `<h5 class="cc-col-title">General</h5>`
+      +     c(state.clicks || 0, 'Clicks')
+      +     c(state.selections || 0, 'Selections')
+      +     c(stars, 'Stars')
+      +   `</div>`
+      +   `<div class="cc-col cc-col-right">`
+      +     `<h5 class="cc-col-title">Pandas</h5>`
+      +     pandasCell
+      +     overCell
+      +   `</div>`
       + `</div>`;
   }
   // Right timing column: one insight shown, "More" loads the next, "Hide" resets.
@@ -5807,6 +5703,7 @@
     chooserPandaStarted = true;
     const el = document.getElementById('chooserPanda');
     if (!el) return;
+    if (typeof registerPanda === 'function') registerPanda('chooser');
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){ cyclePanda(el, 'neutral', 248); return; }
     const FRAME = 248, twoLoopsMs = 2 * 10 * FRAME;   // neutral has 10 frames
     function neutralPhase(){
@@ -5860,8 +5757,10 @@
       if (cornerTimers[containerId]){ clearInterval(cornerTimers[containerId]); cornerTimers[containerId] = null; }
       img = document.createElement('img');
       img.className = 'corner-panda'; img.alt = ''; img.setAttribute('aria-hidden', 'true');
+      img.dataset.pkey = 'corner-' + containerId;
       c.appendChild(img);
     }
+    if (typeof registerPanda === 'function') registerPanda('corner-' + containerId);
     if (!cornerTimers[containerId]) cornerTimers[containerId] = cyclePanda(img, emotion, 248);
   }
 
@@ -5878,10 +5777,13 @@
     const stars = document.getElementById(starsId);
     if (!sec || !stars) return;
     let img = sec.querySelector(':scope > .prelude-check-panda');
+    const pkey = 'precheck-' + (sec.id || sectionSel);
     if (!img){
       img = document.createElement('img');
       img.className = 'prelude-check-panda'; img.alt = ''; img.setAttribute('aria-hidden', 'true');
+      img.dataset.pkey = pkey;
     }
+    // Note: check pandas are intentionally NOT registered — effects only, no count.
     sec.insertBefore(img, stars);   // just before the stars, at the section's bottom
     if (img._timer) clearInterval(img._timer);
     img._timer = cyclePanda(img, preludeMoodFor(n), 248);
@@ -5928,7 +5830,7 @@
   // Left-middle loop (no intro animations between moods): an entrance neutral
   // first, then dormido → neutral → enfadado, repeating.
   const DECK_LOOP = [
-    { m:'dormido',  ms:10000 },
+    { m:'feliz',    ms:10000 },   // was 'dormido' — "emocionado" has no asset; feliz is the closest
     { m:'neutral',  ms:7000  },
     { m:'enfadado', ms:5000  },
   ];
@@ -5937,9 +5839,10 @@
     if (!deckOverlay){
       deckOverlay = document.createElement('div');
       deckOverlay.id = 'deck-pandas';
-      const a = document.createElement('img'); a.className = 'deck-panda dm-l'; a.alt = ''; a.setAttribute('aria-hidden','true');
-      const b = document.createElement('img'); b.className = 'deck-panda dm-r'; b.alt = ''; b.setAttribute('aria-hidden','true');
+      const a = document.createElement('img'); a.className = 'deck-panda dm-l'; a.alt = ''; a.setAttribute('aria-hidden','true'); a.dataset.pkey = 'deck-l';
+      const b = document.createElement('img'); b.className = 'deck-panda dm-r'; b.alt = ''; b.setAttribute('aria-hidden','true'); b.dataset.pkey = 'deck-r';
       deckOverlay.append(a, b);
+      if (typeof registerPanda === 'function'){ registerPanda('deck-l'); registerPanda('deck-r'); }
       deckSlotL = makePandaSlot(a); deckSlotR = makePandaSlot(b);
       // Clicking deck pandas runs the shared panda fx (see pandaClickFx).
     }
@@ -6050,7 +5953,7 @@
     if (!$typed || $typed.dataset.done) return;
     $typed.dataset.done = '1';
     const sentence = INTRO_SLIDES[0].b;
-    const raisePanda = () => { if ($panda){ $panda.classList.add('show'); startPandaFrames($panda); } };
+    const raisePanda = () => { if ($panda){ $panda.classList.add('show'); startPandaFrames($panda); if (typeof registerPanda === 'function') registerPanda('intro'); } };
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
       $typed.textContent = sentence; setPandaEmotion('neutral'); raisePanda(); return;
     }
@@ -7255,18 +7158,18 @@
   }
   document.getElementById('btn-analyze-more-1').addEventListener('click', toggleAnalyzeMore1);
 
-  // Keys step: turn the summary keys into a 3-pick multiselect; reveal Perspectives.
+  // Favourites step: turn the summary keys into a 3-pick multiselect; reveal Perspectives.
   function toggleKeys(){
     const $btn = document.getElementById('btn-analyze-keys');
     togglePlayMore();   // toggles the select-keys mode (_playMoreOn)
     if (_playMoreOn){
       bumpAnalyzeLevel(4);
       markSectionTouched('keys');
-      $btn.textContent = '✓ Keys';
+      $btn.textContent = '✓ Favourites';
       const $next = document.getElementById('btn-analyze-more-2');
       if ($next) $next.hidden = false;
     } else {
-      $btn.textContent = 'Keys';
+      $btn.textContent = 'Favourites';
     }
     $btn.classList.toggle('btn-primary', _playMoreOn);
     $btn.classList.toggle('btn-ghost',   !_playMoreOn);
@@ -7615,15 +7518,21 @@
     return `<div class="pp-bar-node${cls}" style="left:${clamp(s.p1)}%"></div>`;
   }
   function buildPerspectivesHTML(){
-    const origHasAny = BARS.some(b => { const s = barState[b.id]; return s && s.p1 != null; });
-    if (!origHasAny && !parallelRows.length) return '';
     const hasNew = parallelRows.length > 0;
     // Grid: Main / New are row starters down the left; each bar gets its own
     // column with its title as the (centred) column header.
     const head = `<div class="pp-corner"></div>`
       + BARS.map(b => `<div class="pp-col-head">${escapeHTML(b.leftLabel)} ↔ ${escapeHTML(b.rightLabel)}</div>`).join('');
+    // Main raters: if the user never moved them, default to the LEFT pole —
+    // Subjective (on subj↔obj) and Momentual (on mom↔gen) — since that is the
+    // assumed perspective of a plain play. Gives the main row visible pointers.
     const mainRow = `<div class="pp-row-head">Main</div>`
-      + BARS.map(b => `<div class="pp-bar-track">${barMarkHTML(barState[b.id], '')}</div>`).join('');
+      + BARS.map(b => {
+          const s = (barState[b.id] && barState[b.id].p1 != null)
+            ? barState[b.id]
+            : { phase:1, p1:0, p2:null };   // left pole = Subjective / Momentual
+          return `<div class="pp-bar-track">${barMarkHTML(s, '')}</div>`;
+        }).join('');
     const newRow = `<div class="pp-row-head">New</div>`
       + BARS.map(b => {
           const n = hasNew ? parallelRows[0].states[b.id] : null;
@@ -7727,11 +7636,7 @@
   function renderBottomSummary(){
     const $sec = document.getElementById('std-summary');
     if (!$sec) return;
-    // Stage 4/5 results (confluences + fivys) keep the summary open even when
-    // the base play recap is empty — that was the bug: selections were rendered
-    // into a panel that this function had hidden.
-    const extra = !!(document.querySelector('#s4-conf-tbody tr') || document.querySelector('#s5-fivy-tbody tr'));
-    const hasContent = !!buildBottomSummaryHTML().trim() || extra;
+    const hasContent = !!buildBottomSummaryHTML().trim();
     // The Summary section stays hidden until the Stats "More" reveals it.
     $sec.hidden = !(_timeStatsOn && hasContent);
     if (!hasContent) return;
@@ -8169,14 +8074,8 @@
     updateInsightsBtn();
     // Fold the second-play result into the bottom std-summary recap.
     if (typeof renderBottomSummary === 'function') renderBottomSummary();
-    // Saving expands the Summary (with stats) below the perspective…
+    // Saving expands the Summary (with stats) below the perspective.
     revealSummary();
-    // …and highlights the next step (Confluences).
-    const $more3 = document.getElementById('btn-analyze-more-3');
-    if ($more3){
-      $more3.hidden = false;
-      $more3.classList.add('save-highlight');
-    }
   }
 
   function movedDeckIds(){
@@ -8219,7 +8118,11 @@
     _playMoreOn = !_playMoreOn;
     $summary.classList.toggle('free-play', _playMoreOn);
     const $hint = document.getElementById('play-more-hint');
-    if ($hint) $hint.hidden = !_playMoreOn;
+    if ($hint){
+      $hint.hidden = !_playMoreOn;
+      // Prompt sits below the buttons / above the cards while Favourites is on.
+      $hint.textContent = _playMoreOn ? 'Choose your favourite three words below.' : '';
+    }
     if (_playMoreOn){
       if (typeof extraOpen !== 'undefined'){ Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; }); }
       renderSummaryGrid();
@@ -8231,20 +8134,29 @@
       $summary.classList.remove('click-me-call');
       renderSummaryGrid();
     }
-    refreshStage4CTA();
   }
   // Multiselect: each click toggles whether a card is selected. The set of
   // selected words drives the "more apps" surfaced via the See more "+"
   // button — those apps point to flove.org/{word} for every selected key.
   const _fpSelectedWords = new Set();
-  // The "Continue to Stage 4" buttons appear only once exactly three favourite
-  // keywords have been picked in Play more.
-  function refreshStage4CTA(){
-    const ready = _fpSelectedWords.size === 3;
-    ['btn-stage4', 'btn-stage4-2'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) b.hidden = !ready;
+  // When the user advances (next More) without choosing any favourite, seed the
+  // three picks with the top (gold) item of each main triad: t1 Philosophy,
+  // t2 Psicosocial, t3 Service.
+  function applyDefaultFavourites(){
+    if (_fpSelectedWords.size > 0) return;
+    ['t1','t2','t3'].forEach(id => {
+      if (_fpSelectedWords.size >= 3) return;
+      const deck = document.querySelector('.summary .deck-done.in-summary[data-deck-id="' + id + '"]');
+      if (!deck) return;
+      const li = deck.querySelector('ol > li');   // first row = current gold item
+      if (!li) return;
+      const w = (li.dataset.word || (li.querySelector('.nm') ? li.querySelector('.nm').textContent : '')).trim();
+      if (w && !_fpSelectedWords.has(w)){
+        _fpSelectedWords.add(w);
+        li.classList.add('fp-selected');
+      }
     });
+    if (typeof renderBottomSummary === 'function') renderBottomSummary();
   }
   function wireFreePlayHandlers(){
     document.querySelectorAll('.summary.free-play .deck-done.in-summary, .summary.free-play .ad-deck').forEach(deck => {
@@ -8286,7 +8198,6 @@
           }
           // Reflect the picked keys in the bottom std-summary recap.
           if (typeof renderBottomSummary === 'function') renderBottomSummary();
-          if (typeof refreshStage4CTA === 'function') refreshStage4CTA();
         });
       });
     });
@@ -8311,6 +8222,9 @@
   const notesState = [null, null, null];
   // Editable title for the custom (x5) extra deck. Defaults to "new group".
   let notesTitle = 'new group';
+  // Once the three items are filled and the user hits Save, the custom group is
+  // promoted to a normal reorderable deck (↑/↓ arrows) like the other extras.
+  let notesSaved = false;
   const extraOrders = {};
   EXTRA_DECKS.forEach(d => { extraOrders[d.id] = d.items.map((_,i)=>i); });
   let _finishApplied = false;
@@ -8380,7 +8294,14 @@
       el.appendChild(t);
       const list = document.createElement('ol');
       el.appendChild(list);
-      paintNotesDeck(el);
+      if (notesSaved){
+        // Promoted: behave like a normal extra deck — its three saved items
+        // become reorderable rows with the ↑ / ↓ controls.
+        d.items = notesState.slice();
+        paintExtraDeck(d, el);
+      } else {
+        paintNotesDeck(el);
+      }
       return el;
     }
     const t = document.createElement('div');
@@ -8400,6 +8321,7 @@
   function paintNotesDeck(el){
     const list = el.querySelector('ol');
     list.innerHTML = '';
+    el.querySelector('.notes-savedeck')?.remove();   // drop any prior save row
     notesState.forEach((val, idx) => {
       const li = document.createElement('li');
       li.className = 'notes-slot' + (val == null ? ' notes-empty' : ' notes-saved');
@@ -8449,6 +8371,24 @@
       }
       list.appendChild(li);
     });
+    // Once all three items are filled, offer a deck-level Save that promotes the
+    // group to a normal reorderable deck.
+    const allFilled = notesState.every(v => v != null && String(v).trim() !== '');
+    if (allFilled){
+      const saveRow = document.createElement('div');
+      saveRow.className = 'notes-savedeck';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-soft notes-savedeck-btn';
+      btn.textContent = 'Save';
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        notesSaved = true;
+        renderSummaryGrid();   // re-render → promoted deck with ↑/↓ arrows
+      });
+      saveRow.appendChild(btn);
+      el.appendChild(saveRow);
+    }
   }
 
   function paintExtraDeck(d, el){
@@ -8579,24 +8519,23 @@
     overlay.classList.add('is-on');
   }
 
-  // 2nd "More" toggles the Yin/Yang gender icons across every key. Replaces
-  // the old keyword-help cascade now that the "Choose your favourite…" copy
-  // has been removed.
-  // 2nd More now = Perspectives (after Genders). Reveals the 3rd More (Stats).
+  // 2nd "More" = Perspectives (after Genders). It is the last cascade step now;
+  // Confluences moved to its own page (confluenty.html).
   function toggleAnalyzeMore2(){
     _barsOn = !_barsOn;
     const $panel = document.getElementById('analyze-bars');
     const $btn   = document.getElementById('btn-analyze-more-2');
-    const $btn3  = document.getElementById('btn-analyze-more-3');
     if (_barsOn){
       bumpAnalyzeLevel(5);
       markSectionTouched('perspective');
+      // Moving on without picking any favourite → default to the top (gold)
+      // item of each of the three main triads (Philosophy / Psicosocial / Service).
+      applyDefaultFavourites();
       if (!perspClickAt) perspClickAt = Date.now();
       if ($panel) $panel.hidden = true;
       if (parallelRows.length === 0) addParallelRow();
       else { renderSecondPlay(); showCornerPanda('second-play', 'pensativo'); }
       $btn.textContent = '✓ Perspectives';
-      if ($btn3){ $btn3.hidden = false; $btn3.textContent = 'Confluences'; }   // last step = Stage 4
     } else {
       if ($panel) $panel.hidden = true;
       $btn.textContent = 'Perspectives';
@@ -8614,8 +8553,6 @@
   // information" (total time + slow-deck hint) — and scrolls it into view.
   // The inner "More details" (per-step/stage/deck) stays collapsed until the
   // user clicks the toggle inside the panel.
-  let _timeStatsOn = false;
-  let _enterStage4 = null;
   // Show the expanded Summary (with stats) — triggered when a perspective is saved.
   function revealSummary(){
     const $std = document.getElementById('std-summary');
@@ -8628,17 +8565,7 @@
     if ($std){ $std.hidden = false; $std.classList.remove('is-collapsed'); if ($stdT) $stdT.setAttribute('aria-expanded','true'); }
     if ($std) setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
-  // The last cascade step is now "Confluences" (Stage 4), after Perspectives.
-  document.getElementById('btn-analyze-more-3').addEventListener('click', () => {
-    const $btn = document.getElementById('btn-analyze-more-3');
-    $btn.classList.remove('save-highlight');
-    markSectionTouched('confluences');
-    bumpAnalyzeLevel(6);
-    $btn.textContent = '✓ Confluences';
-    $btn.classList.add('btn-primary'); $btn.classList.remove('btn-ghost');
-    if (typeof _enterStage4 === 'function') _enterStage4();
-    renderStageLabel();
-  });
+  // (Confluences moved to confluenty.html — reached via the See-more related apps.)
 
   // ============== See more · related flove apps ==============
   // First batch (featured): Combos · Fivys · PracSys — shown when "See more"
@@ -8654,7 +8581,7 @@
   };
   const RELATED_FIRST = [
     { key:'combos',      label:'Combos',      href:'combos.html' },
-    { key:'confluences', label:'Confluences', href:'confluences.html' },
+    { key:'confluences', label:'Confluences', href:'confluenty.html' },
     { key:'fivys',       label:'Fivy',        fivysTrigger:true },
   ];
   const RELATED_MORE = [
@@ -8994,221 +8921,6 @@
     $btn.setAttribute('aria-label', open ? 'show fewer apps' : 'show more apps');
   });
 
-  // ============== Stage 4 · embedded Confluences ==============
-  (function initStage4(){
-    const stage4    = document.getElementById('stage4');
-    const btnStage4 = document.getElementById('btn-stage4');
-    if (!stage4 || !btnStage4) return;
-    const s4board  = stage4.querySelector('.s4-board');
-    const s4saved  = document.getElementById('s4-saved');
-    const s4rows   = document.getElementById('s4-rows');
-    const s4create = document.getElementById('s4-create');
-    const s4anim   = document.getElementById('s4-anim');
-    const s4top    = document.getElementById('s4-top');
-    const stage5   = document.getElementById('stage5');
-    const s4end    = document.getElementById('s4-end');
-    const s4back   = document.getElementById('s4-back');
-    const s4next   = document.getElementById('s4-next');
-    const btnStage4b = document.getElementById('btn-stage4-2');
-    const PH = '';   // new cells start empty (no placeholder glyph)
-
-    const allEntries   = () => Array.from(stage4.querySelectorAll('.s4-entry'));
-    const savedEntries = () => Array.from(stage4.querySelectorAll('.s4-entry.saved'));
-
-    function makeRow(n){
-      const entry = document.createElement('div');
-      entry.className = 's4-entry'; entry.dataset.len = n;
-      const crow = document.createElement('div'); crow.className = 'crow';
-      const ul = document.createElement('ul');
-      ul.className = 'list len-' + n;
-      ul.setAttribute('aria-label', 'New list with ' + n + ' items');
-      for (let i = 0; i < n; i++){
-        const li = document.createElement('li');
-        li.className = 'ph'; li.contentEditable = 'true'; li.dataset.ph = PH;
-        ul.appendChild(li);
-      }
-      const side = document.createElement('div');
-      side.className = 'crow-side';
-      // No ＋ here — duplication moves to an "add" button below the list.
-      // Arrows show only once the row is saved (CSS).
-      side.innerHTML =
-          '<button class="cr-up"   type="button" title="Move up"   aria-label="Move up">↑</button>'
-        + '<button class="cr-down" type="button" title="Move down" aria-label="Move down">↓</button>'
-        + '<button class="cr-del"  type="button" title="Delete"    aria-label="Delete this row">✕</button>';
-      crow.appendChild(ul); crow.appendChild(side);
-      const add = document.createElement('button');
-      add.type = 'button'; add.className = 'crow-add'; add.textContent = '+ add';
-      const save = document.createElement('button');
-      save.type = 'button'; save.className = 'crow-save'; save.textContent = 'Save';
-      entry.appendChild(crow); entry.appendChild(add); entry.appendChild(save);
-      return entry;
-    }
-    function rowText(entry){
-      return Array.from(entry.querySelectorAll('.list > li'))
-        .map(li => (li.textContent || '').trim() || PH).join(' · ');
-    }
-    function allFilled(entry){
-      return Array.from(entry.querySelectorAll('.list > li'))
-        .every(li => (li.textContent || '').trim() !== '');
-    }
-    // A Save button shows below a row once every cell is filled (until saved).
-    function refreshFillable(){
-      allEntries().forEach(en => {
-        if (en.classList.contains('saved')) return;
-        en.classList.toggle('fillable', allFilled(en));
-      });
-    }
-    const itemsOf = el => Array.from(el.querySelectorAll('.list > li')).map(li => (li.textContent || '').trim());
-    // One confluence as a 7-cell row: 3-item → cols 3-5, 5-item → cols 2-6,
-    // 7-item → all. Empty cells elsewhere; the centre swells via CSS.
-    function confRowHTML(items){
-      const n = items.length, cols = ['', '', '', '', '', '', ''];
-      if (n === 1) cols[3] = items[0];
-      else if (n === 3){ cols[2] = items[0]; cols[3] = items[1]; cols[4] = items[2]; }
-      else if (n === 5){ cols[1] = items[0]; cols[2] = items[1]; cols[3] = items[2]; cols[4] = items[3]; cols[5] = items[4]; }
-      else if (n === 7){ for (let i = 0; i < 7; i++) cols[i] = items[i]; }
-      else items.forEach((v, i) => { if (i < 7) cols[i] = v; });
-      return '<tr>' + cols.map(v => '<td>' + (v ? escapeHTML(v) : '') + '</td>').join('') + '</tr>';
-    }
-    // Results = saved created confluences + loved Top confluences, rendered as
-    // the "My confluences" table inside the existing summary text area.
-    function updateSummary(){
-      const rows = savedEntries().map(itemsOf)
-        .concat(Array.from(stage4.querySelectorAll('#s4-favs .fav-entry.loved')).map(itemsOf));
-      const tbody = document.getElementById('s4-conf-tbody');
-      const block = document.getElementById('s4-conf-block');
-      if (tbody) tbody.innerHTML = rows.map(confRowHTML).join('');
-      if (block) block.hidden = rows.length === 0;
-      // Make sure the summary actually surfaces the selections (it can have been
-      // left hidden/collapsed by the base recap renderer).
-      if (rows.length){
-        const ss = document.getElementById('std-summary');
-        if (ss){ ss.hidden = false; ss.classList.remove('is-collapsed'); }
-      }
-    }
-    // Wrap every Top confluence with a big transparent love; filling it adds
-    // that confluence to the My-confluences table.
-    (function wireLoveButtons(){
-      stage4.querySelectorAll('#s4-favs > .list').forEach(ul => {
-        const fe = document.createElement('div'); fe.className = 'fav-entry';
-        ul.parentNode.insertBefore(fe, ul); fe.appendChild(ul);
-        const love = document.createElement('button');
-        love.type = 'button'; love.className = 'fav-love';
-        love.setAttribute('aria-pressed', 'false');
-        love.setAttribute('aria-label', 'Add to my confluences');
-        love.textContent = '♡';
-        fe.appendChild(love);
-        love.addEventListener('click', function(){
-          const on = fe.classList.toggle('loved');
-          love.setAttribute('aria-pressed', String(on));
-          love.textContent = on ? '♥' : '♡';
-          updateSummary();
-        });
-      });
-    })();
-    // Go-back / Next show only once Top is checked or a row exists.
-    function refreshEnd(){ s4end.hidden = !(s4top.checked || allEntries().length > 0); }
-    // Parent bar gains a 4th segment once any row exists; sub bar grows by one
-    // for each row type (3 / 5 / 7) whose first row has been created.
-    function refreshProgress(){
-      const lens = new Set(allEntries().map(en => parseInt(en.dataset.len, 10)));
-      const cnt  = [3, 5, 7].filter(t => lens.has(t)).length;
-      const has  = lens.size > 0;
-      if (state.s4TypesCount !== cnt || state.s4HasRows !== has){
-        state.s4TypesCount = cnt; state.s4HasRows = has;
-        if (typeof renderStageLabel === 'function') renderStageLabel();
-      }
-    }
-
-    s4create.addEventListener('click', function(){
-      const nums = Array.from(stage4.querySelectorAll('.node-cb:checked'))
-        .map(cb => parseInt(cb.value, 10)).sort((a, b) => a - b);
-      if (!nums.length) return;
-      const frag = document.createDocumentFragment();
-      nums.forEach(n => frag.appendChild(makeRow(n)));
-      s4rows.prepend(frag);
-      updateSummary(); refreshFillable(); refreshEnd(); refreshProgress();
-    });
-
-    // Row controls + per-row Save, delegated across the whole board.
-    s4board.addEventListener('click', function(e){
-      const btn = e.target.closest('button'); if (!btn) return;
-      const entry = btn.closest('.s4-entry'); if (!entry) return;
-      const zone = entry.parentElement;
-      if (btn.classList.contains('cr-up')){
-        const p = entry.previousElementSibling; if (p) zone.insertBefore(entry, p);
-      } else if (btn.classList.contains('cr-down')){
-        const nx = entry.nextElementSibling; if (nx) zone.insertBefore(nx, entry);
-      } else if (btn.classList.contains('crow-add')){
-        // "add" (below the list) clones the row right after it.
-        const clone = entry.cloneNode(true);
-        clone.classList.remove('saved');
-        entry.after(clone); refreshFillable();
-      } else if (btn.classList.contains('crow-save')){
-        // Save: lift the row into the saved zone; arrows + ✕ appear, add hides.
-        entry.classList.add('saved'); entry.classList.remove('fillable');
-        s4saved.appendChild(entry);
-      } else if (btn.classList.contains('cr-del')){
-        entry.remove(); refreshProgress();
-      }
-      updateSummary(); refreshEnd();
-    });
-    s4board.addEventListener('input', function(){ refreshFillable(); updateSummary(); });
-    s4top.addEventListener('change', refreshEnd);
-    s4anim.addEventListener('click', function(){
-      const on = !stage4.classList.contains('is-animating');
-      stage4.classList.toggle('is-animating', on);
-      s4anim.setAttribute('aria-pressed', String(on));
-    });
-
-    // Entering Stage 4 adds the 4th parent bar (state.s4Entered) and reveals
-    // the panel. Both Continue buttons trigger it.
-    function enterStage4(){
-      state.s4Entered = true;
-      stage4.hidden = false;
-      refreshEnd();
-      if (typeof renderStageLabel === 'function') renderStageLabel();
-      if (btnStage4b) btnStage4b.textContent = '← Go back';
-      stage4.scrollIntoView({ behavior:'smooth', block:'start' });
-    }
-    function exitStage4(){
-      stage4.hidden = true;
-      if (btnStage4b) btnStage4b.textContent = 'Continue to Stage 4 →';
-      const sum = document.getElementById('summary');
-      if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
-    }
-    if (btnStage4) btnStage4.addEventListener('click', enterStage4);
-    if (btnStage4b) btnStage4b.addEventListener('click', function(){
-      if (stage4.hidden) enterStage4(); else exitStage4();
-    });
-    if (s4back) s4back.addEventListener('click', exitStage4);
-    _enterStage4 = enterStage4;   // expose for the cascade "Confluences" step
-
-    // Finish (below the row) → surface the confluences in the main summary, run
-    // the wave, and scroll up there. (The former "Next" behaviour.)
-    function expandSummary(){
-      const ss = document.getElementById('std-summary');
-      if (ss) ss.classList.remove('is-collapsed');
-    }
-    function finishToSummary(){
-      updateSummary();
-      expandSummary();
-      if (typeof revealSummary === 'function') revealSummary();   // ensure the Summary (stats) shows
-      if (!stage4.classList.contains('is-animating')){
-        stage4.classList.add('is-animating');
-        s4anim.setAttribute('aria-pressed', 'true');
-      }
-      stage4.hidden = true;   // "Next" returns from Stage 4 to the Summary
-      const sum = document.getElementById('summary');
-      if (sum) sum.scrollIntoView({ behavior:'smooth', block:'start' });
-    }
-    const s4finish = document.getElementById('s4-finish');
-    if (s4finish) s4finish.addEventListener('click', finishToSummary);
-
-    // Stage 5 removed.
-
-    updateSummary();
-  })();
 
   // ============== Boot ==============
   introStart = Date.now();   // start counting intro time (timer stays hidden here)

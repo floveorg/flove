@@ -2166,28 +2166,26 @@
   /* panda ABOVE, "Keys" kept on the row's centre line (like the sibling titles),
      hint phrase below — all anchored to the band centre so the title aligns. */
   .keys-band:hover, .keys-band:focus-within { flex-grow: 2.4; }
-  /* kp0 is checked by default; keep this band receding with the rest when
-     another colour is being previewed. */
-  .intro-bands:has(.preview-band input:checked) .keys-band:not(:hover):not(:focus-within) {
-    flex-grow: .55; filter: saturate(.9) brightness(.97);
-  }
+  /* the generic recede rule above already shrinks this band when a colour is
+     previewed (keys-band has no inner input), so no bespoke rule is needed. */
   .kp-stage {
     position: absolute; left: 50%; bottom: calc(50% + 1.9em - 20px); transform: translateX(-50%);
     z-index: 1; width: min(78%, 132px); aspect-ratio: 124 / 226;
   }
   .kp-panda {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
-    opacity: 0; transition: opacity .35s ease;
+    display: none;          /* display:none (not opacity) so hidden GIFs stop decoding */
     filter: drop-shadow(0 4px 10px rgba(40,16,74,.28));
   }
-  /* exactly ONE panda visible per state — a click hides the current gif and
-     reveals the next (the 6th returns to the neutral one). */
+  /* exactly ONE panda rendered per state — a click hides the current gif and
+     reveals the next (the 6th returns to the neutral one). Only the shown GIF
+     decodes; the other five cost nothing while display:none. */
   #kp0:checked ~ .intro-bands .kp-e0,
   #kp1:checked ~ .intro-bands .kp-e1,
   #kp2:checked ~ .intro-bands .kp-e2,
   #kp3:checked ~ .intro-bands .kp-e3,
   #kp4:checked ~ .intro-bands .kp-e4,
-  #kp5:checked ~ .intro-bands .kp-e5 { opacity: 1; }
+  #kp5:checked ~ .intro-bands .kp-e5 { display: block; }
 
   /* click targets — invisible labels over the panda; only the active one is live */
   .kp-hit { position: absolute; inset: -8%; border-radius: 50%; cursor: pointer; z-index: 2; pointer-events: none; }
@@ -2239,12 +2237,21 @@
      6th click (→ kp0). Drift (translate) lives on .kpc, the pop (scale) on its
      inner .kpc-face, so the two transforms never fight. */
   .kp-cust-pop { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
-  .kpc { position: absolute; width: 46px; height: 46px; }
-  .kpc1 { left: 16%; top: 9%;  animation: cmood-drift-a 17s ease-in-out infinite; }
-  .kpc2 { left: 54%; top: 24%; animation: cmood-drift-b 21s ease-in-out infinite; }
-  .kpc3 { left: 20%; top: 44%; animation: cmood-drift-c 19s ease-in-out infinite; }
-  .kpc4 { left: 56%; top: 60%; animation: cmood-drift-b 23s ease-in-out infinite; }
-  .kpc5 { left: 30%; top: 78%; animation: cmood-drift-a 20s ease-in-out infinite; }
+  .kpc { position: absolute; width: 44px; height: 44px; animation-play-state: paused; }
+  /* left ≤ 50% + small drift keeps each 44px bubble inside the overflow:hidden
+     Custom column, even when it's receded to flex-grow:.55 */
+  .kpc1 { left: 20%; top: 8%;  animation: kpc-drift-a 17s ease-in-out infinite; }
+  .kpc2 { left: 46%; top: 24%; animation: kpc-drift-b 21s ease-in-out infinite; }
+  .kpc3 { left: 22%; top: 46%; animation: kpc-drift-c 19s ease-in-out infinite; }
+  .kpc4 { left: 44%; top: 62%; animation: kpc-drift-b 23s ease-in-out infinite; }
+  .kpc5 { left: 30%; top: 80%; animation: kpc-drift-a 20s ease-in-out infinite; }
+  @keyframes kpc-drift-a { 0%,100% { transform: translate(0,0); } 33% { transform: translate(11px,12px); } 66% { transform: translate(-9px,7px); } }
+  @keyframes kpc-drift-b { 0%,100% { transform: translate(0,0); } 30% { transform: translate(-11px,9px); } 60% { transform: translate(8px,-10px); } }
+  @keyframes kpc-drift-c { 0%,100% { transform: translate(0,0); } 35% { transform: translate(9px,-9px); } 70% { transform: translate(-10px,8px); } }
+  /* drift only runs once a mood is active — paused on the idle neutral splash */
+  #kp1:checked ~ .intro-bands .kpc, #kp2:checked ~ .intro-bands .kpc,
+  #kp3:checked ~ .intro-bands .kpc, #kp4:checked ~ .intro-bands .kpc,
+  #kp5:checked ~ .intro-bands .kpc { animation-play-state: running; }
   .kpc-face {
     position: absolute; inset: 0; border-radius: 50%;
     display: grid; place-items: center;
@@ -2269,7 +2276,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .kpc { animation: none; }
-    .kp-panda, .kp-hint, .kpc-face { transition: none; }
+    .kp-hint, .kpc-face { transition: none; }
   }
 
   .modal-close {
@@ -3593,12 +3600,14 @@ details.tile-big:hover > summary .tag,
   <a class="flow-btn flow-know intro-flow-top" href="nety.html" aria-label="Know more · about the network"><span class="flow-txt">Know more</span></a>
   <!-- Keys-panda mood cycle · radios live here so one selector reaches both the
        Keys band (panda) and the Custom band (accumulating feeling bubbles) -->
-  <input type="radio" name="keyspanda" id="kp0" class="vh" checked aria-label="panda resting">
-  <input type="radio" name="keyspanda" id="kp1" class="vh" aria-label="joyful panda">
-  <input type="radio" name="keyspanda" id="kp2" class="vh" aria-label="tender panda">
-  <input type="radio" name="keyspanda" id="kp3" class="vh" aria-label="playful panda">
-  <input type="radio" name="keyspanda" id="kp4" class="vh" aria-label="curious panda">
-  <input type="radio" name="keyspanda" id="kp5" class="vh" aria-label="dreamy panda">
+  <!-- decorative panda toy: hidden from the tab order + AT (the real action is
+       the accessible "Keys" link); mouse users still drive it via the labels -->
+  <input type="radio" name="keyspanda" id="kp0" class="vh" checked tabindex="-1" aria-hidden="true">
+  <input type="radio" name="keyspanda" id="kp1" class="vh" tabindex="-1" aria-hidden="true">
+  <input type="radio" name="keyspanda" id="kp2" class="vh" tabindex="-1" aria-hidden="true">
+  <input type="radio" name="keyspanda" id="kp3" class="vh" tabindex="-1" aria-hidden="true">
+  <input type="radio" name="keyspanda" id="kp4" class="vh" tabindex="-1" aria-hidden="true">
+  <input type="radio" name="keyspanda" id="kp5" class="vh" tabindex="-1" aria-hidden="true">
   <div class="intro-bands">
     <div class="intro-band intro-tune preview-band cust-band">
       <!-- feeling bubbles summoned by the Keys panda accumulate & drift here -->
@@ -3695,7 +3704,7 @@ details.tile-big:hover > summary .tag,
     <!-- Keys band · panda above the title; clicking it cycles a standing mood
          while feeling bubbles accumulate over in the Custom band (radios above) -->
     <div class="intro-band intro-keys keys-band">
-      <div class="kp-stage">
+      <div class="kp-stage" aria-hidden="true">
         <img class="kp-panda kp-e0" src="../others/panda/all-gifs/panda-neutral-talk.gif" alt="" aria-hidden="true">
         <img class="kp-panda kp-e1" src="../others/panda/all-gifs/panda-feliz.gif"        alt="" aria-hidden="true">
         <img class="kp-panda kp-e2" src="../others/panda/all-gifs/panda-enamorado.gif"    alt="" aria-hidden="true">

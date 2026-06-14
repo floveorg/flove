@@ -8,7 +8,9 @@
 <link rel="stylesheet" href="flove.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- load Inter without blocking first paint (offline / slow networks no longer hang on a blank page) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
 <style>
   :root {
     --app-accent:        #ff8a8a;
@@ -2145,116 +2147,125 @@
     .cmf.b { opacity: 0; }
   }
 
-  /* ── KEYS band · click the panda → a mood + a feeling bubble + a Keys hint ──
-     Pure-CSS cycle: 6 stacked radios (neutral → 5 emotions → neutral). Each
-     active state's invisible label covers the panda and points to the NEXT
-     radio, so every click advances one mood; the 6th click lands on neutral.
-     A 10s CSS animation fades the emotion + bubble + hint back out (the panda
-     "goes static again") — CSS can't un-check a radio, so the reset is visual:
-     the next click after an idle-fade simply advances to the next mood. */
-  .keys-band { gap: 12px; }
+  /* ── KEYS band · click the panda → it stands and plays a mood; feeling bubbles
+     pop up and ACCUMULATE over in the Custom band's space (one per click, up to
+     5; the 6th click clears them). Pure CSS: 6 radios (neutral → 5 moods →
+     neutral) live just before .intro-bands so a single selector can reach BOTH
+     the Keys band (the panda) and the Custom band (the bubbles). Each active
+     state's invisible label covers the panda and points to the NEXT radio, so
+     every click advances one mood; the 6th click resets to neutral. A 10s CSS
+     animation fades the mood + hint back out — CSS can't un-check a radio, so
+     that reset is visual; the bubbles persist until the deliberate 6th click. */
+
+  /* panda ABOVE, "Keys" kept on the row's centre line (like the sibling titles),
+     hint phrase below — all anchored to the band centre so the title aligns. */
   .keys-band:hover, .keys-band:focus-within { flex-grow: 2.4; }
-  /* kp0 is checked by default, which would otherwise exempt this band from the
-     "others recede" rule when another colour is previewed — re-apply it here. */
+  /* kp0 is checked by default; keep this band receding with the rest when
+     another colour is being previewed. */
   .intro-bands:has(.preview-band input:checked) .keys-band:not(:hover):not(:focus-within) {
     flex-grow: .55; filter: saturate(.9) brightness(.97);
   }
-  .kp-stage { position: relative; z-index: 1; width: min(74%, 132px); aspect-ratio: 1; }
+  .kp-stage {
+    position: absolute; left: 50%; bottom: calc(50% + 1.55em); transform: translateX(-50%);
+    z-index: 1; width: min(70%, 120px); aspect-ratio: 1;
+  }
   .kp-neutral, .kp-emo {
     position: absolute; inset: 0; width: 100%; height: 100%;
     filter: drop-shadow(0 4px 10px rgba(40,16,74,.28));
   }
   .kp-emo { opacity: 0; }                 /* shown only while its state is active */
-  #kp0:checked ~ .kp-stage .kp-neutral { animation: kp-invite 3.2s ease-in-out 3; }
-  @keyframes kp-invite { 0%,100% { transform: none; } 50% { transform: translateY(-4px) scale(1.03); } }
+  #kp0:checked ~ .intro-bands .kp-neutral { animation: kp-invite 3.2s ease-in-out 3; }
+  @keyframes kp-invite { 0%,100% { transform: none; } 50% { transform: translateY(-5px) scale(1.04); } }
 
   /* click targets — invisible labels over the panda; only the active one is live */
-  .kp-hit { position: absolute; inset: -7%; border-radius: 50%; cursor: pointer; z-index: 2; }
-  .kp-hit { pointer-events: none; }
-  #kp0:checked ~ .kp-stage .kp-hit0,
-  #kp1:checked ~ .kp-stage .kp-hit1,
-  #kp2:checked ~ .kp-stage .kp-hit2,
-  #kp3:checked ~ .kp-stage .kp-hit3,
-  #kp4:checked ~ .kp-stage .kp-hit4,
-  #kp5:checked ~ .kp-stage .kp-hit5 { pointer-events: auto; }
+  .kp-hit { position: absolute; inset: -8%; border-radius: 50%; cursor: pointer; z-index: 2; pointer-events: none; }
+  #kp0:checked ~ .intro-bands .kp-hit0,
+  #kp1:checked ~ .intro-bands .kp-hit1,
+  #kp2:checked ~ .intro-bands .kp-hit2,
+  #kp3:checked ~ .intro-bands .kp-hit3,
+  #kp4:checked ~ .intro-bands .kp-hit4,
+  #kp5:checked ~ .intro-bands .kp-hit5 { pointer-events: auto; }
 
   /* emotion overlays appear, play their own in-SVG animation, then fade at 10s */
-  #kp1:checked ~ .kp-stage .kp-e1,
-  #kp2:checked ~ .kp-stage .kp-e2,
-  #kp3:checked ~ .kp-stage .kp-e3,
-  #kp4:checked ~ .kp-stage .kp-e4,
-  #kp5:checked ~ .kp-stage .kp-e5 { animation: kp-life 10s ease forwards; }
+  #kp1:checked ~ .intro-bands .kp-e1,
+  #kp2:checked ~ .intro-bands .kp-e2,
+  #kp3:checked ~ .intro-bands .kp-e3,
+  #kp4:checked ~ .intro-bands .kp-e4,
+  #kp5:checked ~ .intro-bands .kp-e5 { animation: kp-life 10s ease forwards; }
   @keyframes kp-life { 0% { opacity: 0; } 6% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }
 
-  /* one feeling bubble (Custom-style) at the panda's shoulder */
-  .kp-bubble {
-    position: absolute; top: -5%; right: -7%;
-    width: 52px; height: 52px; border-radius: 50%;
-    display: grid; place-items: center; z-index: 3; pointer-events: none;
-    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.62), rgba(255,255,255,.16));
-    border: 2px solid rgba(255,255,255,.7);
-    box-shadow: 0 8px 22px rgba(40,20,80,.34);
-    opacity: 0; transform: scale(.4);
+  /* "Keys / of Everything" pinned to the band's vertical centre = the title row */
+  .kp-title {
+    position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    text-decoration: none; z-index: 1;
   }
-  .kpb { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; }
-  .kpb .cmoji { width: 30px; height: 30px; }
-  .kpb1 .cmoji { color: #b85a1c; }        /* Joyful  */
-  .kpb2 .cmoji { color: #9c2418; }        /* Tender  */
-  .kpb3 .cmoji { color: #9c2418; }        /* Playful */
-  .kpb4 .cmoji { color: #181210; }        /* Curious */
-  .kpb5 .cmoji { color: #181210; }        /* Dreamy  */
-  #kp1:checked ~ .kp-stage .kp-bubble,
-  #kp2:checked ~ .kp-stage .kp-bubble,
-  #kp3:checked ~ .kp-stage .kp-bubble,
-  #kp4:checked ~ .kp-stage .kp-bubble,
-  #kp5:checked ~ .kp-stage .kp-bubble { animation: kp-bub 10s ease forwards; }
-  @keyframes kp-bub { 0% { opacity: 0; transform: scale(.4); } 8% { opacity: 1; transform: scale(1); } 86% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.6); } }
-  #kp1:checked ~ .kp-stage .kpb1,
-  #kp2:checked ~ .kp-stage .kpb2,
-  #kp3:checked ~ .kp-stage .kpb3,
-  #kp4:checked ~ .kp-stage .kpb4,
-  #kp5:checked ~ .kp-stage .kpb5 { opacity: 1; }
-
-  /* title keeps linking into Keys */
-  .kp-title { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; z-index: 1; }
   .kp-title:hover .ib-name { text-decoration: underline; }
 
-  /* the Keys hint pill — one per mood, below the title, gone on next click / 10s */
-  .kp-hints { position: relative; width: min(94%, 230px); min-height: 3em; z-index: 1; }
+  /* hint phrase — plain italic text below the title, no border/background */
+  .kp-hints {
+    position: absolute; left: 50%; top: calc(50% + 1.6em); transform: translateX(-50%);
+    width: min(96%, 220px); z-index: 1; text-align: center;
+  }
   .kp-hint {
     position: absolute; left: 50%; top: 0; transform: translateX(-50%);
     width: 100%; text-align: center;
-    font: 600 .72rem/1.3 'Inter', sans-serif; color: var(--ink);
-    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.4);
-    border-radius: 12px; padding: 7px 10px;
-    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    font: italic 600 .76rem/1.32 'Georgia', serif; color: var(--ink);
+    text-shadow: 0 1px 7px rgba(40,16,74,.55);
     opacity: 0;
   }
-  .kp-hint b { display: block; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; font-size: .6rem; opacity: .92; margin-bottom: 2px; }
-  #kp1:checked ~ .kp-hints .kp-h1,
-  #kp2:checked ~ .kp-hints .kp-h2,
-  #kp3:checked ~ .kp-hints .kp-h3,
-  #kp4:checked ~ .kp-hints .kp-h4,
-  #kp5:checked ~ .kp-hints .kp-h5 { animation: kp-hint 10s ease forwards; }
+  #kp1:checked ~ .intro-bands .kp-h1,
+  #kp2:checked ~ .intro-bands .kp-h2,
+  #kp3:checked ~ .intro-bands .kp-h3,
+  #kp4:checked ~ .intro-bands .kp-h4,
+  #kp5:checked ~ .intro-bands .kp-h5 { animation: kp-hint 10s ease forwards; }
   @keyframes kp-hint { 0% { opacity: 0; transform: translate(-50%, 6px); } 9% { opacity: 1; transform: translate(-50%, 0); } 86% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -4px); } }
 
+  /* ── feeling bubbles pop & ACCUMULATE in the Custom band's space ──────────
+     One per panda click; cumulative (mood N shows bubbles 1..N); cleared on the
+     6th click (→ kp0). Drift (translate) lives on .kpc, the pop (scale) on its
+     inner .kpc-face, so the two transforms never fight. */
+  .kp-cust-pop { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+  .kpc { position: absolute; width: 46px; height: 46px; }
+  .kpc1 { left: 16%; top: 9%;  animation: cmood-drift-a 17s ease-in-out infinite; }
+  .kpc2 { left: 54%; top: 24%; animation: cmood-drift-b 21s ease-in-out infinite; }
+  .kpc3 { left: 20%; top: 44%; animation: cmood-drift-c 19s ease-in-out infinite; }
+  .kpc4 { left: 56%; top: 60%; animation: cmood-drift-b 23s ease-in-out infinite; }
+  .kpc5 { left: 30%; top: 78%; animation: cmood-drift-a 20s ease-in-out infinite; }
+  .kpc-face {
+    position: absolute; inset: 0; border-radius: 50%;
+    display: grid; place-items: center;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.6), rgba(255,255,255,.14));
+    border: 2px solid rgba(255,255,255,.66); box-shadow: 0 8px 20px rgba(60,16,40,.34);
+    opacity: 0; transform: scale(.3);
+    transition: opacity .4s ease, transform .45s cubic-bezier(.2,1.5,.4,1);
+  }
+  .kpc-face .cmoji { width: 26px; height: 26px; }
+  .kpc1 .cmoji { color: #b85a1c; }  .kpc2 .cmoji { color: #9c2418; }  .kpc3 .cmoji { color: #9c2418; }
+  .kpc4 .cmoji { color: #181210; }  .kpc5 .cmoji { color: #181210; }
+  /* cumulative reveal — once you reach mood N, bubbles 1..N stay visible */
+  #kp1:checked ~ .intro-bands .kpc1 .kpc-face, #kp2:checked ~ .intro-bands .kpc1 .kpc-face,
+  #kp3:checked ~ .intro-bands .kpc1 .kpc-face, #kp4:checked ~ .intro-bands .kpc1 .kpc-face,
+  #kp5:checked ~ .intro-bands .kpc1 .kpc-face,
+  #kp2:checked ~ .intro-bands .kpc2 .kpc-face, #kp3:checked ~ .intro-bands .kpc2 .kpc-face,
+  #kp4:checked ~ .intro-bands .kpc2 .kpc-face, #kp5:checked ~ .intro-bands .kpc2 .kpc-face,
+  #kp3:checked ~ .intro-bands .kpc3 .kpc-face, #kp4:checked ~ .intro-bands .kpc3 .kpc-face,
+  #kp5:checked ~ .intro-bands .kpc3 .kpc-face,
+  #kp4:checked ~ .intro-bands .kpc4 .kpc-face, #kp5:checked ~ .intro-bands .kpc4 .kpc-face,
+  #kp5:checked ~ .intro-bands .kpc5 .kpc-face { opacity: 1; transform: scale(1); }
+
   @media (prefers-reduced-motion: reduce) {
-    .kp-neutral { animation: none; }
-    #kp1:checked ~ .kp-stage .kp-e1,
-    #kp2:checked ~ .kp-stage .kp-e2,
-    #kp3:checked ~ .kp-stage .kp-e3,
-    #kp4:checked ~ .kp-stage .kp-e4,
-    #kp5:checked ~ .kp-stage .kp-e5 { animation: none; opacity: 1; }
-    #kp1:checked ~ .kp-stage .kp-bubble,
-    #kp2:checked ~ .kp-stage .kp-bubble,
-    #kp3:checked ~ .kp-stage .kp-bubble,
-    #kp4:checked ~ .kp-stage .kp-bubble,
-    #kp5:checked ~ .kp-stage .kp-bubble { animation: none; opacity: 1; transform: scale(1); }
-    #kp1:checked ~ .kp-hints .kp-h1,
-    #kp2:checked ~ .kp-hints .kp-h2,
-    #kp3:checked ~ .kp-hints .kp-h3,
-    #kp4:checked ~ .kp-hints .kp-h4,
-    #kp5:checked ~ .kp-hints .kp-h5 { animation: none; opacity: 1; transform: translateX(-50%); }
+    .kp-neutral, .kpc { animation: none; }
+    #kp1:checked ~ .intro-bands .kp-e1,
+    #kp2:checked ~ .intro-bands .kp-e2,
+    #kp3:checked ~ .intro-bands .kp-e3,
+    #kp4:checked ~ .intro-bands .kp-e4,
+    #kp5:checked ~ .intro-bands .kp-e5 { animation: none; opacity: 1; }
+    #kp1:checked ~ .intro-bands .kp-h1,
+    #kp2:checked ~ .intro-bands .kp-h2,
+    #kp3:checked ~ .intro-bands .kp-h3,
+    #kp4:checked ~ .intro-bands .kp-h4,
+    #kp5:checked ~ .intro-bands .kp-h5 { animation: none; opacity: 1; transform: translateX(-50%); }
   }
 
   .modal-close {
@@ -3576,8 +3587,24 @@ details.tile-big:hover > summary .tag,
 <!-- ── INTRO SPLASH: rainbow category chooser (hides once a category is picked) ── -->
 <div class="intro-splash" id="introSplash" role="navigation" aria-label="Choose a category">
   <a class="flow-btn flow-know intro-flow-top" href="nety.html" aria-label="Know more · about the network"><span class="flow-txt">Know more</span></a>
+  <!-- Keys-panda mood cycle · radios live here so one selector reaches both the
+       Keys band (panda) and the Custom band (accumulating feeling bubbles) -->
+  <input type="radio" name="keyspanda" id="kp0" class="vh" checked aria-label="panda resting">
+  <input type="radio" name="keyspanda" id="kp1" class="vh" aria-label="joyful panda">
+  <input type="radio" name="keyspanda" id="kp2" class="vh" aria-label="tender panda">
+  <input type="radio" name="keyspanda" id="kp3" class="vh" aria-label="playful panda">
+  <input type="radio" name="keyspanda" id="kp4" class="vh" aria-label="curious panda">
+  <input type="radio" name="keyspanda" id="kp5" class="vh" aria-label="dreamy panda">
   <div class="intro-bands">
     <div class="intro-band intro-tune preview-band cust-band">
+      <!-- feeling bubbles summoned by the Keys panda accumulate & drift here -->
+      <div class="kp-cust-pop" aria-hidden="true">
+        <div class="kpc kpc1"><span class="kpc-face"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><circle cx="9" cy="10.5" r=".95" fill="currentColor"/><circle cx="15" cy="10.5" r=".95" fill="currentColor"/><path d="M8 13.6q4 3.4 8 0"/></svg></span></div>
+        <div class="kpc kpc2"><span class="kpc-face"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path transform="translate(7.4 8.4)" d="M0 1.2C0 0 1.6 0 1.6 1 1.6 0 3.2 0 3.2 1.2 3.2 2.4 1.6 3.2 1.6 3.8 1.6 3.2 0 2.4 0 1.2Z" fill="currentColor" stroke="none"/><path transform="translate(13.4 8.4)" d="M0 1.2C0 0 1.6 0 1.6 1 1.6 0 3.2 0 3.2 1.2 3.2 2.4 1.6 3.2 1.6 3.8 1.6 3.2 0 2.4 0 1.2Z" fill="currentColor" stroke="none"/><path d="M9 14.2q3 1.6 6 0"/></svg></span></div>
+        <div class="kpc kpc3"><span class="kpc-face"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M7.6 10.6q1.4-1.4 2.8 0"/><circle cx="15" cy="10.7" r=".95" fill="currentColor"/><path d="M8.4 14q3.6 2.4 6.4-.4"/></svg></span></div>
+        <div class="kpc kpc4"><span class="kpc-face"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M7.2 9 10 9.7"/><circle cx="9" cy="11.4" r=".9" fill="currentColor"/><circle cx="15" cy="11.4" r=".9" fill="currentColor"/><path d="M10.2 15h3"/></svg></span></div>
+        <div class="kpc kpc5"><span class="kpc-face"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M7.4 11q1.6 1.4 3 0"/><path d="M13.6 11q1.6 1.4 3 0"/><path d="M10.2 15q1.8 1 3.6 0"/></svg></span></div>
+      </div>
       <input type="radio" name="preview" id="prev-custom" class="vh">
       <label class="ib-cover" for="prev-custom"><span class="ib-name">Custom</span><span class="ib-sub">Mommentum</span></label>
       <div class="ib-stage">
@@ -3661,14 +3688,9 @@ details.tile-big:hover > summary .tag,
       </div>
     </div>
 
-    <!-- Keys band · click the panda to cycle a mood + a feeling bubble + a Keys hint -->
+    <!-- Keys band · panda above the title; clicking it cycles a standing mood
+         while feeling bubbles accumulate over in the Custom band (radios above) -->
     <div class="intro-band intro-keys keys-band">
-      <input type="radio" name="keyspanda" id="kp0" class="vh" checked aria-label="panda resting">
-      <input type="radio" name="keyspanda" id="kp1" class="vh" aria-label="joyful panda">
-      <input type="radio" name="keyspanda" id="kp2" class="vh" aria-label="tender panda">
-      <input type="radio" name="keyspanda" id="kp3" class="vh" aria-label="playful panda">
-      <input type="radio" name="keyspanda" id="kp4" class="vh" aria-label="curious panda">
-      <input type="radio" name="keyspanda" id="kp5" class="vh" aria-label="dreamy panda">
       <div class="kp-stage">
         <img class="kp-neutral"   src="../others/panda/panda-neutral.svg"                    alt="" aria-hidden="true">
         <img class="kp-emo kp-e1" src="../others/panda/animated/emotions/panda-feliz.svg"     alt="" aria-hidden="true">
@@ -3676,13 +3698,6 @@ details.tile-big:hover > summary .tag,
         <img class="kp-emo kp-e3" src="../others/panda/animated/emotions/panda-guino.svg"     alt="" aria-hidden="true">
         <img class="kp-emo kp-e4" src="../others/panda/animated/emotions/panda-pensativo.svg" alt="" aria-hidden="true">
         <img class="kp-emo kp-e5" src="../others/panda/animated/emotions/panda-dormido.svg"   alt="" aria-hidden="true">
-        <div class="kp-bubble" aria-hidden="true">
-          <span class="kpb kpb1"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><circle cx="9" cy="10.5" r=".95" fill="currentColor"/><circle cx="15" cy="10.5" r=".95" fill="currentColor"/><path d="M8 13.6q4 3.4 8 0"/></svg></span>
-          <span class="kpb kpb2"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path transform="translate(7.4 8.4)" d="M0 1.2C0 0 1.6 0 1.6 1 1.6 0 3.2 0 3.2 1.2 3.2 2.4 1.6 3.2 1.6 3.8 1.6 3.2 0 2.4 0 1.2Z" fill="currentColor" stroke="none"/><path transform="translate(13.4 8.4)" d="M0 1.2C0 0 1.6 0 1.6 1 1.6 0 3.2 0 3.2 1.2 3.2 2.4 1.6 3.2 1.6 3.8 1.6 3.2 0 2.4 0 1.2Z" fill="currentColor" stroke="none"/><path d="M9 14.2q3 1.6 6 0"/></svg></span>
-          <span class="kpb kpb3"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M7.6 10.6q1.4-1.4 2.8 0"/><circle cx="15" cy="10.7" r=".95" fill="currentColor"/><path d="M8.4 14q3.6 2.4 6.4-.4"/></svg></span>
-          <span class="kpb kpb4"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M7.2 9 10 9.7"/><circle cx="9" cy="11.4" r=".9" fill="currentColor"/><circle cx="15" cy="11.4" r=".9" fill="currentColor"/><path d="M10.2 15h3"/></svg></span>
-          <span class="kpb kpb5"><svg class="cmoji" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M7.4 11q1.6 1.4 3 0"/><path d="M13.6 11q1.6 1.4 3 0"/><path d="M10.2 15q1.8 1 3.6 0"/></svg></span>
-        </div>
         <label class="kp-hit kp-hit0" for="kp1" aria-label="say hello to the panda"></label>
         <label class="kp-hit kp-hit1" for="kp2" aria-label="next mood"></label>
         <label class="kp-hit kp-hit2" for="kp3" aria-label="next mood"></label>
@@ -3692,11 +3707,11 @@ details.tile-big:hover > summary .tag,
       </div>
       <a class="kp-title" href="puzzy/keys.html"><span class="ib-name">Keys</span><span class="ib-sub">of Everything</span></a>
       <div class="kp-hints" aria-hidden="true">
-        <span class="kp-hint kp-h1"><b>Joyful</b>A language you read by smiling</span>
-        <span class="kp-hint kp-h2"><b>Tender</b>Fall for a sign you already knew</span>
-        <span class="kp-hint kp-h3"><b>Playful</b>Psst — the alphabet's in on it</span>
-        <span class="kp-hint kp-h4"><b>Curious</b>Look closer — you already get it</span>
-        <span class="kp-hint kp-h5"><b>Dreamy</b>The whole, learned with eyes half-closed</span>
+        <span class="kp-hint kp-h1">A language you read by smiling</span>
+        <span class="kp-hint kp-h2">Fall for a sign you already knew</span>
+        <span class="kp-hint kp-h3">Psst — the alphabet's in on it</span>
+        <span class="kp-hint kp-h4">Look closer — you already get it</span>
+        <span class="kp-hint kp-h5">The whole, learned with eyes half-closed</span>
       </div>
     </div>
   </div>

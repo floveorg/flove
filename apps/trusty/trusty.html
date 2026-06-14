@@ -1866,9 +1866,172 @@
       .card > .card-summary::after{ display:none; }
       .sentence{ background:#fff; border-color:#888; }
     }
+    /* ============================================================
+       DUAL-AXIS · People tree + advanced topbar  (added)
+       ============================================================ */
+    .vh{ position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+    /* ── axis segmented switch ─────────────────────────────── */
+    .axis-seg{ display:inline-flex; align-items:center; gap:2px; padding:3px;
+      background:rgba(255,255,255,.55); border:1.5px solid var(--accent-soft);
+      border-radius:var(--radius-pill); box-shadow:var(--shadow-sm); backdrop-filter:blur(6px); }
+    .axis-tab{ display:inline-flex; align-items:center; gap:.38em; cursor:pointer;
+      padding:.34rem .85rem; border-radius:var(--radius-pill);
+      font:600 .9rem/1 var(--font-ui); color:var(--accent-deep); white-space:nowrap;
+      transition:background var(--medium), color var(--medium), box-shadow var(--medium); }
+    .axis-glyph{ font-size:.95em; opacity:.85; }
+    .axis-tab:hover{ background:var(--accent-soft); }
+    body:has(#axis-people:checked)    .axis-tab[for="axis-people"],
+    body:has(#axis-something:checked) .axis-tab[for="axis-something"]{
+      background:linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color:#fff; box-shadow:0 4px 12px var(--accent-glow); }
+
+    /* ── display modifier chips ────────────────────────────── */
+    .disp-row{ display:inline-flex; flex-wrap:wrap; gap:.3rem; margin-left:.55rem; }
+    .disp-chip{ display:inline-flex; align-items:center; gap:.32em; cursor:pointer;
+      padding:.24rem .6rem; border:1px solid var(--line-strong); border-radius:var(--radius-pill);
+      font:600 .76rem/1 var(--font-ui); color:var(--ink-soft); background:rgba(255,255,255,.4);
+      opacity:.62; transition:all var(--medium); user-select:none; }
+    .disp-chip .dc-i{ font-size:.95em; }
+    .disp-chip:hover{ opacity:.9; border-color:var(--accent); }
+    /* Handoffs/Compact/Expand are "off" by default → pressed = filled.
+       Originals defaults ON. Each reflects its own input state. */
+    body:has(#disp-originals:checked) .disp-chip[for="disp-originals"],
+    body:has(#disp-handoffs:checked)  .disp-chip[for="disp-handoffs"],
+    body:has(#disp-compact:checked)   .disp-chip[for="disp-compact"],
+    body:has(#all-open:checked)       .disp-chip[for="all-open"]{
+      opacity:1; color:#fff; border-color:transparent;
+      background:linear-gradient(135deg, var(--accent), var(--accent-deep));
+      box-shadow:0 3px 9px var(--accent-glow); }
+    @media (max-width:720px){ .disp-chip .dc-t{ display:none; } .disp-chip{ padding:.3rem .45rem; } }
+    @media (max-width:600px){ .topbar-inner{ flex-wrap:wrap; row-gap:.4rem; } .disp-row{ margin-left:0; } }
+
+    /* ── axis view switching ───────────────────────────────── */
+    #view-people, #view-something{ display:none; }
+    body:has(#axis-people:checked)    #view-people{ display:block; }
+    body:has(#axis-something:checked) #view-something{ display:block; }
+
+    /* ============================================================
+       People tree
+       ============================================================ */
+    #view-people{ display:flex; flex-direction:column; gap:1.05rem; }
+    .tcat{ position:relative; border:1.5px solid var(--accent-soft); border-radius:var(--radius-lg);
+      background:linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,250,242,.6));
+      box-shadow:var(--shadow-sm); padding:.55rem 1.2rem 1.25rem; overflow:clip;
+      animation:tcatIn .55s var(--ease) both; }
+    @keyframes tcatIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+    /* a soft sage spine down the left of each band */
+    .tcat::before{ content:''; position:absolute; left:0; top:1.4rem; bottom:1.4rem; width:4px;
+      border-radius:var(--radius-pill); background:linear-gradient(var(--accent), var(--accent-soft)); opacity:.7; }
+
+    .tcat-head{ display:flex; align-items:center; gap:.55rem; cursor:pointer; list-style:none;
+      padding:.55rem 0 .15rem; font:700 1.12rem/1.2 var(--font-ui); color:var(--ink); }
+    .tcat-head::-webkit-details-marker{ display:none; }
+    .tcat-emoji{ font-size:1.5rem; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.08)); }
+    .tcat-name{ letter-spacing:.2px; }
+    .tcat-note{ margin-left:auto; font:500 .72rem/1.3 var(--font-ui); color:var(--accent-deep);
+      opacity:.78; padding:.2rem .55rem; border:1px dashed var(--accent-soft); border-radius:var(--radius-pill); }
+    .tcat .tcat-chev{ margin-left:.1rem; color:var(--muted); transition:transform var(--medium); }
+    .tcat[open] .tcat-chev{ transform:rotate(90deg); }
+    .tcat[open] .tcat-note{ margin-left:.6rem; }
+    .tcat:not([open]) .tcat-note{ margin-left:auto; }
+
+    /* MAIN — the big container phrase, sitting just below the mother category */
+    .tcat-main{ font:italic 600 1.5rem/1.28 var(--font-display); color:var(--accent-deep);
+      margin:.45rem 0 1.05rem; padding-left:.1rem; max-width:46ch;
+      text-wrap:balance; }
+    .tcat-main::before{ content:'“'; opacity:.4; }
+    .tcat-main::after{ content:'”'; opacity:.4; }
+
+    /* subcategory grid */
+    .tsub-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(248px, 1fr)); gap:.5rem 1.5rem; }
+    .tsub-block{ break-inside:avoid; }
+    /* SUBCATEGORY — bold, with a small leading bond-tick */
+    .tsub{ display:flex; align-items:center; gap:.4rem; font:700 .9rem/1.2 var(--font-ui);
+      color:var(--accent-deep); text-transform:uppercase; letter-spacing:.7px;
+      margin:.55rem 0 .4rem; }
+    .tsub::before{ content:''; width:7px; height:7px; border-radius:50%;
+      background:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); flex:0 0 auto; }
+
+    .titem-list{ display:flex; flex-direction:column; gap:.32rem; }
+    .titem{ display:flex; align-items:flex-start; gap:.55rem; cursor:pointer;
+      padding:.4rem .65rem; border-radius:var(--radius-sm); font:.9rem/1.35 var(--font-ui);
+      color:var(--ink-soft); background:rgba(255,255,255,.5); transition:all var(--fast); }
+    .titem input{ appearance:none; -webkit-appearance:none; flex:0 0 auto; margin-top:.16em;
+      width:1.05em; height:1.05em; border:1.6px solid var(--accent); border-radius:5px;
+      background:#fff; cursor:pointer; transition:all var(--fast); position:relative; }
+    .titem input:checked{ background:var(--accent); border-color:var(--accent-deep); }
+    .titem input:checked::after{ content:'✓'; position:absolute; inset:0; display:grid; place-items:center;
+      color:#fff; font-size:.78em; font-weight:700; }
+    /* FORMAL — distinct solid border */
+    .titem--formal{ border:1.5px solid var(--accent-soft); }
+    .titem--formal:hover{ border-color:var(--accent); background:#fff; }
+    /* ORIGINAL — highlighted differently: dashed accent + warm tint + ✦ (one list, no tab) */
+    .titem--original{ border:1.6px dashed var(--accent); background:linear-gradient(180deg, var(--accent-glow), rgba(226,160,107,.10)); color:var(--ink); }
+    .titem--original:hover{ background:var(--accent-glow); }
+    .titem--original > span::after{ content:' ✦'; color:var(--accent-deep); font-weight:700; }
+    .titem:has(input:checked){ color:var(--ink); font-weight:600; }
+
+    /* ── flashy handoff button (logo in front + glow ring) ─── */
+    .thandoff{ position:relative; isolation:isolate; display:inline-flex; align-items:center; gap:.55rem;
+      align-self:flex-start; margin:.1rem 0; padding:.4rem .9rem .4rem .42rem;
+      border-radius:var(--radius-pill); text-decoration:none; color:#fff; font:600 .86rem/1 var(--font-ui);
+      background:linear-gradient(120deg, var(--accent), var(--accent-deep));
+      box-shadow:0 5px 16px var(--accent-glow); transition:transform var(--fast); }
+    .thandoff-logo{ display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+      padding:4px; border-radius:50%; background:rgba(255,255,255,.92); color:var(--accent-deep);
+      box-shadow:inset 0 0 0 1px var(--accent-soft); }
+    .thandoff-logo .mark{ width:20px; height:20px; display:block; }
+    .thandoff-label{ padding-right:.15rem; }
+    .thandoff::before{ content:''; position:absolute; inset:-3px; border-radius:inherit; z-index:-1;
+      background:conic-gradient(from 0deg, var(--accent), #ffffffcc, var(--warm), var(--accent-deep), var(--accent));
+      filter:blur(5px); opacity:.75; animation:thaloSpin 4.5s linear infinite; }
+    .thandoff:hover{ transform:translateY(-1px) scale(1.035); }
+    .thandoff:hover::before{ opacity:1; animation-duration:1.6s; }
+    @keyframes thaloSpin{ to{ transform:rotate(1turn); } }
+
+    /* ── display modifiers acting on the tree ──────────────── */
+    body:not(:has(#disp-originals:checked)) .titem--original{ display:none; }
+    body:not(:has(#disp-handoffs:checked))  .thandoff{ display:none; }
+    body:has(#disp-compact:checked) .tcat{ padding-bottom:.9rem; }
+    body:has(#disp-compact:checked) .tcat-main{ font-size:1.16rem; margin:.3rem 0 .7rem; }
+    body:has(#disp-compact:checked) .titem{ padding:.26rem .5rem; font-size:.82rem; }
+    body:has(#disp-compact:checked) .tsub{ margin:.4rem 0 .28rem; }
+
+    /* ============================================================
+       Conditions picklist (For-something axis)
+       ============================================================ */
+    #conditionsList{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:.85rem; }
+    .cond-group{ border:1px solid var(--accent-soft); border-radius:var(--radius); padding:.65rem .85rem .8rem;
+      background:rgba(255,255,255,.55); break-inside:avoid; }
+    .cond-group legend{ font:700 .82rem/1 var(--font-ui); color:var(--accent-deep);
+      letter-spacing:.4px; padding:0 .35rem; }
+    .cond-group legend b{ color:var(--accent); }
+    .cond-items{ display:flex; flex-wrap:wrap; gap:.34rem; margin-top:.5rem; }
+    .cond-pill{ display:inline-flex; align-items:center; cursor:pointer; padding:.28rem .62rem;
+      border:1.4px solid var(--accent-soft); border-radius:var(--radius-pill);
+      font:.8rem/1.2 var(--font-ui); color:var(--ink-soft); background:#fff; transition:all var(--fast); }
+    .cond-pill input{ position:absolute; opacity:0; width:0; height:0; }
+    .cond-pill:hover{ border-color:var(--accent); }
+    .cond-pill:has(input:checked){ background:linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color:#fff; border-color:transparent; box-shadow:0 3px 9px var(--accent-glow); }
+
+    @media (prefers-reduced-motion:reduce){
+      .tcat{ animation:none; }
+      .thandoff::before{ animation:none; }
+    }
   </style>
 </head>
 <body>
+
+<!-- ▸ axis + display state — CSS-driven (blogyadvanced idiom) -->
+<input type="radio" name="axis" id="axis-people"    class="vh" checked>
+<input type="radio" name="axis" id="axis-something" class="vh">
+<input type="checkbox" id="disp-originals" class="vh" checked>
+<input type="checkbox" id="disp-handoffs"  class="vh" checked>
+<input type="checkbox" id="disp-compact"   class="vh">
+<input type="checkbox" id="all-open"       class="vh">
 
 <!-- ambient drifting background — 7 green blobs (flove pattern) -->
 <div class="dream-veil" aria-hidden="true">
@@ -1890,6 +2053,19 @@
             aria-haspopup="true" aria-expanded="false" aria-controls="introBox">
       <h1>Trusty</h1>
     </button>
+
+    <div class="axis-seg" role="tablist" aria-label="View">
+      <label for="axis-people"    class="axis-tab" role="tab"><span class="axis-glyph">❦</span>People</label>
+      <label for="axis-something" class="axis-tab" role="tab"><span class="axis-glyph">✎</span>For&nbsp;something</label>
+    </div>
+
+    <div class="disp-row" aria-label="Display options">
+      <label for="disp-originals" class="disp-chip" title="Show flove-original items"><span class="dc-i">✦</span><span class="dc-t">Originals</span></label>
+      <label for="disp-handoffs"  class="disp-chip" title="Show sibling-app handoffs"><span class="dc-i">↗</span><span class="dc-t">Handoffs</span></label>
+      <label for="disp-compact"   class="disp-chip" title="Compact density"><span class="dc-i">≣</span><span class="dc-t">Compact</span></label>
+      <label for="all-open"       class="disp-chip" title="Expand all categories"><span class="dc-i">⤢</span><span class="dc-t">Expand</span></label>
+    </div>
+
     <span class="spacer"></span>
     <div class="menu-wrap">
       <button id="menuBtn" class="menu-btn" type="button"
@@ -1980,16 +2156,18 @@
 <!-- Related apps drawer — left / center / right with X to collapse -->
 <section class="related-apps-row" id="relatedAppsRow" aria-hidden="true">
   <div class="group left">
-    <a href="sensy.html" class="pill" title="Perception & senses oriented form">Sensy</a>
+    <a href="daty.html" class="pill" title="Dating & meeting">Daty</a>
+    <a href="hoty.html" class="pill" title="Attraction">Hoty</a>
   </div>
   <div class="group center">
-    <a href="maty.html"           class="pill" title="Material / assets oriented form">Maty</a>
-    <a href="MyFamily.html"       class="pill" title="Family agreements & roles">MyFamily</a>
-    <a href="crowdparenting.html" class="pill" title="Co-care, communal parenting">Crowdparenting</a>
+    <a href="maty.html"     class="pill" title="Couple agreement">Maty</a>
+    <a href="myfamily.html" class="pill" title="Family bonds & roles">MyFamily</a>
+    <a href="parenty.html"  class="pill" title="Parenting & childcare">Parenty</a>
   </div>
   <div class="group right">
-    <a href="crumbler.html" class="pill" title="Let someone crumble you in different ways">Crumbler</a>
-    <a href="evily.html" class="pill" title="A pre-made declaration for our communitary Hell">Evily</a>
+    <a href="crumbly.html" class="pill" title="Granular tick-clauses">Crumbly</a>
+    <a href="evily.html" class="pill" title="Worst-case, hard limits & safe-words">Evily</a>
+    <a href="../economy/dealy/index.html" class="pill" title="Full deal & loan terms">Dealy</a>
   </div>
   <button class="close-btn" id="relatedAppsClose" type="button"
           aria-label="Collapse related apps">✕</button>
@@ -2015,6 +2193,8 @@
 </section>
 
 <main class="container">
+
+  <div id="view-something">
 
   <!-- ===== 1 · Who (bare, always open) ===== -->
   <details class="card card-bare" data-step="1" open>
@@ -2128,6 +2308,16 @@
     </div>
   </details>
 
+  <!-- ===== 3.5 · Conditions — the "For something" picklist ===== -->
+  <details class="card">
+    <summary class="card-summary"><h2>Conditions</h2></summary>
+    <div class="card-body">
+      <button class="section-close" type="button" aria-label="Collapse section">✕</button>
+      <p class="lede">Pick the conditions that shape this trust — when, where, for what, and what's given back. Reframed from Dealy's clause taxonomy.</p>
+      <div id="conditionsList"></div>
+    </div>
+  </details>
+
   <!-- ===== 4 · Declaration ===== -->
   <details class="card emphasis" data-step="4">
     <summary class="card-summary"><h2>Declaration</h2></summary>
@@ -2173,6 +2363,11 @@
       </nav>
     </div>
   </details>
+
+  </div><!-- /#view-something -->
+
+  <!-- ===== People — the trust tree (rendered from PEOPLE) ===== -->
+  <div id="view-people" aria-live="polite"></div>
 
 </main>
 
@@ -2957,7 +3152,217 @@
     initFieldFiles();
     initMics();
     initAddFields();
+    renderPeople();
+    renderConditions();
+    initPeopleControls();
   });
+
+  /* ============================================================
+     DUAL-AXIS · People tree + Conditions data & renderers
+     ============================================================ */
+  const PEOPLE = [
+    { key:'heart', emoji:'💗', name:'Heart',
+      main:'They hold my heart, and have my back',
+      subs:[
+        { name:'Presence', items:[
+          {t:'Be there when I’m low'}, {t:'Hold space for my feelings'},
+          {t:'Keep loving me when I’m hard to love'},
+          {t:'See I’m not okay before I say it', o:true},
+          {t:'Let me be unfinished, still becoming', o:true} ]},
+        { name:'Loyalty', items:[
+          {t:'Have my back / take my side'}, {t:'Stay loyal — don’t betray me'},
+          {t:'Speak well of me when I’m not in the room', o:true} ]},
+      ]},
+    { key:'safety', emoji:'🦺', name:'Safety',
+      main:'They won’t put me at risk',
+      subs:[
+        { name:'Physical', items:[
+          {t:'Keep me physically safe'}, {t:'Drive safely'},
+          {t:'Lock up / not lose my keys'}, {t:'Call for help when needed'} ]},
+        { name:'Limits & consent', items:[
+          {t:'Respect a “no” / a limit (knock, ask, personal space)'},
+          {t:'Follow the rules / agreements'} ]},
+        { name:'Foresight', items:[
+          {t:'Have a backup plan'}, {t:'Not put me at risk'},
+          {t:'Warn me of a risk even when inconvenient', o:true} ]},
+        { name:'Worst-case', items:[
+          {t:'Honor a safe-word the first time', o:true, app:'evily'},
+          {t:'Name the worst case with me in advance', o:true, app:'evily'} ]},
+      ]},
+    { key:'privacy', emoji:'🔒', name:'Privacy & Words',
+      main:'Safe with my words — what’s private stays, what’s said is true',
+      subs:[
+        { name:'Secrets', items:[
+          {t:'Keep a secret'}, {t:'Not share my photos / messages'},
+          {t:'Handle my data / passwords safely'}, {t:'Not read my phone / mail'},
+          {t:'Not screenshot or forward private chats'},
+          {t:'Keep my whereabouts private'}, {t:'Delete things when I ask'},
+          {t:'Not perform our privacy online (no soft-bragging)', o:true} ]},
+        { name:'Honesty', items:[
+          {t:'Tell me the truth'}, {t:'Give a straight answer'},
+          {t:'Say “I don’t know” instead of bluffing', o:true},
+          {t:'Tell me the hard thing kindly', o:true} ]},
+        { name:'Voice', items:[
+          {t:'Reply / keep in touch'}, {t:'Pass on messages faithfully'},
+          {t:'Keep me in the loop'}, {t:'Answer when it matters / pick up'},
+          {t:'Not interrupt or talk over me'},
+          {t:'Repair after a misunderstanding', o:true, app:'maty'} ]},
+      ]},
+    { key:'care', emoji:'🤝', name:'Care',
+      main:'They’ll look after what I love',
+      subs:[
+        { name:'Dependents', items:[
+          {t:'Look after my kid', app:'parenty'},
+          {t:'Care for my pet / plants'}, {t:'Keep an eye on an elder or dependent'} ]},
+        { name:'In a crisis', items:[
+          {t:'Be there in an emergency'}, {t:'Help when I’m sick'},
+          {t:'Give me meals / medication on time'} ]},
+        { name:'Practical', items:[
+          {t:'Drive me / pick me up'}, {t:'House-sit / watch my home'} ]},
+        { name:'Staying power', items:[
+          {t:'Keep caring when it’s boring, not just dramatic', o:true},
+          {t:'Tend a shared bond over years', o:true, app:'myfamily'},
+          {t:'Let a bond end kindly when it’s run its course', o:true, app:'myfamily'} ]},
+      ]},
+    { key:'time', emoji:'⏱️', name:'Time',
+      main:'They won’t waste my time',
+      subs:[
+        { name:'Showing up', items:[
+          {t:'Show up on time'}, {t:'Cover / swap a shift'},
+          {t:'Give notice before cancelling'}, {t:'Reply within a reasonable time'},
+          {t:'Meet a deadline'} ]},
+        { name:'Pace', items:[
+          {t:'Keep a slow pace with me, no rushing', o:true},
+          {t:'Remember the dates that matter to me', o:true} ]},
+      ]},
+    { key:'work', emoji:'💼', name:'Work & Money', note:'specifics → Dealy',
+      main:'Fair with my work and my money',
+      subs:[
+        { name:'Work · Quality', items:[
+          {t:'Do the job to standard'}, {t:'Not cut corners'},
+          {t:'Stand by their work / fix mistakes'}, {t:'Clean up after the work'} ]},
+        { name:'Work · Honest ability', items:[
+          {t:'Admit when out of their depth'}, {t:'Give honest advice'} ]},
+        { name:'Work · Teaching', items:[
+          {t:'Teach me instead of doing it for me', o:true},
+          {t:'Let me fail safely while learning', o:true},
+          {t:'Credit my part of the work', o:true} ]},
+        { name:'Money · Fair dealing', items:[
+          {t:'Pay me back', app:'dealy'}, {t:'Split fairly'},
+          {t:'Not overspend shared funds'}, {t:'Return what they borrow'},
+          {t:'Handle cash honestly'} ]},
+        { name:'Money · Transparency', items:[
+          {t:'Be transparent about costs'}, {t:'Keep receipts'},
+          {t:'Tell me early if they can’t pay', o:true} ]},
+        { name:'Money · Grace', items:[
+          {t:'Not let money change how we treat each other', o:true},
+          {t:'Receive help without shame / give without scorekeeping', o:true} ]},
+      ]},
+    { key:'roles', emoji:'🌐', name:'Roles & Society',
+      main:'People do right by me, even when we’re not close',
+      subs:[
+        { name:'Service & expertise', items:[
+          {t:'A professional to act in my interest, not just bill me'},
+          {t:'A teacher / mentor to teach me honestly'},
+          {t:'An expert to admit when something’s outside their remit', o:true} ]},
+        { name:'Authority & fairness', items:[
+          {t:'Someone with power over me to use it fairly'},
+          {t:'An official to apply the same rule to everyone'},
+          {t:'A leader to tell the truth even when it costs them', o:true} ]},
+        { name:'Strangers & the commons', items:[
+          {t:'A stranger to help in a pinch'},
+          {t:'To be treated decently by people who don’t know me'},
+          {t:'People not to take advantage when I’m vulnerable', o:true} ]},
+        { name:'Community & belonging', items:[
+          {t:'My neighbors to look out for the street'},
+          {t:'A community to keep its word to its members'},
+          {t:'A group to include me as I am', o:true} ]},
+      ]},
+  ];
+
+  const CONDITIONS = [
+    { code:'C-A', name:'Duration & timing', items:[
+      'Open-ended — no fixed window','Fixed period — start → end date','Per occasion / per session only',
+      'A deadline to begin','A minimum span','A maximum span',
+      'Until a certain external event happens','Until something internal changes',
+      'Terms revisited each time','One commitment at a time (no parallel)','Agree the end together'] },
+    { code:'C-B', name:'Place & context', items:[
+      'Only in certain settings','Only when I’m present / together','Only around certain people','Not around certain people'] },
+    { code:'C-C', name:'Purpose', items:[
+      'Granted only for a stated purpose','Not for any other purpose without asking'] },
+    { code:'C-D', name:'Care & handling', items:[
+      'Revocable at any time','Granted freely / no strings','Report problems promptly',
+      'Leave things as found — or better','No misuse; no passing it on','Repair / make good if something breaks'] },
+    { code:'C-E', name:'Who qualifies', items:[
+      'Vouched for by someone','Based on reputation / endorsed','A maturity or age threshold',
+      'A sobriety condition','A skill / qualification needed','Certain people must be present',
+      'Certain people must be absent','Transferable to another person?'] },
+    { code:'C-F', name:'Reciprocity', items:[
+      'Nothing expected — a gift','In kind — return the favor','Time instead',
+      'Cover the cost / a deposit upfront','Documentation as the “payment”'] },
+    { code:'C-G', name:'Transparency', items:[
+      'A record / log is kept','Visible to our circle / others','A check-in cadence'] },
+  ];
+
+  const LOGOS = {
+    parenty: `<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="8.6" r="2"/><path d="M3.8 19.5 a3.2 3.8 0 0 1 6.4 0"/><circle cx="17" cy="8.6" r="2"/><path d="M13.8 19.5 a3.2 3.8 0 0 1 6.4 0"/><circle cx="12" cy="13" r="1.6"/><path d="M9.6 20 a2.4 2.8 0 0 1 4.8 0"/></svg>`,
+    myfamily: `<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11.2 l7.5 -6 7.5 6"/><path d="M6.4 11 v8 h11.2 v-8"/><path fill="currentColor" stroke="none" transform="translate(12 15) scale(1.6)" d="M0 1.7C-1.8 0-1.8-1.6-0.8-1.6-0.25-1.6 0-1.05 0-0.75 0-1.05 0.25-1.6 0.8-1.6 1.8-1.6 1.8 0 0 1.7Z"/></svg>`,
+    maty: `<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="12" r="3.4"/><circle cx="14.6" cy="12" r="3.4"/><path fill="currentColor" stroke="none" transform="translate(12 12) scale(1.1)" d="M0 1.7C-1.8 0-1.8-1.6-0.8-1.6-0.25-1.6 0-1.05 0-0.75 0-1.05 0.25-1.6 0.8-1.6 1.8-1.6 1.8 0 0 1.7Z"/></svg>`,
+    evily: `<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5 C5.5 13 5.5 8 8.7 8 10.7 8 12 9.9 12 9.9 12 9.9 13.3 8 15.3 8 18.5 8 18.5 13 12 18.5Z"/><path d="M9.2 7.6 q-.7 -1.8 .1 -2.9"/><path d="M14.8 7.6 q.7 -1.8 -.1 -2.9"/><path d="M12 18.5 q3.2 1 3.2 -2.2"/><path fill="currentColor" stroke="none" d="M13.6 13.8 l1.8 -.5 -.5 1.9z"/></svg>`,
+    dealy: `<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h6"/><path d="M8.2 7.4 10.5 9.5 8.2 11.6"/><path d="M20 14.5h-6"/><path d="M15.8 12.4 13.5 14.5 15.8 16.6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>`,
+  };
+  const HANDOFF = {
+    parenty:{label:'Parenty', href:'parenty.html'},
+    myfamily:{label:'MyFamily', href:'myfamily.html'},
+    maty:{label:'Maty', href:'maty.html'},
+    evily:{label:'Evily', href:'evily.html'},
+    dealy:{label:'Dealy', href:'../economy/dealy/index.html'},
+  };
+
+  const escT = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  function renderHandoff(appKey){
+    const h = HANDOFF[appKey] || {label:appKey, href:'#'};
+    const svg = LOGOS[appKey] || '';
+    return `<a class="thandoff" href="${h.href}" data-app="${appKey}" title="Open ${escT(h.label)}">`
+      + `<span class="thandoff-logo">${svg}</span>`
+      + `<span class="thandoff-label">→ Open ${escT(h.label)}</span></a>`;
+  }
+  function renderItem(item){
+    if(item.app) return renderHandoff(item.app);
+    const cls = 'titem ' + (item.o ? 'titem--original' : 'titem--formal');
+    return `<label class="${cls}"><input type="checkbox"><span>${escT(item.t)}</span></label>`;
+  }
+  function renderCategory(cat, i){
+    const subs = cat.subs.map(s =>
+      `<div class="tsub-block"><h4 class="tsub">${escT(s.name)}</h4>`
+      + `<div class="titem-list">${s.items.map(renderItem).join('')}</div></div>`).join('');
+    const note = cat.note ? `<span class="tcat-note">${escT(cat.note)}</span>` : '';
+    return `<details class="tcat" data-cat="${cat.key}" open style="animation-delay:${i*55}ms">`
+      + `<summary class="tcat-head"><span class="tcat-emoji">${cat.emoji}</span>`
+      + `<span class="tcat-name">${escT(cat.name)}</span>`
+      + `<span class="tcat-chev" aria-hidden="true">▸</span>${note}</summary>`
+      + `<p class="tcat-main">${escT(cat.main)}</p>`
+      + `<div class="tsub-grid">${subs}</div></details>`;
+  }
+  function renderPeople(){
+    const root = document.getElementById('view-people');
+    if(root) root.innerHTML = PEOPLE.map(renderCategory).join('');
+  }
+  function renderConditions(){
+    const root = document.getElementById('conditionsList');
+    if(!root) return;
+    root.innerHTML = CONDITIONS.map(g =>
+      `<fieldset class="cond-group"><legend><b>${g.code}</b> · ${escT(g.name)}</legend>`
+      + `<div class="cond-items">${g.items.map(t =>
+          `<label class="cond-pill"><input type="checkbox"><span>${escT(t)}</span></label>`).join('')}</div></fieldset>`).join('');
+  }
+  function initPeopleControls(){
+    const all = document.getElementById('all-open');
+    if(all) all.addEventListener('change', e => {
+      document.querySelectorAll('.tcat').forEach(d => { d.open = e.target.checked; });
+    });
+  }
 </script>
 </body>
 </html>

@@ -2347,6 +2347,72 @@
     .intro-arrows{gap:18px}
   }
 
+  /* ===== "See more" per-slide button + floating chips ===== */
+  /* The button sits below the slider; it fades in 3s, 5s after each slide is
+     shown. Clicking it floats up chips with short texts about that slide. */
+  .intro-seemore{
+    display:block;margin:.2rem auto .5rem;
+    opacity:0;pointer-events:none;transition:opacity 3s ease;
+  }
+  .intro-seemore.show{opacity:1;pointer-events:auto}
+  @media (prefers-reduced-motion: reduce){ .intro-seemore{transition:none} }
+  /* Chips overlay fills the slider; pointer-events pass through so a click on a
+     slide still advances it — only link-chips (last slide) capture clicks. */
+  .intro-chips{
+    position:absolute;inset:0;bottom:54px;
+    pointer-events:none;overflow:hidden;z-index:4;
+  }
+  .intro-chip{
+    position:absolute;bottom:0;left:50%;
+    background:rgba(255,95,220,.12);border:1px solid rgba(255,95,220,.38);
+    color:var(--ink);font:600 .82rem/1.2 ui-serif,Georgia,serif;
+    padding:.34rem .72rem;border-radius:999px;white-space:nowrap;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+    opacity:0;will-change:transform,opacity;
+    animation:chip-rise var(--chip-dur,4.5s) cubic-bezier(.25,.7,.3,1) forwards;
+  }
+  a.intro-chip{pointer-events:auto;cursor:pointer;text-decoration:none}
+  a.intro-chip:hover{background:rgba(255,95,220,.24);border-color:var(--accent)}
+  @keyframes chip-rise{
+    0%  {opacity:0;transform:translate(calc(-50% + var(--chip-x0,0px)),0) scale(.82)}
+    14% {opacity:1}
+    82% {opacity:1}
+    100%{opacity:0;transform:translate(calc(-50% + var(--chip-x1,0px)),calc(-1 * var(--chip-h,230px))) scale(1)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .intro-chips{display:flex;flex-wrap:wrap;align-content:flex-end;justify-content:center;gap:.35rem;padding:.4rem;pointer-events:auto}
+    .intro-chip{position:static;left:auto;bottom:auto;opacity:1;animation:none;transform:none}
+  }
+
+  /* ===== Normal-box pass-code field (revealed when the Normal card opens) ===== */
+  .normal-pass{
+    display:none;flex-direction:column;align-items:center;gap:.3rem;margin:.5rem auto 0;
+  }
+  .chooser-card.open .normal-pass{display:flex}
+  .normal-pass-row{display:flex;align-items:center;gap:.4rem;position:relative}
+  .normal-pass input{
+    width:5.2rem;text-align:center;letter-spacing:.18em;
+    font:600 .95rem/1 ui-serif,Georgia,serif;color:var(--ink);
+    background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:10px;
+    padding:.4rem .3rem;outline:none;
+  }
+  .normal-pass input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,95,220,.18)}
+  .normal-pass input.bad{border-color:#e06; animation:pass-shake .3s ease}
+  @keyframes pass-shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+  .normal-pass-info{
+    width:1.3rem;height:1.3rem;flex:0 0 auto;border-radius:50%;
+    border:1px solid var(--stroke);background:transparent;color:var(--muted);
+    font:700 .8rem/1 system-ui,sans-serif;cursor:pointer;display:grid;place-items:center;
+  }
+  .normal-pass-info:hover{border-color:var(--accent);color:var(--accent)}
+  .normal-pass-tip{
+    position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+    width:min(15rem,72vw);padding:.5rem .65rem;border-radius:10px;
+    background:var(--panel);border:1px solid var(--stroke);box-shadow:0 12px 30px rgba(0,0,0,.4);
+    color:var(--ink);font:500 .78rem/1.35 system-ui,sans-serif;text-align:center;z-index:6;
+  }
+  .normal-pass-tip[hidden]{display:none}
+
   /* ============== Customize panel (ported from souls · last slide) ========
      The markup below is the souls slide-3 panel kept class-for-class; the only
      adaptation is the token map here, which paints souls' design variables in
@@ -3681,6 +3747,7 @@
 
   <section class="intro-slider" id="intro-slider" aria-label="How to play">
     <img class="intro-panda" id="intro-panda" src="../../others/panda/gifs/pensativo/frame-00.svg" alt="" aria-hidden="true">
+    <div class="intro-chips" id="intro-chips" aria-hidden="true"></div>
     <div class="intro-track" id="intro-track"></div>
     <div class="intro-arrows">
       <button id="intro-prev" type="button" aria-label="Previous">←</button>
@@ -3688,6 +3755,7 @@
       <button class="btn btn-primary intro-start-arrow" id="intro-start" type="button" hidden>Start →</button>
     </div>
     <div class="intro-dots" id="intro-dots" role="tablist" aria-label="Slides"></div>
+    <button class="btn btn-soft intro-seemore" id="intro-seemore" type="button" aria-controls="intro-chips">See more</button>
     <div class="intro-cta gated" id="intro-cta">
       <div class="intro-cta-row">
         <button class="btn customize-btn" id="customizeBtn" type="button" aria-expanded="false" aria-controls="customizePanel">⚙ Customize</button>
@@ -3801,6 +3869,13 @@
         <div class="opt-body">
           <button class="btn btn-primary opt-go opt-go-locked" id="normal-go" type="button">Go →</button>
           <p class="opt-recommend">We strongly recommend playing Keys in the Master mode.</p>
+          <div class="normal-pass" id="normal-pass">
+            <div class="normal-pass-row">
+              <input type="text" id="normal-pass-input" maxlength="4" inputmode="text" autocomplete="off" spellcheck="false" placeholder="hm.." aria-label="Pass code">
+              <button class="normal-pass-info" id="normal-pass-info" type="button" aria-label="What is this?" aria-expanded="false">i</button>
+              <div class="normal-pass-tip" id="normal-pass-tip" role="tooltip" hidden>Enter Pass Code for starting now (or finish Master mode to get one).</div>
+            </div>
+          </div>
           <button class="opt-arrow opt-arrow-left" type="button" data-point-master aria-label="See the Master mode">←</button>
         </div>
       </div>
@@ -5701,6 +5776,7 @@
     // One merged, title-less nested list (Analysis + By-section merged).
     let mergedList = '';
     if (introMs)         mergedList += node('Intro', introMs, 0);
+    if (custMs)          mergedList += node('Customize → Start', custMs, 1);
     if (t.perStep.step0) mergedList += node('Create groups', t.perStep.step0, 0);
     mergedList += decksTree;   // "Main triads" + per-triad breakdown (no "Main decks" total)
     // Analysis sub-steps in cascade order, each with its own measured time.
@@ -6282,10 +6358,12 @@
     if ($next)  $next.hidden  = reachedLast;
     if ($start) $start.hidden = !reachedLast;
     document.getElementById('intro-cta').classList.toggle('gated', !reachedLast);
+    if (typeof refreshSeeMore === 'function') refreshSeeMore();
   }
 
   function dismissIntro(){
     if (introStart && !introMs) introMs = Date.now() - introStart;   // freeze intro time
+    if (custT0 != null && !custMs) custMs = Date.now() - custT0;      // Customize→Start
     state.introActive = false;
     setUIMode('chooser');
   }
@@ -6313,6 +6391,58 @@
   document.getElementById('intro-start').addEventListener('click', () => dismissIntro());
   document.getElementById('about-close').addEventListener('click', () => setAboutOpen(false));
 
+  // ── "See more" button (per slide) + floating chips + click-to-advance ──
+  const $seeMore = document.getElementById('intro-seemore');
+  const $chips   = document.getElementById('intro-chips');
+  let seeMoreTimer = null, seeMoreSlide = -1, chipClicks = 0;
+  // On each new slide: hide the button + clear chips, then 5s later fade it in
+  // over 3s (CSS transition). Reduced motion shows it at once, no delay.
+  function refreshSeeMore(){
+    if (!$seeMore || seeMoreSlide === introSlide) return;
+    seeMoreSlide = introSlide;
+    clearTimeout(seeMoreTimer);
+    $seeMore.classList.remove('show');
+    if ($chips) $chips.innerHTML = '';
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){ $seeMore.classList.add('show'); return; }
+    seeMoreTimer = setTimeout(() => $seeMore.classList.add('show'), 5000);
+  }
+  // Float a batch of chips for the current slide; the last slide's chips are
+  // link-boxes to lighter apps. Drift/height/duration are seeded (no randomness).
+  function spawnChips(){
+    if (!$chips) return;
+    const set = CHIP_SETS[introSlide] || [];
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    set.forEach((item, i) => {
+      const isLink = typeof item === 'object';
+      const node = document.createElement(isLink ? 'a' : 'span');
+      node.className = 'intro-chip';
+      node.textContent = isLink ? item.t : item;
+      if (isLink){ node.href = item.href; node.target = '_blank'; node.rel = 'noopener'; }
+      if (!reduce){
+        const seed = i * 37 + chipClicks * 13;
+        const dur  = 4 + (seed % 5) * 0.5;
+        node.style.left = (18 + (seed % 64)) + '%';
+        node.style.setProperty('--chip-x0', (((seed % 11) - 5) * 14) + 'px');
+        node.style.setProperty('--chip-x1', ((((seed * 7) % 13) - 6) * 16) + 'px');
+        node.style.setProperty('--chip-h',  (180 + (seed % 9) * 14) + 'px');
+        node.style.setProperty('--chip-dur', dur + 's');
+        node.style.animationDelay = (i * 0.12) + 's';
+        const kill = () => node.remove();
+        node.addEventListener('animationend', kill);
+        setTimeout(kill, (dur + i * 0.12 + 0.4) * 1000);
+      }
+      $chips.appendChild(node);
+    });
+    chipClicks++;
+  }
+  if ($seeMore) $seeMore.addEventListener('click', (e) => { e.stopPropagation(); spawnChips(); });
+  // Clicking a slide's background advances left→right to the next slide.
+  const $introTrack = document.getElementById('intro-track');
+  if ($introTrack) $introTrack.addEventListener('click', (e) => {
+    if (e.target.closest('button, a, input, label, select, textarea')) return;
+    if (introSlide < INTRO_SLIDES.length - 1) gotoSlide(introSlide + 1);
+  });
+
   // ── Customize panel + inline "More info" (ported from souls · last slide) ──
   (function wireCustomize(){
     const $ = (sel) => document.querySelector(sel);
@@ -6334,6 +6464,7 @@
     const panel = $('#customizePanel');
     if (btn && panel){
       btn.addEventListener('click', () => {
+        if (custT0 == null) custT0 = Date.now();   // start the Customize→Start clock
         const open = panel.hidden;
         const p = document.getElementById('intro-panda');
         // Freeze the panda at its current spot BEFORE the panel expands, so the
@@ -6700,6 +6831,40 @@
     setUIMode('main');
     render();
   });
+  // Normal box pass-code: type "keys" to start the normal first stage now,
+  // bypassing the Master lock. (Field shows when the Normal card is open.)
+  (function wireNormalPass(){
+    const wrap  = document.getElementById('normal-pass');
+    const input = document.getElementById('normal-pass-input');
+    const info  = document.getElementById('normal-pass-info');
+    const tip   = document.getElementById('normal-pass-tip');
+    if (!wrap || !input) return;
+    function startNormal(){
+      state.masterForced = false;
+      applyGameMode('normal');
+      startTimer();
+      startStep('step1');
+      startStage(0);
+      state.preludeActive = false;
+      setUIMode('main');
+      render();
+    }
+    wrap.addEventListener('click', e => e.stopPropagation());   // don't collapse the card
+    input.addEventListener('input', () => {
+      input.classList.remove('bad');
+      const v = input.value.trim().toLowerCase();
+      if (v === 'keys'){ if (tip) tip.hidden = true; startNormal(); }
+      else if (v.length === 4){ input.classList.add('bad'); }
+    });
+    if (info && tip){
+      info.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const show = tip.hidden;
+        tip.hidden = !show;
+        info.setAttribute('aria-expanded', String(show));
+      });
+    }
+  })();
   // Arrows on Normal / My own way → open + flash-highlight the Master card.
   document.querySelectorAll('[data-point-master]').forEach(arrow => {
     arrow.addEventListener('click', (e) => {
@@ -7983,9 +8148,11 @@
     const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
     if (!picks.length) return '';
     const links = picks.map(w => {
-      const slug = encodeURIComponent(w.toLowerCase());
-      // Go to the apps index filtered by this key.
-      return `<a class="combos-key" href="index.html?filter=${slug}">${escapeHTML(w)}</a>`;
+      const key = w.toLowerCase();
+      // Each favourite key opens its specific app in a new window; unmapped
+      // keys fall back to the apps index filtered by that key.
+      const href = KEY_APP_LINKS[key] || ('index.html?filter=' + encodeURIComponent(key));
+      return `<a class="combos-key" href="${href}" target="_blank" rel="noopener">${escapeHTML(w)}</a>`;
     }).join('');
     // Saved Comby combinations (recorded/typed against each pair) sit below.
     let saved = '';
@@ -8454,6 +8621,28 @@
   let secondPlayStart = null, secondPlayMs = 0;   // new-perspective timing
   let seeResultsAt = null, analisysMs = 0;        // time from See results → Summary-More
   let introStart = null, introMs = 0;             // time spent in the intro (timer hidden there)
+  let custT0 = null, custMs = 0;                   // first Customize click → Start click
+
+  // Per-slide "See more" chip texts. Slides 0–2 are plain chips; the last slide
+  // is a set of link-boxes pointing at lighter apps to play less seriously.
+  const CHIP_SETS = [
+    ['Two minds, one key','Pairs spark dialogue','A partner sees what you miss','Agree the order together','Twice the meaning'],
+    ['Move keys up & down','Three words, one whole','Order them your way','No wrong answers','Reorder = reframe'],
+    ['You play this once','Take it seriously','Build real networks after','Authenticity invites others','The more true, the more inviting'],
+    [ {t:'Lighter? Bubbles', href:'../../bubbles.html'},
+      {t:'Just play → Puzzy', href:'index.html'},
+      {t:'Casual → Astry',  href:'../astry.html'},
+      {t:'No pressure → Realy', href:'../realy.html'} ],
+  ];
+
+  // Favourite keys → their specific app (summary "Favourite Keys" links).
+  const KEY_APP_LINKS = {
+    love:'../lovy.html', joy:'../../bubbles.html', wisdom:'sety.html',
+    ecological:'../economy/worthing.html', craft:'../economy/crafty.html', offer:'../economy/dealy/',
+    what:'index.html', how:'../nety.html',
+    gift:'../economy/dealy/freed.html', exchange:'../economy/dealy/rewardy.html', lend:'../economy/dealy/shareful.html',
+    why:'../metas/souls.html', personal:'../profily.html', local:'../trusty/parenty.html', social:'../trusty/trusty.html',
+  };
   let analyzeClickAt = null, gendersClickAt = null, perspClickAt = null;   // analysis-step timestamps
   let _spDrag = null;
 

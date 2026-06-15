@@ -954,10 +954,14 @@
   .play-more-row:not(:has(.play-more-btn:not([hidden]))){display:none}
   /* Prompt shown above the decks while Play more is engaged. */
   .play-more-hint{
-    display:block;width:100%;margin:.2rem auto .8rem;max-width:60ch;
+    display:block;width:100%;margin:.4rem auto 1rem;max-width:60ch;
     text-align:center;align-self:center;
-    color:var(--sky);font-size:.98rem;font-weight:600;letter-spacing:.2px;
+    font:800 1.5rem/1.25 ui-serif,Georgia,serif;letter-spacing:.3px;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 55%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 2px 14px rgba(255,95,220,.25);
   }
+  @media (max-width:520px){ .play-more-hint{font-size:1.2rem} }
   .play-more-hint[hidden]{display:none}
   /* "Click me click me" — strong recalling effect on the BORDERS of every
      group item while free-play is active. Persistent until the user clicks
@@ -1427,18 +1431,22 @@
   .app-intro-backdrop{
     position:fixed;inset:0;z-index:300;
     background:rgba(10,10,20,.6);backdrop-filter:blur(6px);
-    display:flex;align-items:center;justify-content:center;
+    display:flex;align-items:flex-start;justify-content:center;
     padding:24px;animation:fadein .2s ease;
+    overflow-y:auto;   /* allow the (possibly tall) card to scroll within the modal */
   }
   .app-intro-backdrop[hidden]{display:none}
   .app-intro-card{
-    width:100%;max-width:480px;
+    width:100%;max-width:480px;margin:auto;
+    max-height:calc(100vh - 48px);overflow-y:auto;
     padding:22px 22px 18px;border-radius:18px;
     background:linear-gradient(180deg,rgba(168,228,255,.07),rgba(255,255,255,.02)),var(--panel);
     border:1px solid var(--stroke);
     box-shadow:0 22px 60px rgba(0,0,0,.5);
     text-align:center;animation:popIn .22s ease;
   }
+  /* Freeze the page behind the open modal. */
+  body.modal-open{overflow:hidden}
   .ai-icon{
     width:54px;height:54px;display:grid;place-items:center;margin:0 auto 10px;
     border-radius:50%;background:rgba(168,228,255,.1);
@@ -1480,17 +1488,20 @@
   /* ---- Comby: pairwise combinations + record/transcribe field ---- */
   .ai-comby{display:flex;flex-direction:column;gap:.5rem;margin:0 0 1rem;text-align:left}
   .ai-comby[hidden]{display:none}
-  .comby-combo{border:1px solid var(--stroke);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.02)}
+  .comby-combo{background:transparent}
+  /* Borderless title row with an exchange button (no collapse chevron). */
   .comby-combo-head{
-    width:100%;display:flex;align-items:center;justify-content:space-between;gap:.5rem;
-    padding:.55rem .8rem;background:transparent;border:0;cursor:pointer;
-    color:var(--ink);font:700 .95rem/1.1 ui-serif,Georgia,serif;letter-spacing:.3px;
+    display:flex;align-items:center;gap:.5rem;padding:.3rem .2rem .2rem;
+    color:var(--ink);font:700 .98rem/1.1 ui-serif,Georgia,serif;letter-spacing:.3px;
   }
-  .comby-combo-head:hover{background:rgba(168,228,255,.06)}
-  .comby-combo-head .comby-chev{color:var(--muted);transition:transform .18s ease}
-  .comby-combo.is-open .comby-combo-head .comby-chev{transform:rotate(90deg);color:var(--sky)}
-  .comby-rec{display:none;flex-direction:column;gap:.5rem;padding:.6rem .8rem .7rem;border-top:1px solid var(--stroke)}
-  .comby-combo.is-open .comby-rec{display:flex}
+  .comby-combo-title{flex:1;min-width:0}
+  .comby-swap{
+    flex:none;width:1.7rem;height:1.7rem;border-radius:8px;border:1px solid var(--stroke);
+    background:#3a3a52;color:var(--sky);cursor:pointer;font-size:.95rem;line-height:1;
+    display:grid;place-items:center;transition:background .15s ease,border-color .15s ease,color .15s ease;
+  }
+  .comby-swap:hover{border-color:var(--sky);background:rgba(168,228,255,.14)}
+  .comby-rec{display:flex;flex-direction:column;gap:.5rem;padding:0 .2rem .6rem}
   .comby-rec-row{display:flex;align-items:stretch;gap:.45rem}
   .comby-mic{
     flex:none;width:2.2rem;border-radius:9px;border:1px solid var(--stroke);
@@ -1507,7 +1518,6 @@
     overflow:auto;
   }
   .comby-field:focus{border-color:var(--sky)}
-  .comby-field:empty::before{content:attr(data-ph);color:var(--muted);opacity:.7;font-style:italic}
   .comby-save{align-self:flex-end;padding:.32rem .9rem;font-size:.82rem}
   .comby-save:disabled{opacity:.4;cursor:not-allowed}
   .comby-unsupported{color:var(--muted);font-size:.74rem;font-style:italic}
@@ -2691,6 +2701,10 @@
   }
   .prelude-title.fade-out{opacity:0}
   .prelude-title[hidden]{display:none}
+  /* Stage-0 title zooms in over 2s and stays fixed. */
+  .prelude-title.zoom-in{animation:prelude-zoom 2s ease both}
+  @keyframes prelude-zoom{from{opacity:0;transform:scale(.35)}to{opacity:1;transform:scale(1)}}
+  @media (prefers-reduced-motion: reduce){ .prelude-title.zoom-in{animation:none} }
   @media (max-width:520px){ .prelude-title{font-size:1.12rem} }
   /* Mood panda shown just before the stars (bottom border of the section)
      after a Check */
@@ -2766,12 +2780,15 @@
   .prelude-status.ok{color:var(--brand)}
   .prelude-status.almost{color:var(--gold)}
 
-  /* ============== Floating counters (clicks · selections · stars) ============== */
+  /* ============== Floating counters (clicks · selections · stars) ==============
+     Hidden permanently during play; the stats still appear in the end Summary
+     (std-counters) — see the display:none override just below. */
   .float-counters{
     position:fixed;left:14px;bottom:14px;z-index:80;
     display:flex;flex-direction:column;align-items:center;gap:10px;
     pointer-events:none;
   }
+  .float-counters{ display:none !important; }   /* permanently hidden HUD (stats show in Summary) */
   .pc{pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:3px}
   .pc.is-empty{display:none}
   .pc-badge{position:relative;display:grid;place-items:center;background:#3a3a52;
@@ -2937,6 +2954,8 @@
   .std-counters-grid .cc{display:flex;flex-direction:column;align-items:center;gap:2px}
   .std-counters-grid .cc b{color:var(--gold);font:700 1.25rem/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}
   .std-counters-grid .cc span{color:var(--muted);font:600 .66rem/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+  .std-counters-grid .cc .cc-pct{color:var(--sky);font:700 .8rem/1 system-ui,sans-serif;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+  .std-counters-grid .cc .cc-name{color:var(--muted);font:600 .62rem/1.1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;margin-bottom:1px}
   /* Two-column counters: one stat per row; right column holds the panda stats. */
   .std-counters-grid.two-col{align-items:flex-start;gap:0 2.6rem}
   .std-counters-grid.two-col .cc-col{display:flex;flex-direction:column;gap:.9rem;min-width:0}
@@ -3115,13 +3134,19 @@
   .flv-std.is-collapsed > *:not(h2){display:none}
 
   /* ---- insight cards (above the phrase) ---- */
+  /* Insight + Magic block, sitting just before "See more". Buttons centered,
+     their info boxes opening centered below them. (Children are display:none
+     until toggled, so the box has no height until used.) */
+  .insight-magic-block{text-align:center}
+  .insight-magic-block .im-buttons{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.1rem 0 .3rem}
+  .flv-std .summary-extra-texts{display:flex;flex-direction:column;gap:.5rem;width:100%;max-width:520px;margin:.3rem auto 0;align-self:center;text-align:left}
   .flv-std .insight-panel{
     display:none;margin:.9rem 0 .4rem;padding:.75rem .9rem;border-radius:12px;   /* shown below the buttons */
     border:1px solid rgba(168,228,255,.28);
     background:linear-gradient(180deg,rgba(168,228,255,.07),transparent);
     color:var(--ink);font-size:.9rem;line-height:1.5;
   }
-  .flv-std .action-grid{margin-top:3.9rem}   /* three rows of space above the buttons */
+  .flv-std .action-grid{margin-top:.8rem}
   .flv-std .insight-panel strong{color:var(--sky)}
   .flv-std .insight-panel p{margin:.35rem 0 0;color:var(--muted)}
   .flv-std:has(#flv-insight-1:checked) .insight-1-content,
@@ -3136,9 +3161,25 @@
     background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01)),var(--panel);
     color:var(--ink);font:500 1rem/1.55 ui-serif,Georgia,serif;
   }
-  .flv-std .clause-magic{display:none;font-style:italic;color:var(--ink)}
-  /* Magic shows its phrase additively (below) — no content swap, no jump */
-  .flv-std:has(#flv-magic:checked) .clause-magic{display:block}
+  /* Magic remixes: 5 panels, one shown per cycle step (6th = none), each with
+     its own design. */
+  .flv-std .magic-panel{display:none;font-style:italic;color:var(--ink)}
+  .flv-std .magic-panel .magic-title{display:block;font-style:normal;font-weight:800;margin-bottom:.25rem;letter-spacing:.2px}
+  .flv-std .magic-panel.m-a{border-left:3px solid var(--gold)}
+  .flv-std .magic-panel.m-a .magic-title{color:var(--gold)}
+  .flv-std .magic-panel.m-b{border-left:3px solid var(--sky);background:linear-gradient(180deg,rgba(168,228,255,.06),transparent)}
+  .flv-std .magic-panel.m-b .magic-title{color:var(--sky)}
+  .flv-std .magic-panel.m-c{border-left:3px solid var(--accent);text-align:center}
+  .flv-std .magic-panel.m-c .magic-title{color:var(--accent)}
+  .flv-std .magic-panel.m-d{border:1px solid rgba(141,137,255,.4);border-radius:12px;padding:.7rem .9rem;background:linear-gradient(180deg,rgba(141,137,255,.08),transparent)}
+  .flv-std .magic-panel.m-d .magic-title{color:var(--plum,#a78bfa)}
+  .flv-std .magic-panel.m-e{border-left:3px solid var(--brand);background:linear-gradient(180deg,rgba(0,247,167,.06),transparent)}
+  .flv-std .magic-panel.m-e .magic-title{color:var(--brand)}
+  .flv-std:has(#flv-magic-1:checked) .magic-1-content,
+  .flv-std:has(#flv-magic-2:checked) .magic-2-content,
+  .flv-std:has(#flv-magic-3:checked) .magic-3-content,
+  .flv-std:has(#flv-magic-4:checked) .magic-4-content,
+  .flv-std:has(#flv-magic-5:checked) .magic-5-content{display:block}
   .flv-std .clause h4{margin:.7rem 0 .25rem;font:700 .74rem/1 system-ui,sans-serif;color:var(--sky);letter-spacing:.14em;text-transform:uppercase}
   .flv-std .clause h4:first-child{margin-top:0}
   .flv-std .clause ul{margin:0 0 .4rem;padding-left:20px}
@@ -3152,13 +3193,17 @@
   .flv-std .play-rows{display:flex;flex-direction:column;gap:.6rem;margin:.2rem 0 .4rem}
   .flv-std .pr-group{border-bottom:1px solid var(--stroke);padding-bottom:.5rem}
   .flv-std .pr-group:last-child{border-bottom:0}
-  .flv-std .pr-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:.22rem 0}
+  .flv-std .pr-line{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px;margin:.22rem 0}
   .flv-std .pr-label{
     font:700 .8rem/1.1 ui-serif,Georgia,serif;color:var(--gold);
     min-width:90px;text-align:left;
   }
   .flv-std .pr-second .pr-label{color:var(--accent)}
-  .flv-std .pr-cells{display:inline-flex;flex-wrap:wrap;gap:5px}
+  /* Cells stacked vertically (one word per line) rather than in a horizontal row. */
+  .flv-std .pr-cells{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+  /* Main + alternative perspective shown side by side (two 3-cell columns). */
+  .flv-std .pr-persp-cols{display:flex;gap:1rem;align-items:flex-start}
+  .flv-std .pr-persp-cols .pr-cells{flex:1 1 0;min-width:0}
   .flv-std .pr-second .pt-cell{font-style:italic}
   .flv-std .pr-tag{
     font:700 .62rem/1 system-ui,sans-serif;color:var(--muted);
@@ -3248,6 +3293,13 @@
     background:linear-gradient(90deg,rgba(0,247,167,.16),rgba(168,228,255,.16),rgba(255,95,220,.16));
     border:1px solid var(--stroke);
   }
+  /* Editable raters: click anywhere on the track to move the point. */
+  .flv-std .pp-bar-track.pp-editable{cursor:pointer}
+  .flv-std .pp-bar-track.pp-editable:hover{border-color:var(--sky)}
+  .flv-std .pp-bar-node{pointer-events:none}
+  .flv-std .pp-reset-row{display:flex;justify-content:center;margin:.6rem 0 .1rem}
+  .flv-std .pp-reset-row[hidden]{display:none}
+  .flv-std .pp-reset-btn{padding:.28rem .9rem;font-size:.8rem}
   .flv-std .pp-bar-fill{
     position:absolute;top:0;bottom:0;border-radius:999px;
     background:linear-gradient(90deg,var(--brand),var(--accent));opacity:.55;
@@ -3287,9 +3339,15 @@
   .flv-std:has(#flv-insight-4:checked) .insight-step[for="flv-insight-0"]{display:inline-flex}
 
   /* ---- magic / phrase label swap ---- */
-  .flv-std .magic-btn-summary .label-on{display:none}
-  .flv-std:has(#flv-magic:checked) .magic-btn-summary .label-off{display:none}
-  .flv-std:has(#flv-magic:checked) .magic-btn-summary .label-on{display:inline}
+  /* Magic cycle: only the step for the current state is shown (icon + "Magic"). */
+  .flv-std .magic-cycle{display:inline-flex}
+  .flv-std .magic-cycle .magic-step{display:none}
+  .flv-std:has(#flv-magic-0:checked) .magic-step[data-ms="0"],
+  .flv-std:has(#flv-magic-1:checked) .magic-step[data-ms="1"],
+  .flv-std:has(#flv-magic-2:checked) .magic-step[data-ms="2"],
+  .flv-std:has(#flv-magic-3:checked) .magic-step[data-ms="3"],
+  .flv-std:has(#flv-magic-4:checked) .magic-step[data-ms="4"],
+  .flv-std:has(#flv-magic-5:checked) .magic-step[data-ms="5"]{display:inline-flex}
 
   /* ---- copy hint ---- */
   .flv-std .copy-hint-panel{
@@ -3690,7 +3748,6 @@
       <div class="prelude-actions">
         <button class="btn btn-ghost btn-back" id="prelude-back" type="button">← Back</button>
         <button class="btn btn-primary" id="prelude-check" type="button" disabled>Check</button>
-        <button class="btn btn-ghost" id="prelude-skip" type="button">Skip step 0 →</button>
       </div>
       <div class="stars-block empty" id="prelude-stars" aria-live="polite">
         <div class="count"><span class="label">Correct:</span> <span class="num" id="prelude-stars-num">0</span> / 5</div>
@@ -3882,12 +3939,10 @@
       <!-- Quick stats above the tables: Decks (Stage 1) · Additional perspective · Analisys -->
       <div class="std-timestats-top" id="std-timestats-top" hidden></div>
 
-      <!-- two phrase variants: default recap + a warmer "magic" retelling -->
+      <!-- Default recap. The warmer "magic" retelling + the Insight cards now
+           live at the BOTTOM of the section (just above See more). -->
       <output class="clause clause-default" data-flove-phrase spellcheck="false" aria-label="Summary phrase">
         Your summary will show up here once you finish a play.
-      </output>
-      <output class="clause clause-magic" spellcheck="false" aria-label="Magic phrase">
-        ✨ A warmer retelling of the same keys will show up here.
       </output>
 
       <!-- Time stats — subtle subsections within the Summary, by the comparison tables -->
@@ -3895,51 +3950,14 @@
       <!-- Counters: clicks · selections · pandas · stars -->
       <div class="std-counters" id="std-counters" hidden></div>
 
-      <!-- Insight + Magic state inputs live next to their buttons (not at the top
-           of the section) so clicking the labels doesn't scroll focus up to the
-           ✦ Summary header. The :has() selectors are .flv-std-scoped, so position
-           inside the section is irrelevant. -->
-      <input type="checkbox" id="flv-magic" class="flv-ctl">
-      <!-- insight cycle: 0 = none, 1..4 = cards -->
-      <input type="radio" name="flv-insight" id="flv-insight-0" class="flv-ctl" checked>
-      <input type="radio" name="flv-insight" id="flv-insight-1" class="flv-ctl">
-      <input type="radio" name="flv-insight" id="flv-insight-2" class="flv-ctl">
-      <input type="radio" name="flv-insight" id="flv-insight-3" class="flv-ctl">
-      <input type="radio" name="flv-insight" id="flv-insight-4" class="flv-ctl">
+      <!-- Insight + Magic moved to their own block just before "See more"
+           (see #insight-magic-block below). Only Copy remains here. -->
 
       <div class="action-grid">
 
         <div class="action-row">
-          <span class="insight-cycle">
-            <label class="fbtn insight-step" for="flv-insight-1">Insight</label>
-            <label class="fbtn insight-step" for="flv-insight-2">Insight · 1/4</label>
-            <label class="fbtn insight-step" for="flv-insight-3">Insight · 2/4</label>
-            <label class="fbtn insight-step" for="flv-insight-4">Insight · 3/4</label>
-            <label class="fbtn insight-step" for="flv-insight-0">Insight · 4/4</label>
-          </span>
-          <label class="fbtn magic-btn-summary" for="flv-magic">
-            <span class="label-off">Magic</span><span class="label-on">Phrase</span>
-          </label>
           <label class="fbtn copy-btn" for="flv-copy-hint" data-flove-copy="phrase" title="Copy">Copy</label>
         </div>
-
-        <!-- Insight cards — shown BELOW the buttons so the buttons never move -->
-        <section class="insight-panel insight-1-content" aria-label="Insight 1">
-          <strong>💡 First vs second play</strong> — what changed under the new perspective?
-          <p id="play-compare-note">Click Insight to compare both plays — matches and differences light up in the tables below.</p>
-        </section>
-        <section class="insight-panel insight-2-content" aria-label="Insight 2">
-          <strong>💡 Tension</strong> — which decks were hardest to rank?
-          <p>The ones you hesitated on hold the most charge. A close call between two cards usually means both matter and the context decides.</p>
-        </section>
-        <section class="insight-panel insight-3-content" aria-label="Insight 3">
-          <strong>💡 Perspective</strong> — how did the bars shift things?
-          <p>Moving the perspective sliders re-weights the same cards. Where your second play diverged from the first is where the framing did real work.</p>
-        </section>
-        <section class="insight-panel insight-4-content" aria-label="Insight 4">
-          <strong>💡 Why</strong> — why this arrangement, for you?
-          <p>There is no right answer here. The order and the reason you give are the artifact — keep the version that feels most like yours.</p>
-        </section>
 
         <div class="copy-hint-panel" role="status">
           Select the phrase above (triple-click selects the whole paragraph), then press
@@ -4088,6 +4106,53 @@
 
       </div>
     </section>
+
+    <!-- Insight + Magic buttons, sitting just before "See more". Carries the
+         flv-std class so the existing :has()-driven engine works unchanged; the
+         info boxes open centered below the buttons. -->
+    <div class="flv-std insight-magic-block" id="insight-magic-block" hidden>
+      <!-- insight cycle: 0 = none, 1..4 = reasoning cards -->
+      <input type="radio" name="flv-insight" id="flv-insight-0" class="flv-ctl" checked>
+      <input type="radio" name="flv-insight" id="flv-insight-1" class="flv-ctl">
+      <input type="radio" name="flv-insight" id="flv-insight-2" class="flv-ctl">
+      <input type="radio" name="flv-insight" id="flv-insight-3" class="flv-ctl">
+      <input type="radio" name="flv-insight" id="flv-insight-4" class="flv-ctl">
+      <!-- magic cycle: 0 = none, 1..5 = remixes, 6th click resets to 0 -->
+      <input type="radio" name="flv-magic" id="flv-magic-0" class="flv-ctl" checked>
+      <input type="radio" name="flv-magic" id="flv-magic-1" class="flv-ctl">
+      <input type="radio" name="flv-magic" id="flv-magic-2" class="flv-ctl">
+      <input type="radio" name="flv-magic" id="flv-magic-3" class="flv-ctl">
+      <input type="radio" name="flv-magic" id="flv-magic-4" class="flv-ctl">
+      <input type="radio" name="flv-magic" id="flv-magic-5" class="flv-ctl">
+      <div class="im-buttons">
+        <span class="insight-cycle">
+          <label class="fbtn insight-step" for="flv-insight-1">Insight</label>
+          <label class="fbtn insight-step" for="flv-insight-2">Insight · 1/4</label>
+          <label class="fbtn insight-step" for="flv-insight-3">Insight · 2/4</label>
+          <label class="fbtn insight-step" for="flv-insight-4">Insight · 3/4</label>
+          <label class="fbtn insight-step" for="flv-insight-0">Insight · 4/4</label>
+        </span>
+        <span class="magic-cycle">
+          <label class="fbtn magic-step" data-ms="0" for="flv-magic-1">✨ Magic</label>
+          <label class="fbtn magic-step" data-ms="1" for="flv-magic-2">🎭 Magic</label>
+          <label class="fbtn magic-step" data-ms="2" for="flv-magic-3">🌀 Magic</label>
+          <label class="fbtn magic-step" data-ms="3" for="flv-magic-4">🪞 Magic</label>
+          <label class="fbtn magic-step" data-ms="4" for="flv-magic-5">🔮 Magic</label>
+          <label class="fbtn magic-step" data-ms="5" for="flv-magic-0">🎲 Magic</label>
+        </span>
+      </div>
+      <div class="summary-extra-texts">
+        <div class="magic-panel magic-1-content clause"></div>
+        <div class="magic-panel magic-2-content clause"></div>
+        <div class="magic-panel magic-3-content clause"></div>
+        <div class="magic-panel magic-4-content clause"></div>
+        <div class="magic-panel magic-5-content clause"></div>
+        <section class="insight-panel insight-1-content" aria-label="Insight 1"></section>
+        <section class="insight-panel insight-2-content" aria-label="Insight 2"></section>
+        <section class="insight-panel insight-3-content" aria-label="Insight 3"></section>
+        <section class="insight-panel insight-4-content" aria-label="Insight 4"></section>
+      </div>
+    </div>
 
     <!-- See more + related apps sit BELOW the Summary section. -->
     <div class="summary-bottom-actions">
@@ -4285,6 +4350,20 @@
     }
   }
   document.addEventListener('click', () => bumpCounter('clicks'));
+  // "Checks" (selections) counts the meaningful clicks: the Analyze "More"
+  // cascade buttons, the Insight / Magic / Hints toggles, available pandas, and
+  // the option pickers (difficulty, list-size nodes, certify steps). Deck "Done"
+  // is counted separately in doneDeck(); it is excluded here to avoid double-count.
+  const SELECTION_SEL = [
+    '#btn-analyze', '#btn-analyze-extras', '#btn-analyze-more-1',
+    '#btn-analyze-keys', '#btn-analyze-more-2',
+    '.insight-step', '.magic-step', '#persp-more',
+    '.deck-panda', '.corner-panda', '#intro-panda', '#chooserPanda', '.prelude-check-panda',
+    '.chooser-actions .opt', '.node', '.cert-node', '.play-node'
+  ].join(',');
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest(SELECTION_SEL)) bumpCounter('selections');
+  });
   // Clicking any panda → a per-panda fun effect + particle burst + stats.
   // ---- Panda click tracking ----------------------------------------------
   // Each distinct panda placeholder (a looping panda in one place = one panda)
@@ -5402,8 +5481,18 @@
     const triads = state.preludeStars || 0;                       // correct triad groups
     const lvl0   = (state.preludeStars === 5) ? 10 : 0;           // completing level 0
     const groupStar = (typeof notesSaved !== 'undefined' && notesSaved) ? 1 : 0;   // +1 for adding a new group
-    const stars  = whys + persp + triads + lvl0 + groupStar;
+    const combyStars = (typeof _combySaved !== 'undefined') ? _combySaved.length : 0;   // +1 per saved comby field
+    const stars  = whys + persp + triads + lvl0 + groupStar + combyStars;
+    // Stars shown as Checked / Total: total = whys (one per played deck) + the
+    // 5 triads + level-0 bonus + a perspective + a new group.
+    const playedDecks = Object.keys(state.done || {}).filter(k => state.done[k]).length;
+    const starsTotal  = Math.max(stars, playedDecks + 5 + 10 + 1 + 1);
     const c = (n, label) => `<div class="cc"><b>${n}</b><span>${label}</span></div>`;
+    // Fraction cell: a title above the combined x/y bar, then the % below.
+    const fracCell = (num, den, label) => {
+      const pct = den ? Math.round(100 * num / den) : 0;
+      return `<div class="cc"><span class="cc-name">${label}</span><b>${num}/${den}</b><span class="cc-pct">${pct}%</span></div>`;
+    };
     const ps = pandaStats();
     // Pandas: clicks done (≤2 each) over total possible (2 · placeholders) + %.
     // The column is titled "Pandas", so the row itself shows only the figures.
@@ -5415,9 +5504,8 @@
       + `<div class="std-counters-grid two-col">`
       +   `<div class="cc-col cc-col-left">`
       +     `<h5 class="cc-col-title">General</h5>`
-      +     c(state.clicks || 0, 'Clicks')
-      +     c(state.selections || 0, 'Selections')
-      +     c(stars, 'Stars')
+      +     fracCell(state.selections || 0, state.clicks || 0, 'Checks and Clicks')
+      +     fracCell(stars, starsTotal, 'Stars')
       +   `</div>`
       +   `<div class="cc-col cc-col-right">`
       +     `<h5 class="cc-col-title">Pandas</h5>`
@@ -5669,9 +5757,9 @@
   // ============== Intro slider ==============
   const $intro = document.getElementById('intro-slider');
   const INTRO_SLIDES = [
-    { t:'We all have an own view of the Whole', b:'…that gives us calm and joy when we clear it' },
-    { t:'Key small groups of words can represent a Whole...', b:'Play with flove Keys of Everything' },
-    { t:'Flove Keys are well known words', b:'…to be moved up and down' },
+    { t:'Joy and calm comes…', b:'…when we clarify how we view the Whole' },
+    { t:'Some keywords feel like a whole…', b:'Play flove ones here…' },
+    { t:'Flove Keys are well known words…', b:'…in groups of three that you move up and down' },
     { t:'Get ready for a thrilling experience',     b:'…playing-sharing it with others makes it more special also' },
   ];
   let introSlide = 0;
@@ -5868,22 +5956,10 @@
     const h = document.querySelector('.prelude-title');
     if (!h) return;
     const full = 'Create the 5 more easy groups of 3';
-    if (h._type) clearTimeout(h._type);
-    if (h._t1)   clearTimeout(h._t1);
-    if (h._t2)   clearTimeout(h._t2);
     h.classList.remove('fade-out'); h.hidden = false;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){ h.textContent = full; return; }
-    let i = 0; h.textContent = '';
-    (function t(){
-      h.textContent = full.slice(0, i);
-      if (i++ <= full.length){ h._type = setTimeout(t, 55); }
-      else {
-        h._t1 = setTimeout(() => {                       // hold 10s once fully typed
-          h.classList.add('fade-out');                   // then fade out over 3s
-          h._t2 = setTimeout(() => { h.hidden = true; }, 3000);
-        }, 10000);
-      }
-    })();
+    h.textContent = full;
+    // Zoom the text in over 2s, then leave it fixed in place (no fade-out).
+    h.classList.remove('zoom-in'); void h.offsetWidth; h.classList.add('zoom-in');
   }
 
   // ---- Stage-0 deck pandas: idle loop dormido (left) → neutral (right) between
@@ -6216,8 +6292,8 @@
     const certFill    = $('#certFill');
     const certTrack   = $('#certTrack');
     const certFields  = $('#custCertFields');
-    const CERT_GENERAL = { h:'✦ Certify play · optional proof you\'re a real person',
-      body:['Certifying is optional.',
+    const CERT_GENERAL = { h:'✦ Authenticate · optional proof you\'re a real person',
+      body:['Authenticating is optional.',
             'Pick a step to see how it works. <em>Nothing leaves your device unless you choose it.</em>'] };
     const CERT_INFO = {
       trusts: { h:'✦ Trusts · vouching ring',
@@ -6290,7 +6366,7 @@
     const moreBtn = $('#intro-more');
     const moreBox = $('#intro-more-box');
     const ABOUT = { h:'ⓘ About keys',
-      body:['<b>keys</b> is a simple game for ordering ideas. Ten decks lie face down — five <b>triads</b> (3 cards each). You flip one, order its cards however you feel they should go, and (if you wish) record a short <em>why</em> behind that order.',
+      body:['<b>keys</b> is a simple game for ordering ideas. You flip one, order its cards however you feel they should go, and (if you wish) record a short <em>why</em> behind that order.',
             'The Keys belong to you: the order you choose and the reason you give become the artifact.',
             'The more you tell your real views, the more you could learn about them with our tools at the end.'] };
     if (moreBtn && moreBox){
@@ -6869,7 +6945,6 @@
 
   // Wire prelude buttons (once)
   document.getElementById('prelude-check').addEventListener('click', () => comprobarA());
-  document.getElementById('prelude-skip').addEventListener('click', () => finishPrelude());
   document.getElementById('prelude-check-order').addEventListener('click', () => comprobarB());
   document.getElementById('prelude-continue').addEventListener('click', () => finishPrelude());
   // Back button (phase A): step 0 has no prior step, so back returns to chooser.
@@ -7524,18 +7599,56 @@
     return { groups, perspective, picks, mode: state.gameMode || 'normal' };
   }
 
-  // A warmer, looser retelling of the same details (the "magic" phrase).
-  function buildMagicPhraseHTML(){
+  // Join a list grammatically: "a", "a and b", "a, b and c".
+  function andJoin(arr){
+    if (!arr.length) return '';
+    if (arr.length === 1) return arr[0];
+    return arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+  }
+  // Five different remixes of the same choices + stats, each grammatically
+  // distinct (varied prepositions) with its own icon/title/design. Shown one at
+  // a time by the Magic cycle.
+  function buildMagicRemixes(){
     const d = buildSummaryData();
-    if (!d.groups.length) return '✨ A warmer retelling of the same keys will show up here.';
-    const tops = d.groups.map(g => `<b>${escapeHTML(g.words[0] || g.title)}</b>`);
-    const lead = tops.slice(0, 4).join(', ');
-    let s = `✨ When it comes down to it, you lead with ${lead}`;
-    if (d.groups.length > 4) s += `, and let the rest fall into place`;
-    s += '.';
-    if (d.perspective.length) s += ` You read it all from a ${d.perspective.map(p => escapeHTML(p.label.split(' ↔ ')[0].toLowerCase())).join(' and ')} angle.`;
-    if (d.picks.length) s += ` The keys you reached for: ${d.picks.map(p => `<b>${escapeHTML(p)}</b>`).join(' · ')}.`;
-    return s;
+    const empty = '<em>Finish a play and the remixes appear here.</em>';
+    if (!d.groups.length) return [0,1,2,3,4].map(() => ({ icon:'✨', title:'Magic', html:empty }));
+    const b = w => `<b>${escapeHTML(w)}</b>`;
+    const tops = d.groups.map(g => g.words[0] || g.title);
+    const picks = d.picks.slice();
+    const persp = d.perspective.map(p => p.label.split(' ↔ ')[0].toLowerCase());
+    const t = i => tops[i] || tops[tops.length - 1];
+    const rest = tops.slice(1);
+    return [
+      { icon:'🎭', title:'In your own words', design:'m-a',
+        html:`Beneath it all, you place ${b(t(0))} before ${b(t(1))}${tops[2] ? `, with ${b(t(2))} close behind` : ''}.${persp.length ? ` You read it from ${andJoin(persp)}.` : ''}` },
+      { icon:'🌀', title:'The drift', design:'m-b',
+        html:`From ${b(t(0))} toward ${b(tops[tops.length - 1])}, your keys curve through ${rest.length > 1 ? andJoin(rest.slice(0, -1).map(w => `<b>${escapeHTML(w)}</b>`)) : b(t(0))} — never quite still.` },
+      { icon:'🪞', title:'Mirror', design:'m-c',
+        html:`What you chose says: above all, ${b(t(0))}; underneath, ${b(t(1))}; around them, ${rest.slice(1).length ? andJoin(rest.slice(1).map(w => `<b>${escapeHTML(w)}</b>`)) : 'whatever is left'}.` },
+      { icon:'🔮', title:'The read', design:'m-d',
+        html:`Seen ${persp.length ? `through a ${andJoin(persp)} lens` : 'plainly'}, ${b(t(0))} leads while ${rest.length ? andJoin(rest.map(w => `<b>${escapeHTML(w)}</b>`)) : 'the others'} trail in its wake.${picks.length ? ` Above all, you reached for ${andJoin(picks.map(p => `<b>${escapeHTML(p)}</b>`))}.` : ''}` },
+      { icon:'🎲', title:'Wildcard', design:'m-e',
+        html:`Against the grain: pair ${b(picks[0] || t(0))} with ${b(picks[1] || t(1))}, set it beside ${b(picks[2] || t(2))}, and see what spills over.` },
+    ];
+  }
+  // Four reasoning cards about the player's OVERALL selections (not generic tips).
+  function buildInsights(){
+    const d = buildSummaryData();
+    const b = w => `<b>${escapeHTML(w)}</b>`;
+    const tops = d.groups.map(g => g.words[0] || g.title);
+    const picks = d.picks.slice();
+    const persp = d.perspective.map(p => p.label.split(' ↔ ')[0].toLowerCase());
+    const bs = arr => andJoin(arr.map(w => `<b>${escapeHTML(w)}</b>`));
+    return [
+      { h:'💡 What you put first',
+        p: tops.length ? `You ranked ${b(tops[0])} at the top${tops[1] ? `, with ${b(tops[1])} just under it` : ''} — the order itself is your statement about what carries the most weight for you right now.` : 'Order your decks and this reads back what you weighed most.' },
+      { h:'💡 The keys you reached for',
+        p: picks.length ? `Out of everything, you pulled ${bs(picks)} to the front. These are the threads you would follow first; the rest sits in support of them.` : 'Pick three favourite keys and this names what you reached for.' },
+      { h:'💡 The angle you read from',
+        p: persp.length ? `You framed it from ${andJoin(persp)} — that lens re-weights the very same cards without changing a single one of them.` : 'Add a perspective and this shows how the framing tilts your ranking.' },
+      { h:'💡 Why it holds together',
+        p: tops.length ? `There is no right answer: ${b(tops[0])} ahead of ${tops.slice(1).length ? bs(tops.slice(1)) : 'the rest'} is the artifact. It holds because you chose it — keep the version that feels most like yours.` : 'Your reasoning is the artifact — record a why to keep it.' },
+    ];
   }
 
   // ---- Two-play tables (First play vs Second play) in the text area ----
@@ -7613,17 +7726,60 @@
           const s = (barState[b.id] && barState[b.id].p1 != null)
             ? barState[b.id]
             : { phase:1, p1:0, p2:null };   // left pole = Subjective / Momentual
-          return `<div class="pp-bar-track">${barMarkHTML(s, '')}</div>`;
+          return `<div class="pp-bar-track pp-editable" data-row="main" data-bar="${b.id}">${barMarkHTML(s, '')}</div>`;
         }).join('');
     const newRow = `<div class="pp-row-head">New</div>`
       + BARS.map(b => {
           const n = hasNew ? parallelRows[0].states[b.id] : null;
-          return `<div class="pp-bar-track">${n ? barMarkHTML(n, ' pp-mark-new') : ''}</div>`;
+          const ed = hasNew ? ` pp-editable" data-row="new" data-bar="${b.id}` : '';
+          return `<div class="pp-bar-track${ed}">${n ? barMarkHTML(n, ' pp-mark-new') : ''}</div>`;
         }).join('');
+    // Reset appears once a rater has been edited — restores the pre-edit values.
+    const resetRow = `<div class="pp-reset-row" id="pp-reset-row" hidden>`
+      + `<button class="btn btn-soft pp-reset-btn" id="pp-reset" type="button">Reset</button></div>`;
     return `<div class="perspectives-chosen">`
       + `<span class="pp-title">Perspectives</span>`
       + `<div class="pp-cols">${head}${mainRow}${newRow}</div>`
+      + resetRow
       + `</div>`;
+  }
+  // Click anywhere on a rater track to move its point; the first edit snapshots
+  // the prior values and reveals a Reset that restores them.
+  let _perspEdited = false, _perspSnapshot = null;
+  function snapshotPersp(){
+    const main = {};
+    BARS.forEach(b => { main[b.id] = { ...(barState[b.id] || {}) }; });
+    let nw = null;
+    if (parallelRows[0]){ nw = {}; BARS.forEach(b => { nw[b.id] = { ...(parallelRows[0].states[b.id] || {}) }; }); }
+    return { main, nw };
+  }
+  function restorePersp(snap){
+    BARS.forEach(b => { if (barState[b.id]) Object.assign(barState[b.id], snap.main[b.id]); });
+    if (snap.nw && parallelRows[0]) BARS.forEach(b => { Object.assign(parallelRows[0].states[b.id], snap.nw[b.id]); });
+  }
+  function wirePerspectiveEditing(){
+    const tracks = document.querySelectorAll('.perspectives-chosen .pp-bar-track.pp-editable');
+    tracks.forEach(track => {
+      track.addEventListener('click', (e) => {
+        const rect = track.getBoundingClientRect();
+        if (!rect.width) return;
+        const pct = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+        const st = (track.dataset.row === 'main') ? barState[track.dataset.bar]
+                 : (parallelRows[0] && parallelRows[0].states[track.dataset.bar]);
+        if (!st) return;
+        if (!_perspEdited){ _perspSnapshot = snapshotPersp(); _perspEdited = true; }
+        st.phase = 1; st.p1 = pct; st.p2 = null;
+        renderBottomSummary();
+      });
+    });
+    const resetRow = document.getElementById('pp-reset-row');
+    const resetBtn = document.getElementById('pp-reset');
+    if (resetRow) resetRow.hidden = !_perspEdited;
+    if (resetBtn) resetBtn.onclick = () => {
+      if (_perspSnapshot) restorePersp(_perspSnapshot);
+      _perspEdited = false; _perspSnapshot = null;
+      renderBottomSummary();
+    };
   }
   // Per group: a row of words for the first play. The second play row below it
   // (italic) only appears once a new perspective has been added (the "+"), so
@@ -7639,20 +7795,22 @@
       `<span class="pt-cell" data-group="${id}" data-rank="${rank}">${escapeHTML(w)}</span>`
     ).join('');
     const groups = first.map(g => {
-      // Left: the main triad, with its first + second perspective rows stacked.
-      const firstRow = `<div class="pr-line"><span class="pr-label">${dt(g.id)}${escapeHTML(g.title)}:</span>`
-        + `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span></div>`;
-      const secondRow = showSecond
-        ? `<div class="pr-line pr-second"><span class="pr-label"></span>`
-          + `<span class="pr-cells">${cellsHTML(g.id, secondMap[g.id] || g.words)}</span></div>`
+      // Left: the main (and, if present, the alternative) perspective shown as
+      // two side-by-side 3-cell columns, so each matches the extra triad's height.
+      const mainCol = `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span>`;
+      const altCol  = showSecond
+        ? `<span class="pr-cells pr-second">${cellsHTML(g.id, secondMap[g.id] || g.words)}</span>`
         : '';
+      const mainBlock = `<div class="pr-main">`
+        + `<span class="pr-label">${dt(g.id)}${escapeHTML(g.title)}:</span>`
+        + `<div class="pr-persp-cols">${mainCol}${altCol}</div></div>`;
       // Right: the extra triad paired with this main triad (EXTRA_PAIR).
       const extra = extraTriadFor(g.id);
       const extraCell = (extra && extra.words.length)
         ? `<div class="pr-extra"><span class="pr-extra-title">${escapeHTML(extra.title)}</span>`
           + `<span class="pr-cells">${extra.words.map(w => `<span class="pt-cell pt-cell-extra">${escapeHTML(w)}</span>`).join('')}</span></div>`
         : `<div class="pr-extra pr-extra-empty"></div>`;
-      return `<div class="pr-group pr-pair"><div class="pr-main">${firstRow}${secondRow}</div>${extraCell}</div>`;
+      return `<div class="pr-group pr-pair">${mainBlock}${extraCell}</div>`;
     }).join('');
     // Main triads (with perspective pairs) on the left, their extra triads on the right.
     return `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
@@ -7739,12 +7897,20 @@
     $sec.hidden = !(_timeStatsOn && hasContent);
     if (!hasContent) return;
     const $def = $sec.querySelector('.clause-default');
-    const $mag = $sec.querySelector('.clause-magic');
-    // The default text area now shows the two plays as tables; the warmer
-    // "magic" retelling (which folds in the perspective + picked keys) stays
-    // available behind the Magic toggle.
     if ($def) $def.innerHTML = buildPlayTablesHTML();
-    if ($mag) $mag.innerHTML = buildMagicPhraseHTML();
+    // Fill the 5 Magic remixes + the 4 reasoning Insight cards (in #insight-magic-block).
+    buildMagicRemixes().forEach((r, i) => {
+      const el = document.querySelector(`.magic-${i + 1}-content`);
+      if (el){
+        if (r.design) el.classList.add(r.design);
+        el.innerHTML = `<strong class="magic-title">${r.icon} ${escapeHTML(r.title)}</strong> ${r.html}`;
+      }
+    });
+    buildInsights().forEach((c, i) => {
+      const el = document.querySelector(`.insight-${i + 1}-content`);
+      if (el) el.innerHTML = `<strong>${c.h}</strong><p>${c.p}</p>`;
+    });
+    if (typeof wirePerspectiveEditing === 'function') wirePerspectiveEditing();
     // Re-apply the comparison highlight if it has been turned on.
     applyPlayHighlight(_showPlayCompare);
   }
@@ -7768,10 +7934,10 @@
     const MAX = PERSP_INSIGHTS.length;
     let shown = 0;   // 0 = collapsed
     const render = () => {
-      if (shown === 0){ list.hidden = true; list.innerHTML = ''; btn.textContent = 'More'; return; }
+      if (shown === 0){ list.hidden = true; list.innerHTML = ''; btn.textContent = 'Hints'; return; }
       list.hidden = false;
       list.innerHTML = PERSP_INSIGHTS.slice(0, shown).map(x => `<p class="pt-insight">${x}</p>`).join('');
-      btn.textContent = (shown >= MAX) ? 'Hide' : 'More';
+      btn.textContent = (shown >= MAX) ? 'hide' : 'more…';
     };
     render();
     btn.addEventListener('click', () => { shown = (shown >= MAX) ? 0 : shown + 1; render(); });
@@ -8216,7 +8382,7 @@
     if ($hint){
       $hint.hidden = !_playMoreOn;
       // Prompt sits below the buttons / above the cards while Favourites is on.
-      $hint.textContent = _playMoreOn ? 'Choose your favourite three words below.' : '';
+      $hint.textContent = _playMoreOn ? 'My 3 favourite keywords are:' : '';
     }
     if (_playMoreOn){
       if (typeof extraOpen !== 'undefined'){ Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; }); }
@@ -8643,6 +8809,8 @@
       renderTimeStats();
     }
     if ($std){ $std.hidden = false; $std.classList.remove('is-collapsed'); if ($stdT) $stdT.setAttribute('aria-expanded','true'); }
+    const $im = document.getElementById('insight-magic-block');
+    if ($im) $im.hidden = false;   // reveal the Insight/Magic block (before See more)
     if ($std) setTimeout(() => $std.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
   // (Confluences moved to confluenty.html — reached via the See-more related apps.)
@@ -8934,27 +9102,30 @@
       for (let j = i + 1; j < picks.length; j++)
         pairs.push([picks[i], picks[j]]);
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    pairs.forEach(([a, b]) => {
+    // Each combination is shown already expanded (no collapse), borderless title
+    // with an exchange button that spawns the reversed-order pair below it.
+    function makeCombo(a, b, withSwap){
       const label = `${a} ${b}`;   // no "+" between the chosen words
       const combo = document.createElement('div');
       combo.className = 'comby-combo';
       combo.innerHTML = `
-        <button class="comby-combo-head" type="button">
-          <span>${escapeHTML(label)}</span><span class="comby-chev" aria-hidden="true">›</span>
-        </button>
+        <div class="comby-combo-head">
+          ${withSwap === false ? '' : '<button class="comby-swap" type="button" title="Add / remove the reversed order" aria-label="Switch word order">⇄</button>'}
+          <span class="comby-combo-title">${escapeHTML(label)}</span>
+        </div>
         <div class="comby-rec">
           <div class="comby-rec-row">
             <button class="comby-mic" type="button" title="${SR ? 'Record' : 'Type below'}" aria-label="Record">🎤</button>
-            <div class="comby-field" contenteditable="true" role="textbox" aria-label="Transcript for ${escapeHTML(label)}" data-ph="Say or type something about ${escapeHTML(label)}…"></div>
+            <div class="comby-field" contenteditable="true" role="textbox" aria-label="Definition for ${escapeHTML(label)}"></div>
           </div>
-          <button class="comby-save btn btn-soft" type="button" disabled>Save</button>
+          <button class="comby-save btn btn-soft" type="button" hidden>Save</button>
         </div>`;
-      const head  = combo.querySelector('.comby-combo-head');
       const mic   = combo.querySelector('.comby-mic');
       const field = combo.querySelector('.comby-field');
       const save  = combo.querySelector('.comby-save');
-      head.addEventListener('click', () => combo.classList.toggle('is-open'));
-      const refreshSave = () => { save.disabled = field.textContent.trim() === ''; };
+      const swap  = combo.querySelector('.comby-swap');
+      // Save only appears once the field has content.
+      const refreshSave = () => { save.hidden = field.textContent.trim() === ''; };
       field.addEventListener('input', refreshSave);
       // Web Speech API recorder (toggle). Transcribes into the field.
       let rec = null;
@@ -8977,18 +9148,30 @@
         mic.classList.add('is-recording');
         rec.start();
       });
+      // Save → the field disappears, its content joins the Summary, +1 star.
       save.addEventListener('click', () => {
         const text = field.textContent.trim();
         if (!text) return;
         if (rec){ rec.stop(); }
         _combySaved.push({ combo: label, text });
         if (typeof renderBottomSummary === 'function') renderBottomSummary();
-        field.textContent = '';   // leave it empty to add another
-        refreshSave();
-        field.focus();
+        if (typeof renderCounters === 'function') renderCounters();   // 1 star per saved field
+        combo.remove();
       });
-      $comby.appendChild(combo);
-    });
+      // Exchange → toggle a reversed-order field below (no swap button on it).
+      if (swap){
+        let rev = null;
+        swap.addEventListener('click', () => {
+          if (rev && rev.isConnected){ rev.remove(); rev = null; return; }   // collapse
+          rev = makeCombo(b, a, false);
+          combo.after(rev);
+          const rf = rev.querySelector('.comby-field');
+          if (rf) rf.focus();
+        });
+      }
+      return combo;
+    }
+    pairs.forEach(([a, b]) => $comby.appendChild(makeCombo(a, b, true)));
   }
 
   // Global cancel + Esc handling for the app-intro overlay.
@@ -9006,6 +9189,15 @@
       if ($bd && !$bd.hidden) $bd.hidden = true;
     }
   });
+  // Freeze the page behind the overlay whenever it opens, restore when it closes
+  // (single place — catches every open/close path).
+  (function(){
+    const $bd = document.getElementById('app-intro-backdrop');
+    if (!$bd || typeof MutationObserver === 'undefined') return;
+    new MutationObserver(() => {
+      document.body.classList.toggle('modal-open', !$bd.hidden);
+    }).observe($bd, { attributes:true, attributeFilter:['hidden'] });
+  })();
 
   // ============== Embedded fivys flow ==============
   // From the summary, clicking the "fivys" related-app card runs stages 2-3

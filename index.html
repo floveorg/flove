@@ -514,23 +514,44 @@ body:has(.bubbles-view:target) .flove-foot {
 .bubbles-view .bv-blob.b4 { background:radial-gradient(circle, var(--dream-4) 0, transparent 65%); top: 45%; left:35%;   animation:drift4 24s ease-in-out infinite; }
 .bubbles-view .bv-blob.b5 { background:radial-gradient(circle, var(--dream-5) 0, transparent 65%); bottom:10%; right:10%;animation:drift5 36s ease-in-out infinite; }
 
-/* floating bubbles (physics cloud, ported from wanty.html) */
-.bubbles-view .bubble-cloud { position:absolute; inset:0; z-index:2; }
+/* floating bubbles — pure CSS (mini tier): static <label> bubbles + hidden
+   radios; :has() reveals each bubble's pre-written panel. No JS, no collisions. */
+.bubbles-view .bub-radio { position:absolute; width:0; height:0; opacity:0; pointer-events:none; }
+.bubbles-view .scrim { position:absolute; inset:0; z-index:1; }   /* click-away → reset to none */
 .bubbles-view .bubble {
-  position:absolute; left:0; top:0; will-change:left,top;
+  position:absolute; left:var(--x,50%); top:var(--y,50%);
+  width:var(--size,96px); height:var(--size,96px);
   display:flex; align-items:center; justify-content:center; text-align:center;
   border-radius:50%; color:var(--ink); font-weight:700; letter-spacing:.2px;
+  font-size:calc(var(--size,96px) * .22);
   background:radial-gradient(circle at 32% 26%,
     rgba(255,255,255,.92), rgba(255,255,255,.28) 40%, var(--bub,#8ab4ff) 80%);
   border:1px solid rgba(255,255,255,.6);
   box-shadow: inset 0 0 18px rgba(255,255,255,.55), 0 8px 22px rgba(80,40,120,.14);
-  cursor:pointer; user-select:none;
-  animation: bubble-pop .5s cubic-bezier(.22,.9,.35,1.05) backwards;
-  transition: transform .15s ease;
+  cursor:pointer; user-select:none; z-index:2; opacity:0; will-change:transform;
+  animation-name: bub-in, bfloat1;
+  animation-duration: .6s, var(--dur,22s);
+  animation-timing-function: ease, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: forwards, none;
+  animation-delay: var(--delay,0s), var(--delay,0s);
 }
-.bubbles-view .bubble:hover { transform: scale(1.07); }
-.bubbles-view .bubble:active { transform: scale(.92); }
-@keyframes bubble-pop { from{opacity:0; transform:scale(.4)} to{opacity:1; transform:scale(1)} }
+.bubbles-view .bubble.f2 { animation-name: bub-in, bfloat2; }
+.bubbles-view .bubble.f3 { animation-name: bub-in, bfloat3; }
+.bubbles-view .bubble.f4 { animation-name: bub-in, bfloat4; }
+.bubbles-view .bubble.f5 { animation-name: bub-in, bfloat5; }
+.bubbles-view .bubble.f6 { animation-name: bub-in, bfloat6; }
+.bubbles-view .bubble:hover { filter:brightness(1.05); }
+.bubbles-view .bub-radio:checked + .bubble {
+  box-shadow: inset 0 0 20px rgba(255,255,255,.75), 0 14px 32px rgba(80,40,120,.30);
+}
+@keyframes bub-in { from{opacity:0} to{opacity:1} }
+@keyframes bfloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(12px,-18px)} }
+@keyframes bfloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-16px,-11px)} }
+@keyframes bfloat3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(13px,15px)} }
+@keyframes bfloat4 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-12px,17px)} }
+@keyframes bfloat5 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(17px,7px)} }
+@keyframes bfloat6 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-17px,-7px)} }
 
 /* chrome: home link */
 .bubbles-view .home-link {
@@ -542,19 +563,38 @@ body:has(.bubbles-view:target) .flove-foot {
 }
 .bubbles-view .home-link:hover { color:var(--ink); background:rgba(255,255,255,.9); }
 
-/* calm infobox shown when a bubble is tapped (floats above the cloud) */
+/* calm infobox — fixed bottom-centre; the tapped bubble's radio reveals it via :has() */
 .bubbles-view .info-box {
-  position:fixed; z-index:6; width:min(320px, 82vw); max-width:82vw;
+  position:fixed; z-index:6; left:50%; bottom:10vh;
+  width:min(340px, 86vw); max-width:86vw;
   padding:1rem 1.1rem 1.05rem; border-radius:18px;
-  background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.7);
   box-shadow:0 18px 44px rgba(80,40,120,.20), inset 0 0 0 1px rgba(255,255,255,.5);
   backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
   color:var(--ink);
-  opacity:0; transform:translateY(12px) scale(.95); filter:blur(8px); pointer-events:none;
-  transition:opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1),
-             filter .55s ease, left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1);
+  opacity:0; transform:translate(-50%,14px) scale(.96); filter:blur(8px); pointer-events:none;
+  transition:opacity .5s ease, transform .5s cubic-bezier(.2,.8,.2,1), filter .5s ease;
 }
-.bubbles-view .info-box.show { opacity:1; transform:translateY(0) scale(1); filter:blur(0); pointer-events:auto; }
+.bubbles-view:has(#b-love:checked)  #ib-love,
+.bubbles-view:has(#b-true:checked)  #ib-true,
+.bubbles-view:has(#b-care:checked)  #ib-care,
+.bubbles-view:has(#b-give:checked)  #ib-give,
+.bubbles-view:has(#b-share:checked) #ib-share,
+.bubbles-view:has(#b-dream:checked) #ib-dream,
+.bubbles-view:has(#b-near:checked)  #ib-near,
+.bubbles-view:has(#b-link:checked)  #ib-link,
+.bubbles-view:has(#b-vibe:checked)  #ib-vibe,
+.bubbles-view:has(#b-joy:checked)   #ib-joy,
+.bubbles-view:has(#b-hope:checked)  #ib-hope,
+.bubbles-view:has(#b-trust:checked) #ib-trust,
+.bubbles-view:has(#b-free:checked)  #ib-free,
+.bubbles-view:has(#b-soul:checked)  #ib-soul,
+.bubbles-view:has(#b-flow:checked)  #ib-flow,
+.bubbles-view:has(#b-life:checked)  #ib-life,
+.bubbles-view:has(#b-art:checked)   #ib-art,
+.bubbles-view:has(#b-we:checked)    #ib-we {
+  opacity:1; transform:translate(-50%,0) scale(1); filter:blur(0); pointer-events:auto;
+}
 .bubbles-view .info-box .ib-kind {
   font-family:'JetBrains Mono', ui-monospace, monospace; font-size:.6rem; letter-spacing:1.6px;
   text-transform:uppercase; font-weight:600; color:var(--mut);
@@ -572,9 +612,9 @@ body:has(.bubbles-view:target) .flove-foot {
 }
 .bubbles-view .info-box .ib-close:hover { color:var(--ink); border-color:rgba(20,16,32,.25); }
 @media (prefers-reduced-motion: reduce) {
-  .bubbles-view .bubble { animation:none; }
+  .bubbles-view .bubble { animation:none; opacity:1; }
   .bubbles-view .bv-blob { animation:none; }
-  .bubbles-view .info-box { transition:opacity .2s ease; transform:none; filter:none; }
+  .bubbles-view .info-box { transition:opacity .2s ease; }
 }
 
 
@@ -700,9 +740,11 @@ body:has(.bubbles-view:target) .flove-foot {
   <div class="dream-blob b5"></div>
 </div>
 
-<!-- Bubbles, inlined (was bubbles.html). The Intro/Bubbles door is a #bubbles
-     :target link that fades the home out and reveals this view. apps/puzzy/keys.html
-     deep-links index.html#bubbles. The cloud is built lazily on first open. -->
+<!-- Bubbles, inlined (was bubbles.html) — pure CSS, 0 JS (mini tier). The
+     Intro/Bubbles door is a #bubbles :target link that fades the home out and
+     reveals this view. apps/puzzy/keys.html deep-links index.html#bubbles.
+     Each bubble is a <label> tied to a hidden radio; :has() shows its panel,
+     and the click-away scrim resets to #b-none. -->
 <section class="bubbles-view" id="bubbles" aria-label="flove · bubbles">
   <a class="home-link" href="#" aria-label="back to flove home">← flove</a>
   <div class="bv-veil" aria-hidden="true">
@@ -712,168 +754,51 @@ body:has(.bubbles-view:target) .flove-foot {
     <div class="bv-blob b4"></div>
     <div class="bv-blob b5"></div>
   </div>
-  <div class="bubble-cloud" id="cloud" aria-label="floating bubbles"></div>
-  <div class="info-box" id="infoBox" role="dialog" aria-live="polite" hidden>
-    <button type="button" class="ib-close" id="ibClose" aria-label="Close">×</button>
-    <div class="ib-kind" id="ibKind"></div>
-    <h2 class="ib-title" id="ibTitle"></h2>
-    <p class="ib-text" id="ibText"></p>
-  </div>
+
+  <!-- default "nothing selected" + click-away layer -->
+  <input class="bub-radio" type="radio" name="bub" id="b-none" checked aria-hidden="true">
+  <label class="scrim" for="b-none" aria-hidden="true"></label>
+
+  <!-- the cloud: one hidden radio + one label per word -->
+  <input class="bub-radio" type="radio" name="bub" id="b-love"><label class="bubble f1" for="b-love" style="--bub:#ff8aae;--x:7%;--y:16%;--size:104px;--dur:24s;--delay:0s">love</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-true"><label class="bubble f2" for="b-true" style="--bub:#b48aff;--x:29%;--y:9%;--size:86px;--dur:27s;--delay:.06s">true</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-care"><label class="bubble f3" for="b-care" style="--bub:#8affd0;--x:50%;--y:15%;--size:96px;--dur:22s;--delay:.12s">care</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-give"><label class="bubble f4" for="b-give" style="--bub:#ffd28a;--x:69%;--y:10%;--size:80px;--dur:29s;--delay:.18s">give</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-share"><label class="bubble f5" for="b-share" style="--bub:#8ab4ff;--x:84%;--y:20%;--size:92px;--dur:25s;--delay:.24s">share</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-dream"><label class="bubble f6" for="b-dream" style="--bub:#ff9bd0;--x:16%;--y:36%;--size:110px;--dur:31s;--delay:.30s">dream</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-near"><label class="bubble f1" for="b-near" style="--bub:#8ad0ff;--x:39%;--y:32%;--size:78px;--dur:23s;--delay:.36s">near</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-link"><label class="bubble f2" for="b-link" style="--bub:#a0e8c4;--x:58%;--y:38%;--size:88px;--dur:26s;--delay:.42s">link</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-vibe"><label class="bubble f3" for="b-vibe" style="--bub:#ffc16a;--x:79%;--y:34%;--size:84px;--dur:28s;--delay:.48s">vibe</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-joy"><label class="bubble f4" for="b-joy" style="--bub:#ff8a8a;--x:9%;--y:56%;--size:96px;--dur:24s;--delay:.54s">joy</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-hope"><label class="bubble f5" for="b-hope" style="--bub:#9ad0ff;--x:33%;--y:52%;--size:80px;--dur:30s;--delay:.60s">hope</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-trust"><label class="bubble f6" for="b-trust" style="--bub:#c79bff;--x:54%;--y:56%;--size:100px;--dur:22s;--delay:.66s">trust</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-free"><label class="bubble f1" for="b-free" style="--bub:#8affc0;--x:75%;--y:52%;--size:86px;--dur:27s;--delay:.72s">free</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-soul"><label class="bubble f2" for="b-soul" style="--bub:#d6a8ff;--x:86%;--y:49%;--size:76px;--dur:25s;--delay:.78s">soul</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-flow"><label class="bubble f3" for="b-flow" style="--bub:#7ad6ff;--x:21%;--y:76%;--size:90px;--dur:29s;--delay:.84s">flow</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-life"><label class="bubble f4" for="b-life" style="--bub:#ffb27a;--x:43%;--y:78%;--size:82px;--dur:23s;--delay:.90s">life</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-art"><label class="bubble f5" for="b-art" style="--bub:#ff9b6a;--x:63%;--y:74%;--size:94px;--dur:26s;--delay:.96s">art</label>
+  <input class="bub-radio" type="radio" name="bub" id="b-we"><label class="bubble f6" for="b-we" style="--bub:#8affd0;--x:82%;--y:77%;--size:78px;--dur:31s;--delay:1.02s">we</label>
+
+  <!-- one pre-written glimpse panel per word (shown via :has() above) -->
+  <aside class="info-box" id="ib-love" style="--bub:#ff8aae"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Introductory</div><h2 class="ib-title">love</h2><p class="ib-text">flove is love made operational — a slower internet where relating, not extracting, is the point.</p></aside>
+  <aside class="info-box" id="ib-true" style="--bub:#b48aff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Insight</div><h2 class="ib-title">true</h2><p class="ib-text">Nothing here is just true or false. Every rating is fuzzy — a shade along seven canonical axes.</p></aside>
+  <aside class="info-box" id="ib-care" style="--bub:#8affd0"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">care</h2><p class="ib-text">Apps like Trusty, MyFamily and Parenty turn care into small, concrete gestures you can actually act on.</p></aside>
+  <aside class="info-box" id="ib-give" style="--bub:#ffd28a"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">give</h2><p class="ib-text">The Offer apps — Inventary, Freed, Shareful — let you give, ask and lend with clear, kind conditions.</p></aside>
+  <aside class="info-box" id="ib-share" style="--bub:#8ab4ff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Introductory</div><h2 class="ib-title">share</h2><p class="ib-text">Sharing in flove is peer-to-peer first: your data, your drawer, your terms.</p></aside>
+  <aside class="info-box" id="ib-dream" style="--bub:#ff9bd0"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Insight</div><h2 class="ib-title">dream</h2><p class="ib-text">∞ apps yet to come. Anyone can dream one and whisper it into the launcher — the form is short, the love is long.</p></aside>
+  <aside class="info-box" id="ib-near" style="--bub:#8ad0ff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">near</h2><p class="ib-text">Closeness is a coordinate here — flove maps relations across four trees: o · t · c · u.</p></aside>
+  <aside class="info-box" id="ib-link" style="--bub:#a0e8c4"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Insight</div><h2 class="ib-title">link</h2><p class="ib-text">flovenet is the P2P layer: a resilient mesh that links people directly, with no middle to capture them.</p></aside>
+  <aside class="info-box" id="ib-vibe" style="--bub:#ffc16a"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">vibe</h2><p class="ib-text">Senses are meta-raters — colour any scale with hear · touch · view · taste · smell.</p></aside>
+  <aside class="info-box" id="ib-joy" style="--bub:#ff8a8a"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Introductory</div><h2 class="ib-title">joy</h2><p class="ib-text">Puzzy is the playful core: rate, relate and combine ideas with joy, not judgement.</p></aside>
+  <aside class="info-box" id="ib-hope" style="--bub:#9ad0ff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Insight</div><h2 class="ib-title">hope</h2><p class="ib-text">A slower internet is a hopeful bet — tools that compose, that you own, that never rush you.</p></aside>
+  <aside class="info-box" id="ib-trust" style="--bub:#c79bff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">trust</h2><p class="ib-text">Trusty builds trust one scope at a time. Good limits are a gift for both sides.</p></aside>
+  <aside class="info-box" id="ib-free" style="--bub:#8affc0"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Introductory</div><h2 class="ib-title">free</h2><p class="ib-text">flove is free as in freedom — FOSS first, no lock-in, with libre alternatives always named.</p></aside>
+  <aside class="info-box" id="ib-soul" style="--bub:#d6a8ff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Insight</div><h2 class="ib-title">soul</h2><p class="ib-text">Souls and 5Loves explore your inner being — identity as something tended, never sold.</p></aside>
+  <aside class="info-box" id="ib-flow" style="--bub:#7ad6ff"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">flow</h2><p class="ib-text">“ke fluya” — flove grows bottom-up, without skipping stages or rushing the work.</p></aside>
+  <aside class="info-box" id="ib-life" style="--bub:#ffb27a"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">General</div><h2 class="ib-title">life</h2><p class="ib-text">From birth charts (Astry) to legacy (DieSafe), flove follows a whole life, gently.</p></aside>
+  <aside class="info-box" id="ib-art" style="--bub:#ff9b6a"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Insight</div><h2 class="ib-title">art</h2><p class="ib-text">Keys and Holóniké treat glyphs and gestures as art — meaning you can see and hold.</p></aside>
+  <aside class="info-box" id="ib-we" style="--bub:#8affd0"><label class="ib-close" for="b-none" aria-label="Close">×</label><div class="ib-kind">Introductory</div><h2 class="ib-title">we</h2><p class="ib-text">flove is a we: crowdparenting, crowdcrafting, confluences — many hands, one garden.</p></aside>
 </section>
-<script>
-(function(){
-  const cloud = document.getElementById('cloud');
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isOpen = () => location.hash === '#bubbles';   // bubbles view shown via :target
-
-  // flove vocabulary — each bubble carries a tint + a small glimpse of flove
-  const WORDS = [
-    {t:'love', c:'#ff8aae', k:'intro',   d:"flove is love made operational — a slower internet where relating, not extracting, is the point."},
-    {t:'true', c:'#b48aff', k:'insight', d:"Nothing here is just true or false. Every rating is fuzzy — a shade along seven canonical axes."},
-    {t:'care', c:'#8affd0', k:'general', d:"Apps like Trusty, MyFamily and Parenty turn care into small, concrete gestures you can actually act on."},
-    {t:'give', c:'#ffd28a', k:'general', d:"The Offer apps — Inventary, Freed, Shareful — let you give, ask and lend with clear, kind conditions."},
-    {t:'share',c:'#8ab4ff', k:'intro',   d:"Sharing in flove is peer-to-peer first: your data, your drawer, your terms."},
-    {t:'dream',c:'#ff9bd0', k:'insight', d:"∞ apps yet to come. Anyone can dream one and whisper it into the launcher — the form is short, the love is long."},
-    {t:'near', c:'#8ad0ff', k:'general', d:"Closeness is a coordinate here — flove maps relations across four trees: o · t · c · u."},
-    {t:'link', c:'#a0e8c4', k:'insight', d:"flovenet is the P2P layer: a resilient mesh that links people directly, with no middle to capture them."},
-    {t:'vibe', c:'#ffc16a', k:'general', d:"Senses are meta-raters — colour any scale with hear · touch · view · taste · smell."},
-    {t:'joy',  c:'#ff8a8a', k:'intro',   d:"Puzzy is the playful core: rate, relate and combine ideas with joy, not judgement."},
-    {t:'hope', c:'#9ad0ff', k:'insight', d:"A slower internet is a hopeful bet — tools that compose, that you own, that never rush you."},
-    {t:'trust',c:'#c79bff', k:'general', d:"Trusty builds trust one scope at a time. Good limits are a gift for both sides."},
-    {t:'free', c:'#8affc0', k:'intro',   d:"flove is free as in freedom — FOSS first, no lock-in, with libre alternatives always named."},
-    {t:'soul', c:'#d6a8ff', k:'insight', d:"Souls and 5Loves explore your inner being — identity as something tended, never sold."},
-    {t:'flow', c:'#7ad6ff', k:'general', d:"“ke fluya” — flove grows bottom-up, without skipping stages or rushing the work."},
-    {t:'life', c:'#ffb27a', k:'general', d:"From birth charts (Astry) to legacy (DieSafe), flove follows a whole life, gently."},
-    {t:'art',  c:'#ff9b6a', k:'insight', d:"Keys and Holóniké treat glyphs and gestures as art — meaning you can see and hold."},
-    {t:'we',   c:'#8affd0', k:'intro',   d:"flove is a we: crowdparenting, crowdcrafting, confluences — many hands, one garden."},
-  ];
-  const KIND = { intro:'Introductory', general:'General', insight:'Insight' };
-
-  const rnd = (a,b) => a + Math.random()*(b-a);
-  const vel = () => (Math.random()<.5?-1:1) * rnd(.05,.16);
-  const physics = new Map();
-
-  // ── calm infobox: floats above the cloud near the tapped bubble ──
-  const box = document.getElementById('infoBox');
-  const ibKind = document.getElementById('ibKind');
-  const ibTitle = document.getElementById('ibTitle');
-  const ibText = document.getElementById('ibText');
-  function placeBox(el) {
-    box.hidden = false;
-    const b = el.getBoundingClientRect();
-    const bw = box.offsetWidth, bh = box.offsetHeight, gap = 14, m = 12;
-    let left = b.left + b.width/2 - bw/2;
-    let top  = b.bottom + gap;
-    if (top + bh > innerHeight - m) top = b.top - gap - bh;       // flip above if no room
-    if (top < m) top = Math.max(m, (innerHeight - bh)/2);          // else centre vertically
-    left = Math.min(Math.max(m, left), innerWidth - bw - m);
-    box.style.left = left + 'px';
-    box.style.top  = top + 'px';
-  }
-  function openInfo(w, el) {
-    ibKind.textContent = KIND[w.k] || '';
-    ibTitle.textContent = w.t;
-    ibTitle.style.setProperty('--bub', w.c);
-    ibText.textContent = w.d;
-    box.hidden = false;
-    const first = !box.classList.contains('show');
-    if (first) box.style.transition = 'none';     // first open: appear in place
-    placeBox(el);
-    if (first) { void box.offsetHeight; box.style.transition = ''; }
-    requestAnimationFrame(() => box.classList.add('show'));
-  }
-  function closeInfo() { box.classList.remove('show'); }
-  document.getElementById('ibClose').addEventListener('click', (e) => { e.stopPropagation(); closeInfo(); });
-  // tap in open space (not a bubble, the box, or the home link) → close the box
-  // AND float up a few more bubbles. Only while the bubbles view is open.
-  document.addEventListener('click', (e) => {
-    if (!isOpen()) return;
-    if (e.target.closest('.bubble') || e.target.closest('#infoBox') || e.target.closest('.home-link')) return;
-    closeInfo();
-    if (queue.length) releaseBatch(3);
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeInfo(); });
-
-  const cloudRect = () => cloud.getBoundingClientRect();
-  function measure(el, r) {
-    const b = el.getBoundingClientRect();
-    return { w: b.width/r.width*100 || 10, h: b.height/r.height*100 || 10 };
-  }
-  let raf = null;
-  let queue = [];
-  // seed one bubble at the bottom so it rises up into the cloud
-  function seedOne(el) {
-    const r = cloudRect();
-    const m = measure(el, r);
-    const x = +(Math.random()*Math.max(1,100-m.w)).toFixed(2);
-    const y = reduce ? +(Math.random()*Math.max(1,100-m.h)).toFixed(2)
-                     : +(100-m.h).toFixed(2);              // start at the bottom
-    el.style.left = x+'%'; el.style.top = y+'%';
-    physics.set(el, { x, y, w:m.w, h:m.h, vx: vel(), vy: reduce ? 0 : (-Math.abs(vel())-0.05) });
-  }
-  function makeBubble(w, stagger) {
-    const el = document.createElement('div');
-    el.className = 'bubble';
-    el.textContent = w.t;
-    el.style.setProperty('--bub', w.c);
-    const size = Math.round(rnd(70, 132));
-    el.style.width = size+'px'; el.style.height = size+'px';
-    el.style.fontSize = (size*0.22).toFixed(0)+'px';
-    el.style.animationDelay = (stagger||0).toFixed(2)+'s';
-    el.addEventListener('click', (e) => { e.stopPropagation(); openInfo(w, el); });
-    cloud.appendChild(el);
-    seedOne(el);
-    if (!reduce && !raf) raf = requestAnimationFrame(step);
-  }
-  function releaseBatch(n) {
-    queue.splice(0, n).forEach((w, i) => makeBubble(w, i*0.06));
-  }
-  function step() {
-    if (!isOpen()) { raf = null; return; }   // pause the loop while the view is closed
-    const r = cloudRect();
-    if (!r.width || !r.height) { raf = requestAnimationFrame(step); return; }
-    const items = [];
-    physics.forEach((it, el) => { const m = measure(el, r); it.w = m.w; it.h = m.h; items.push({el, it}); });
-    const sx = 440/r.width, sy = 300/r.height;
-    for (const {it} of items) {
-      it.x += it.vx*sx; it.y += it.vy*sy;
-      if (it.x < 0)          { it.x = 0;          it.vx =  Math.abs(it.vx); }
-      if (it.x + it.w > 100) { it.x = 100 - it.w; it.vx = -Math.abs(it.vx); }
-      if (it.y < 0)          { it.y = 0;          it.vy =  Math.abs(it.vy); }
-      if (it.y + it.h > 100) { it.y = 100 - it.h; it.vy = -Math.abs(it.vy); }
-    }
-    for (let i=0; i<items.length; i++) {
-      const a = items[i].it;
-      for (let j=i+1; j<items.length; j++) {
-        const b = items[j].it;
-        if (a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y) {
-          const dx = Math.min(a.x+a.w-b.x, b.x+b.w-a.x);
-          const dy = Math.min(a.y+a.h-b.y, b.y+b.h-a.y);
-          if (dx < dy) { const p = dx/2; if (a.x<b.x){a.x-=p;b.x+=p;}else{a.x+=p;b.x-=p;} const t=a.vx; a.vx=b.vx; b.vx=t; }
-          else         { const p = dy/2; if (a.y<b.y){a.y-=p;b.y+=p;}else{a.y+=p;b.y-=p;} const t=a.vy; a.vy=b.vy; b.vy=t; }
-        }
-      }
-    }
-    for (const {el, it} of items) { el.style.left = it.x.toFixed(2)+'%'; el.style.top = it.y.toFixed(2)+'%'; }
-    raf = requestAnimationFrame(step);
-  }
-
-  // lazy: build the cloud only the first time the view is opened (deep-link or door)
-  let started = false;
-  function startBubbles() {
-    if (started) return; started = true;
-    queue = WORDS.slice();
-    requestAnimationFrame(() => releaseBatch(5));   // wait one frame so the cloud has size
-  }
-  function onHash() {
-    if (!isOpen()) return;
-    startBubbles();
-    if (!reduce && !raf) raf = requestAnimationFrame(step);   // resume motion on reopen
-  }
-  window.addEventListener('hashchange', onHash);
-  onHash();   // supports landing on index.html#bubbles directly
-})();
-</script>
 
 </body>
 </html>

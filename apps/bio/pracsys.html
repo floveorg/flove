@@ -707,6 +707,30 @@
   }
   .sum-empty{ text-align:center; color:var(--ink-dim); margin:4px 0; }
 
+  /* the systems laid out in their board square, with reasons/verbs/arrows below each */
+  .sum-board{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px 12px; align-items:start; }
+  .sum-gridcell{ min-width:0; }
+  .sum-cell{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .sum-sq{
+    width:100%; max-width:128px; aspect-ratio:1 / .82;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    border-radius:14px; border:1px solid rgba(255,255,255,.16);
+    background:linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .sum-sq.centre{ border-color:color-mix(in srgb, var(--accent-2) 55%, transparent); box-shadow:0 0 0 1px color-mix(in srgb, var(--accent-2) 30%, transparent) inset; }
+  .sq-ico{ font-size:1.5rem; line-height:1; }
+  .sq-lbl{ font:700 .76rem/1.05 var(--font-ui); color:var(--ink); text-align:center; }
+  .sum-meta{ display:flex; flex-direction:column; gap:3px; width:100%; align-items:center; text-align:center; }
+  .sm-line{ font:600 .66rem/1.3 var(--font-ui); max-width:100%; word-break:break-word; }
+  .sm-reason{ color:var(--accent); }
+  .sm-verb{ color:var(--nerve); }
+  .sm-arrow{ color:var(--immune); }
+  @media (max-width:560px){
+    .sum-board{ grid-template-columns:1fr 1fr; }
+    .sum-board .sum-gridcell{ grid-column:auto !important; grid-row:auto !important; }
+  }
+
   .summary-text{
     margin:0; max-height:340px; overflow:auto; white-space:pre-wrap; word-break:break-word;
     padding:12px 14px; border-radius:var(--radius-sm);
@@ -2264,20 +2288,43 @@
     { kind:'verbs',     label:'Verbs',         icon:'🔗', cssVar:'--nerve',    hex:'#b388ff' },
     { kind:'subsystem', label:'Subsystems',    icon:'🛡', cssVar:'--immune',   hex:'#69f0ae' }
   ];
-  function summaryRenderHTML(){
-    const rows = summaryRows();
-    let html = '';
-    GROUP_META.forEach(g => {
-      const items = rows.filter(r => r.kind === g.kind); if (!items.length) return;
-      html += `<div class="sum-group" style="--g:var(${g.cssVar})"><h3>${g.icon} ${g.label}</h3>`;
-      items.forEach(r => {
-        html += `<div class="sum-item"><span class="sum-ttl">${escHtml(r.title)}</span>`
-          + (r.items.length ? `<span class="sum-chips">${r.items.map(it => `<span class="sum-chip">${escHtml(it)}</span>`).join('')}</span>` : '')
-          + `</div>`;
-      });
-      html += `</div>`;
+  // everything attached to one system: its pair/centroid reason, its verbs,
+  // and the subsystem arrows that land on it
+  function slotMeta(slotId){
+    return {
+      reasons: state.reasons[reasonKeyOfSlot(slotId)] || [],
+      verbs:   state.verbs[slotId] || [],
+      arrows:  Object.keys(state.subs).filter(id => state.subs[id].slotId === slotId).map(id => ({
+        sub: SUB_BY_ID[id],
+        extra: (state.subReasons[id]||[]).concat((state.subVerbs[id]||[]).map(v => '→ ' + v))
+      }))
+    };
+  }
+  function sumSquareHTML(slotId, col, row){
+    const sys = sysAt(slotId); if (!sys) return '';
+    const m = slotMeta(slotId);
+    let meta = '';
+    if (m.reasons.length) meta += `<div class="sm-line sm-reason">🙂 ${m.reasons.map(escHtml).join(' · ')}</div>`;
+    if (m.verbs.length)   meta += `<div class="sm-line sm-verb">🔗 ${m.verbs.map(escHtml).join(' · ')}</div>`;
+    m.arrows.forEach(a => {
+      meta += `<div class="sm-line sm-arrow">${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(a.sub.label)}`
+            + (a.extra.length ? ' · ' + escHtml(a.extra.join(' · ')) : '') + `</div>`;
     });
-    return html || `<p class="sum-empty">Nothing placed yet.</p>`;
+    return `<div class="sum-gridcell" style="grid-column:${col};grid-row:${row}">`
+      + `<div class="sum-cell"><div class="sum-sq${slotId === CENTRE_SLOT ? ' centre' : ''}">`
+      + `<span class="sq-ico">${sys.icon}</span><span class="sq-lbl">${escHtml(sys.label)}</span></div>`
+      + `<div class="sum-meta">${meta}</div></div></div>`;
+  }
+  // the systems laid out in their board square — reasons/verbs/arrows below each
+  function summaryRenderHTML(){
+    if (!Object.keys(state.placed).length) return `<p class="sum-empty">Nothing placed yet.</p>`;
+    let html = `<div class="sum-board">`;
+    for (let r = 0; r < N_ROWS; r++){
+      html += sumSquareHTML(leftSlotId(r),  1, r + 1);
+      html += sumSquareHTML(rightSlotId(r), 3, r + 1);
+    }
+    html += sumSquareHTML(CENTRE_SLOT, 2, CENTRE_ROW + 1);
+    return html + `</div>`;
   }
   function renderSummary(){
     const render = $('#summaryRender'); if (render) render.innerHTML = summaryRenderHTML();

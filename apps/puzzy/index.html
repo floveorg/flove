@@ -94,8 +94,9 @@
       box-shadow:inset 0 1px 7px rgba(255,255,255,.22), 0 8px 20px rgba(0,0,0,.32);
       transition:left .75s cubic-bezier(.2,.85,.25,1), top .75s cubic-bezier(.2,.85,.25,1),
         opacity .4s, scale .4s, filter .3s; animation:floaty 5s ease-in-out infinite; z-index:3 }
-    .bub .bi{ font-size:1.2rem; line-height:1; filter:saturate(1.1) }
-    .bub .bn{ font-size:.95rem }
+    .bub .bi{ display:inline-flex; align-items:center; line-height:0 }
+    .bub .bi svg{ width:24px; height:24px; display:block; filter:drop-shadow(0 0 4px rgba(0,0,0,.45)); transition:width .5s ease, height .5s ease }
+    .bub .bn{ font-size:.95rem; transition:font-size .5s ease }
     .bub:hover{ filter:brightness(1.12); z-index:8 }
     .bub.is-on{ scale:1.12; z-index:7;
       box-shadow:inset 0 1px 9px rgba(255,255,255,.32), 0 10px 28px rgba(141,137,255,.5) }
@@ -106,6 +107,52 @@
       .bub{ animation:none } .node::after{ animation:none }
       .node, .bub{ transition:opacity .3s, transform .3s }
     }
+
+    /* ───── compass · display-mode toolbar (wanty standard) ───── */
+    .compass-wrap{ position:relative; display:inline-flex; align-items:center; gap:6px }
+    .compass-btn{ background:transparent; border:1.5px solid rgba(201,198,255,.4); color:var(--app-accent-soft);
+      width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+      cursor:pointer; padding:0; transition:background var(--flove-fast), color var(--flove-fast), border-color var(--flove-fast) }
+    .compass-btn:hover{ background:rgba(141,137,255,.16); color:var(--accent2) }
+    .compass-btn[aria-expanded="true"]{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent) }
+    .compass-btn svg{ transition:transform .3s ease }
+    .compass-btn[aria-expanded="true"] svg{ transform:rotate(45deg) }
+    .mode-buttons{ display:inline-flex; gap:6px; overflow:hidden; max-width:0; opacity:0; transform:translateX(-8px);
+      transition:max-width .35s ease, opacity .3s ease, transform .35s ease; pointer-events:none }
+    .mode-buttons.is-open{ max-width:300px; opacity:1; transform:translateX(0); pointer-events:auto }
+    .mode-sep{ flex:0 0 1px; width:1px; height:22px; align-self:center; background:var(--line); border-radius:1px }
+    .mode-btn{ background:var(--field); border:1.5px solid var(--line); color:var(--app-accent-soft);
+      width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+      cursor:pointer; padding:0; transition:background .18s, color .18s, border-color .18s, box-shadow .18s }
+    .mode-btn:hover{ background:rgba(141,137,255,.16); color:var(--accent2) }
+    .mode-btn[aria-pressed="true"]{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent) }
+    .mode-btn.mode-radio[aria-checked="true"]{ box-shadow:0 0 0 2px rgba(141,137,255,.30) }
+    .mode-btn svg{ width:18px; height:18px }
+    .mode-btn .bubbles-ico{ width:21px; height:21px }
+
+    /* ───── alternate display modes (toggled on .field) ───── */
+    .field.mode-bubbles .node{ display:none }
+    .field.mode-list{ display:flex; flex-direction:column; align-items:stretch;
+      height:auto; min-height:0; overflow:visible; gap:.12rem; padding-bottom:1.4rem }
+    .field.mode-list .node{ position:static; transform:none; width:auto; height:auto;
+      flex-direction:row; gap:.55rem; justify-content:flex-start; align-self:flex-start;
+      border-radius:var(--flove-radius-pill); padding:.42rem 1rem; box-shadow:none; margin:.9rem 0 .25rem }
+    .field.mode-list .node::after{ display:none }
+    .field.mode-list .node:hover,
+    .field.mode-list .node.is-active,
+    .field.mode-list .node.is-dim{ transform:none; scale:1; opacity:1; box-shadow:none }
+    .field.mode-list .node .ni{ font-size:1.25rem }
+    .field.mode-list .node .nl{ font-size:.92rem }
+    .field.mode-list .bub{ position:static; transform:none; animation:none; scale:1;
+      justify-content:flex-start; width:100%; max-width:540px;
+      background:transparent; border:0; box-shadow:none; padding:.4rem .7rem .4rem 1.6rem; border-radius:10px }
+    .field.mode-list .bub:hover{ background:rgba(141,137,255,.10); filter:none }
+    .field.mode-list .bub.is-on,
+    .field.mode-list .bub.is-dim{ opacity:1; scale:1; filter:none; box-shadow:none }
+
+    /* size grading — modifier check, layered on any layout */
+    .field.sized .bub .bn{ font-size:calc(.95rem * var(--bs,1)) }
+    .field.sized .bub .bi svg{ width:calc(24px * var(--bs,1)); height:calc(24px * var(--bs,1)) }
 
     footer{ max-width:1100px; margin:0 auto 3rem; padding:1rem 1.2rem 0; color:var(--muted);
       font-size:.82rem; text-align:center; border-top:1px solid var(--line) }
@@ -131,27 +178,76 @@
         <label for="ui-lang-es">ES</label>
       </span>
     </div>
+    <div class="compass-wrap">
+      <button type="button" class="compass-btn" id="compassBtn" aria-expanded="false" aria-controls="modeButtons" title="Display modes" aria-label="Display modes">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 5 L14.2 12 L12 19 L9.8 12 Z" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.6" fill="currentColor"/>
+        </svg>
+      </button>
+      <div class="mode-buttons" id="modeButtons" role="group" aria-label="Display modes">
+        <!-- modifier check: Size grading -->
+        <button type="button" class="mode-btn mode-check" data-mode="sized" aria-pressed="false" title="Size" aria-label="Size grading">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <rect x="3" y="14" width="3" height="6"/><rect x="8" y="10" width="3" height="10"/>
+            <rect x="13" y="6" width="3" height="14"/><rect x="18" y="3" width="3" height="17"/>
+          </g></svg>
+        </button>
+        <span class="mode-sep" aria-hidden="true"></span>
+        <!-- layout radios: Field / Bubbles / List -->
+        <button type="button" class="mode-btn mode-radio" data-mode="field" role="radio" aria-checked="true" aria-pressed="true" title="Field" aria-label="Field layout">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="2.2" fill="currentColor"/>
+            <circle cx="20" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor"/>
+            <circle cx="8" cy="19" r="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+        <button type="button" class="mode-btn mode-radio" data-mode="bubbles" role="radio" aria-checked="false" aria-pressed="false" title="Bubbles" aria-label="Bubbles layout">
+          <svg class="bubbles-ico" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="8.6" cy="14" r="5.4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="16.6" cy="9.4" r="3.5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.4"/>
+            <circle cx="17" cy="17.2" r="2.3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.3"/>
+            <circle cx="6.3" cy="11.7" r="1.15" fill="currentColor"/>
+          </svg>
+        </button>
+        <button type="button" class="mode-btn mode-radio" data-mode="list" role="radio" aria-checked="false" aria-pressed="false" title="List" aria-label="List layout">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+            <circle cx="5" cy="6" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="5" cy="18" r="1.5"/>
+            <rect x="9" y="4.9" width="11" height="2.2" rx="1.1"/>
+            <rect x="9" y="10.9" width="11" height="2.2" rx="1.1"/>
+            <rect x="9" y="16.9" width="11" height="2.2" rx="1.1"/>
+          </g></svg>
+        </button>
+      </div>
+    </div>
     <button type="button" class="shuffle-btn" id="shuffle" title="Shuffle" aria-label="Shuffle">🎲</button>
   </nav>
 
   <main>
+    <p class="hint">
+      <span class="t-en">Tap the balls to gather their apps — pick several at once. Use the compass to switch how they show.</span>
+      <span class="t-es">Toca las balls para reunir sus apps — elige varias a la vez. Usa la brújula para cambiar la vista.</span>
+    </p>
     <div class="field" id="field">
       <!-- category nodes -->
       <button type="button" class="node" data-cat="rate"><span class="ni">🎨</span><span class="nl"><span class="t-en">Rate</span><span class="t-es">Puntúa</span></span></button>
       <button type="button" class="node" data-cat="relate"><span class="ni">🕸️</span><span class="nl"><span class="t-en">Relate</span><span class="t-es">Relaciona</span></span></button>
       <button type="button" class="node" data-cat="redefine"><span class="ni">📖</span><span class="nl"><span class="t-en">Redefine</span><span class="t-es">Redefine</span></span></button>
       <!-- app bubbles (icon + name) -->
-      <a class="bub" data-cat="rate"     href="raty.html"      title="Seven colour scales + the five senses as meta-rater; live phrase, axis, ranks."><span class="bi">🌈</span><span class="bn">Raty</span></a>
-      <a class="bub" data-cat="rate"     href="poly.html"      title="Bipolar pairs as mutual flow, with complementary hints."><span class="bi">☯️</span><span class="bn">Poly</span></a>
-      <a class="bub" data-cat="rate"     href="triady.html"    title="When two aren't enough: the triad as minimal harmony; live ranking."><span class="bi">🔱</span><span class="bn">Triady</span></a>
-      <a class="bub" data-cat="rate"     href="fivy.html"      title="Order the five senses, then map their fields, simplexes and confluences."><span class="bi">🖐️</span><span class="bn">Fivy</span></a>
-      <a class="bub" data-cat="relate"   href="vizy2.html"     title="The semantic mind-map: relations radiating from the core object."><span class="bi">🕸️</span><span class="bn">Vizy2</span></a>
-      <a class="bub" data-cat="relate"   href="comby.html"     title="Fuzzy combinations from words and pools — full power-set, JSON export."><span class="bi">🎲</span><span class="bn">Comby</span></a>
-      <a class="bub" data-cat="relate"   href="confluenty.html" title="7-column board where lists meet at a centre."><span class="bi">🌀</span><span class="bn">Confluenty</span></a>
-      <a class="bub" data-cat="redefine" href="wisy.html"      title="Progressive form by depth: prism, tone, focus, then formalise."><span class="bi">📝</span><span class="bn">Wisy</span></a>
-      <a class="bub" data-cat="redefine" href="vizy.html"      title="Read the whole definition back as one woven phrase."><span class="bi">👁️</span><span class="bn">Vizy</span></a>
-      <a class="bub" data-cat="redefine" href="sety.html"      title="Language, scales and defaults for the whole tool."><span class="bi">⚙️</span><span class="bn">Sety</span></a>
-      <a class="bub" data-cat="redefine" href="keys.html"      title="The visual alphabet of flove — symbols, glyphs and shortcuts."><span class="bi">🔑</span><span class="bn">Keys</span></a>
+      <a class="bub" data-cat="rate"     href="raty.html"      title="Seven colour scales + the five senses as meta-rater; live phrase, axis, ranks."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#8d89ff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M7 17a5 5 0 0 1 10 0"/><path d="M9.5 17a2.5 2.5 0 0 1 5 0"/><circle fill="#8d89ff" stroke="none" cx="12" cy="17" r="1.4"/></g></svg></span><span class="bn">Raty</span></a>
+      <a class="bub" data-cat="rate"     href="poly.html"      title="Bipolar pairs as mutual flow, with complementary hints."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#8d89ff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a4 4 0 0 0 0 8 4 4 0 0 1 0 8"/><circle fill="#8d89ff" stroke="none" cx="12" cy="8" r="1.4"/><circle cx="12" cy="16" r="1.4"/></g></svg></span><span class="bn">Poly</span></a>
+      <a class="bub" data-cat="rate"     href="triady.html"    title="When two aren't enough: the triad as minimal harmony; live ranking."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#8d89ff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5 6.2 16.5 17.8 16.5Z"/><circle fill="#8d89ff" stroke="none" cx="12" cy="5" r="1.6"/><circle fill="#8d89ff" stroke="none" cx="6.2" cy="16.5" r="1.6"/><circle fill="#8d89ff" stroke="none" cx="17.8" cy="16.5" r="1.6"/></g></svg></span><span class="bn">Triady</span></a>
+      <a class="bub" data-cat="rate"     href="fivy.html"      title="Order the five senses, then map their fields, simplexes and confluences."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#8d89ff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5V5M12 18.5 6.4 8M12 18.5 17.6 8M12 18.5 4.8 13M12 18.5 19.2 13"/><circle fill="#8d89ff" stroke="none" cx="12" cy="18.5" r="1.6"/></g></svg></span><span class="bn">Fivy</span></a>
+      <a class="bub" data-cat="relate"   href="vizy2.html"     title="The semantic mind-map: relations radiating from the core object."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#25c39e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 20 12M12 12 16 5M12 12 8 5M12 12 4 12M12 12 8 19M12 12 16 19"/><circle fill="#25c39e" stroke="none" cx="12" cy="12" r="2"/><circle cx="20" cy="12" r="1.2"/><circle cx="16" cy="5" r="1.2"/><circle cx="8" cy="5" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="8" cy="19" r="1.2"/><circle cx="16" cy="19" r="1.2"/></g></svg></span><span class="bn">Vizy2</span></a>
+      <a class="bub" data-cat="relate"   href="comby.html"     title="Fuzzy combinations from words and pools — full power-set, JSON export."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#25c39e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="5"/><circle cx="8.8" cy="14" r="5"/><circle cx="15.2" cy="14" r="5"/></g></svg></span><span class="bn">Comby</span></a>
+      <a class="bub" data-cat="relate"   href="confluenty.html" title="7-column board where lists meet at a centre."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#25c39e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h7.2"/><path d="M7.6 8.4 11 12 7.6 15.6"/><path d="M21 12h-7.2"/><path d="M16.4 8.4 13 12 16.4 15.6"/><circle fill="#25c39e" stroke="none" cx="12" cy="12" r="1"/></g></svg></span><span class="bn">Confluenty</span></a>
+      <a class="bub" data-cat="redefine" href="wisy.html"      title="Progressive form by depth: prism, tone, focus, then formalise."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#f5a623" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6 12 9.6 18 6"/><path d="M7.5 11 12 13.8 16.5 11"/><path d="M9 16 12 17.8 15 16"/><circle fill="#f5a623" stroke="none" cx="12" cy="20.6" r="1.3"/></g></svg></span><span class="bn">Wisy</span></a>
+      <a class="bub" data-cat="redefine" href="vizy.html"      title="Read the whole definition back as one woven phrase."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#f5a623" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.6-5.5 9-5.5 9 5.5 9 5.5-3.6 5.5-9 5.5-9-5.5-9-5.5z"/><circle cx="12" cy="12" r="2.4"/><circle fill="#f5a623" stroke="none" cx="12" cy="12" r="0.9"/></g></svg></span><span class="bn">Vizy</span></a>
+      <a class="bub" data-cat="redefine" href="sety.html"      title="Language, scales and defaults for the whole tool."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#f5a623" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3v2.2M5 8 6.9 9.1M17.1 14.9 19 16M5 16 6.9 14.9M17.1 9.1 19 8"/></g></svg></span><span class="bn">Sety</span></a>
+      <a class="bub" data-cat="redefine" href="keys.html"      title="The visual alphabet of flove — symbols, glyphs and shortcuts."><span class="bi"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="#f5a623" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="15" height="15" rx="3.6"/><path d="M12 8.4v7.2M8.8 10.2l6.4 3.6M15.2 10.2l-6.4 3.6"/></g></svg></span><span class="bn">Keys</span></a>
     </div>
   </main>
 
@@ -160,69 +256,152 @@
   (function(){
     const field = document.getElementById('field');
     if(!field) return;
+    const CATS  = ['rate','relate','redefine'];
     const nodes = [...field.querySelectorAll('.node')];
     const bubs  = [...field.querySelectorAll('.bub')];
     // where each category node sits (fractions of the field)
     const anchors = { rate:{x:.24,y:.36}, relate:{x:.76,y:.36}, redefine:{x:.50,y:.78} };
-    let active = null;
+    const SIZE_POOL = [1.5, 1.28, 1.12, 1.0, 0.9, 0.8];
+
+    const activeCats = new Set();                 // multiselect of the category balls
+    const display = { layout:'field', sized:false };
     const scatter = new Map();
 
     const rnd = (a,b)=> a + Math.random()*(b-a);
+    const clamp = (v,lo,hi)=> Math.max(lo, Math.min(hi, v));
     function genScatter(){ bubs.forEach(b=> scatter.set(b, { x:rnd(.10,.90), y:rnd(.12,.86) })); }
-    function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+    function genSizes(){ bubs.forEach(b=> b.style.setProperty('--bs', SIZE_POOL[Math.floor(Math.random()*SIZE_POOL.length)])); }
+    function genListOrder(){                       // shuffle the order of apps within each category
+      CATS.forEach(cat=>{
+        const mem = bubs.filter(b=> b.dataset.cat === cat);
+        const order = mem.map((_,i)=> i);
+        for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+        mem.forEach((b,i)=> b.dataset.lrank = order[i]);
+      });
+    }
     function place(el, fx, fy){
       el.style.left = (clamp(fx,.04,.96)*field.clientWidth) + 'px';
       el.style.top  = (clamp(fy,.05,.95)*field.clientHeight) + 'px';
     }
 
     function layout(){
-      const w = field.clientWidth, h = field.clientHeight;
+      const w = field.clientWidth, h = field.clientHeight, mode = display.layout;
+
+      // ── LIST · vertical flow grouped by category (CSS flex + order) ──
+      if(mode === 'list'){
+        nodes.forEach(n=>{
+          n.style.left=''; n.style.top=''; n.style.order = CATS.indexOf(n.dataset.cat)*100;
+          n.classList.remove('is-active','is-dim');
+        });
+        bubs.forEach(b=>{
+          b.style.left=''; b.style.top='';
+          b.style.order = CATS.indexOf(b.dataset.cat)*100 + 1 + Number(b.dataset.lrank||0);
+          b.classList.remove('is-on','is-dim');
+        });
+        return;
+      }
+
+      // ── BUBBLES · balls hidden, every app drifts free ──
+      if(mode === 'bubbles'){
+        bubs.forEach(b=>{ const p = scatter.get(b); b.style.order=''; place(b, p.x, p.y); b.classList.remove('is-on','is-dim'); });
+        return;
+      }
+
+      // ── FIELD · category balls + orbit-on-select (multiselect) ──
       nodes.forEach(n=>{
-        const a = anchors[n.dataset.cat]; place(n, a.x, a.y);
-        n.classList.toggle('is-active', active === n.dataset.cat);
-        n.classList.toggle('is-dim', !!active && active !== n.dataset.cat);
+        const a = anchors[n.dataset.cat]; n.style.order=''; place(n, a.x, a.y);
+        n.classList.toggle('is-active', activeCats.has(n.dataset.cat));
+        n.classList.toggle('is-dim', activeCats.size>0 && !activeCats.has(n.dataset.cat));
       });
-      if(!active){
+      bubs.forEach(b=> b.style.order='');
+      if(activeCats.size === 0){
         bubs.forEach(b=>{ const p = scatter.get(b); place(b, p.x, p.y); b.classList.remove('is-on','is-dim'); });
         return;
       }
-      const a = anchors[active];
-      const mem = bubs.filter(b=> b.dataset.cat === active);
-      const oth = bubs.filter(b=> b.dataset.cat !== active);
-      const R = Math.min(w,h) * 0.22;                       // orbit radius
-      mem.forEach((b,i)=>{
-        const ang = (2*Math.PI*i/mem.length) - Math.PI/2;
-        place(b, a.x + (R*Math.cos(ang))/w, a.y + (R*Math.sin(ang))/h);
-        b.classList.add('is-on'); b.classList.remove('is-dim');
+      const park = [];
+      CATS.forEach(cat=>{
+        const mem = bubs.filter(b=> b.dataset.cat === cat);
+        if(activeCats.has(cat)){
+          const a = anchors[cat], R = Math.min(w,h) * 0.20;     // each active ball orbits its own apps
+          mem.forEach((b,i)=>{
+            const ang = (2*Math.PI*i/mem.length) - Math.PI/2;
+            place(b, a.x + (R*Math.cos(ang))/w, a.y + (R*Math.sin(ang))/h);
+            b.classList.add('is-on'); b.classList.remove('is-dim');
+          });
+        } else {
+          mem.forEach(b=> park.push(b));                        // the rest park along the bottom, dim
+        }
       });
-      oth.forEach((b,i)=>{                                   // park the rest along the bottom, dim
-        place(b, (i+1)/(oth.length+1), 0.965);
-        b.classList.add('is-dim'); b.classList.remove('is-on');
-      });
+      park.forEach((b,i)=>{ place(b, (i+1)/(park.length+1), 0.965); b.classList.add('is-dim'); b.classList.remove('is-on'); });
     }
 
     // vary the idle float so the field feels alive
     bubs.forEach((b,i)=>{ b.style.animationDuration = (4.4 + (i%5)*0.55) + 's';
                           b.style.animationDelay = (-(i%7)*0.6) + 's'; });
 
+    // ── category balls · multiselect (field mode only) ──
     nodes.forEach(n=> n.addEventListener('click', e=>{
       e.stopPropagation();
-      active = (active === n.dataset.cat) ? null : n.dataset.cat;
+      if(display.layout !== 'field') return;
+      const c = n.dataset.cat;
+      activeCats.has(c) ? activeCats.delete(c) : activeCats.add(c);
       layout();
     }));
-    // click empty field → release the cluster
-    field.addEventListener('click', e=>{ if(e.target === field){ active = null; layout(); } });
-    document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && active){ active = null; layout(); } });
+    // click empty field → release every cluster
+    field.addEventListener('click', e=>{ if(e.target === field && display.layout==='field' && activeCats.size){ activeCats.clear(); layout(); } });
+    document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && activeCats.size){ activeCats.clear(); layout(); } });
 
+    // ── compass · open / close the mode toolbar ──
+    const compassBtn = document.getElementById('compassBtn');
+    const modeBtnsEl = document.getElementById('modeButtons');
+    compassBtn?.addEventListener('click', e=>{
+      e.stopPropagation();
+      const open = compassBtn.getAttribute('aria-expanded') !== 'true';
+      compassBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      modeBtnsEl.classList.toggle('is-open', open);
+    });
+
+    // ── compass · display modes (Field/Bubbles/List radios + Size check) ──
+    const modeBtns = [...document.querySelectorAll('.mode-btn')];
+    function applyModeButtons(){
+      modeBtns.forEach(b=>{
+        const m = b.dataset.mode;
+        const on = (m === 'sized') ? display.sized : (display.layout === m);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if(b.getAttribute('role') === 'radio') b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+    function applyMode(){
+      field.classList.toggle('mode-field',   display.layout === 'field');
+      field.classList.toggle('mode-bubbles', display.layout === 'bubbles');
+      field.classList.toggle('mode-list',    display.layout === 'list');
+      field.classList.toggle('sized', display.sized);
+      layout();
+    }
+    modeBtns.forEach(b=> b.addEventListener('click', e=>{
+      e.stopPropagation();
+      const m = b.dataset.mode;
+      if(m === 'field' || m === 'bubbles' || m === 'list') display.layout = m;
+      else if(m === 'sized') display.sized = !display.sized;
+      applyModeButtons(); applyMode();
+    }));
+
+    // ── dice · shuffle positions, sizes and list order ──
     const shuffle = document.getElementById('shuffle');
-    if(shuffle) shuffle.addEventListener('click', ()=>{ genScatter(); active = null; layout(); });
+    shuffle?.addEventListener('click', ()=>{
+      genScatter(); genSizes(); genListOrder();
+      if(display.layout === 'field') activeCats.clear();
+      layout();
+    });
 
     let raf = 0;
     window.addEventListener('resize', ()=>{ cancelAnimationFrame(raf); raf = requestAnimationFrame(layout); });
     // language switch can change node widths slightly → re-place
-    document.querySelectorAll('input[name="ui-lang"]').forEach(r=> r.addEventListener('change', layout));
+    document.querySelectorAll('input[name="ui-lang"]').forEach(r=> r.addEventListener('change', ()=> requestAnimationFrame(layout)));
 
-    genScatter();
+    genScatter(); genSizes(); genListOrder();
+    applyModeButtons();
+    field.classList.add('mode-field');
     requestAnimationFrame(layout);   // first paint with real field size
   })();
   </script>

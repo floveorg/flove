@@ -304,6 +304,8 @@
   }
   .spot-deckname:focus{border-bottom-color:var(--accent)}
   .spot-deckname::placeholder{color:var(--muted);font-style:italic}
+  .spot-gate-hint{color:var(--muted);font:600 .8rem/1.2 system-ui,sans-serif;align-self:center}
+  .spot-gate-hint[hidden]{display:none}
 
   .hand{
     display:flex;gap:0;flex-wrap:wrap;justify-content:center;
@@ -3490,6 +3492,8 @@
 
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
+  .action-row-relocated{margin-top:2.6rem}   /* ~two rows below the Insight/Magic block */
+  .action-row-relocated .action-row.right{justify-content:center}
   .flv-std .action-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
   .flv-std .action-row.right{justify-content:flex-end}
   .flv-std .action-row > .copy-btn{margin-left:auto}
@@ -5189,6 +5193,7 @@
 
       <div class="spot-actions">
         <button class="btn btn-soft" id="pq-toggle">${match ? 'Why (edit)' : 'Why'}</button>
+        <span class="spot-gate-hint" id="spot-gate-hint" hidden>Fill every field to continue</span>
         <button class="btn btn-primary" id="done-btn">Done</button>
       </div>
     `;
@@ -5203,6 +5208,7 @@
         const v = $deckName.value.trim();
         state.deckNames[deck.id] = v;
         if (v) deck.title = v;
+        updateSpotlightStatus(deck);
       };
       $deckName.addEventListener('input', commitName);
     }
@@ -5251,6 +5257,8 @@
       $spotlight.querySelector('#rec-status').textContent = 'recording…';
       $spotlight.querySelector('#rec-status').classList.add('rec');
     }
+
+    updateSpotlightStatus(deck);   // set initial Done-gate state for custom modes
 
     setTimeout(() => $spotlight.scrollIntoView({ behavior:'smooth', block:'start' }), 0);
   }
@@ -5347,10 +5355,30 @@
     });
   }
 
+  // Every card item filled, plus the group name in modes that show one.
+  function spotlightComplete(deck){
+    const itemsFilled = deck.items.every(w => w != null && String(w).trim() !== '');
+    if (!itemsFilled) return false;
+    if (state.gameMode === 'creative' || state.gameMode === 'master'){
+      state.deckNames = state.deckNames || {};
+      const nm  = state.deckNames[deck.id];
+      const eff = (nm != null && nm !== '') ? nm : (state.gameMode === 'creative' ? deck.title : '');
+      if (!eff || !String(eff).trim()) return false;
+    }
+    return true;
+  }
   function updateSpotlightStatus(deck){
     const match = matchingPorQue(deck.id);
     const toggle = $spotlight.querySelector('#pq-toggle');
     if (toggle) toggle.firstChild.nodeValue = match ? 'Why (edit)' : 'Why';
+    // Adventure / Creative / Free: Done only appears once every field is filled.
+    const doneBtn = $spotlight.querySelector('#done-btn');
+    const hint    = $spotlight.querySelector('#spot-gate-hint');
+    if (doneBtn){
+      const gated = ['adventure','creative','master'].includes(state.gameMode) && !spotlightComplete(deck);
+      doneBtn.hidden = gated;
+      if (hint) hint.hidden = !gated;
+    }
   }
 
   function renderCTA(){
@@ -5834,6 +5862,7 @@
       // Master mode's group-creation time (Step 0) sits on top, named "Create groups".
       let quick = '';
       if (t.perStep.step0) quick += node('Create groups', t.perStep.step0, 0);
+      quick += buildMasterStatsHTML();   // mode title, directly below "Create groups"
       quick += node('Main triads', decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node('Extra Triads', ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 0);
@@ -8071,14 +8100,22 @@
     });
   }
   // Master mode total time (across Step 0 + Step 1), shown first above the table.
+  // The friendly name of the mode just played, used as the summary's mode title.
+  function currentModeName(){
+    const m = state.gameMode;
+    if (m === 'adventure') return 'Adventure';
+    if (m === 'creative')  return 'Creative';
+    if (m === 'master')    return 'Free';
+    return (state.masterDone || state.step0Completed || state.masterForced) ? 'Master' : 'Normal';
+  }
   function buildMasterStatsHTML(){
-    if (!state.masterDone && !state.step0Completed) return '';
     const ps = (state.timing && state.timing.perStep) || {};
     const t0 = ps.step0 || 0, t1 = ps.step1 || 0;
     const total = t0 + t1;
     if (!total) return '';
-    return `<div class="master-stats"><span class="master-stats-label">MASTER · total time</span> `
-      + `<b>${fmtDuration(total)}</b> <span class="muted">(Step 0 ${fmtDuration(t0)} · Step 1 ${fmtDuration(t1)})</span></div>`;
+    const detail = t0 ? ` <span class="muted">(Step 0 ${fmtDuration(t0)} · Step 1 ${fmtDuration(t1)})</span>` : '';
+    return `<div class="master-stats"><span class="master-stats-label">${escapeHTML(currentModeName())} · total time</span> `
+      + `<b>${fmtDuration(total)}</b>${detail}</div>`;
   }
   // A 15-cell table: each main triad heads a group of up-to-3 mode columns
   // (Adventure / Creative / Free) — one per mode that has any saved words.
@@ -8327,8 +8364,8 @@
     captureModeWords();
     // Adventure / Creative / Free are one-shot (non-accumulative) → no modes table.
     const modesTable = ['adventure','creative','master'].includes(state.gameMode) ? '' : buildModesTableHTML();
-    return buildMasterStatsHTML()
-      + `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
+    // (mode title now lives in the top time-stats panel, below "Create groups")
+    return `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
       + modesTable
       + buildPerspectivesHTML()
       + buildCombosKeysHTML();
@@ -8549,16 +8586,18 @@
       return lines.join('\n');
     }
     if (fmt === 'html'){
-      return `<!doctype html><meta charset="utf-8"><title>flove keys</title>`
-        + `<body style="font:16px system-ui;max-width:640px;margin:40px auto;color:#222">`
-        + `<h1>flove · keys</h1>${buildBottomSummaryHTML()}</body>`;
+      return buildSummaryDocHTML();   // a clean, summary-table-like printable page
     }
     if (fmt === 'csv'){
-      const rows = [['section','label','value']];
-      d.groups.forEach(g => rows.push(['group', g.title, g.words.join(' | ')]));
-      d.perspective.forEach(p => rows.push(['perspective', p.label, p.value]));
-      if (d.picks.length) rows.push(['picks', '', d.picks.join(' | ')]);
-      rows.push(['mode','', d.mode]);
+      // Every field on its own row, uniquely numbered; empty fields show as "---".
+      const rows = [['#','section','label','value']];
+      let n = 0;
+      const cell = (v) => (v == null || String(v).trim() === '' || v === '—') ? '---' : String(v);
+      const add = (section, label, value) => rows.push([++n, section, cell(label), cell(value)]);
+      d.groups.forEach(g => g.words.forEach((w, i) => add('group', `${g.title} #${i+1}`, w)));
+      d.perspective.forEach(p => add('perspective', p.label, p.value));
+      d.picks.forEach((p, i) => add('pick', `pick #${i+1}`, p));
+      add('mode', 'mode', d.mode);
       return rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     }
     if (fmt === 'xml'){
@@ -8580,6 +8619,84 @@
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ---- Summary as a classical, summary-table-like document (HTML + image) ----
+  // Inline styles only, so the same body renders identically in a saved .html
+  // file and inside an <svg><foreignObject> when rasterised to a JPG.
+  function buildSummaryDocBody(){
+    const d = buildSummaryData();
+    const esc = escapeHTML;
+    const cell = (v) => (v == null || String(v).trim() === '' || v === '—') ? '—' : esc(v);
+    const tdS  = 'border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:15px;';
+    const thS  = tdS + 'background:#f4f4f4;font-weight:700;';
+    const tblS = 'border-collapse:collapse;width:100%;margin:4px 0 16px;';
+    const h2S  = 'font-size:17px;margin:18px 0 6px;color:#444;';
+    const maxW = d.groups.reduce((m, g) => Math.max(m, g.words.length), 0) || 0;
+    let groupsTable = '';
+    if (d.groups.length){
+      const head = `<tr><th style="${thS}">Group</th>` + Array.from({length:maxW}, (_, i) => `<th style="${thS}">${i+1}</th>`).join('') + '</tr>';
+      const rows = d.groups.map(g => `<tr><td style="${tdS}font-weight:700;background:#fafafa;">${esc(g.title)}</td>`
+        + Array.from({length:maxW}, (_, i) => `<td style="${tdS}">${cell(g.words[i])}</td>`).join('') + '</tr>').join('');
+      groupsTable = `<h2 style="${h2S}">Groups</h2><table style="${tblS}">${head}${rows}</table>`;
+    }
+    let perspTable = '';
+    if (d.perspective.length){
+      const rows = d.perspective.map(p => `<tr><td style="${tdS}">${esc(p.label)}</td><td style="${tdS}">${cell(p.value)}</td></tr>`).join('');
+      perspTable = `<h2 style="${h2S}">Perspective</h2><table style="${tblS}"><tr><th style="${thS}">Axis</th><th style="${thS}">Value</th></tr>${rows}</table>`;
+    }
+    const picks = d.picks.length ? `<h2 style="${h2S}">Keys you picked</h2><p style="font-size:15px;">${d.picks.map(esc).join(' · ')}</p>` : '';
+    const ps = (state.timing && state.timing.perStep) || {};
+    const total = (ps.step0 || 0) + (ps.step1 || 0);
+    const meta = `<p style="color:#666;font-size:14px;margin:2px 0 12px;">Mode: <b>${esc(currentModeName())}</b>${total ? ` · Time: <b>${fmtDuration(total)}</b>` : ''}</p>`;
+    return meta + groupsTable + perspTable + picks;
+  }
+  function buildSummaryDocHTML(){
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>flove · keys</title></head>`
+      + `<body style="font-family:Georgia,'Times New Roman',serif;max-width:720px;margin:40px auto;padding:0 18px;color:#222;background:#fff;">`
+      + `<h1 style="font-size:26px;margin:0 0 2px;">flove · keys</h1>`
+      + buildSummaryDocBody()
+      + `</body></html>`;
+  }
+  // Rasterise the same document to a JPG via SVG foreignObject (no extra libs).
+  function summaryToImageBlob(mime){
+    mime = mime || 'image/jpeg';
+    return new Promise((resolve, reject) => {
+      try {
+        const d = buildSummaryData();
+        const W = 760;
+        const rowCount = d.groups.length + d.perspective.length + 5;
+        const H = 240 + rowCount * 48 + (d.picks.length ? 80 : 0);   // generous (avoid clipping)
+        const body = `<div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Georgia,'Times New Roman',serif;color:#222;background:#fff;padding:24px;box-sizing:border-box;width:${W}px;">`
+          + `<h1 style="font-size:24px;margin:0 0 6px;">flove · keys</h1>`
+          + buildSummaryDocBody()
+          + `</div>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%">${body}</foreignObject></svg>`;
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob null')), mime, 0.92);
+          } catch(err){ reject(err); }
+        };
+        img.onerror = reject;
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      } catch(err){ reject(err); }
+    });
+  }
+  // Mobile default: share the summary as HTML + JPG files (Web Share with files).
+  async function shareSummaryFiles(){
+    if (!(navigator.canShare && navigator.share)) return false;
+    const files = [];
+    try { files.push(new File([buildSummaryDocHTML()], 'flove-keys.html', { type:'text/html' })); } catch(_){}
+    try { const img = await summaryToImageBlob('image/jpeg'); if (img) files.push(new File([img], 'flove-keys.jpg', { type:'image/jpeg' })); } catch(_){}
+    if (!files.length || !navigator.canShare({ files })) return false;
+    try { await navigator.share({ title:'flove · keys', text:'My flove keys', files }); return true; }
+    catch(_){ return false; }
   }
 
   (function wireStdSummary(){
@@ -8616,17 +8733,32 @@
     // Download bundle: every marked format (TXT is always included) is
     // downloaded; JPG falls back to HTML (no canvas render here).
     const $dl = $sec.querySelector('[data-flove-save="bundle"]');
-    if ($dl) $dl.addEventListener('click', (e) => {
+    if ($dl) $dl.addEventListener('click', async (e) => {
       e.preventDefault();
       const marked = ['md','html','csv','xml','json'].filter(f => {
         const el = document.getElementById('flv-fmt-' + f);
         return el && el.checked;
       });
-      const jpg = document.getElementById('flv-fmt-jpg');
-      if (jpg && jpg.checked && !marked.includes('html')) marked.push('html');
       const fmts = ['txt', ...marked];
       fmts.forEach(f => triggerDownload(`flove-keys.${f}`, FMT_MIME[f] || 'text/plain', serializeSummary(f)));
-      stdToast(fmts.length > 1 ? `Downloaded ${fmts.length} files` : 'Downloaded flove-keys.txt');
+      // JPG: render the summary doc to a real image; fall back to the HTML doc.
+      let extra = 0;
+      const jpg = document.getElementById('flv-fmt-jpg');
+      if (jpg && jpg.checked){
+        try {
+          const blob = await summaryToImageBlob('image/jpeg');
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'flove-keys.jpg';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch(_){
+          if (!marked.includes('html')) triggerDownload('flove-keys.html', 'text/html', serializeSummary('html'));
+        }
+        extra = 1;
+      }
+      const count = fmts.length + extra;
+      stdToast(count > 1 ? `Downloaded ${count} files` : 'Downloaded flove-keys.txt');
     });
 
     // Share sub-actions: print + Web Share API.
@@ -8634,6 +8766,8 @@
       b.addEventListener('click', () => window.print()));
     $sec.querySelectorAll('[data-flove-share-menu]').forEach(b =>
       b.addEventListener('click', async () => {
+        // Mobile defaults to sharing the summary as HTML + JPG files.
+        if (b.getAttribute('data-flove-share-menu') === 'mobile' && await shareSummaryFiles()) return;
         const text = buildBottomSummaryText();
         if (navigator.share){ try { await navigator.share({ title:'flove · keys', text }); } catch(_){} }
         else { if (await copyToClipboard(text)) stdToast('Copied — paste it anywhere'); }
@@ -8648,6 +8782,22 @@
       if (name === 'none'){ stdToast('Pick a platform first'); return; }
       stdToast(`Published to ${name.charAt(0).toUpperCase() + name.slice(1)} ✓`);
     });
+
+    // Relocate Save / Share / Publish to two rows below the Insight/Magic block.
+    // The cycle radios move with the buttons so the :has() reveal keeps resolving;
+    // running here (after wiring) means the click listeners survive the move.
+    (function relocateActions(){
+      const $im = document.getElementById('insight-magic-block');
+      const $actions = $sec.querySelector('.action-row.right');
+      if (!$im || !$actions || !$im.parentNode) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'flv-std action-row-relocated';
+      $sec.querySelectorAll('input[name="flv-cycle"]').forEach(inp => wrap.appendChild(inp));
+      wrap.appendChild($actions);
+      const $dlrow = $sec.querySelector('.download-row');   // keep Download with Save
+      if ($dlrow) wrap.appendChild($dlrow);
+      $im.parentNode.insertBefore(wrap, $im.nextSibling);
+    })();
   })();
 
   // ============== Second play: reorder all completed groups ==============

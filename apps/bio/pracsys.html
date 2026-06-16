@@ -2483,16 +2483,8 @@
   }
   // a lavish self-contained HTML document of the body
   function exportHtmlDoc(){
-    const rows = summaryRows();
     const date = new Date().toISOString().slice(0,10);
-    const groups = GROUP_META.map(g => {
-      const items = rows.filter(r => r.kind === g.kind); if (!items.length) return '';
-      return `<section class="g" style="--g:${g.hex}"><h2>${g.icon} ${g.label}</h2>`
-        + items.map(r => `<div class="item"><span class="t">${escHtml(r.title)}</span>`
-            + (r.items.length ? `<span class="chips">${r.items.map(it => `<span class="chip">${escHtml(it)}</span>`).join('')}</span>` : '')
-            + `</div>`).join('')
-        + `</section>`;
-    }).join('');
+    const board = summaryRenderHTML();   // same board markup as the in-page summary
     return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FLOVE · PRACSYS body</title>
@@ -2506,29 +2498,36 @@ body{margin:0;min-height:100vh;display:flex;justify-content:center;padding:52px 
     radial-gradient(1100px 560px at 8% -12%, rgba(77,208,225,.20), transparent),
     radial-gradient(1000px 520px at 112% 8%, rgba(179,136,255,.18), transparent),
     radial-gradient(900px 600px at 50% 122%, rgba(105,240,174,.14), transparent), #07080c;}
-.card{width:min(720px,100%);position:relative;overflow:hidden;
+.card{width:min(760px,100%);position:relative;overflow:hidden;
   background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
   border:1px solid rgba(255,255,255,.13);border-radius:26px;padding:42px 38px 26px;
   box-shadow:0 34px 90px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07);backdrop-filter:blur(8px)}
 .card::before{content:'';position:absolute;inset:0 0 auto 0;height:4px;
   background:linear-gradient(90deg,#4dd0e1,#b388ff 50%,#69f0ae)}
-header{text-align:center;margin-bottom:30px}
-.glyph{width:62px;height:62px;filter:drop-shadow(0 0 18px rgba(77,208,225,.45))}
-h1{margin:.4rem 0 0;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:2.5rem;letter-spacing:-.01em;
+header{text-align:center;margin-bottom:26px}
+.glyph{width:58px;height:58px;filter:drop-shadow(0 0 18px rgba(77,208,225,.45))}
+h1{margin:.4rem 0 0;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:2.3rem;letter-spacing:-.01em;
   background:linear-gradient(120deg,#4dd0e1,#b388ff 50%,#69f0ae);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{margin:.5rem 0 0;color:#9fb0c4;font-size:.95rem}
-.g{margin:24px 0 0}
-.g h2{display:flex;align-items:center;gap:.5rem;margin:0 0 10px;font:800 .72rem/1 Inter,sans-serif;
-  letter-spacing:.22em;text-transform:uppercase;color:var(--g)}
-.item{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:13px 17px;margin-bottom:8px;border-radius:15px;
-  background:linear-gradient(100deg, color-mix(in srgb, var(--g) 16%, transparent), transparent);border-left:3px solid var(--g)}
-.item .t{font-weight:700;font-size:1rem;margin-right:auto}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:999px;
-  background:color-mix(in srgb, var(--g) 16%, #0c1018);border:1px solid color-mix(in srgb, var(--g) 38%, transparent);color:#eaf1fb}
+.sub{margin:.5rem 0 0;color:#9fb0c4;font-size:.92rem}
+/* the board — systems in their square, reasons centred in the middle */
+.sum-board{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px 14px;align-items:stretch}
+.sum-gridcell{min-width:0}
+.sum-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+.sum-sq{width:100%;max-width:160px;aspect-ratio:1/.82;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  border-radius:16px;border:1px solid rgba(255,255,255,.16);
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.sum-sq.centre{border-color:rgba(255,138,101,.55);box-shadow:0 0 0 1px rgba(255,138,101,.3) inset}
+.sq-ico{font-size:1.7rem;line-height:1}
+.sq-lbl{font-weight:700;font-size:.85rem;text-align:center;color:#e8eef7}
+.sum-meta{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
+.sm-line{font-size:.72rem;font-weight:600;word-break:break-word}
+.sm-verb{color:#b388ff}
+.sm-arrow{color:#69f0ae}
+.sum-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:100%}
+.sum-midreason{font-size:.82rem;font-weight:600;color:#4dd0e1;text-align:center;word-break:break-word}
+.sum-empty{text-align:center;color:#9fb0c4}
 footer{margin-top:28px;text-align:center;color:#7f8da0;font-size:.8rem}
 footer a{color:#4dd0e1;text-decoration:none}
-.empty{text-align:center;color:#9fb0c4}
 @media print{body{padding:0;background:#07080c}.card{box-shadow:none;border:0}}
 </style></head><body>
 <main class="card">
@@ -2543,7 +2542,7 @@ footer a{color:#4dd0e1;text-decoration:none}
     <h1>pracsys body</h1>
     <p class="sub">eleven systems, laid out as a living body · ${date}</p>
   </header>
-  ${groups || '<p class="empty">An empty body.</p>'}
+  ${board}
   <footer>made with <a href="https://flove.org">flove</a> · pracsys</footer>
 </main></body></html>`;
   }
@@ -2566,91 +2565,95 @@ footer a{color:#4dd0e1;text-decoration:none}
           + r.items.map(it => `<item>${escXml(it)}</item>`).join('') + '</row>').join('\n')
       + '\n</pracsys>';
   }
-  // a stylish canvas render of the body — gradient ground, glyph, coloured chips
+  // a canvas render of the body in its board square — matches the summary
   function summaryToJpg(){
-    const rows = summaryRows();
-    const W = 840, padX = 48, innerW = W - padX*2, S = 2;
-    const m = document.createElement('canvas').getContext('2d');
-    // lay chips into wrapped rows (used for both measuring and drawing)
-    const chipRows = (ctx, items, x0, maxRight) => {
-      ctx.font = '600 13px Inter, system-ui, sans-serif';
-      const out = []; let cur = [], cx = x0;
-      items.forEach(it => {
-        const w = ctx.measureText(it).width + 22;
-        if (cx + w > maxRight && cur.length){ out.push(cur); cur = []; cx = x0; }
-        cur.push({ text:it, x:cx, w }); cx += w + 6;
-      });
-      if (cur.length) out.push(cur);
+    const W = 900, S = 2, padX = 44, gap = 16;
+    const colW = (W - padX*2 - gap*2) / 3;
+    const sqW = Math.min(colW, 150), sqH = 62, lineH = 16;
+    const colX = [padX, padX + colW + gap, padX + 2*(colW + gap)];
+    const sqX = c => colX[c] + (colW - sqW)/2;
+    const mctx = document.createElement('canvas').getContext('2d');
+    const wrap = (text, maxW, font) => {
+      mctx.font = font; const words = String(text).split(' '); const lines = []; let cur = '';
+      words.forEach(w => { const t = cur ? cur+' '+w : w; if (mctx.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; });
+      if (cur) lines.push(cur); return lines;
+    };
+    const META_FONT = '600 12px Inter, system-ui, sans-serif';
+    const REASON_FONT = '600 13px Inter, system-ui, sans-serif';
+    const metaOf = slotId => {
+      const mt = slotMeta(slotId); const out = [];
+      if (mt.verbs.length) wrap('🔗 ' + mt.verbs.join(' · '), colW, META_FONT).forEach(t => out.push({ c:'#b388ff', t }));
+      mt.arrows.forEach(a => wrap((a.sub.kind==='immune'?'🛡 ':'🧠 ') + a.sub.label + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
       return out;
     };
-    // build the layout model + total height
-    const model = [];
-    GROUP_META.forEach(g => {
-      const items = rows.filter(r => r.kind === g.kind); if (!items.length) return;
-      model.push({ type:'header', g });
-      items.forEach(r => {
-        const cr = r.items.length ? chipRows(m, r.items, padX + 16, W - padX - 16) : [];
-        const height = cr.length ? 34 + cr.length * 30 : 42;
-        model.push({ type:'item', g, title:r.title, cr, height });
-      });
-    });
-    let H = 180;
-    model.forEach(x => { H += x.type === 'header' ? 32 : x.height + 8; });
-    H += 78;
+    const reasonLines = key => { const a = state.reasons[key]||[]; return a.length ? wrap(a.join(' · '), colW, REASON_FONT) : []; };
 
-    const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    // row models + total height
+    const rows = [];
+    for (let r = 0; r < N_ROWS; r++){
+      const Lid = leftSlotId(r), Rid = rightSlotId(r), L = sysAt(Lid), R = sysAt(Rid);
+      const Lm = L ? metaOf(Lid) : [], Rm = R ? metaOf(Rid) : [], mid = reasonLines(String(r));
+      let centre = null;
+      if (r === CENTRE_ROW && sysAt(CENTRE_SLOT)) centre = { meta: metaOf(CENTRE_SLOT), reasons: reasonLines('c') };
+      const hL = L ? sqH + Lm.length*lineH : 0, hR = R ? sqH + Rm.length*lineH : 0;
+      let hM = mid.length*lineH;
+      if (centre) hM += 10 + sqH + centre.meta.length*lineH + centre.reasons.length*lineH;
+      rows.push({ Lid, Rid, L, R, Lm, Rm, mid, centre, rowH: Math.max(hL, hR, hM, 40) + 22 });
+    }
+    let H = 175; rows.forEach(rm => H += rm.rowH); H += 56;
+
+    const cv = document.createElement('canvas'); cv.width = W*S; cv.height = H*S;
     const ctx = cv.getContext('2d'); ctx.scale(S, S); ctx.textBaseline = 'alphabetic';
-    // ground
-    const bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b0f18'); bg.addColorStop(1, '#070809');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-    [['#4dd0e1', 120, -30, .20], ['#b388ff', W - 110, 50, .18], ['#69f0ae', W/2, H - 30, .12]].forEach(([c, x, y, a]) => {
-      const rg = ctx.createRadialGradient(x, y, 0, x, y, 300);
-      rg.addColorStop(0, hexA(c, a)); rg.addColorStop(1, hexA(c, 0)); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    // ground + glows + seam
+    const bg = ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#0b0f18'); bg.addColorStop(1,'#070809'); ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+    [['#4dd0e1',130,-30,.20],['#b388ff',W-120,50,.18],['#69f0ae',W/2,H-30,.12]].forEach(([c,x,yy,a]) => {
+      const rg = ctx.createRadialGradient(x,yy,0,x,yy,320); rg.addColorStop(0,hexA(c,a)); rg.addColorStop(1,hexA(c,0)); ctx.fillStyle = rg; ctx.fillRect(0,0,W,H);
     });
-    // tri-colour top seam
-    const seam = ctx.createLinearGradient(0, 0, W, 0); seam.addColorStop(0, '#4dd0e1'); seam.addColorStop(.5, '#b388ff'); seam.addColorStop(1, '#69f0ae');
-    ctx.fillStyle = seam; ctx.fillRect(0, 0, W, 4);
-    // glyph
-    let y = 56; const gx = W/2, r = 22;
-    const gg = ctx.createLinearGradient(gx-r, y-r, gx+r, y+r); gg.addColorStop(0, '#4dd0e1'); gg.addColorStop(.5, '#b388ff'); gg.addColorStop(1, '#69f0ae');
+    const seam = ctx.createLinearGradient(0,0,W,0); seam.addColorStop(0,'#4dd0e1'); seam.addColorStop(.5,'#b388ff'); seam.addColorStop(1,'#69f0ae'); ctx.fillStyle = seam; ctx.fillRect(0,0,W,4);
+    // header
+    let y = 54; const gx = W/2, rr = 22;
+    const gg = ctx.createLinearGradient(gx-rr,y-rr,gx+rr,y+rr); gg.addColorStop(0,'#4dd0e1'); gg.addColorStop(.5,'#b388ff'); gg.addColorStop(1,'#69f0ae');
     ctx.strokeStyle = gg; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(gx, y, r, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(gx, y-r); ctx.lineTo(gx, y+r); ctx.moveTo(gx-r, y); ctx.lineTo(gx+r, y); ctx.stroke();
-    ctx.beginPath(); ctx.arc(gx, y, 4.5, 0, Math.PI*2); ctx.fillStyle = gg; ctx.fill();
-    // title + subtitle
-    y += r + 36; ctx.textAlign = 'center';
-    const tg = ctx.createLinearGradient(gx-180, 0, gx+180, 0); tg.addColorStop(0, '#4dd0e1'); tg.addColorStop(.5, '#b388ff'); tg.addColorStop(1, '#69f0ae');
-    ctx.fillStyle = tg; ctx.font = '700 40px Georgia, "Times New Roman", serif'; ctx.fillText('pracsys body', gx, y);
-    y += 26; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 15px Inter, system-ui, sans-serif';
+    ctx.beginPath(); ctx.arc(gx,y,rr,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx,y-rr); ctx.lineTo(gx,y+rr); ctx.moveTo(gx-rr,y); ctx.lineTo(gx+rr,y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(gx,y,4.5,0,Math.PI*2); ctx.fillStyle = gg; ctx.fill();
+    y += rr + 34; ctx.textAlign = 'center';
+    const tg = ctx.createLinearGradient(gx-180,0,gx+180,0); tg.addColorStop(0,'#4dd0e1'); tg.addColorStop(.5,'#b388ff'); tg.addColorStop(1,'#69f0ae');
+    ctx.fillStyle = tg; ctx.font = '700 38px Georgia, "Times New Roman", serif'; ctx.fillText('pracsys body', gx, y);
+    y += 24; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 14px Inter, system-ui, sans-serif';
     ctx.fillText('eleven systems, laid out as a living body · ' + new Date().toISOString().slice(0,10), gx, y);
-    y += 38; ctx.textAlign = 'left';
-    // groups
-    model.forEach(x => {
-      if (x.type === 'header'){
-        ctx.fillStyle = x.g.hex; ctx.font = '800 14px Inter, system-ui, sans-serif';
-        ctx.fillText(x.g.label.toUpperCase(), padX, y + 2); y += 28;
-      } else {
-        ctx.fillStyle = hexA(x.g.hex, .11); roundRect(ctx, padX, y, innerW, x.height, 13); ctx.fill();
-        ctx.fillStyle = x.g.hex; roundRect(ctx, padX, y, 3, x.height, 1.5); ctx.fill();
-        ctx.fillStyle = '#e8eef7'; ctx.font = '700 16px Inter, system-ui, sans-serif';
-        ctx.fillText(x.title, padX + 16, y + 25);
-        let cy = y + 34;
-        x.cr.forEach(rowChips => {
-          rowChips.forEach(ch => {
-            ctx.fillStyle = hexA(x.g.hex, .18); roundRect(ctx, ch.x, cy, ch.w, 22, 11); ctx.fill();
-            ctx.strokeStyle = hexA(x.g.hex, .45); ctx.lineWidth = 1; roundRect(ctx, ch.x, cy, ch.w, 22, 11); ctx.stroke();
-            ctx.fillStyle = '#eaf1fb'; ctx.font = '600 13px Inter, system-ui, sans-serif'; ctx.fillText(ch.text, ch.x + 11, cy + 15);
-          });
-          cy += 30;
-        });
-        y += x.height + 8;
-      }
-    });
-    if (!model.length){ ctx.textAlign = 'center'; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 16px Inter, sans-serif'; ctx.fillText('An empty body.', W/2, y + 10); }
-    // footer
-    ctx.textAlign = 'center'; ctx.fillStyle = '#7f8da0'; ctx.font = '400 13px Inter, system-ui, sans-serif';
-    ctx.fillText('made with flove · pracsys', W/2, H - 28);
+    y += 34;
 
+    const drawSquare = (slotId, x, yy, metaLines) => {
+      const sys = sysAt(slotId); if (!sys) return;
+      ctx.fillStyle = 'rgba(255,255,255,.05)'; roundRect(ctx, x, yy, sqW, sqH, 14); ctx.fill();
+      ctx.strokeStyle = slotId === CENTRE_SLOT ? 'rgba(255,138,101,.55)' : 'rgba(255,255,255,.16)'; ctx.lineWidth = 1; roundRect(ctx, x, yy, sqW, sqH, 14); ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.font = '22px serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.icon, x + sqW/2, yy + 30);
+      ctx.font = '700 13px Inter, system-ui, sans-serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.label, x + sqW/2, yy + sqH - 10);
+      let my = yy + sqH + 15;
+      metaLines.forEach(ln => { ctx.fillStyle = ln.c; ctx.font = META_FONT; ctx.fillText(ln.t, x + sqW/2, my); my += lineH; });
+    };
+    const drawReasons = (lines, cx, top) => { let my = top; ctx.textAlign = 'center'; ctx.font = REASON_FONT; ctx.fillStyle = '#4dd0e1'; lines.forEach(ln => { ctx.fillText(ln, cx, my + 12); my += lineH; }); return my; };
+
+    rows.forEach(rm => {
+      const top = y, midCx = colX[1] + colW/2;
+      if (rm.L) drawSquare(rm.Lid, sqX(0), top, rm.Lm);
+      if (rm.R) drawSquare(rm.Rid, sqX(2), top, rm.Rm);
+      if (rm.centre){
+        let my = drawReasons(rm.mid, midCx, top);
+        my += 10;
+        drawSquare(CENTRE_SLOT, sqX(1), my, rm.centre.meta);
+        drawReasons(rm.centre.reasons, midCx, my + sqH + 15 + rm.centre.meta.length*lineH);
+      } else {
+        drawReasons(rm.mid, midCx, top + Math.max(0, (rm.rowH - 22 - rm.mid.length*lineH)/2));
+      }
+      y += rm.rowH;
+    });
+
+    if (!Object.keys(state.placed).length){ ctx.textAlign = 'center'; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 16px Inter, sans-serif'; ctx.fillText('An empty body.', W/2, y + 10); }
+    ctx.textAlign = 'center'; ctx.fillStyle = '#7f8da0'; ctx.font = '400 13px Inter, system-ui, sans-serif';
+    ctx.fillText('made with flove · pracsys', W/2, H - 24);
     cv.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = 'pracsys-body.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, 'image/jpeg', 0.95);
   }
   document.addEventListener('click', async e => {

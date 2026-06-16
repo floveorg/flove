@@ -295,6 +295,15 @@
     margin-bottom:.95rem;flex-wrap:wrap;
   }
   .spot-sub{color:var(--muted);font-size:.84rem}
+  /* Editable group-name above the three cards (Creative / Free modes). */
+  .spot-deckname{
+    width:min(18rem,80%);text-align:center;
+    font:600 1.15rem/1.2 ui-serif,Georgia,serif;color:var(--ink);
+    background:transparent;border:0;border-bottom:1.5px dashed var(--brand);
+    padding:.3rem .2rem;outline:none;
+  }
+  .spot-deckname:focus{border-bottom-color:var(--accent)}
+  .spot-deckname::placeholder{color:var(--muted);font-style:italic}
 
   .hand{
     display:flex;gap:0;flex-wrap:wrap;justify-content:center;
@@ -2131,6 +2140,25 @@
   .chooser-insights[hidden]{display:none}
   .chooser-insights .opt-insight,
   .chooser-insights .chooser-free-note{text-align:center}
+  /* See more: a row of mode links (open in a new tab) + a slim "Get real Decks". */
+  .chooser-modes-links{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+  .chooser-mode-link{
+    flex:1 1 100px;max-width:140px;padding:.5rem .6rem;border-radius:12px;
+    border:1px solid var(--stroke);background:var(--fx);color:var(--ink);
+    font:700 .8rem/1 system-ui,sans-serif;text-decoration:none;text-align:center;
+    transition:transform .15s ease, border-color .2s ease;
+  }
+  .chooser-mode-link:hover{transform:translateY(-2px)}
+  .chooser-mode-link.mode-adv:hover{border-color:var(--gold)}
+  .chooser-mode-link.mode-cre:hover{border-color:var(--brand)}
+  .chooser-mode-link.mode-free:hover{border-color:var(--sky)}
+  .chooser-getdecks{
+    display:block;margin:.5rem auto;max-width:90%;padding:.4rem .7rem;
+    border:1px dashed var(--stroke);border-radius:10px;background:transparent;
+    color:var(--muted);font:600 .78rem/1.2 system-ui,sans-serif;
+    text-decoration:none;text-align:center;transition:border-color .2s ease, color .2s ease;
+  }
+  .chooser-getdecks:hover{border-color:var(--accent);color:var(--accent)}
   /* Mode cards expand into an info panel (warning / recommendation + Go / arrow). */
   .chooser-card .opt-body{display:none;margin-top:.6rem}
   .chooser-card.open .opt-body{display:block;animation:fadein .2s ease}
@@ -2390,6 +2418,10 @@
   .normal-pass input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,95,220,.18)}
   .normal-pass input.bad{border-color:#e06; animation:pass-shake .3s ease}
   @keyframes pass-shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+  /* Master done → Normal is unlocked: hide its pass field, arrow and recommend. */
+  .chooser-card.normal-unlocked .normal-pass,
+  .chooser-card.normal-unlocked .opt-arrow,
+  .chooser-card.normal-unlocked .opt-recommend{display:none !important}
 
   /* ============== Customize panel (ported from souls · last slide) ========
      The markup below is the souls slide-3 panel kept class-for-class; the only
@@ -3859,6 +3891,12 @@
     <div class="chooser-seemore-wrap">
       <button class="btn btn-soft chooser-seemore" id="chooser-seemore" type="button" aria-expanded="false" aria-controls="chooser-insights">See more</button>
       <div class="chooser-insights" id="chooser-insights" hidden>
+        <div class="chooser-modes-links">
+          <a class="chooser-mode-link mode-adv"  href="keys.html?mode=adventure" target="_blank" rel="noopener">Adventure</a>
+          <a class="chooser-mode-link mode-cre"  href="keys.html?mode=creative"  target="_blank" rel="noopener">Creative</a>
+          <a class="chooser-mode-link mode-free" href="keys.html?mode=master"    target="_blank" rel="noopener">Free</a>
+        </div>
+        <a class="chooser-getdecks" href="../decks.html">Get real Decks</a>
         <p class="opt-insight">The full path, for the complete experience, is Master – Free – Creative – Adventure – Normal.</p>
         <p class="chooser-free-note">Play these 3 more free modes for getting more insights and points.</p>
       </div>
@@ -3867,21 +3905,21 @@
       <div class="opt opt-sm adventure open" id="chooser-adventure" role="button" tabindex="0" aria-expanded="true">
         <span class="tag">More Adventure</span>
         <div class="opt-body">
-          <div class="desc">Add 1</div>
+          <div class="desc">Add 1 new word</div>
           <button class="btn btn-primary opt-go opt-go-locked" type="button">Go play →</button>
         </div>
       </div>
       <div class="opt opt-sm creative open" id="chooser-creative" role="button" tabindex="0" aria-expanded="true">
         <span class="tag">Very Creative</span>
         <div class="opt-body">
-          <div class="desc">Add 2</div>
+          <div class="desc">Add 2 new words</div>
           <button class="btn btn-primary opt-go" type="button">Go play →</button>
         </div>
       </div>
       <div class="opt opt-sm master open" id="chooser-master" role="button" tabindex="0" aria-expanded="true">
         <span class="tag">Super Free</span>
         <div class="opt-body">
-          <div class="desc">Add all</div>
+          <div class="desc">Add all new words</div>
           <button class="btn btn-primary opt-go" type="button">Go play →</button>
         </div>
       </div>
@@ -5120,7 +5158,17 @@
     const match   = matchingPorQue(deck.id);
 
     $spotlight.classList.add('active');
+    // Creative / Free: an editable group-name sits above the three cards. Creative
+    // prefills the real deck name (overwritable); Free starts blank (newly added).
+    state.deckNames = state.deckNames || {};
+    const showDeckName = (state.gameMode === 'creative' || state.gameMode === 'master');
+    const savedName = state.deckNames[deck.id];
+    const deckNameVal = savedName != null ? savedName : (state.gameMode === 'creative' ? deck.title : '');
+    const deckNameHTML = showDeckName
+      ? `<div class="spot-head"><input class="spot-deckname" id="spot-deckname" type="text" value="${escapeHTML(deckNameVal)}" placeholder="name this group" aria-label="Group name" /></div>`
+      : '';
     $spotlight.innerHTML = `
+      ${deckNameHTML}
       <div class="hand" id="hand"></div>
 
       <div class="pq-panel" id="pq-panel">
@@ -5146,6 +5194,18 @@
     `;
 
     renderHand(deck, order);
+
+    // Editable group-name (Creative/Free): persist what the player types so it
+    // survives re-renders, and mirror it onto the deck title for the summary.
+    const $deckName = $spotlight.querySelector('#spot-deckname');
+    if ($deckName){
+      const commitName = () => {
+        const v = $deckName.value.trim();
+        state.deckNames[deck.id] = v;
+        if (v) deck.title = v;
+      };
+      $deckName.addEventListener('input', commitName);
+    }
 
     // Why panel open state
     const $panel = $spotlight.querySelector('#pq-panel');
@@ -5771,7 +5831,10 @@
     // Additional perspective as a child) + a comparative insight on the right.
     const $top = document.getElementById('std-timestats-top');
     if ($top){
-      let quick = node('Main triads', decksTotal, 0);   // renamed from Main decks / Main Keys
+      // Master mode's group-creation time (Step 0) sits on top, named "Create groups".
+      let quick = '';
+      if (t.perStep.step0) quick += node('Create groups', t.perStep.step0, 0);
+      quick += node('Main triads', decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node('Extra Triads', ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 0);
       $top.innerHTML = `<div class="std-quick-wrap">`
@@ -6870,6 +6933,9 @@
     const master = document.getElementById('chooser-step0');
     if (master) master.classList.toggle('is-completed', done);
     if (done) document.querySelectorAll('.opt-go-locked').forEach(b => b.classList.remove('opt-go-locked'));
+    // Master done → Normal Go is clickable, so drop its pass field, arrow & recommend.
+    const normalCard = document.getElementById('chooser-step1');
+    if (normalCard) normalCard.classList.toggle('normal-unlocked', done);
     ['chooser-adventure','chooser-creative','chooser-master'].forEach(id => {
       const card = document.getElementById(id);
       const modeDone = state.modesDone && state.modesDone[id];
@@ -8259,9 +8325,11 @@
     // Main triads (with perspective pairs) on the left, their extra triads on the
     // right; the modes table (Adventure/Creative/Free) sits above the perspectives.
     captureModeWords();
+    // Adventure / Creative / Free are one-shot (non-accumulative) → no modes table.
+    const modesTable = ['adventure','creative','master'].includes(state.gameMode) ? '' : buildModesTableHTML();
     return buildMasterStatsHTML()
       + `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`
-      + buildModesTableHTML()
+      + modesTable
       + buildPerspectivesHTML()
       + buildCombosKeysHTML();
   }
@@ -9772,6 +9840,12 @@
   typeThat();        // type "that" + raise the panda once the intro is on screen
   document.addEventListener('click', resetIdle, true);  // any click resets the idle moods
   resetIdle();       // arm the idle timer
+  // Deep-link: keys.html?mode=adventure|creative|master boots straight into that
+  // custom mode (used by the chooser "See more" mode links, opened in a new tab).
+  try {
+    const _m = new URLSearchParams(location.search).get('mode');
+    if (_m && ['adventure','creative','master'].includes(_m)) startMoreMode(_m);
+  } catch(_){}
 })();
 </script>
 </body>

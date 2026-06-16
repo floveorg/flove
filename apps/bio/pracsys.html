@@ -728,17 +728,15 @@
   /* the systems laid out in their board square, with reasons/verbs/arrows below each */
   .sum-board{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px 12px; align-items:start; }
   .sum-gridcell{ min-width:0; }
-  .sum-cell{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .sum-cell{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+  /* placed cards read borderless — no background, so the verbs sit right under them */
   .sum-sq{
-    width:100%; max-width:128px; aspect-ratio:1 / .82;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    border-radius:14px; border:1px solid rgba(255,255,255,.16);
-    background:linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    padding:2px 0; border:0; background:none;
   }
-  .sum-sq.centre{ border-color:color-mix(in srgb, var(--accent-2) 55%, transparent); box-shadow:0 0 0 1px color-mix(in srgb, var(--accent-2) 30%, transparent) inset; }
-  .sq-ico{ font-size:1.5rem; line-height:1; }
-  .sq-lbl{ font:700 .76rem/1.05 var(--font-ui); color:var(--ink); text-align:center; }
+  .sq-ico{ font-size:1.6rem; line-height:1; }
+  .sq-lbl{ font:700 .8rem/1.05 var(--font-ui); color:var(--ink); text-align:center; }
+  .sum-sq.centre .sq-lbl{ color:var(--accent-2); }
   .sum-meta{ display:flex; flex-direction:column; gap:3px; width:100%; align-items:center; text-align:center; }
   .sm-line{ font:600 .66rem/1.3 var(--font-ui); max-width:100%; word-break:break-word; }
   .sm-verb{ color:var(--nerve); }
@@ -1426,54 +1424,14 @@
     if (state.stage >= 4 && !state.reasonsShown) return false;   // stage 4: only when Reasons is toggled on
     return key === 'c' ? !!state.placed[CENTRE_SLOT] : rowFull(+key);
   }
-  // stage 4: reasons + a "+" add live directly in the middle column, no smiley
-  function openOneReason(key){ openReasons.clear(); openReasons.add(key); afterChange(); }
-  function renderMidReasons(host, key, list){
-    list.forEach((txt, i) => {
-      const chip = document.createElement('div'); chip.className = 'mid-reason';
-      const t = document.createElement('span'); t.className = 't'; t.textContent = txt; t.title = 'Edit reason';
-      t.addEventListener('click', () => { host.dataset.edit = i; openOneReason(key); });
-      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = 'Delete';
-      x.addEventListener('click', e => { e.stopPropagation(); list.splice(i, 1); delete host.dataset.edit; afterChange(); });
-      chip.append(t, x); host.appendChild(chip);
-    });
-    if (openReasons.has(key)){
-      const comp = document.createElement('div'); comp.className = 'reason-composer';
-      comp.innerHTML = `<input type="text" placeholder="Reason for this pair" aria-label="Reason">`
-        + `<button class="icon-btn mic" title="Dictate (speech-to-text)" aria-label="Dictate">🎤</button>`
-        + `<button class="icon-btn save" title="Save reason" aria-label="Save reason">💾</button>`;
-      const input = comp.querySelector('input');
-      const idx = host.dataset.edit;
-      if (idx != null && idx !== '') input.value = list[+idx] || '';
-      const save = () => {
-        const v = input.value.trim();
-        if (!v){ toast('Write a reason first'); input.focus(); return; }
-        if (idx != null && idx !== '') list[+idx] = v; else list.push(v);
-        delete host.dataset.edit; openReasons.delete(key); afterChange();
-      };
-      comp.querySelector('.save').addEventListener('click', save);
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
-      comp.querySelector('.mic').addEventListener('click', e => startDictation(e.currentTarget, input));
-      host.appendChild(comp); input.focus();
-    } else {
-      const add = document.createElement('button');
-      add.type = 'button'; add.className = 'mid-reason-add'; add.textContent = '+'; add.title = 'Add a reason';
-      add.addEventListener('click', () => { delete host.dataset.edit; openOneReason(key); });
-      host.appendChild(add);
-    }
-  }
   function renderReasons(key){
     const host = $(`.reasons[data-reasons="${key}"]`);
     if (!host) return;
     host.innerHTML = '';
-    if (!reasonVisible(key)){ host.classList.remove('show', 'reasons-mid'); openReasons.delete(key); return; }
+    if (!reasonVisible(key)){ host.classList.remove('show'); openReasons.delete(key); return; }
     host.classList.add('show');
 
     const list = state.reasons[key];
-
-    // stage 4: middle-column reasons + plus, no smiley
-    if (state.stage >= 4){ host.classList.add('reasons-mid'); renderMidReasons(host, key, list); return; }
-    host.classList.remove('reasons-mid');
 
     // the smiley toggle — always shown; happier once a reason is saved
     const flag = document.createElement('button');
@@ -2348,7 +2306,7 @@
     let meta = '';
     if (m.verbs.length) meta += `<div class="sm-line sm-verb">🔗 ${m.verbs.map(escHtml).join(' · ')}</div>`;
     m.arrows.forEach(a => {
-      meta += `<div class="sm-line sm-arrow">${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(a.sub.label)}`
+      meta += `<div class="sm-line sm-arrow">↳ ${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(a.sub.label)}`
             + (a.extra.length ? ' · ' + escHtml(a.extra.join(' · ')) : '') + `</div>`;
     });
     return `<div class="sum-cell"><div class="sum-sq${slotId === CENTRE_SLOT ? ' centre' : ''}">`
@@ -2481,9 +2439,8 @@
     ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
     ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
   }
-  // a lavish self-contained HTML document of the body
+  // a lavish self-contained HTML document of the body (board only, no chrome)
   function exportHtmlDoc(){
-    const date = new Date().toISOString().slice(0,10);
     const board = summaryRenderHTML();   // same board markup as the in-page summary
     return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2500,7 +2457,7 @@ body{margin:0;min-height:100vh;display:flex;justify-content:center;padding:52px 
     radial-gradient(900px 600px at 50% 122%, rgba(105,240,174,.14), transparent), #07080c;}
 .card{width:min(760px,100%);position:relative;overflow:hidden;
   background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
-  border:1px solid rgba(255,255,255,.13);border-radius:26px;padding:42px 38px 26px;
+  border:1px solid rgba(255,255,255,.13);border-radius:26px;padding:34px 34px;
   box-shadow:0 34px 90px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07);backdrop-filter:blur(8px)}
 .card::before{content:'';position:absolute;inset:0 0 auto 0;height:4px;
   background:linear-gradient(90deg,#4dd0e1,#b388ff 50%,#69f0ae)}
@@ -2510,15 +2467,13 @@ h1{margin:.4rem 0 0;font-family:Fraunces,Georgia,serif;font-weight:700;font-size
   background:linear-gradient(120deg,#4dd0e1,#b388ff 50%,#69f0ae);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{margin:.5rem 0 0;color:#9fb0c4;font-size:.92rem}
 /* the board — systems in their square, reasons centred in the middle */
-.sum-board{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px 14px;align-items:stretch}
+.sum-board{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 14px;align-items:start}
 .sum-gridcell{min-width:0}
-.sum-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
-.sum-sq{width:100%;max-width:160px;aspect-ratio:1/.82;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
-  border-radius:16px;border:1px solid rgba(255,255,255,.16);
-  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.sum-sq.centre{border-color:rgba(255,138,101,.55);box-shadow:0 0 0 1px rgba(255,138,101,.3) inset}
-.sq-ico{font-size:1.7rem;line-height:1}
-.sq-lbl{font-weight:700;font-size:.85rem;text-align:center;color:#e8eef7}
+.sum-cell{display:flex;flex-direction:column;align-items:center;gap:3px}
+.sum-sq{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px 0;border:0;background:none}
+.sq-ico{font-size:1.8rem;line-height:1}
+.sq-lbl{font-weight:700;font-size:.88rem;text-align:center;color:#e8eef7}
+.sum-sq.centre .sq-lbl{color:#ff8a65}
 .sum-meta{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
 .sm-line{font-size:.72rem;font-weight:600;word-break:break-word}
 .sm-verb{color:#b388ff}
@@ -2531,26 +2486,14 @@ footer a{color:#4dd0e1;text-decoration:none}
 @media print{body{padding:0;background:#07080c}.card{box-shadow:none;border:0}}
 </style></head><body>
 <main class="card">
-  <header>
-    <svg class="glyph" viewBox="0 0 100 100" aria-hidden="true">
-      <defs><linearGradient id="gg" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stop-color="#4dd0e1"/><stop offset="50%" stop-color="#b388ff"/><stop offset="100%" stop-color="#69f0ae"/></linearGradient></defs>
-      <g fill="none" stroke="url(#gg)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="50" cy="50" r="34"/><line x1="50" y1="16" x2="50" y2="84"/><line x1="16" y1="50" x2="84" y2="50"/></g>
-      <circle cx="50" cy="50" r="6" fill="url(#gg)"/>
-    </svg>
-    <h1>pracsys body</h1>
-    <p class="sub">eleven systems, laid out as a living body · ${date}</p>
-  </header>
   ${board}
-  <footer>made with <a href="https://flove.org">flove</a> · pracsys</footer>
 </main></body></html>`;
   }
   function downloadBlob(body, mime, ext){
     const blob = new Blob([body], { type:mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'pracsys-body.' + ext;
+    a.href = url; a.download = 'pracsys-results.' + ext;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -2569,7 +2512,7 @@ footer a{color:#4dd0e1;text-decoration:none}
   function summaryToJpg(){
     const W = 900, S = 2, padX = 44, gap = 16;
     const colW = (W - padX*2 - gap*2) / 3;
-    const sqW = Math.min(colW, 150), sqH = 62, lineH = 16;
+    const sqW = Math.min(colW, 150), sqH = 46, lineH = 16;
     const colX = [padX, padX + colW + gap, padX + 2*(colW + gap)];
     const sqX = c => colX[c] + (colW - sqW)/2;
     const mctx = document.createElement('canvas').getContext('2d');
@@ -2583,7 +2526,7 @@ footer a{color:#4dd0e1;text-decoration:none}
     const metaOf = slotId => {
       const mt = slotMeta(slotId); const out = [];
       if (mt.verbs.length) wrap('🔗 ' + mt.verbs.join(' · '), colW, META_FONT).forEach(t => out.push({ c:'#b388ff', t }));
-      mt.arrows.forEach(a => wrap((a.sub.kind==='immune'?'🛡 ':'🧠 ') + a.sub.label + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
+      mt.arrows.forEach(a => wrap('↳ ' + (a.sub.kind==='immune'?'🛡 ':'🧠 ') + a.sub.label + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
       return out;
     };
     const reasonLines = key => { const a = state.reasons[key]||[]; return a.length ? wrap(a.join(' · '), colW, REASON_FONT) : []; };
@@ -2626,12 +2569,11 @@ footer a{color:#4dd0e1;text-decoration:none}
 
     const drawSquare = (slotId, x, yy, metaLines) => {
       const sys = sysAt(slotId); if (!sys) return;
-      ctx.fillStyle = 'rgba(255,255,255,.05)'; roundRect(ctx, x, yy, sqW, sqH, 14); ctx.fill();
-      ctx.strokeStyle = slotId === CENTRE_SLOT ? 'rgba(255,138,101,.55)' : 'rgba(255,255,255,.16)'; ctx.lineWidth = 1; roundRect(ctx, x, yy, sqW, sqH, 14); ctx.stroke();
+      // borderless — just the icon + label, with verbs/arrows hugging right below
       ctx.textAlign = 'center';
-      ctx.font = '22px serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.icon, x + sqW/2, yy + 30);
-      ctx.font = '700 13px Inter, system-ui, sans-serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.label, x + sqW/2, yy + sqH - 10);
-      let my = yy + sqH + 15;
+      ctx.font = '22px serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.icon, x + sqW/2, yy + 22);
+      ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = slotId === CENTRE_SLOT ? '#ff8a65' : '#e8eef7'; ctx.fillText(sys.label, x + sqW/2, yy + 40);
+      let my = yy + sqH + 6;
       metaLines.forEach(ln => { ctx.fillStyle = ln.c; ctx.font = META_FONT; ctx.fillText(ln.t, x + sqW/2, my); my += lineH; });
     };
     const drawReasons = (lines, cx, top) => { let my = top; ctx.textAlign = 'center'; ctx.font = REASON_FONT; ctx.fillStyle = '#4dd0e1'; lines.forEach(ln => { ctx.fillText(ln, cx, my + 12); my += lineH; }); return my; };
@@ -2644,7 +2586,7 @@ footer a{color:#4dd0e1;text-decoration:none}
         let my = drawReasons(rm.mid, midCx, top);
         my += 10;
         drawSquare(CENTRE_SLOT, sqX(1), my, rm.centre.meta);
-        drawReasons(rm.centre.reasons, midCx, my + sqH + 15 + rm.centre.meta.length*lineH);
+        drawReasons(rm.centre.reasons, midCx, my + sqH + 6 + rm.centre.meta.length*lineH);
       } else {
         drawReasons(rm.mid, midCx, top + Math.max(0, (rm.rowH - 22 - rm.mid.length*lineH)/2));
       }
@@ -2654,7 +2596,7 @@ footer a{color:#4dd0e1;text-decoration:none}
     if (!Object.keys(state.placed).length){ ctx.textAlign = 'center'; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 16px Inter, sans-serif'; ctx.fillText('An empty body.', W/2, y + 10); }
     ctx.textAlign = 'center'; ctx.fillStyle = '#7f8da0'; ctx.font = '400 13px Inter, system-ui, sans-serif';
     ctx.fillText('made with flove · pracsys', W/2, H - 24);
-    cv.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = 'pracsys-body.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, 'image/jpeg', 0.95);
+    cv.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = 'pracsys-results.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, 'image/jpeg', 0.95);
   }
   document.addEventListener('click', async e => {
     const btn = e.target.closest('#summarySection [data-action]'); if (!btn) return;

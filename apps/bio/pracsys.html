@@ -64,6 +64,40 @@
 
   .about-ctl{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
 
+  /* ── brand-as-menu: the logo + title open the app menu on click ── */
+  .flove-brand{
+    display:inline-flex; align-items:center; gap:10px; cursor:pointer;
+    padding:2px 6px; margin:-2px -4px; border-radius:var(--radius-sm);
+    transition:background var(--fast);
+  }
+  .flove-brand:hover{ background:rgba(255,255,255,.05); }
+  .flove-brand:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .flove-brand .brand-caret{ font-size:.7rem; color:var(--ink-dim); transition:transform var(--fast), color var(--fast); }
+  body:has(#menu-toggle:checked) .flove-brand .brand-caret{ transform:rotate(180deg); color:var(--accent); }
+
+  /* below the flove-bar (z-index 32) so the menu inside the bar stays clickable,
+     yet above the page content so an outside click closes the menu */
+  .menu-backdrop{ position:fixed; inset:0; z-index:29; background:transparent; display:none; cursor:default; }
+  body:has(#menu-toggle:checked) .menu-backdrop{ display:block; }
+  .flove-menu{
+    position:absolute; top:calc(100% - 4px); left:12px; z-index:34;
+    display:flex; flex-direction:column; gap:4px; min-width:160px;
+    padding:8px; border-radius:var(--radius-sm);
+    background:var(--panel); border:1px solid var(--line);
+    box-shadow:0 12px 32px rgba(0,0,0,.45);
+    opacity:0; pointer-events:none; transform:translateY(-6px);
+    transition:opacity var(--fast), transform var(--fast);
+  }
+  body:has(#menu-toggle:checked) .flove-menu{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  /* menu items read as a stacked list, not the old in-bar pills */
+  .flove-menu .about-btn,
+  .flove-menu .flove-home{
+    display:block; width:100%; text-align:left;
+    border:1px solid transparent; border-radius:var(--radius-sm); padding:8px 12px;
+  }
+  .flove-menu .about-btn:hover,
+  .flove-menu .flove-home:hover{ color:var(--accent); background:rgba(255,255,255,.05); border-color:transparent; }
+
   /* ── progress bar (stages + steps of the game) ──────────────── */
   .progress{ display:flex; align-items:center; gap:8px; margin-left:6px; }
   .prog-sep{ color:var(--ink-dim); font-size:.8rem; opacity:.6; }
@@ -622,30 +656,43 @@
 <body>
 
 <input type="checkbox" id="about-toggle" class="about-ctl">
+<input type="checkbox" id="menu-toggle" class="about-ctl">
 
 <!-- ─── topbar ─────────────────────────────────────────────────── -->
 <div class="flove-bar">
-  <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
-    <defs>
-      <linearGradient id="g-pracsys" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-        <stop offset="0%"   stop-color="#4dd0e1"/>
-        <stop offset="50%"  stop-color="#b388ff"/>
-        <stop offset="100%" stop-color="#69f0ae"/>
-      </linearGradient>
-    </defs>
-    <g fill="none" stroke="url(#g-pracsys)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="34"/>
-      <line x1="50" y1="16" x2="50" y2="84"/>
-      <line x1="16" y1="50" x2="84" y2="50"/>
-    </g>
-    <circle cx="50" cy="50" r="6" fill="url(#g-pracsys)"/>
-  </svg>
-  <span class="flove-app-name">pracsys</span>
+  <!-- the logo + title open the app menu (About · flove) on click -->
+  <label class="flove-brand" for="menu-toggle" role="button" tabindex="0"
+         aria-haspopup="true" aria-controls="flove-menu" title="Menu">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="g-pracsys" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#4dd0e1"/>
+          <stop offset="50%"  stop-color="#b388ff"/>
+          <stop offset="100%" stop-color="#69f0ae"/>
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke="url(#g-pracsys)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="50" cy="50" r="34"/>
+        <line x1="50" y1="16" x2="50" y2="84"/>
+        <line x1="16" y1="50" x2="84" y2="50"/>
+      </g>
+      <circle cx="50" cy="50" r="6" fill="url(#g-pracsys)"/>
+    </svg>
+    <span class="flove-app-name">pracsys</span>
+    <span class="brand-caret" aria-hidden="true">▾</span>
+  </label>
+
+  <!-- the app menu: About + back-to-flove, reached by clicking the logo/title -->
+  <nav class="flove-menu" id="flove-menu" aria-label="App menu">
+    <label class="about-btn" for="about-toggle" role="button" tabindex="0" aria-controls="about-panel">About</label>
+    <a class="flove-home" href="index.html" aria-label="Back to flove launcher">← flove</a>
+  </nav>
+
   <div class="progress" id="progress" aria-label="Game progress"></div>
   <span class="flove-spacer"></span>
-  <label class="about-btn" for="about-toggle" role="button" tabindex="0" aria-controls="about-panel" title="About">About</label>
-  <a class="flove-home" href="index.html" aria-label="Back to flove launcher">← flove</a>
 </div>
+
+<label class="menu-backdrop" for="menu-toggle" aria-label="Close menu"></label>
 
 <label class="about-backdrop" for="about-toggle" aria-label="Close About"></label>
 
@@ -653,7 +700,7 @@
   <h1>Practise the systems</h1>
   <p class="subtitle">The eleven biological systems from <b>souls</b>, laid out as a living body you arrange by hand.</p>
   <ol>
-    <li><b>Stage 1 · Place.</b> Tap the <b>Systems</b> card to fan the eleven open, then click or drag each into a placeholder. Click a placed one to send it back. When all are down, press <b>Next stage</b> — this locks the placements and removes Clear board.</li>
+    <li><b>Stage 1 · Place.</b> The eleven <b>systems</b> start fanned open on the left — click or drag each into a placeholder. Click a placed one to send it back. When all are down, press <b>Next stage</b> — this locks the placements and removes Clear board.</li>
     <li><b>Stage 2 · Reasons.</b> Where a row's left+right (or the <b>centroid</b>) are placed, a <b>smiley</b> appears in the middle — click it to write a <b>reason</b>; it collapses on save. Click the centroid's smiley to draw <b>confluence arrows</b> from its row's left & right cards. Once you've written one, <b>Next</b> appears beside <b>Back</b>.</li>
     <li><b>Stage 3 · Verbs.</b> Each right-column system now shows its <b>icon</b> on its card. A <b>+</b> shows on each card's lower edge — click it to add a <b>verb</b>; saved verbs sit centred (a <b>+N</b> opens the full list). Once you've added one, <b>Next</b> reveals the subsystems.</li>
     <li><b>Stage 4 · Subsystems.</b> The <b>Immune</b> and <b>Nervous</b> systems glow; click one to fan its subsystems out as chips — to the right if the parent sits in the left column, to the left if it's on the right, above if it's the centroid. Click a subsystem and a system to thread a labelled line. Threaded ones leave the fan; click the line's label to add a reason/verb (or unthread). The reasons + emojis collapse under a <b>Reasons</b> toggle and verbs under a <b>Verbs</b> toggle. The <b>progress bar</b> tracks every stage.</li>
@@ -1413,8 +1460,9 @@
     const subCount    = Object.keys(state.subs).length;
     const st = state.stage;
 
-    const steps = [{ lab:'Systems', cur:placedCount, max:SYSTEMS.length, cls:'' }];
-    if (st >= 2) steps.push({ lab:'Reasons', cur:(st > 2 || hasAnyReason()) ? 1 : 0, max:1, cls:'sub' });
+    const reasonCount = REASON_KEYS.filter(k => state.reasons[k] && state.reasons[k].length).length;
+    const steps = [{ lab:'Systems pairs', cur:placedCount, max:SYSTEMS.length, cls:'' }];
+    if (st >= 2) steps.push({ lab:'Reasons', cur:reasonCount, max:REASON_KEYS.length, cls:'sub' });
     if (st >= 3) steps.push({ lab:'Verbs',   cur:(st > 3 || hasAnyVerb())   ? 1 : 0, max:1, cls:'sub' });
     if (st >= 4) steps.push({ lab:'Subsystems', cur:subCount, max:TOTAL_SUBS, cls:'sub' });
     if (st >= 4 && subCount === TOTAL_SUBS) steps.push({ lab:'Complete', cur:1, max:1, cls:'' });
@@ -1597,6 +1645,9 @@
   $('#deckToggle').addEventListener('click', () => setDeckOpen(true));
   $('#deckCaret').addEventListener('click',  () => setDeckOpen(false));
 
+  // ── brand menu: clicking About (or following ← flove) closes the dropdown ──
+  $('#flove-menu').addEventListener('click', () => { $('#menu-toggle').checked = false; });
+
   // ── stage navigation ────────────────────────────────────────
   // stage 1 → 2: lock placements, drop Clear board, open the reasons stage
   $('#nextBtn').addEventListener('click', () => {
@@ -1745,7 +1796,8 @@
   try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
   buildSlots();
   renderDeck();
-  // systems start collapsed — one "Systems" card; click fans the 5·1·5
+  // systems start already fanned open (5·1·5), not collapsed behind one card
+  setDeckOpen(true);
   afterChange();
 </script>
 </body>

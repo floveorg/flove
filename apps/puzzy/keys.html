@@ -2242,7 +2242,7 @@
   /* Secondary row of smaller "More …" alternatives. Sits below the main two
      chooser opts with reduced padding + smaller heading + 60% width cap. */
   .chooser-actions-sm{margin-top:14px}
-  .chooser-back{display:flex;justify-content:center;margin-top:18px}
+  .chooser-back{display:flex;justify-content:center;gap:.6rem;margin-top:18px}
   .chooser-actions .opt.opt-sm{
     flex:1 1 200px;max-width:230px;
     padding:11px 11px;border-radius:12px;
@@ -2384,6 +2384,8 @@
     position:absolute;inset:0;bottom:54px;
     pointer-events:none;overflow:hidden;z-index:4;
   }
+  /* Full-viewport layer the bouncing chips roam in (popped from the See more button). */
+  #chip-bounce-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:60}
   .intro-chip{
     position:absolute;bottom:0;left:50%;
     background:rgba(255,95,220,.12);border:1px solid rgba(255,95,220,.38);
@@ -3174,17 +3176,17 @@
   .flv-std .pr-extra-title{display:block;color:var(--gold);font:700 .68rem/1 system-ui,sans-serif;
     letter-spacing:.08em;text-transform:uppercase;margin:.1rem 0 .3rem}
   .flv-std .pt-cell-extra{opacity:.92;font-style:italic}
-  /* "First free choice" aside: to the right of the tables, styled like an extra column. */
+  /* "Free Grouping" aside: the FIRST column (left of the tables), styled like an extra column. */
   .flv-std .pt-free-wrap{display:flex;gap:1.1rem;align-items:flex-start}
   .flv-std .pt-free-wrap .pt-tables{flex:1 1 0;min-width:0}
-  .flv-std .pr-free-aside{flex:0 0 auto;max-width:40%;border-left:1px solid var(--stroke);padding-left:1rem}
+  .flv-std .pr-free-aside{flex:0 0 auto;max-width:40%;border-right:1px solid var(--stroke);padding-right:1rem}
   .flv-std .pr-free-head{display:block;color:var(--sky);font:700 .72rem/1 system-ui,sans-serif;
     letter-spacing:.1em;text-transform:uppercase;margin:0 0 .45rem}
   .flv-std .pr-free-group{margin-bottom:.6rem}
   .flv-std .pr-free-why{color:var(--muted);font-size:.78rem;font-style:italic;margin-top:.15rem}
   @media (max-width:560px){
     .flv-std .pt-free-wrap{flex-direction:column;gap:.6rem}
-    .flv-std .pr-free-aside{max-width:none;border-left:0;padding-left:0;border-top:1px solid var(--stroke);padding-top:.5rem}
+    .flv-std .pr-free-aside{max-width:none;border-right:0;padding-right:0;border-bottom:1px solid var(--stroke);padding-bottom:.5rem}
   }
   /* Master-mode total time, shown first above the table. */
   .flv-std .master-stats{margin:.6rem 0 .6rem;text-align:center;color:var(--ink);font-size:.9rem}
@@ -3530,7 +3532,7 @@
 
   /* ---- action grid + rows ---- */
   .flv-std .action-grid{display:flex;flex-direction:column;gap:.6rem}
-  .action-row-relocated{margin-top:2.6rem}   /* ~two rows below the Insight/Magic block */
+  .action-row-relocated{margin:.5rem 0 .2rem}   /* sits with the Insight/Magic buttons */
   .action-row-relocated .action-row.right{justify-content:center}
   .flv-std .action-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
   .flv-std .action-row.right{justify-content:flex-end}
@@ -3952,16 +3954,14 @@
         </div>
       </div>
     </div>
+    <!-- Back + See more share one row; the texts reveal below. -->
     <div class="chooser-back">
       <button class="btn btn-ghost btn-back" id="chooser-back" type="button">← Back</button>
-    </div>
-    <!-- See more (after Back): custom-mode links + the full Master path. -->
-    <div class="chooser-seemore-wrap">
       <button class="btn btn-soft chooser-seemore" id="chooser-seemore" type="button" aria-expanded="false" aria-controls="chooser-insights">See more</button>
-      <div class="chooser-insights" id="chooser-insights" hidden>
-        <p class="opt-insight">The full path, for the complete experience, is Master – Free – Creative – Adventure – Normal.</p>
-        <p class="chooser-free-note">Play these 3 more free modes for getting more insights and points.</p>
-      </div>
+    </div>
+    <div class="chooser-insights" id="chooser-insights" hidden>
+      <p class="opt-insight">The full path, for the complete experience, is Master – Free – Creative – Adventure – Normal.</p>
+      <p class="chooser-free-note">Play these 3 more free modes for getting more insights and points.</p>
     </div>
   </section>
 
@@ -4393,7 +4393,6 @@
     <!-- See more + related apps sit BELOW the Summary section. -->
     <div class="summary-bottom-actions">
       <button class="btn btn-soft" id="btn-see-more" type="button" hidden>See more</button>
-      <button class="btn btn-ghost" id="btn-to-modes" type="button" hidden>← Modes</button>
     </div>
 
     <div class="related-apps" id="related-apps" hidden>
@@ -5887,6 +5886,8 @@
     if (introMs)         mergedList += node('Intro', introMs, 0);
     if (custMs)          mergedList += node('Customize → Start', custMs, 1);
     if (t.perStep.step0) mergedList += node('Create groups', t.perStep.step0, 0);
+    const cmtBelow = customModeTitle();
+    if (cmtBelow) mergedList += node(cmtBelow, null, 0);   // "<Mode> Mode" title above Main triads
     mergedList += decksTree;   // "Main triads" + per-triad breakdown (no "Main decks" total)
     // Analysis sub-steps in cascade order, each with its own measured time.
     const _now = Date.now();
@@ -5912,9 +5913,11 @@
     if ($top){
       // Master mode's group-creation time (Step 0) sits on top, named "Create groups".
       let quick = '';
-      if (t.perStep.primer) quick += node('First free choice', t.perStep.primer, 0);
+      if (t.perStep.primer) quick += node('Free Grouping', t.perStep.primer, 0);
       if (t.perStep.step0)  quick += node('Create groups', t.perStep.step0, 0);
-      quick += buildMasterStatsHTML();   // mode title, directly below "Create groups"
+      quick += buildMasterStatsHTML();   // mode title (master/normal), below "Create groups"
+      const cmt = customModeTitle();
+      if (cmt) quick += node(cmt, null, 0);   // "<Mode> Mode" title above Main triads
       quick += node('Main triads', decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node('Extra Triads', ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 0);
@@ -6546,21 +6549,29 @@
   function refreshSeeMore(){
     if (!$seeMore || seeMoreSlide === introSlide) return;
     seeMoreSlide = introSlide;
+    chipShown = 0;                    // restart the two-at-a-time loop for the new slide
     stopChipBounce();                 // clear the previous slide's bouncing chips
     clearTimeout(seeMoreTimer);
     $seeMore.classList.remove('show');
-    if ($chips) $chips.innerHTML = '';
     if (introSlide >= INTRO_SLIDES.length - 1) return;   // no "See more" on the last slide
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){ $seeMore.classList.add('show'); return; }
     seeMoreTimer = setTimeout(() => $seeMore.classList.add('show'), 5000);
   }
-  // Bouncing chips: each chip drifts at low speed and reflects off the slide's
-  // width/height margins (it's never cut off). One rAF loop drives them all.
-  let chipRAF = null, chipObjs = [];
+  // Bouncing chips live in a fixed, full-viewport layer so they roam the whole
+  // screen, reflecting off its edges (never cut off). One rAF loop drives them.
+  let chipRAF = null, chipObjs = [], $chipLayer = null;
+  function chipLayer(){
+    if (!$chipLayer){
+      $chipLayer = document.createElement('div');
+      $chipLayer.id = 'chip-bounce-layer';
+      document.body.appendChild($chipLayer);
+    }
+    return $chipLayer;
+  }
   function startChipBounce(){
     if (chipRAF) return;
     const step = () => {
-      const W = $chips.clientWidth, H = $chips.clientHeight;
+      const W = window.innerWidth, H = window.innerHeight;
       chipObjs.forEach(o => {
         const w = o.el.offsetWidth, h = o.el.offsetHeight;
         o.x += o.vx; o.y += o.vy;
@@ -6577,32 +6588,33 @@
   function stopChipBounce(){
     if (chipRAF){ cancelAnimationFrame(chipRAF); chipRAF = null; }
     chipObjs = [];
+    if ($chipLayer) $chipLayer.innerHTML = '';
   }
-  // One click reveals ALL of the slide's chips at once (the button then hides);
-  // the chips bounce around the slide, moving ~3× slower than the old drift.
+  // Each click pops the next TWO chips out of the See more button, sending them
+  // up and to the right; they then bounce around the viewport. The set loops.
   function spawnChips(){
-    if (!$chips) return;
     const set = CHIP_SETS[introSlide] || [];
-    if ($seeMore) $seeMore.classList.remove('show');   // disappears once clicked
+    if (!set.length || !$seeMore) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    $chips.innerHTML = ''; chipObjs = [];
-    const W = $chips.clientWidth || 320, H = $chips.clientHeight || 200;
-    set.forEach((item, i) => {
+    const layer = chipLayer();
+    const br = $seeMore.getBoundingClientRect();
+    for (let k = 0; k < 2; k++){
+      const item = set[chipShown % set.length];   // loop through the set
+      chipShown++;
       const isLink = typeof item === 'object';
       const node = document.createElement(isLink ? 'a' : 'span');
       node.className = 'intro-chip intro-chip-bounce';
       node.textContent = isLink ? item.t : item;
       if (isLink){ node.href = item.href; node.target = '_blank'; node.rel = 'noopener'; }
-      $chips.appendChild(node);
-      if (reduce) return;   // reduced motion: static flex layout via CSS
-      const seed = i * 37 + 17;
-      const x = (seed % Math.max(1, Math.floor(W * 0.55)));
-      const y = ((seed * 7) % Math.max(1, Math.floor(H * 0.55)));
-      const speed = 0.35;   // ~3× slower than the old float
-      const ang = (((seed % 7) + 1) * 0.7) + (i % 2 ? Math.PI : 0);
-      chipObjs.push({ el: node, x, y, vx: Math.cos(ang) * speed || speed, vy: Math.sin(ang) * speed || speed });
+      layer.appendChild(node);
+      if (reduce){ node.style.position = 'static'; continue; }
+      const w = node.offsetWidth, h = node.offsetHeight;
+      const x = Math.max(0, br.left + br.width / 2 - w / 2);   // pop from the button
+      const y = Math.max(0, br.top - h / 2);
+      const speed = 0.6;                                       // gentle, ~3x slower drift
+      chipObjs.push({ el: node, x, y, vx: speed * (0.8 + 0.4 * k), vy: -speed });   // up + right
       node.style.transform = `translate(${x}px, ${y}px)`;
-    });
+    }
     if (!reduce) startChipBounce();
   }
   if ($seeMore) $seeMore.addEventListener('click', (e) => { e.stopPropagation(); spawnChips(); });
@@ -7186,6 +7198,7 @@
   const $chooser = document.getElementById('chooser');
   function setUIMode(mode){
     $intro.classList.toggle('hidden', mode !== 'intro');
+    if (mode !== 'intro'){ try { stopChipBounce(); } catch(_){} }   // don't leave chips bouncing over other screens
     $chooser.classList.toggle('active', mode === 'chooser');
     if (mode === 'chooser'){ startChooserPanda(); enterChooser(); }
     $prelude.classList.toggle('active', mode === 'prelude');
@@ -8303,6 +8316,15 @@
     if (m === 'master')    return 'Free';
     return (state.masterDone || state.step0Completed || state.masterForced) ? 'Master' : 'Normal';
   }
+  // For the custom modes, a "<Mode> Mode" title shown above "Main triads" in the
+  // summary stats (both above and below the table). Empty for master/normal.
+  function customModeTitle(){
+    const m = state.gameMode;
+    if (m === 'adventure') return 'Adventure Mode';
+    if (m === 'creative')  return 'Creative Mode';
+    if (m === 'master')    return 'Free Mode';
+    return '';
+  }
   // The master-mode primer's free grouping, shown as an aside styled like the
   // extra-decks column (only when a primer was actually played).
   function buildPrimerAsideHTML(){
@@ -8315,9 +8337,11 @@
       return `<div class="pr-free-group"><span class="pr-extra-title">Free ${i+1}</span><span class="pr-cells">${words}</span>${why}</div>`;
     }).filter(Boolean).join('');
     if (!rows) return '';
-    return `<aside class="pr-free-aside"><span class="pr-free-head">First free choice</span>${rows}</aside>`;
+    return `<aside class="pr-free-aside"><span class="pr-free-head">Free Grouping</span>${rows}</aside>`;
   }
   function buildMasterStatsHTML(){
+    // Custom modes use the "<Mode> Mode" title (above Main triads) instead.
+    if (['adventure','creative','master'].includes(state.gameMode)) return '';
     const ps = (state.timing && state.timing.perStep) || {};
     const t0 = ps.step0 || 0, t1 = ps.step1 || 0;
     const total = t0 + t1;
@@ -8578,7 +8602,7 @@
     const freeAside = buildPrimerAsideHTML();
     const tables = `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`;
     const tablesBlock = freeAside
-      ? `<div class="pt-free-wrap">${tables}${freeAside}</div>`
+      ? `<div class="pt-free-wrap">${freeAside}${tables}</div>`   // Free Grouping = first column
       : tables;
     return tablesBlock
       + modesTable
@@ -8998,20 +9022,22 @@
       stdToast(`Published to ${name.charAt(0).toUpperCase() + name.slice(1)} ✓`);
     });
 
-    // Relocate Save / Share / Publish to two rows below the Insight/Magic block.
+    // Relocate Save / Share / Publish to sit with the Insight/Magic buttons.
     // The cycle radios move with the buttons so the :has() reveal keeps resolving;
     // running here (after wiring) means the click listeners survive the move.
     (function relocateActions(){
       const $im = document.getElementById('insight-magic-block');
       const $actions = $sec.querySelector('.action-row.right');
-      if (!$im || !$actions || !$im.parentNode) return;
+      if (!$im || !$actions) return;
       const wrap = document.createElement('div');
       wrap.className = 'flv-std action-row-relocated';
       $sec.querySelectorAll('input[name="flv-cycle"]').forEach(inp => wrap.appendChild(inp));
       wrap.appendChild($actions);
       const $dlrow = $sec.querySelector('.download-row');   // keep Download with Save
       if ($dlrow) wrap.appendChild($dlrow);
-      $im.parentNode.insertBefore(wrap, $im.nextSibling);
+      const imButtons = $im.querySelector('.im-buttons');   // place right with insight/magic
+      if (imButtons) $im.insertBefore(wrap, imButtons.nextSibling);
+      else $im.appendChild(wrap);
     })();
   })();
 
@@ -10167,11 +10193,7 @@
     $btn.textContent = open ? 'Hide apps' : 'See more';
     if (open) showCornerPanda('related-apps', 'enamorado');  // enamorado, bottom-left
   });
-  // "← Modes" returns to the chooser (the completed cards show via refreshChooserState).
-  document.getElementById('btn-to-modes').addEventListener('click', () => {
-    setUIMode('chooser');
-    if (typeof refreshChooserState === 'function') refreshChooserState();
-  });
+  // ("← Modes" button removed; nothing to wire.)
   // Replace the fixed RELATED_MORE 6-app reveal with apps derived from the
   // user's Play more multiselect: each selected word becomes an app card
   // pointing at flove.org/{word}. Falls back to the original fixed list if

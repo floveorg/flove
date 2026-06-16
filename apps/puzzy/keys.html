@@ -2144,6 +2144,7 @@
   .chooser-insights .chooser-free-note{text-align:center}
   /* See more: a row of mode links (open in a new tab) + a slim "Get real Decks". */
   .chooser-modes-links{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+  .related-modes{margin-bottom:10px}
   .chooser-mode-link{
     flex:1 1 100px;max-width:140px;padding:.5rem .6rem;border-radius:12px;
     border:1px solid var(--stroke);background:var(--fx);color:var(--ink);
@@ -2392,6 +2393,8 @@
     opacity:0;will-change:transform,opacity;
     animation:chip-rise var(--chip-dur,4.5s) cubic-bezier(.25,.7,.3,1) forwards;
   }
+  /* Bouncing variant: JS positions it via transform; no rise animation, no fade. */
+  .intro-chip-bounce{left:0;top:0;bottom:auto;opacity:1;animation:none}
   a.intro-chip{pointer-events:auto;cursor:pointer;text-decoration:none}
   a.intro-chip:hover{background:rgba(255,95,220,.24);border-color:var(--accent)}
   @keyframes chip-rise{
@@ -3956,12 +3959,6 @@
     <div class="chooser-seemore-wrap">
       <button class="btn btn-soft chooser-seemore" id="chooser-seemore" type="button" aria-expanded="false" aria-controls="chooser-insights">See more</button>
       <div class="chooser-insights" id="chooser-insights" hidden>
-        <div class="chooser-modes-links">
-          <a class="chooser-mode-link mode-adv"  href="keys.html?mode=adventure" target="_blank" rel="noopener">Adventure</a>
-          <a class="chooser-mode-link mode-cre"  href="keys.html?mode=creative"  target="_blank" rel="noopener">Creative</a>
-          <a class="chooser-mode-link mode-free" href="keys.html?mode=master"    target="_blank" rel="noopener">Free</a>
-        </div>
-        <a class="chooser-getdecks" href="../decks.html">Get real Decks</a>
         <p class="opt-insight">The full path, for the complete experience, is Master – Free – Creative – Adventure – Normal.</p>
         <p class="chooser-free-note">Play these 3 more free modes for getting more insights and points.</p>
       </div>
@@ -4400,6 +4397,13 @@
     </div>
 
     <div class="related-apps" id="related-apps" hidden>
+      <!-- Custom-mode links + Get real Decks (moved here from the chooser See more). -->
+      <div class="chooser-modes-links related-modes">
+        <a class="chooser-mode-link mode-adv"  href="keys.html?mode=adventure" target="_blank" rel="noopener">Adventure</a>
+        <a class="chooser-mode-link mode-cre"  href="keys.html?mode=creative"  target="_blank" rel="noopener">Creative</a>
+        <a class="chooser-mode-link mode-free" href="keys.html?mode=master"    target="_blank" rel="noopener">Free</a>
+      </div>
+      <a class="chooser-getdecks related-getdecks" href="../decks.html">Get real Decks</a>
       <div class="related-row related-row-featured" id="related-row-3"></div>
       <button class="btn-related-plus" id="btn-related-plus" type="button" aria-label="show more apps">+</button>
       <div class="related-row" id="related-row-6" hidden></div>
@@ -6542,7 +6546,7 @@
   function refreshSeeMore(){
     if (!$seeMore || seeMoreSlide === introSlide) return;
     seeMoreSlide = introSlide;
-    chipShown = 0;   // each new slide restarts the two-at-a-time reveal
+    stopChipBounce();                 // clear the previous slide's bouncing chips
     clearTimeout(seeMoreTimer);
     $seeMore.classList.remove('show');
     if ($chips) $chips.innerHTML = '';
@@ -6550,39 +6554,56 @@
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){ $seeMore.classList.add('show'); return; }
     seeMoreTimer = setTimeout(() => $seeMore.classList.add('show'), 5000);
   }
-  // Float a batch of chips for the current slide; the last slide's chips are
-  // link-boxes to lighter apps. Drift/height/duration are seeded (no randomness).
+  // Bouncing chips: each chip drifts at low speed and reflects off the slide's
+  // width/height margins (it's never cut off). One rAF loop drives them all.
+  let chipRAF = null, chipObjs = [];
+  function startChipBounce(){
+    if (chipRAF) return;
+    const step = () => {
+      const W = $chips.clientWidth, H = $chips.clientHeight;
+      chipObjs.forEach(o => {
+        const w = o.el.offsetWidth, h = o.el.offsetHeight;
+        o.x += o.vx; o.y += o.vy;
+        if (o.x <= 0){ o.x = 0; o.vx = Math.abs(o.vx); }
+        else if (o.x + w >= W){ o.x = W - w; o.vx = -Math.abs(o.vx); }
+        if (o.y <= 0){ o.y = 0; o.vy = Math.abs(o.vy); }
+        else if (o.y + h >= H){ o.y = H - h; o.vy = -Math.abs(o.vy); }
+        o.el.style.transform = `translate(${o.x}px, ${o.y}px)`;
+      });
+      chipRAF = requestAnimationFrame(step);
+    };
+    chipRAF = requestAnimationFrame(step);
+  }
+  function stopChipBounce(){
+    if (chipRAF){ cancelAnimationFrame(chipRAF); chipRAF = null; }
+    chipObjs = [];
+  }
+  // One click reveals ALL of the slide's chips at once (the button then hides);
+  // the chips bounce around the slide, moving ~3× slower than the old drift.
   function spawnChips(){
     if (!$chips) return;
     const set = CHIP_SETS[introSlide] || [];
+    if ($seeMore) $seeMore.classList.remove('show');   // disappears once clicked
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Reveal only the next two chips per click; later clips float higher and
-    // more to the right, and rise 50% slower than before.
-    const batch = set.slice(chipShown, chipShown + 2);
-    batch.forEach((item, j) => {
-      const i = chipShown + j;   // global chip index → stable, varied seeding
+    $chips.innerHTML = ''; chipObjs = [];
+    const W = $chips.clientWidth || 320, H = $chips.clientHeight || 200;
+    set.forEach((item, i) => {
       const isLink = typeof item === 'object';
       const node = document.createElement(isLink ? 'a' : 'span');
-      node.className = 'intro-chip';
+      node.className = 'intro-chip intro-chip-bounce';
       node.textContent = isLink ? item.t : item;
       if (isLink){ node.href = item.href; node.target = '_blank'; node.rel = 'noopener'; }
-      if (!reduce){
-        const seed = i * 37 + chipClicks * 13;
-        const dur  = (4 + (seed % 5) * 0.5) * 1.7;            // 70% slower
-        node.style.left = (40 + (seed % 48)) + '%';           // more rightwards
-        node.style.setProperty('--chip-x0', (((seed % 11) - 2) * 14) + 'px');
-        node.style.setProperty('--chip-x1', ((((seed * 7) % 13) - 3) * 16) + 'px');
-        node.style.setProperty('--chip-h',  (260 + (seed % 9) * 16) + 'px');   // upper
-        node.style.setProperty('--chip-dur', dur + 's');
-        node.style.animationDelay = (j * 0.12) + 's';
-        const kill = () => node.remove();
-        node.addEventListener('animationend', kill);
-        setTimeout(kill, (dur + j * 0.12 + 0.4) * 1000);
-      }
       $chips.appendChild(node);
+      if (reduce) return;   // reduced motion: static flex layout via CSS
+      const seed = i * 37 + 17;
+      const x = (seed % Math.max(1, Math.floor(W * 0.55)));
+      const y = ((seed * 7) % Math.max(1, Math.floor(H * 0.55)));
+      const speed = 0.35;   // ~3× slower than the old float
+      const ang = (((seed % 7) + 1) * 0.7) + (i % 2 ? Math.PI : 0);
+      chipObjs.push({ el: node, x, y, vx: Math.cos(ang) * speed || speed, vy: Math.sin(ang) * speed || speed });
+      node.style.transform = `translate(${x}px, ${y}px)`;
     });
-    chipShown += batch.length;
-    chipClicks++;
+    if (!reduce) startChipBounce();
   }
   if ($seeMore) $seeMore.addEventListener('click', (e) => { e.stopPropagation(); spawnChips(); });
   // Clicking a slide's background advances left→right to the next slide.

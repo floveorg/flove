@@ -267,6 +267,24 @@
   /* ── reasons in the middle column, aligned to a complete left+right pair ── */
   .reasons{ display:none; flex-direction:column; gap:6px; align-items:center; width:100%; margin:0; }
   .reasons.show{ display:flex; }
+  /* stage-4 reasons live in the middle column as plain chips + a "+" (no smiley) */
+  .reasons.reasons-mid{ gap:5px; }
+  .mid-reason{
+    display:inline-flex; align-items:center; gap:6px; max-width:100%;
+    padding:5px 10px; border-radius:var(--radius-pill); cursor:pointer;
+    background:#0f1622; border:1px solid var(--chip-border); border-left:3px solid var(--accent);
+    color:var(--ink); font:600 .78rem/1.25 var(--font-ui);
+  }
+  .mid-reason:hover{ border-color:var(--accent); }
+  .mid-reason .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+  .mid-reason .x{ border:0; background:transparent; color:var(--ink-dim); cursor:pointer; font-size:.8rem; line-height:1; padding:0; }
+  .mid-reason .x:hover{ color:var(--accent-2); }
+  .mid-reason-add{
+    width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
+    border:1px dashed var(--accent-deep); background:#0f1320; color:var(--accent);
+    font:700 1.2rem/1 var(--font-ui); cursor:pointer;
+  }
+  .mid-reason-add:hover{ border-style:solid; border-color:var(--accent); }
   /* the smiley toggle — the reason field stays collapsed behind it by default */
   .reason-flag{
     width:48px; height:48px; border-radius:50%; display:grid; place-items:center;
@@ -723,9 +741,11 @@
   .sq-lbl{ font:700 .76rem/1.05 var(--font-ui); color:var(--ink); text-align:center; }
   .sum-meta{ display:flex; flex-direction:column; gap:3px; width:100%; align-items:center; text-align:center; }
   .sm-line{ font:600 .66rem/1.3 var(--font-ui); max-width:100%; word-break:break-word; }
-  .sm-reason{ color:var(--accent); }
   .sm-verb{ color:var(--nerve); }
   .sm-arrow{ color:var(--immune); }
+  /* the pair's reason, centred in the middle column between its two systems */
+  .sum-mid{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:100%; }
+  .sum-midreason{ font:600 .72rem/1.35 var(--font-ui); color:var(--accent); text-align:center; max-width:100%; word-break:break-word; }
   @media (max-width:560px){
     .sum-board{ grid-template-columns:1fr 1fr; }
     .sum-board .sum-gridcell{ grid-column:auto !important; grid-row:auto !important; }
@@ -981,21 +1001,6 @@
     <!-- Summary · revealed by the subsystems-stage Next: the resume of every
          selection + the magic / insight / copy + save / share / publish bar -->
     <section class="summary-section" id="summarySection" aria-label="Your pracsys results">
-      <header class="summary-head">
-        <svg class="summary-glyph" viewBox="0 0 100 100" aria-hidden="true">
-          <defs>
-            <linearGradient id="g-sum" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#4dd0e1"/><stop offset="50%" stop-color="#b388ff"/><stop offset="100%" stop-color="#69f0ae"/>
-            </linearGradient>
-          </defs>
-          <g fill="none" stroke="url(#g-sum)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="50" cy="50" r="34"/><line x1="50" y1="16" x2="50" y2="84"/><line x1="16" y1="50" x2="84" y2="50"/>
-          </g>
-          <circle cx="50" cy="50" r="6" fill="url(#g-sum)"/>
-        </svg>
-        <h2 class="summary-title">pracsys body</h2>
-        <p class="summary-sub">your eleven systems, laid out as a living body</p>
-      </header>
       <div class="summary-render" id="summaryRender"></div>
       <pre class="summary-text" id="summaryText" hidden></pre>
       <div class="insight-panel" id="insightPanel" hidden></div>
@@ -1237,7 +1242,6 @@
     const n = +slot.dataset.slot.slice(1);
     slot.classList.toggle('col-right', n >= 6 && n <= 10);
     buildVerbUI(slot);
-    buildReasonUI(slot);
     ensureBadgeHost(slot);
   }
   // the pair/centroid reason key a given slot edits (left s0-4 & right s6-10 of a
@@ -1419,17 +1423,57 @@
   }
   function reasonVisible(key){
     if (state.stage < 2) return false;          // reasons open only from stage 2
-    if (state.stage >= 4) return false;         // stage 4 edits reasons on the cards instead
+    if (state.stage >= 4 && !state.reasonsShown) return false;   // stage 4: only when Reasons is toggled on
     return key === 'c' ? !!state.placed[CENTRE_SLOT] : rowFull(+key);
+  }
+  // stage 4: reasons + a "+" add live directly in the middle column, no smiley
+  function openOneReason(key){ openReasons.clear(); openReasons.add(key); afterChange(); }
+  function renderMidReasons(host, key, list){
+    list.forEach((txt, i) => {
+      const chip = document.createElement('div'); chip.className = 'mid-reason';
+      const t = document.createElement('span'); t.className = 't'; t.textContent = txt; t.title = 'Edit reason';
+      t.addEventListener('click', () => { host.dataset.edit = i; openOneReason(key); });
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.title = 'Delete';
+      x.addEventListener('click', e => { e.stopPropagation(); list.splice(i, 1); delete host.dataset.edit; afterChange(); });
+      chip.append(t, x); host.appendChild(chip);
+    });
+    if (openReasons.has(key)){
+      const comp = document.createElement('div'); comp.className = 'reason-composer';
+      comp.innerHTML = `<input type="text" placeholder="Reason for this pair" aria-label="Reason">`
+        + `<button class="icon-btn mic" title="Dictate (speech-to-text)" aria-label="Dictate">🎤</button>`
+        + `<button class="icon-btn save" title="Save reason" aria-label="Save reason">💾</button>`;
+      const input = comp.querySelector('input');
+      const idx = host.dataset.edit;
+      if (idx != null && idx !== '') input.value = list[+idx] || '';
+      const save = () => {
+        const v = input.value.trim();
+        if (!v){ toast('Write a reason first'); input.focus(); return; }
+        if (idx != null && idx !== '') list[+idx] = v; else list.push(v);
+        delete host.dataset.edit; openReasons.delete(key); afterChange();
+      };
+      comp.querySelector('.save').addEventListener('click', save);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+      comp.querySelector('.mic').addEventListener('click', e => startDictation(e.currentTarget, input));
+      host.appendChild(comp); input.focus();
+    } else {
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'mid-reason-add'; add.textContent = '+'; add.title = 'Add a reason';
+      add.addEventListener('click', () => { delete host.dataset.edit; openOneReason(key); });
+      host.appendChild(add);
+    }
   }
   function renderReasons(key){
     const host = $(`.reasons[data-reasons="${key}"]`);
     if (!host) return;
     host.innerHTML = '';
-    if (!reasonVisible(key)){ host.classList.remove('show'); openReasons.delete(key); return; }
+    if (!reasonVisible(key)){ host.classList.remove('show', 'reasons-mid'); openReasons.delete(key); return; }
     host.classList.add('show');
 
     const list = state.reasons[key];
+
+    // stage 4: middle-column reasons + plus, no smiley
+    if (state.stage >= 4){ host.classList.add('reasons-mid'); renderMidReasons(host, key, list); return; }
+    host.classList.remove('reasons-mid');
 
     // the smiley toggle — always shown; happier once a reason is saved
     const flag = document.createElement('button');
@@ -1745,9 +1789,6 @@
     const emojisVisible = state.stage === 3
       || (state.stage >= 4 && state.reasonsShown && !allSubsPlaced());
     document.body.classList.toggle('show-emojis', emojisVisible);
-    // stage-4 Reasons toggle → editable reason chips live on the cards
-    document.body.classList.toggle('show-card-reasons', state.stage >= 4 && state.reasonsShown);
-    renderAllCardReasons();
     // parents glow only in stage 4
     allSlots().forEach(s => s.classList.remove('is-parent','parent-immune','parent-nerve','parent-open'));
     if (state.stage >= 4){
@@ -2300,30 +2341,34 @@
       }))
     };
   }
-  function sumSquareHTML(slotId, col, row){
+  // a system square with its verbs + arrows below (the reason lives in the middle)
+  function sumSquareHTML(slotId){
     const sys = sysAt(slotId); if (!sys) return '';
     const m = slotMeta(slotId);
     let meta = '';
-    if (m.reasons.length) meta += `<div class="sm-line sm-reason">🙂 ${m.reasons.map(escHtml).join(' · ')}</div>`;
-    if (m.verbs.length)   meta += `<div class="sm-line sm-verb">🔗 ${m.verbs.map(escHtml).join(' · ')}</div>`;
+    if (m.verbs.length) meta += `<div class="sm-line sm-verb">🔗 ${m.verbs.map(escHtml).join(' · ')}</div>`;
     m.arrows.forEach(a => {
       meta += `<div class="sm-line sm-arrow">${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(a.sub.label)}`
             + (a.extra.length ? ' · ' + escHtml(a.extra.join(' · ')) : '') + `</div>`;
     });
-    return `<div class="sum-gridcell" style="grid-column:${col};grid-row:${row}">`
-      + `<div class="sum-cell"><div class="sum-sq${slotId === CENTRE_SLOT ? ' centre' : ''}">`
+    return `<div class="sum-cell"><div class="sum-sq${slotId === CENTRE_SLOT ? ' centre' : ''}">`
       + `<span class="sq-ico">${sys.icon}</span><span class="sq-lbl">${escHtml(sys.label)}</span></div>`
-      + `<div class="sum-meta">${meta}</div></div></div>`;
+      + `<div class="sum-meta">${meta}</div></div>`;
   }
-  // the systems laid out in their board square — reasons/verbs/arrows below each
+  const gridCell = (inner, col, row) => inner ? `<div class="sum-gridcell" style="grid-column:${col};grid-row:${row}">${inner}</div>` : '';
+  const midReasonHTML = key => { const a = state.reasons[key] || []; return a.length ? `<div class="sum-midreason">${a.map(escHtml).join(' · ')}</div>` : ''; };
+  // the systems laid out in their board square — the pair's reason sits in the
+  // middle between them, the centroid square (+ its reason) at the centre
   function summaryRenderHTML(){
     if (!Object.keys(state.placed).length) return `<p class="sum-empty">Nothing placed yet.</p>`;
     let html = `<div class="sum-board">`;
     for (let r = 0; r < N_ROWS; r++){
-      html += sumSquareHTML(leftSlotId(r),  1, r + 1);
-      html += sumSquareHTML(rightSlotId(r), 3, r + 1);
+      html += gridCell(sumSquareHTML(leftSlotId(r)),  1, r + 1);
+      html += gridCell(sumSquareHTML(rightSlotId(r)), 3, r + 1);
+      let mid = midReasonHTML(String(r));
+      if (r === CENTRE_ROW) mid += sumSquareHTML(CENTRE_SLOT) + midReasonHTML('c');
+      html += gridCell(mid ? `<div class="sum-mid">${mid}</div>` : '', 2, r + 1);
     }
-    html += sumSquareHTML(CENTRE_SLOT, 2, CENTRE_ROW + 1);
     return html + `</div>`;
   }
   function renderSummary(){

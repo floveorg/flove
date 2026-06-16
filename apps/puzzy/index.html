@@ -55,10 +55,10 @@
     .puz-sep{ height:1px; margin:.35rem .2rem; background:var(--line) }
     .puz-mlabel{ font-size:.66rem; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); padding:.25rem .7rem }
     .puz-menu .lang{ padding:.1rem .5rem .3rem }
-    .shuffle-btn{ cursor:pointer; background:none; border:0; color:var(--app-accent-soft);
-      font-size:1.2rem; line-height:1; padding:.2rem; transition:transform var(--flove-fast), color var(--flove-fast) }
-    .shuffle-btn:hover{ color:var(--accent2); transform:rotate(20deg) scale(1.1) }
-    .shuffle-btn:active{ transform:rotate(180deg) }
+    /* dice lives inside the compass bar; flashes the accent colour when rolled */
+    .mode-btn.is-flash{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent) }
+    .dice-btn svg{ transition:transform .45s cubic-bezier(.2,.8,.2,1) }
+    .dice-btn.is-flash svg{ transform:rotate(180deg) }
 
     /* ───── interactive field — category nodes + app bubbles ───── */
     main{ max-width:1100px; margin:.6rem auto 2rem; padding:0 .8rem }
@@ -132,6 +132,7 @@
 
     /* ───── alternate display modes (toggled on .field) ───── */
     .field.mode-bubbles .node{ display:none }
+    .field.mode-bubbles .bub{ animation:none; transition:transform .3s, opacity .4s, scale .4s, filter .3s }
     .field.mode-list{ display:flex; flex-direction:column; align-items:stretch;
       height:auto; min-height:0; overflow:visible; gap:.12rem; padding-bottom:1.4rem }
     .field.mode-list .node{ position:static; transform:none; width:auto; height:auto;
@@ -194,6 +195,15 @@
             <rect x="13" y="6" width="3" height="14"/><rect x="18" y="3" width="3" height="17"/>
           </g></svg>
         </button>
+        <!-- modifier action: Shuffle (the dice) -->
+        <button type="button" class="mode-btn dice-btn" id="shuffle" title="Shuffle" aria-label="Shuffle — reroll positions, sizes and order">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            <circle cx="9" cy="9" r="1.5" fill="currentColor"/><circle cx="15" cy="9" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="9" cy="15" r="1.5" fill="currentColor"/><circle cx="15" cy="15" r="1.5" fill="currentColor"/>
+          </svg>
+        </button>
         <span class="mode-sep" aria-hidden="true"></span>
         <!-- layout radios: Field / Bubbles / List -->
         <button type="button" class="mode-btn mode-radio" data-mode="field" role="radio" aria-checked="true" aria-pressed="true" title="Field" aria-label="Field layout">
@@ -223,7 +233,6 @@
         </button>
       </div>
     </div>
-    <button type="button" class="shuffle-btn" id="shuffle" title="Shuffle" aria-label="Shuffle">🎲</button>
   </nav>
 
   <main>
@@ -266,6 +275,9 @@
     const activeCats = new Set();                 // multiselect of the category balls
     const display = { layout:'field', sized:false };
     const scatter = new Map();
+    const vel = new Map();                        // per-bubble velocity, for the Bubbles drift
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let driftRAF = 0;
 
     const rnd = (a,b)=> a + Math.random()*(b-a);
     const clamp = (v,lo,hi)=> Math.max(lo, Math.min(hi, v));
@@ -335,6 +347,33 @@
       park.forEach((b,i)=>{ place(b, (i+1)/(park.length+1), 0.965); b.classList.add('is-dim'); b.classList.remove('is-on'); });
     }
 
+    // ── Bubbles mode · free random drift around the whole field ──
+    function seedVelocities(){ bubs.forEach(b=> vel.set(b, { vx:rnd(-1,1)*0.0013, vy:rnd(-1,1)*0.0013 })); }
+    function stopDrift(){ if(driftRAF){ cancelAnimationFrame(driftRAF); driftRAF = 0; } }
+    function startDrift(){
+      stopDrift();
+      if(reduceMotion) return;                    // reduced motion → bubbles rest where scattered
+      if(!vel.size) seedVelocities();
+      const tick = ()=>{
+        if(display.layout !== 'bubbles'){ driftRAF = 0; return; }
+        bubs.forEach(b=>{
+          const p = scatter.get(b), v = vel.get(b);
+          v.vx += rnd(-1,1)*0.00020; v.vy += rnd(-1,1)*0.00020;   // gentle random steering
+          const sp = Math.hypot(v.vx, v.vy), max = 0.0024, min = 0.0008;
+          if(sp > max){ v.vx *= max/sp; v.vy *= max/sp; }
+          else if(sp > 0 && sp < min){ v.vx *= min/sp; v.vy *= min/sp; }
+          p.x += v.vx; p.y += v.vy;
+          if(p.x < 0.05){ p.x = 0.05; v.vx =  Math.abs(v.vx); }
+          if(p.x > 0.95){ p.x = 0.95; v.vx = -Math.abs(v.vx); }
+          if(p.y < 0.06){ p.y = 0.06; v.vy =  Math.abs(v.vy); }
+          if(p.y > 0.94){ p.y = 0.94; v.vy = -Math.abs(v.vy); }
+          place(b, p.x, p.y);
+        });
+        driftRAF = requestAnimationFrame(tick);
+      };
+      driftRAF = requestAnimationFrame(tick);
+    }
+
     // vary the idle float so the field feels alive
     bubs.forEach((b,i)=>{ b.style.animationDuration = (4.4 + (i%5)*0.55) + 's';
                           b.style.animationDelay = (-(i%7)*0.6) + 's'; });
@@ -362,7 +401,7 @@
     });
 
     // ── compass · display modes (Field/Bubbles/List radios + Size check) ──
-    const modeBtns = [...document.querySelectorAll('.mode-btn')];
+    const modeBtns = [...document.querySelectorAll('.mode-btn:not(.dice-btn)')];
     function applyModeButtons(){
       modeBtns.forEach(b=>{
         const m = b.dataset.mode;
@@ -376,7 +415,8 @@
       field.classList.toggle('mode-bubbles', display.layout === 'bubbles');
       field.classList.toggle('mode-list',    display.layout === 'list');
       field.classList.toggle('sized', display.sized);
-      layout();
+      if(display.layout === 'bubbles'){ layout(); startDrift(); }
+      else { stopDrift(); layout(); }
     }
     modeBtns.forEach(b=> b.addEventListener('click', e=>{
       e.stopPropagation();
@@ -389,8 +429,10 @@
     // ── dice · shuffle positions, sizes and list order ──
     const shuffle = document.getElementById('shuffle');
     shuffle?.addEventListener('click', ()=>{
-      genScatter(); genSizes(); genListOrder();
+      genScatter(); genSizes(); genListOrder(); seedVelocities();
       if(display.layout === 'field') activeCats.clear();
+      shuffle.classList.add('is-flash');
+      setTimeout(()=> shuffle.classList.remove('is-flash'), 450);
       layout();
     });
 

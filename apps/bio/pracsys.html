@@ -280,17 +280,6 @@
   .reason-flag:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   /* the reasons host floats above the zoomed pair so the smiley/composer stay usable */
   .reasons.show{ position:relative; z-index:21; }
-  /* the contextual "Next →" that appears right where you just saved/added/related */
-  .inline-next{
-    appearance:none; cursor:pointer; margin-top:6px;
-    padding:5px 14px; border-radius:var(--radius-pill);
-    border:1px solid var(--accent); background:var(--accent); color:#001018;
-    font:700 .72rem/1 var(--font-ui); white-space:nowrap;
-    animation:nextpulse 1.8s ease-in-out infinite;
-    transition:filter var(--fast);
-  }
-  .inline-next:hover{ filter:brightness(1.08); }
-  .inline-next.on-slot{ position:absolute; bottom:-34px; left:50%; transform:translateX(-50%); z-index:9; }
   .reason-saved{
     display:flex; align-items:center; gap:.5rem;
     width:100%; padding:7px 10px;
@@ -787,7 +776,7 @@
     <li><b>Stage 1 · Place.</b> The eleven <b>systems</b> start fanned open on the left — click or drag each into a placeholder. Click a placed one to send it back. When all are down, press <b>Next stage</b> — this locks the placements and removes Clear board.</li>
     <li><b>Stage 2 · Reasons.</b> Where a row's left+right (or the <b>centroid</b>) are placed, a <b>smiley</b> appears in the middle — click it and that pair of systems <b>blows up ×3</b> with a line drawn between them, while you write a <b>reason</b>; it collapses on save. Click the centroid's smiley to draw <b>confluence arrows</b> from its row's left & right cards. Once you've saved one, a <b>Next →</b> appears right there (and in the bottom bar).</li>
     <li><b>Stage 3 · Verbs.</b> Each right-column system now shows its <b>icon</b> on its card. A <b>+</b> shows on each card's lower edge — click it to add a <b>verb</b>; saved verbs sit centred (a <b>+N</b> opens the full list). Once you've added one, <b>Next</b> reveals the subsystems.</li>
-    <li><b>Stage 4 · Subsystems.</b> The <b>Immune</b> and <b>Nervous</b> systems glow; click one to fan its subsystems out as chips — to the right if the parent sits in the left column, to the left if it's on the right, above if it's the centroid. Click a subsystem and a system to thread a labelled line. Threaded ones leave the fan; click the line's label to add a reason/verb (or unthread). The reasons + emojis collapse under a <b>Reasons</b> toggle and verbs under a <b>Verbs</b> toggle. The <b>progress bar</b> tracks every stage.</li>
+    <li><b>Stage 4 · Subsystems.</b> The <b>Immune</b> system glows; click it to fan its four subsystems out as chips — to the right if it sits in the left column, to the left if it's on the right, above if it's the centroid. Click a subsystem and a system to thread a labelled line. Threaded ones leave the fan; click the line's label to add a reason/verb (or unthread). The reasons + emojis collapse under a <b>Reasons</b> toggle and verbs under a <b>Verbs</b> toggle. The <b>progress bar</b> tracks every stage.</li>
   </ol>
 </aside>
 
@@ -824,11 +813,8 @@
     <!-- first-slide Back: clears the board so placing can start over -->
     <button class="stage-clear" id="clearBtn">←&nbsp;Back</button>
 
-    <!-- stage-4 (all subs placed): hide nervous / immune arrows · sits above Back -->
+    <!-- stage-4 (all subs placed): hide immune arrows · sits above Back -->
     <div class="sub-toggle-row" id="subToggleRow">
-      <button class="verb-toggle" id="subNerveBtn" aria-pressed="false" title="Hide / show nervous arrows">
-        <span class="tplus">🧠</span><span>SubNervous</span>
-      </button>
       <button class="verb-toggle" id="subImmuneBtn" aria-pressed="false" title="Hide / show immune arrows">
         <span class="tplus">🛡</span><span>SubImmune</span>
       </button>
@@ -940,13 +926,8 @@
   ];
   const SYS = Object.fromEntries(SYSTEMS.map(s => [s.id, s]));
 
-  // ── subsystems (immune = souls.html IMMUNE; nervous = four divisions) ──
-  const NERVOUS_SUBS = [
-    { id:'central',     label:'Central',     icon:'🧠' },
-    { id:'peripheral',  label:'Peripheral',  icon:'🕸' },
-    { id:'autonomic',   label:'Autonomic',   icon:'⚡' },
-    { id:'enteric',     label:'Enteric',     icon:'🍃' }
-  ];
+  // ── subsystems (immune = souls.html IMMUNE; nervous removed) ──
+  const NERVOUS_SUBS = [];   // nervous subsystems removed — immune only
   const IMMUNE_SUBS = [
     { id:'adaptative',  label:'Adaptative',  icon:'🫀' },
     { id:'neuroimmune', label:'Neuroimmune', icon:'🧠' },
@@ -955,7 +936,7 @@
   ];
   // a subsystem may not land on its own parent system
   const HOME_OF = { nerve:'nervous', immune:'immune' };
-  const TOTAL_SUBS = NERVOUS_SUBS.length + IMMUNE_SUBS.length;   // 8
+  const TOTAL_SUBS = NERVOUS_SUBS.length + IMMUNE_SUBS.length;   // 4
 
   // 11 slots: 5 in the left column (s0–s4), 1 centre (s5), 5 in the right column (s6–s10)
   // A "row" is a horizontal pair: left s{r} + right s{6+r}, r = 0..4. s5 lives in row 2's centre.
@@ -994,25 +975,12 @@
   const hasAnySubVerb   = () => Object.values(state.subVerbs).some(a => a && a.length);
   let armedSub = null;            // currently click-armed subsystem id
   const openReasons = new Set();  // which reason fields are expanded (ephemeral UI)
-  // the last item saved/added/related in each stage — anchors the contextual Next
-  let lastReasonKey = null, lastVerbSlot = null, lastSubSlot = null;
 
-  // ── the contextual "Next →" that surfaces only once a step has its first save ──
+  // ── the single "Next →" in the bottom nav advances the stage once it has content ──
   function advance(){
     if      (state.stage === 2 && hasAnyReason()){ goStage(3); toast('Add verbs with the + on each card'); }
-    else if (state.stage === 3 && hasAnyVerb())  { goStage(4); toast('Click Immune or Nervous to thread subsystems'); }
+    else if (state.stage === 3 && hasAnyVerb())  { goStage(4); toast('Click Immune to thread its subsystems'); }
     else if (state.stage === 4 && Object.keys(state.subs).length){ showSummary(); }
-  }
-  function mkInlineNext(){
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'inline-next'; b.textContent = 'Next →';
-    b.addEventListener('click', e => { e.stopPropagation(); advance(); });
-    return b;
-  }
-  // which pair/centroid the stage-2 inline Next hangs off (last saved, else first with a reason)
-  function reasonNextKey(){
-    if (lastReasonKey != null && state.reasons[lastReasonKey] && state.reasons[lastReasonKey].length) return lastReasonKey;
-    return REASON_KEYS.find(k => state.reasons[k] && state.reasons[k].length) ?? null;
   }
   // a reason smiley that is open blows up its pair of systems ×3
   function markPairZoom(){
@@ -1174,7 +1142,6 @@
       const v = inp.value.trim();
       if (v){
         (state.verbs[slot.dataset.slot] ||= []).push(v);
-        lastVerbSlot = slot.dataset.slot;        // anchor the contextual Next to this card
         renderVerbChips(slot); afterChange();   // reveal the Next gate + refresh progress
       }
       inp.value = '';
@@ -1255,11 +1222,7 @@
     });
     host.appendChild(flag);
 
-    if (!openReasons.has(key)){
-      // collapsed → smiley only, plus the contextual Next once this pair has a saved reason
-      if (state.stage === 2 && list.length && key === reasonNextKey()) host.appendChild(mkInlineNext());
-      return;
-    }
+    if (!openReasons.has(key)) return;   // collapsed → only the smiley shows
 
     // saved reasons (deletable)
     list.forEach((txt, i) => {
@@ -1286,7 +1249,6 @@
       const v = input.value.trim();
       if (!v){ toast('Write a reason first'); input.focus(); return; }
       list.push(v);
-      lastReasonKey = key;       // anchor the contextual Next to this pair
       openReasons.delete(key);   // collapse back to the smiley after saving
       afterChange();             // reveal the Next gate + refresh progress
     };
@@ -1389,8 +1351,7 @@
     }
     state.subs[subId] = { kind, slotId: slot.dataset.slot };
     armedSub = null;
-    lastSubSlot = slot.dataset.slot;   // anchor the contextual Next to this target
-    afterChange();                     // badges + chips + links + gates + inline Next
+    afterChange();                     // badges + chips + links + gates
     return true;
   }
   function removeSub(subId, silent){
@@ -1563,8 +1524,7 @@
     allSlots().forEach(s => s.classList.remove('is-parent','parent-immune','parent-nerve','parent-open'));
     if (state.stage >= 4){
       const im = slotOfSystem('immune');  if (im) im.classList.add('is-parent','parent-immune');
-      const ne = slotOfSystem('nervous'); if (ne) ne.classList.add('is-parent','parent-nerve');
-      renderSubChips('immune'); renderSubChips('nerve');   // re-anchor open fans
+      renderSubChips('immune');   // re-anchor the open immune fan
     } else {
       closeDocks();   // before the subsystem stage → no subtabs
     }
@@ -1589,9 +1549,8 @@
       $('#relatedPanel').classList.remove('show');
       $('#relatedBtn').setAttribute('aria-expanded', 'false');
     }
-    // SubNervous / SubImmune arrow-hide toggles — above Back, once all subs are placed
+    // SubImmune arrow-hide toggle — above Back, once all subs are placed
     $('#subToggleRow').classList.toggle('show', state.stage === 4 && subsAllIn);
-    $('#subNerveBtn').setAttribute('aria-pressed', state.hideNerve ? 'true' : 'false');
     $('#subImmuneBtn').setAttribute('aria-pressed', state.hideImmune ? 'true' : 'false');
     // stage nav (Back always from stage 2; Next appears once that stage's gate is met)
     const nav = $('#stageNav');
@@ -1609,19 +1568,8 @@
     const vt = $('#verbToggle');
     vt.classList.toggle('show', state.stage === 4);
     vt.setAttribute('aria-pressed', state.verbsShown ? 'true' : 'false');
-    // ── pair zoom (stage 2) + the contextual Next anchored to the last action ──
+    // ── pair zoom (stage 2): a clicked smiley blows up its pair of systems ×3 ──
     markPairZoom();
-    $$('.inline-next.on-slot').forEach(b => b.remove());
-    if (state.stage === 3 && hasAnyVerb()){
-      const sid = (lastVerbSlot && state.verbs[lastVerbSlot] && state.verbs[lastVerbSlot].length)
-        ? lastVerbSlot : Object.keys(state.verbs).find(s => state.verbs[s] && state.verbs[s].length);
-      const slot = sid && slotEl(sid);
-      if (slot){ const b = mkInlineNext(); b.classList.add('on-slot'); slot.appendChild(b); }
-    } else if (state.stage === 4 && Object.keys(state.subs).length){
-      const sid = (lastSubSlot && slotEl(lastSubSlot)) ? lastSubSlot : Object.values(state.subs)[0].slotId;
-      const slot = sid && slotEl(sid);
-      if (slot){ const b = mkInlineNext(); b.classList.add('on-slot'); slot.appendChild(b); }
-    }
     renderProgress();
     drawLinks();
     save();
@@ -1885,7 +1833,6 @@
   // middle-stage Next: 2 → 3 (reveal + verbs) · 3 → 4 (reveal subsystems) · 4 → done
   $('#nextBtn2').addEventListener('click', advance);
   // SubNervous / SubImmune: hide that kind's connector arrows
-  $('#subNerveBtn').addEventListener('click', () => { state.hideNerve = !state.hideNerve; afterChange(); });
   $('#subImmuneBtn').addEventListener('click', () => { state.hideImmune = !state.hideImmune; afterChange(); });
   // Back one stage
   $('#backBtn').addEventListener('click', () => goStage(state.stage - 1));

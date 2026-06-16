@@ -2778,6 +2778,24 @@
   .prelude.primer-on .phase-b-section{display:none}
   .prelude.primer-done .phase-primer-section{display:block;opacity:.5;pointer-events:none;
     margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--stroke)}
+  /* Live "stars per whys saved" indicator in the primer. */
+  .primer-stars{margin:.5rem auto .2rem;text-align:center;color:var(--gold);font:700 .9rem/1 system-ui,sans-serif}
+  .primer-stars[hidden]{display:none}
+  .primer-stars .primer-stars-icons{letter-spacing:.1em}
+  /* 3s splash on primer "Next": expanding rings + a popping panda over the buttons. */
+  .phase-primer-section .prelude-actions{position:relative}
+  .primer-splash{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:0;height:0;pointer-events:none;z-index:30;display:grid;place-items:center;
+    animation:primer-splash-fade 3s ease forwards}
+  .primer-splash-panda{width:78px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
+    animation:primer-pop 1s ease both}
+  .primer-splash .ps-ring{position:absolute;width:48px;height:48px;border-radius:50%;
+    border:3px solid var(--accent);animation:ps-ring-expand 1.2s ease-out infinite}
+  .primer-splash .ps-ring2{border-color:var(--gold);animation-delay:.45s}
+  @keyframes ps-ring-expand{from{transform:scale(.3);opacity:.85}to{transform:scale(4);opacity:0}}
+  @keyframes primer-pop{0%{transform:scale(.3);opacity:0}25%{transform:scale(1.15);opacity:1}45%{transform:scale(1)}100%{transform:scale(1)}}
+  @keyframes primer-splash-fade{0%,70%{opacity:1}100%{opacity:0}}
+  @media (prefers-reduced-motion: reduce){ .primer-splash,.primer-splash-panda,.primer-splash .ps-ring{animation:none} .primer-splash{opacity:0} }
   /* Per-group "why" field under each of the 5 primer groups. */
   .group-why{margin:.4rem 0 .1rem}
   .group-why-input{width:100%;box-sizing:border-box;padding:.35rem .5rem;border-radius:8px;
@@ -2906,6 +2924,15 @@
   .axis-label .arrow{
     flex:1;height:1px;background:linear-gradient(90deg,var(--accent),var(--gold));margin:0 10px;opacity:.5;
   }
+  /* Phase B (third part): the abstract / concrete poles, doubled in size + flashy. */
+  .axis-label span:not(.arrow){
+    font-size:2em;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 55%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:axis-flash 1.1s ease-in-out infinite;
+  }
+  @keyframes axis-flash{0%,100%{filter:none;opacity:1}50%{filter:drop-shadow(0 0 10px rgba(255,95,220,.7));opacity:.7}}
+  @media (prefers-reduced-motion: reduce){ .axis-label span:not(.arrow){animation:none} }
   .axis-row{
     display:grid;gap:10px;
     grid-template-columns:repeat(5,minmax(0,1fr));
@@ -3971,6 +3998,7 @@
       <h2 class="prelude-title primer-title">Make the 5 groups of 3 that you more like now</h2>
       <div class="pool" id="primer-pool" aria-label="Card pool"></div>
       <div class="groups" id="primer-groups"></div>
+      <div class="primer-stars" id="primer-stars" hidden aria-live="polite"></div>
       <div class="prelude-actions">
         <button class="btn btn-ghost btn-back" id="primer-back" type="button">← Back</button>
         <button class="btn btn-primary" id="primer-next" type="button" hidden>Next →</button>
@@ -5885,7 +5913,14 @@
     let mergedList = '';
     if (introMs)         mergedList += node('Intro', introMs, 0);
     if (custMs)          mergedList += node('Customize → Start', custMs, 1);
-    if (t.perStep.step0) mergedList += node('Create groups', t.perStep.step0, 0);
+    // Master mode groups its first two parts (Free Grouping, Create groups) under a title.
+    if (currentModeName() === 'Master'){
+      mergedList += node('Master mode', null, 0);
+      if (t.perStep.primer) mergedList += node('Free Grouping', t.perStep.primer, 1);
+      if (t.perStep.step0)  mergedList += node('Create groups', t.perStep.step0, 1);
+    } else if (t.perStep.step0){
+      mergedList += node('Create groups', t.perStep.step0, 0);
+    }
     const cmtBelow = customModeTitle();
     if (cmtBelow) mergedList += node(cmtBelow, null, 0);   // "<Mode> Mode" title above Main triads
     mergedList += decksTree;   // "Main triads" + per-triad breakdown (no "Main decks" total)
@@ -5913,11 +5948,8 @@
     if ($top){
       // Master mode's group-creation time (Step 0) sits on top, named "Create groups".
       let quick = '';
-      if (t.perStep.primer) quick += node('Free Grouping', t.perStep.primer, 0);
-      if (t.perStep.step0)  quick += node('Create groups', t.perStep.step0, 0);
-      quick += buildMasterStatsHTML();   // mode title (master/normal), below "Create groups"
       const cmt = customModeTitle();
-      if (cmt) quick += node(cmt, null, 0);   // "<Mode> Mode" title above Main triads
+      if (cmt) quick += node(cmt, null, 0);   // "<Mode> Mode" title above Main triads (custom modes)
       quick += node('Main triads', decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node('Extra Triads', ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node('Additional perspective', secondPlayMs, 0);
@@ -6590,16 +6622,19 @@
     chipObjs = [];
     if ($chipLayer) $chipLayer.innerHTML = '';
   }
-  // Each click pops the next TWO chips out of the See more button, sending them
-  // up and to the right; they then bounce around the viewport. The set loops.
+  // Each click pops the next TWO chips out of the See more button — one heads
+  // left, the other diagonally up-left — then they bounce around the viewport.
+  // No repeats once the set is exhausted; each chip vanishes after 15s.
   function spawnChips(){
     const set = CHIP_SETS[introSlide] || [];
     if (!set.length || !$seeMore) return;
+    if (chipShown >= set.length) return;          // don't pop repeated chips
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const layer = chipLayer();
     const br = $seeMore.getBoundingClientRect();
-    for (let k = 0; k < 2; k++){
-      const item = set[chipShown % set.length];   // loop through the set
+    const dirs = [ { vx: -0.6, vy: -0.06 }, { vx: -0.45, vy: -0.45 } ];   // left, diagonal up-left
+    for (let k = 0; k < 2 && chipShown < set.length; k++){
+      const item = set[chipShown];
       chipShown++;
       const isLink = typeof item === 'object';
       const node = document.createElement(isLink ? 'a' : 'span');
@@ -6607,13 +6642,20 @@
       node.textContent = isLink ? item.t : item;
       if (isLink){ node.href = item.href; node.target = '_blank'; node.rel = 'noopener'; }
       layer.appendChild(node);
-      if (reduce){ node.style.position = 'static'; continue; }
-      const w = node.offsetWidth, h = node.offsetHeight;
-      const x = Math.max(0, br.left + br.width / 2 - w / 2);   // pop from the button
-      const y = Math.max(0, br.top - h / 2);
-      const speed = 0.6;                                       // gentle, ~3x slower drift
-      chipObjs.push({ el: node, x, y, vx: speed * (0.8 + 0.4 * k), vy: -speed });   // up + right
-      node.style.transform = `translate(${x}px, ${y}px)`;
+      let obj = null;
+      if (!reduce){
+        const w = node.offsetWidth, h = node.offsetHeight;
+        const x = Math.max(0, br.left + br.width / 2 - w / 2);   // pop from the button
+        const y = Math.max(0, br.top - h / 2);
+        const d = dirs[k] || dirs[0];
+        obj = { el: node, x, y, vx: d.vx, vy: d.vy };
+        chipObjs.push(obj);
+        node.style.transform = `translate(${x}px, ${y}px)`;
+      } else { node.style.position = 'static'; }
+      setTimeout(() => {                          // disappear after 15s
+        if (obj){ const i = chipObjs.indexOf(obj); if (i >= 0) chipObjs.splice(i, 1); }
+        node.remove();
+      }, 15000);
     }
     if (!reduce) startChipBounce();
   }
@@ -7001,12 +7043,29 @@
   // Primer "Next →": time switches to phase-a, the primer stays dimmed above,
   // and the real first section expands.
   document.getElementById('primer-next').addEventListener('click', () => {
-    startStep('step0');
-    $prelude.classList.remove('primer-on');
-    $prelude.classList.add('primer-done');
-    renderPrelude();
-    animatePreludeTitle();
+    const btn = document.getElementById('primer-next');
+    if (btn) btn.disabled = true;
+    primerSplash();                 // 3s celebratory burst around the panda + buttons
+    setTimeout(() => {              // then fade out to the normal (phase-a) state
+      startStep('step0');
+      $prelude.classList.remove('primer-on');
+      $prelude.classList.add('primer-done');
+      renderPrelude();
+      animatePreludeTitle();
+      if (btn) btn.disabled = false;
+    }, 3000);
   });
+  // A 3-second splash (panda + expanding rings) over the primer actions, then fades.
+  function primerSplash(){
+    const host = document.querySelector('.phase-primer-section .prelude-actions');
+    if (!host) return;
+    const splash = document.createElement('div');
+    splash.className = 'primer-splash';
+    splash.innerHTML = '<span class="ps-ring"></span><span class="ps-ring ps-ring2"></span>'
+      + '<img class="primer-splash-panda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">';
+    host.appendChild(splash);
+    setTimeout(() => splash.remove(), 3000);
+  }
   // Primer "← Back": return to the chooser (mirrors prelude-back).
   document.getElementById('primer-back').addEventListener('click', () => {
     state.preludeActive = false;
@@ -7280,6 +7339,15 @@
       }
     });
     updatePrimerGate();
+    updatePrimerStars();
+  }
+  // Live "stars per whys saved" indicator — appears once a group why is saved.
+  function updatePrimerStars(){
+    const el = document.getElementById('primer-stars');
+    if (!el) return;
+    const n = ((state.primer && state.primer.groupWhys) || []).filter(w => w && w.trim()).length;
+    el.hidden = n < 1;
+    el.innerHTML = n ? `<span class="primer-stars-icons">${'★'.repeat(Math.min(n,5))}</span> ${n} ${n === 1 ? 'star' : 'stars'}` : '';
   }
   function updatePrimerGate(){
     const $next = document.getElementById('primer-next');
@@ -7349,6 +7417,7 @@
             state.saveClicks = (state.saveClicks || 0) + 1;   // a saved why → a star
           }
           updatePrimerGate();
+          updatePrimerStars();
         });
         whyRow.appendChild(why);
         group.appendChild(whyRow);

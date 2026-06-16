@@ -348,7 +348,7 @@
     }
 
     // ── Bubbles mode · free random drift around the whole field ──
-    function seedVelocities(){ bubs.forEach(b=> vel.set(b, { vx:rnd(-1,1)*0.0013, vy:rnd(-1,1)*0.0013 })); }
+    function seedVelocities(){ bubs.forEach(b=> vel.set(b, { vx:rnd(-1,1)*0.00065, vy:rnd(-1,1)*0.00065 })); }
     function stopDrift(){ if(driftRAF){ cancelAnimationFrame(driftRAF); driftRAF = 0; } }
     function startDrift(){
       stopDrift();
@@ -356,13 +356,43 @@
       if(!vel.size) seedVelocities();
       const tick = ()=>{
         if(display.layout !== 'bubbles'){ driftRAF = 0; return; }
+        const w = field.clientWidth, h = field.clientHeight;
+        // 1 · integrate motion (half-speed)
         bubs.forEach(b=>{
           const p = scatter.get(b), v = vel.get(b);
-          v.vx += rnd(-1,1)*0.00020; v.vy += rnd(-1,1)*0.00020;   // gentle random steering
-          const sp = Math.hypot(v.vx, v.vy), max = 0.0024, min = 0.0008;
+          v.vx += rnd(-1,1)*0.00010; v.vy += rnd(-1,1)*0.00010;   // gentle random steering
+          const sp = Math.hypot(v.vx, v.vy), max = 0.0012, min = 0.0004;
           if(sp > max){ v.vx *= max/sp; v.vy *= max/sp; }
           else if(sp > 0 && sp < min){ v.vx *= min/sp; v.vy *= min/sp; }
           p.x += v.vx; p.y += v.vy;
+        });
+        // 2 · keep bubbles from invading each other (AABB, resolve least-penetration axis)
+        const pad = 5;
+        const dim = bubs.map(b=> ({ hw:b.offsetWidth/2 + pad, hh:b.offsetHeight/2 + pad }));
+        for(let i=0;i<bubs.length;i++){
+          for(let j=i+1;j<bubs.length;j++){
+            const pi = scatter.get(bubs[i]), pj = scatter.get(bubs[j]);
+            const cix = pi.x*w, ciy = pi.y*h, cjx = pj.x*w, cjy = pj.y*h;
+            const dx = cjx - cix, dy = cjy - ciy;
+            const ox = (dim[i].hw + dim[j].hw) - Math.abs(dx);
+            const oy = (dim[i].hh + dim[j].hh) - Math.abs(dy);
+            if(ox > 0 && oy > 0){
+              const vi = vel.get(bubs[i]), vj = vel.get(bubs[j]);
+              if(ox <= oy){
+                const s = (dx >= 0 ? 1 : -1);
+                pi.x = (cix - s*ox/2)/w; pj.x = (cjx + s*ox/2)/w;
+                vi.vx = -Math.abs(vi.vx)*s; vj.vx = Math.abs(vj.vx)*s;
+              } else {
+                const s = (dy >= 0 ? 1 : -1);
+                pi.y = (ciy - s*oy/2)/h; pj.y = (cjy + s*oy/2)/h;
+                vi.vy = -Math.abs(vi.vy)*s; vj.vy = Math.abs(vj.vy)*s;
+              }
+            }
+          }
+        }
+        // 3 · walls + paint
+        bubs.forEach(b=>{
+          const p = scatter.get(b), v = vel.get(b);
           if(p.x < 0.05){ p.x = 0.05; v.vx =  Math.abs(v.vx); }
           if(p.x > 0.95){ p.x = 0.95; v.vx = -Math.abs(v.vx); }
           if(p.y < 0.06){ p.y = 0.06; v.vy =  Math.abs(v.vy); }

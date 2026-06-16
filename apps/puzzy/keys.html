@@ -4150,7 +4150,7 @@
          .clause[data-flove-phrase], .dl-btn[data-flove-save="bundle"].
          ============================================================ -->
     <section class="flv-std step-panel is-summary is-collapsed" id="std-summary"
-             data-flove-root data-flove-title="flove-keys" hidden>
+             data-flove-root data-flove-title="keys-summary" hidden>
 
       <!-- hidden state inputs -->
       <input type="checkbox" id="flv-views-open"   class="flv-ctl" checked>
@@ -4365,7 +4365,7 @@
 
         <!-- Download — own full-width row, bundles whatever formats are marked -->
         <div class="download-row">
-          <a class="fbtn dl-btn" href="#" download="flove-keys" title="Download" data-flove-save="bundle">⬇ Download</a>
+          <a class="fbtn dl-btn" href="#" download="keys-summary" title="Download" data-flove-save="bundle">⬇ Download</a>
         </div>
 
       </div>
@@ -8541,7 +8541,6 @@
       saved = `<div class="combos-saved">${items}</div>`;
     }
     return `<div class="combos-keys"><span class="combos-keys-title">Favourite Keys</span>${links}</div>`
-      + `<p class="combos-keys-help">Clicking in any of them will direct you to its specific apps.</p>`
       + saved;
   }
   // Chosen perspectives. Two columns (original | new), two rows each (one per
@@ -8897,15 +8896,19 @@
       return buildSummaryDocHTML();   // a clean, summary-table-like printable page
     }
     if (fmt === 'csv'){
-      // Every field on its own row, uniquely numbered; empty fields show as "---".
-      const rows = [['#','section','label','value']];
-      let n = 0;
+      // Database-friendly: each field has a UNIQUE name (field,value), empties = "---".
+      const rows = [['field','value']];
       const cell = (v) => (v == null || String(v).trim() === '' || v === '—') ? '---' : String(v);
-      const add = (section, label, value) => rows.push([++n, section, cell(label), cell(value)]);
-      d.groups.forEach(g => g.words.forEach((w, i) => add('group', `${g.title} #${i+1}`, w)));
-      d.perspective.forEach(p => add('perspective', p.label, p.value));
-      d.picks.forEach((p, i) => add('pick', `pick #${i+1}`, p));
-      add('mode', 'mode', d.mode);
+      d.groups.forEach((g, gi) => {
+        rows.push([`group${gi+1}_title`, cell(g.title)]);
+        g.words.forEach((w, wi) => rows.push([`group${gi+1}_word${wi+1}`, cell(w)]));
+      });
+      d.perspective.forEach((p, pi) => {
+        rows.push([`perspective${pi+1}_axis`,  cell(p.label)]);
+        rows.push([`perspective${pi+1}_value`, cell(p.value)]);
+      });
+      d.picks.forEach((p, i) => rows.push([`pick${i+1}`, cell(p)]));
+      rows.push(['mode', cell(d.mode)]);
       return rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     }
     if (fmt === 'xml'){
@@ -8929,64 +8932,51 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // ---- Summary as a classical, summary-table-like document (HTML + image) ----
-  // Inline styles only, so the same body renders identically in a saved .html
-  // file and inside an <svg><foreignObject> when rasterised to a JPG.
-  function buildSummaryDocBody(){
-    const d = buildSummaryData();
-    const esc = escapeHTML;
-    const cell = (v) => (v == null || String(v).trim() === '' || v === '—') ? '—' : esc(v);
-    const tdS  = 'border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:15px;';
-    const thS  = tdS + 'background:#f4f4f4;font-weight:700;';
-    const tblS = 'border-collapse:collapse;width:100%;margin:4px 0 16px;';
-    const h2S  = 'font-size:17px;margin:18px 0 6px;color:#444;';
-    const maxW = d.groups.reduce((m, g) => Math.max(m, g.words.length), 0) || 0;
-    let groupsTable = '';
-    if (d.groups.length){
-      const head = `<tr><th style="${thS}">Group</th>` + Array.from({length:maxW}, (_, i) => `<th style="${thS}">${i+1}</th>`).join('') + '</tr>';
-      const rows = d.groups.map(g => `<tr><td style="${tdS}font-weight:700;background:#fafafa;">${esc(g.title)}</td>`
-        + Array.from({length:maxW}, (_, i) => `<td style="${tdS}">${cell(g.words[i])}</td>`).join('') + '</tr>').join('');
-      groupsTable = `<h2 style="${h2S}">Groups</h2><table style="${tblS}">${head}${rows}</table>`;
-    }
-    let perspTable = '';
-    if (d.perspective.length){
-      const rows = d.perspective.map(p => `<tr><td style="${tdS}">${esc(p.label)}</td><td style="${tdS}">${cell(p.value)}</td></tr>`).join('');
-      perspTable = `<h2 style="${h2S}">Perspective</h2><table style="${tblS}"><tr><th style="${thS}">Axis</th><th style="${thS}">Value</th></tr>${rows}</table>`;
-    }
-    const picks = d.picks.length ? `<h2 style="${h2S}">Keys you picked</h2><p style="font-size:15px;">${d.picks.map(esc).join(' · ')}</p>` : '';
-    const ps = (state.timing && state.timing.perStep) || {};
-    const total = (ps.step0 || 0) + (ps.step1 || 0);
-    const meta = `<p style="color:#666;font-size:14px;margin:2px 0 12px;">Mode: <b>${esc(currentModeName())}</b>${total ? ` · Time: <b>${fmtDuration(total)}</b>` : ''}</p>`;
-    return meta + groupsTable + perspTable + picks;
+  // ---- Exports mirror the live ✦ Summary panel (#std-summary) exactly ----
+  // We clone the on-screen section (expanded) and ship it with the page's own
+  // CSS, so the saved HTML/JPG look like the summary section itself.
+  function summaryCaptureClone(){
+    const sec = document.getElementById('std-summary');
+    if (!sec) return null;
+    const clone = sec.cloneNode(true);
+    clone.classList.remove('is-collapsed');
+    clone.removeAttribute('hidden');
+    return clone;
+  }
+  function summaryPageCSS(){
+    return Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
   }
   function buildSummaryDocHTML(){
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>flove · keys</title></head>`
-      + `<body style="font-family:Georgia,'Times New Roman',serif;max-width:720px;margin:40px auto;padding:0 18px;color:#222;background:#fff;">`
-      + `<h1 style="font-size:26px;margin:0 0 2px;">flove · keys</h1>`
-      + buildSummaryDocBody()
-      + `</body></html>`;
+    const clone = summaryCaptureClone();
+    const inner = clone ? clone.outerHTML : '';
+    const bg = (window.getComputedStyle(document.body).backgroundColor) || '#0e0e16';
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>keys-summary</title>`
+      + `<style>${summaryPageCSS()}\nbody{margin:0;padding:24px;background:${bg}}</style></head>`
+      + `<body>${inner}</body></html>`;
   }
-  // Rasterise the same document to a JPG via SVG foreignObject (no extra libs).
+  // Rasterise that same captured section to a JPG via SVG foreignObject (no libs).
+  // Browser support varies; the caller falls back to the HTML file if this fails.
   function summaryToImageBlob(mime){
     mime = mime || 'image/jpeg';
     return new Promise((resolve, reject) => {
       try {
-        const d = buildSummaryData();
-        const W = 760;
-        const rowCount = d.groups.length + d.perspective.length + 5;
-        const H = 240 + rowCount * 48 + (d.picks.length ? 80 : 0);   // generous (avoid clipping)
-        const body = `<div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Georgia,'Times New Roman',serif;color:#222;background:#fff;padding:24px;box-sizing:border-box;width:${W}px;">`
-          + `<h1 style="font-size:24px;margin:0 0 6px;">flove · keys</h1>`
-          + buildSummaryDocBody()
-          + `</div>`;
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%">${body}</foreignObject></svg>`;
+        const sec = document.getElementById('std-summary');
+        const clone = summaryCaptureClone();
+        if (!sec || !clone) { reject(new Error('no summary')); return; }
+        const W = Math.min(1000, Math.max(360, sec.scrollWidth || 760));
+        const H = Math.max(400, (sec.scrollHeight || 800) + 48);
+        const bg = window.getComputedStyle(document.body).backgroundColor || '#0e0e16';
+        const xhtml = new XMLSerializer().serializeToString(clone);
+        const fo = `<div xmlns="http://www.w3.org/1999/xhtml" style="background:${bg};padding:20px;width:${W}px;box-sizing:border-box">`
+          + `<style>/*<![CDATA[*/${summaryPageCSS()}/*]]>*/</style>${xhtml}</div>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%">${fo}</foreignObject></svg>`;
         const img = new Image();
         img.onload = () => {
           try {
             const canvas = document.createElement('canvas');
             canvas.width = W; canvas.height = H;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
             ctx.drawImage(img, 0, 0);
             canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob null')), mime, 0.92);
           } catch(err){ reject(err); }
@@ -9000,8 +8990,8 @@
   async function shareSummaryFiles(){
     if (!(navigator.canShare && navigator.share)) return false;
     const files = [];
-    try { files.push(new File([buildSummaryDocHTML()], 'flove-keys.html', { type:'text/html' })); } catch(_){}
-    try { const img = await summaryToImageBlob('image/jpeg'); if (img) files.push(new File([img], 'flove-keys.jpg', { type:'image/jpeg' })); } catch(_){}
+    try { files.push(new File([buildSummaryDocHTML()], 'keys-summary.html', { type:'text/html' })); } catch(_){}
+    try { const img = await summaryToImageBlob('image/jpeg'); if (img) files.push(new File([img], 'keys-summary.jpg', { type:'image/jpeg' })); } catch(_){}
     if (!files.length || !navigator.canShare({ files })) return false;
     try { await navigator.share({ title:'flove · keys', text:'My flove keys', files }); return true; }
     catch(_){ return false; }
@@ -9048,7 +9038,7 @@
         return el && el.checked;
       });
       const fmts = ['txt', ...marked];
-      fmts.forEach(f => triggerDownload(`flove-keys.${f}`, FMT_MIME[f] || 'text/plain', serializeSummary(f)));
+      fmts.forEach(f => triggerDownload(`keys-summary.${f}`, FMT_MIME[f] || 'text/plain', serializeSummary(f)));
       // JPG: render the summary doc to a real image; fall back to the HTML doc.
       let extra = 0;
       const jpg = document.getElementById('flv-fmt-jpg');
@@ -9057,16 +9047,16 @@
           const blob = await summaryToImageBlob('image/jpeg');
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url; a.download = 'flove-keys.jpg';
+          a.href = url; a.download = 'keys-summary.jpg';
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
           setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch(_){
-          if (!marked.includes('html')) triggerDownload('flove-keys.html', 'text/html', serializeSummary('html'));
+          if (!marked.includes('html')) triggerDownload('keys-summary.html', 'text/html', serializeSummary('html'));
         }
         extra = 1;
       }
       const count = fmts.length + extra;
-      stdToast(count > 1 ? `Downloaded ${count} files` : 'Downloaded flove-keys.txt');
+      stdToast(count > 1 ? `Downloaded ${count} files` : 'Downloaded keys-summary.txt');
     });
 
     // Share sub-actions: print + Web Share API.

@@ -2326,7 +2326,7 @@
   }
   .intro-arrows{
     display:flex;gap:24px;justify-content:center;align-items:center;
-    padding:14px 16px 6px;border-top:1px dashed var(--stroke);
+    padding:14px 16px 6px;
   }
   .intro-arrows button{
     width:4rem;height:4rem;border-radius:50%;
@@ -2773,19 +2773,13 @@
   .prelude.primer-on .phase-b-section{display:none}
   .prelude.primer-done .phase-primer-section{display:block;opacity:.5;pointer-events:none;
     margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--stroke)}
-  .primer-why{margin:.7rem 0 .2rem}
-  .primer-why-row{display:flex;align-items:center;gap:.5rem;justify-content:center;flex-wrap:wrap}
-  .primer-why-label{color:var(--gold);font:700 .78rem/1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-  .primer-why-input{flex:1 1 16rem;max-width:24rem;padding:.45rem .6rem;border-radius:10px;
+  /* Per-group "why" field under each of the 5 primer groups. */
+  .group-why{margin:.4rem 0 .1rem}
+  .group-why-input{width:100%;box-sizing:border-box;padding:.35rem .5rem;border-radius:8px;
     border:1px solid var(--stroke);background:rgba(255,255,255,.05);color:var(--ink);
-    font:500 .92rem/1.3 system-ui,sans-serif;outline:none}
-  .primer-why-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,95,220,.18)}
-  .primer-why-add{flex:0 0 auto;width:2rem;height:2rem;border-radius:50%;border:1px solid var(--brand);
-    background:rgba(0,247,167,.12);color:var(--brand);font-size:1rem;cursor:pointer;display:grid;place-items:center}
-  .primer-why-add:hover{background:rgba(0,247,167,.25)}
-  .primer-why-list{list-style:none;margin:.5rem auto 0;padding:0;max-width:30rem;display:flex;flex-direction:column;gap:.3rem}
-  .primer-why-list li{background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:8px;
-    padding:.3rem .55rem;color:var(--ink);font-size:.85rem}
+    font:500 .85rem/1.3 system-ui,sans-serif;outline:none}
+  .group-why-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,95,220,.18)}
+  .group-why .mini-mic{width:1.7rem;height:1.7rem;margin-top:.3rem}
   /* Generic inline mic button for text inputs (voice dictation). */
   .mini-mic{flex:0 0 auto;width:2rem;height:2rem;border-radius:50%;border:1px solid var(--stroke);
     background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;display:inline-grid;place-items:center;
@@ -3183,10 +3177,8 @@
   .flv-std .pr-free-aside{flex:0 0 auto;max-width:40%;border-left:1px solid var(--stroke);padding-left:1rem}
   .flv-std .pr-free-head{display:block;color:var(--sky);font:700 .72rem/1 system-ui,sans-serif;
     letter-spacing:.1em;text-transform:uppercase;margin:0 0 .45rem}
-  .flv-std .pr-free-group{margin-bottom:.5rem}
-  .flv-std .pr-free-whys{margin-top:.55rem}
-  .flv-std .pr-free-whys ul{list-style:none;margin:.2rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
-  .flv-std .pr-free-whys li{color:var(--muted);font-size:.8rem}
+  .flv-std .pr-free-group{margin-bottom:.6rem}
+  .flv-std .pr-free-why{color:var(--muted);font-size:.78rem;font-style:italic;margin-top:.15rem}
   @media (max-width:560px){
     .flv-std .pt-free-wrap{flex-direction:column;gap:.6rem}
     .flv-std .pr-free-aside{max-width:none;border-left:0;padding-left:0;border-top:1px solid var(--stroke);padding-top:.5rem}
@@ -3982,14 +3974,6 @@
       <h2 class="prelude-title primer-title">Make the 5 groups of 3 that you more like now</h2>
       <div class="pool" id="primer-pool" aria-label="Card pool"></div>
       <div class="groups" id="primer-groups"></div>
-      <div class="primer-why">
-        <div class="primer-why-row">
-          <span class="primer-why-label">why</span>
-          <input type="text" id="primer-why-input" class="primer-why-input" placeholder="why you grouped them like this…" aria-label="Why this grouping">
-          <button class="primer-why-add" id="primer-why-add" type="button" aria-label="Add this why">✓</button>
-        </div>
-        <ul class="primer-why-list" id="primer-why-list"></ul>
-      </div>
       <div class="prelude-actions">
         <button class="btn btn-ghost btn-back" id="primer-back" type="button">← Back</button>
         <button class="btn btn-primary" id="primer-next" type="button" hidden>Next →</button>
@@ -6996,28 +6980,7 @@
     $prelude.classList.remove('primer-on','primer-done');
     setUIMode('chooser');
   });
-  // Primer "why": ✓ adds the typed reason (a star), at least one unlocks Next.
-  (function wirePrimerWhy(){
-    const $inp = document.getElementById('primer-why-input');
-    const $add = document.getElementById('primer-why-add');
-    if (!$inp || !$add) return;
-    const addWhy = () => {
-      const v = $inp.value.trim();
-      if (!v) { $inp.focus(); return; }
-      state.primer = state.primer || { whys: [] };
-      state.primer.whys = state.primer.whys || [];
-      state.primer.whys.push(v);
-      bumpCounter('stars');
-      state.saveClicks = (state.saveClicks || 0) + 1;   // a saved why → a star
-      $inp.value = '';
-      renderPrimerWhys();
-      updatePrimerGate();
-      $inp.focus();
-    };
-    $add.addEventListener('click', addWhy);
-    $inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); addWhy(); } });
-    attachMicTo($inp);   // voice dictation for the why field
-  })();
+  // (Per-group "why" fields are wired in renderGroups for the primer.)
   document.getElementById('normal-go').addEventListener('click', (e) => {
     e.stopPropagation();
     state.masterForced = false;
@@ -7194,6 +7157,7 @@
     drag: null,
     poolId: 'primer-pool',
     groupsId: 'primer-groups',
+    perGroupWhy: true,   // a "why" field under each of the 5 groups
     onChange(){ renderPrimer(); },
   };
 
@@ -7267,13 +7231,13 @@
     primerCtx.pool = TRIAD_ITEMS_FLAT.slice().sort((a, b) => a.localeCompare(b, 'en'));
     primerCtx.groups = [[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]];
     primerCtx.drag = null;
-    state.primer = { groups: primerCtx.groups, whys: [] };
-    state.primerCredited = {};   // group idx -> selection already awarded
+    state.primer = { groups: primerCtx.groups, groupWhys: ['','','','',''] };
+    state.primerCredited = {};      // group idx -> selection already awarded
+    state.primerWhyCredited = {};   // group idx -> star already awarded for its why
   }
   function renderPrimer(){
     renderPool(primerCtx);
     renderGroups(primerCtx);
-    renderPrimerWhys();
     // One selection per newly-completed group (one-way, like a deck "Done").
     primerCtx.groups.forEach((g, gi) => {
       if (g.every(x => x) && !state.primerCredited[gi]){
@@ -7283,18 +7247,12 @@
     });
     updatePrimerGate();
   }
-  function renderPrimerWhys(){
-    const $list = document.getElementById('primer-why-list');
-    if (!$list) return;
-    const whys = (state.primer && state.primer.whys) || [];
-    $list.innerHTML = whys.map(w => `<li>${escapeHTML(w)}</li>`).join('');
-  }
   function updatePrimerGate(){
     const $next = document.getElementById('primer-next');
     if (!$next) return;
     const allPlaced = primerCtx.pool.length === 0 && primerCtx.groups.every(g => g.every(x => x));
-    const hasWhy = ((state.primer && state.primer.whys) || []).length >= 1;
-    $next.hidden = !(allPlaced && hasWhy);   // Next shows only when complete
+    const hasWhy = ((state.primer && state.primer.groupWhys) || []).some(w => w && w.trim());
+    $next.hidden = !(allPlaced && hasWhy);   // Next shows only when complete + a why
   }
 
   function renderPool(ctx){
@@ -7337,6 +7295,30 @@
           moveMiniTo(ctx, src, {to:gi, slotIdx:si});
         };
         group.appendChild(slot);
+      }
+      // Per-group "why" field (primer only): inline "why" placeholder, no title.
+      if (ctx.perGroupWhy){
+        const whyRow = document.createElement('div');
+        whyRow.className = 'group-why';
+        const why = document.createElement('input');
+        why.type = 'text';
+        why.className = 'group-why-input';
+        why.placeholder = 'why';
+        why.setAttribute('aria-label', `Why group ${gi+1}`);
+        why.value = (state.primer && state.primer.groupWhys && state.primer.groupWhys[gi]) || '';
+        why.addEventListener('click', e => e.stopPropagation());
+        why.addEventListener('input', () => {
+          state.primer.groupWhys[gi] = why.value;
+          if (why.value.trim() && !state.primerWhyCredited[gi]){
+            state.primerWhyCredited[gi] = true;
+            bumpCounter('stars');
+            state.saveClicks = (state.saveClicks || 0) + 1;   // a saved why → a star
+          }
+          updatePrimerGate();
+        });
+        whyRow.appendChild(why);
+        group.appendChild(whyRow);
+        attachMicTo(why);
       }
       $groups.appendChild(group);
     }
@@ -8304,17 +8286,15 @@
   // extra-decks column (only when a primer was actually played).
   function buildPrimerAsideHTML(){
     if (!state.primer || !state.primer.groups) return '';
-    const groups = state.primer.groups.filter(g => g.some(x => x));
-    if (!groups.length) return '';
-    const list = groups.map((g, i) => {
+    const gw = state.primer.groupWhys || [];
+    const rows = state.primer.groups.map((g, i) => {
+      if (!g.some(x => x)) return '';
       const words = g.filter(x => x).map(w => `<span class="pt-cell pt-cell-extra">${escapeHTML(w)}</span>`).join('');
-      return `<div class="pr-free-group"><span class="pr-extra-title">Free ${i+1}</span><span class="pr-cells">${words}</span></div>`;
-    }).join('');
-    const whys = (state.primer.whys || []);
-    const whyHTML = whys.length
-      ? `<div class="pr-free-whys"><span class="pr-extra-title">Why</span><ul>${whys.map(w => `<li>${escapeHTML(w)}</li>`).join('')}</ul></div>`
-      : '';
-    return `<aside class="pr-free-aside"><span class="pr-free-head">First free choice</span>${list}${whyHTML}</aside>`;
+      const why = (gw[i] && gw[i].trim()) ? `<div class="pr-free-why">${escapeHTML(gw[i])}</div>` : '';
+      return `<div class="pr-free-group"><span class="pr-extra-title">Free ${i+1}</span><span class="pr-cells">${words}</span>${why}</div>`;
+    }).filter(Boolean).join('');
+    if (!rows) return '';
+    return `<aside class="pr-free-aside"><span class="pr-free-head">First free choice</span>${rows}</aside>`;
   }
   function buildMasterStatsHTML(){
     const ps = (state.timing && state.timing.perStep) || {};

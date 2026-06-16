@@ -574,6 +574,71 @@
   .stage-clear.show{ display:inline-block; }
   .stage-clear:hover{ border-color:var(--ink); color:var(--ink); }
 
+  /* ── Complete · summary section + action bar (souls-style §13.9 surface) ── */
+  .summary-section{
+    display:none; margin-top:18px; width:min(640px, 100%);
+    flex-direction:column; gap:12px;
+    padding:16px 18px; border:1px solid var(--line); border-radius:var(--radius);
+    background:linear-gradient(180deg, rgba(77,208,225,.05), transparent), var(--panel);
+    animation:rise .35s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .summary-section.show{ display:flex; }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+  .summary-title{ margin:0; text-align:center; font:700 1.1rem/1.2 var(--font-ui); color:var(--accent); letter-spacing:.01em; }
+  .summary-text{
+    margin:0; max-height:340px; overflow:auto; white-space:pre-wrap; word-break:break-word;
+    padding:12px 14px; border-radius:var(--radius-sm);
+    background:#0d1018; border:1px solid var(--chip-border); border-left:3px solid var(--accent);
+    color:var(--ink); font:500 .82rem/1.5 var(--font-ui);
+  }
+  .summary-text.phrase--magic{ border-left-color:var(--nerve); color:#e9ddff; font-style:italic; }
+
+  /* insight panel — the cycling reads of the body */
+  .insight-panel{
+    margin:0; padding:12px 14px; border-radius:var(--radius-sm);
+    background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent-2);
+    color:var(--ink-dim); font:500 .85rem/1.6 var(--font-ui);
+    animation:rise .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .insight-panel[hidden]{ display:none; }
+  .insight-panel p{ margin:0 0 .5rem; } .insight-panel p:last-child{ margin:0; }
+  .insight-panel em{ color:var(--accent); font-style:normal; }
+  .insight-panel strong{ color:var(--ink); font-weight:700; }
+  .insight-panel h4{ margin:0 0 .4rem; font:700 .66rem/1 var(--font-ui); letter-spacing:.16em; text-transform:uppercase; color:var(--accent-2); }
+
+  /* action bar — two rows of pill buttons + open-one cycle rows */
+  .result-actions{ display:flex; flex-direction:column; gap:8px; }
+  .action-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .action-row--right{ justify-content:flex-end; }
+  .sum-btn{
+    appearance:none; cursor:pointer; display:inline-flex; align-items:center; gap:.4rem;
+    padding:8px 14px; border-radius:var(--radius-pill);
+    border:1px solid var(--line); background:#0f1320; color:var(--ink);
+    font:600 .82rem/1 var(--font-ui);
+    transition:border-color var(--fast), color var(--fast), background var(--fast), filter var(--fast);
+  }
+  .sum-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .sum-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .sum-btn:active{ transform:scale(.98); }
+  .cycle-wrap{ display:inline-flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .cycle-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+  .cycle-row[hidden]{ display:none; }
+  .cycle-row .sum-btn{ padding:6px 11px; font-size:.76rem; }
+  .cycle-trigger[aria-expanded="true"]{ background:rgba(77,208,225,.14); border-color:var(--accent); color:var(--accent); }
+  /* magic toggle swaps its label and tints rose-violet when on */
+  .magic-btn-summary .label-on{ display:none; }
+  .magic-btn-summary[aria-pressed="true"] .label-off{ display:none; }
+  .magic-btn-summary[aria-pressed="true"] .label-on{ display:inline; }
+  .magic-btn-summary[aria-pressed="true"]{ background:rgba(179,136,255,.14); border-color:var(--nerve); color:var(--nerve); }
+  .pub-platform{ display:flex; align-items:center; gap:.4rem; }
+  .pub-platform input[type="checkbox"]{ accent-color:var(--accent); }
+  .pub-add{ display:flex; gap:6px; margin-top:4px; }
+  .pub-add input{
+    flex:1; min-width:0; padding:6px 10px; border-radius:var(--radius-pill);
+    background:#0d1018; border:1px solid var(--line); color:var(--ink); font:500 .76rem/1 var(--font-ui);
+  }
+  .pub-add input:focus{ outline:2px solid var(--accent); outline-offset:0; }
+
   /* ── Complete · related flove apps (keys-style panel + intro overlay) ── */
   .related-btn{
     display:none; margin-top:16px;
@@ -769,6 +834,52 @@
       <button class="related-plus" id="relatedPlus" type="button" aria-label="Show more apps" aria-expanded="false">+</button>
       <div class="related-row related-row-more" id="relatedMore" hidden></div>
     </div>
+
+    <!-- Summary · revealed by the subsystems-stage Next: the resume of every
+         selection + the magic / insight / copy + save / share / publish bar -->
+    <section class="summary-section" id="summarySection" aria-label="Your pracsys results">
+      <h2 class="summary-title">Your pracsys body</h2>
+      <pre class="summary-text" id="summaryText"></pre>
+      <div class="insight-panel" id="insightPanel" hidden></div>
+
+      <div class="result-actions">
+        <div class="action-row">
+          <button class="sum-btn insight-btn" type="button" id="insightBtn" aria-expanded="false" aria-controls="insightPanel">💡 Insight</button>
+          <button class="sum-btn magic-btn-summary" type="button" id="magicBtn" aria-pressed="false" title="Magic remix · Shift-click switches language">
+            <span class="label-off">✨ Magic</span>
+            <span class="label-on">✦ Plain</span>
+          </button>
+          <button class="sum-btn copy-btn" type="button" id="copyBtn" data-action="copy" title="Click: copy phrase · Shift-click: copy JSON">⎘ Copy</button>
+        </div>
+        <div class="action-row action-row--right">
+          <span class="cycle-wrap" data-cycle="save">
+            <button class="sum-btn cycle-trigger" type="button" data-cycle-toggle="save" aria-expanded="false" aria-controls="saveRow">💾 Save</button>
+            <span class="cycle-row" id="saveRow" hidden>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="txt">TXT</button>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="md">MD</button>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="jpg">JPG</button>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="html">HTML</button>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="csv">CSV</button>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="xml">XML</button>
+              <button class="sum-btn" type="button" data-action="download" data-fmt="json">JSON</button>
+            </span>
+          </span>
+          <span class="cycle-wrap" data-cycle="share">
+            <button class="sum-btn cycle-trigger" type="button" data-cycle-toggle="share" aria-expanded="false" aria-controls="shareRow">📤 Share</button>
+            <span class="cycle-row" id="shareRow" hidden>
+              <button class="sum-btn" type="button" data-action="share-mobile">📱 Mobile</button>
+              <button class="sum-btn" type="button" data-action="share">🌐 Apps</button>
+              <button class="sum-btn" type="button" data-action="email">📧 Email</button>
+              <button class="sum-btn" type="button" data-action="print">🖨 Print</button>
+            </span>
+          </span>
+          <span class="cycle-wrap" data-cycle="publish">
+            <button class="sum-btn cycle-trigger" type="button" data-cycle-toggle="publish" aria-expanded="false" aria-controls="publishRow">⚡ Publish</button>
+            <span class="cycle-row" id="publishRow" hidden></span>
+          </span>
+        </div>
+      </div>
+    </section>
   </section>
 </main>
 
@@ -1368,8 +1479,10 @@
     const verbsVisible = state.stage === 3 || (state.stage >= 4 && state.verbsShown);
     document.body.classList.toggle('show-verbs', verbsVisible);
     // system icons appear from stage 3 (not the reasons stage); in stage 4 they
-    // collapse under the Reasons toggle
-    const emojisVisible = state.stage === 3 || (state.stage >= 4 && state.reasonsShown);
+    // collapse under the Reasons toggle — and once every subsystem is threaded,
+    // the Reasons view drops the right-column system symbols entirely.
+    const emojisVisible = state.stage === 3
+      || (state.stage >= 4 && state.reasonsShown && !allSubsPlaced());
     document.body.classList.toggle('show-emojis', emojisVisible);
     // parents glow only in stage 4
     allSlots().forEach(s => s.classList.remove('is-parent','parent-immune','parent-nerve','parent-open'));
@@ -1393,6 +1506,9 @@
     }
     // Complete: reveal the "Related apps" button (mirrors the Complete progress step)
     const complete = state.stage === 4 && subsAllIn;
+    // the summary surface is opened explicitly by the stage-4 Next; drop it when
+    // the player steps back out of the subsystems stage
+    if (state.stage !== 4){ const ss = $('#summarySection'); if (ss) ss.classList.remove('show'); }
     $('#relatedBtn').classList.toggle('show', complete);
     if (!complete){
       $('#relatedPanel').classList.remove('show');
@@ -1461,9 +1577,10 @@
     const st = state.stage;
 
     const reasonCount = REASON_KEYS.filter(k => state.reasons[k] && state.reasons[k].length).length;
+    const verbCount   = Object.values(state.verbs).filter(a => a && a.length).length;
     const steps = [{ lab:'Systems pairs', cur:placedCount, max:SYSTEMS.length, cls:'' }];
     if (st >= 2) steps.push({ lab:'Reasons', cur:reasonCount, max:REASON_KEYS.length, cls:'sub' });
-    if (st >= 3) steps.push({ lab:'Verbs',   cur:(st > 3 || hasAnyVerb())   ? 1 : 0, max:1, cls:'sub' });
+    if (st >= 3) steps.push({ lab:'Verbs',   cur:verbCount,   max:SYSTEMS.length,     cls:'sub' });
     if (st >= 4) steps.push({ lab:'Subsystems', cur:subCount, max:TOTAL_SUBS, cls:'sub' });
     if (st >= 4 && subCount === TOTAL_SUBS) steps.push({ lab:'Complete', cur:1, max:1, cls:'' });
 
@@ -1681,7 +1798,7 @@
   $('#nextBtn2').addEventListener('click', () => {
     if (state.stage === 2 && hasAnyReason()){ goStage(3); toast('Add verbs with the + on each card'); }
     else if (state.stage === 3 && hasAnyVerb()){ goStage(4); toast('Click Immune or Nervous to thread subsystems'); }
-    else if (state.stage === 4 && hasAnySubReason() && hasAnySubVerb()){ toast('All threaded — tap Polarities to explore the groupings'); }
+    else if (state.stage === 4 && hasAnySubReason() && hasAnySubVerb()){ showSummary(); }
   });
   // SubNervous / SubImmune: hide that kind's connector arrows
   $('#subNerveBtn').addEventListener('click', () => { state.hideNerve = !state.hideNerve; afterChange(); });
@@ -1775,6 +1892,251 @@
   $('#aiCancel').addEventListener('click', () => { $('#appIntro').hidden = true; });
   $('#appIntro').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.hidden = true; });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#appIntro').hidden) $('#appIntro').hidden = true; });
+
+  // ════════════════════════════════════════════════════════════
+  //  Summary surface · resume of selections + action bar
+  //  (souls-style §13.9: Magic · Insight · Copy / Save · Share · Publish)
+  // ════════════════════════════════════════════════════════════
+  const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const escXml  = s => String(s).replace(/[&<>]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]));
+  const sysAt   = slotId => { const id = state.placed[slotId]; return id ? SYS[id] : null; };
+  // a flat lookup for every subsystem id → { label, kind }
+  const SUB_BY_ID = {};
+  NERVOUS_SUBS.forEach(s => SUB_BY_ID[s.id] = { ...s, kind:'nerve'  });
+  IMMUNE_SUBS .forEach(s => SUB_BY_ID[s.id] = { ...s, kind:'immune' });
+
+  // ── the structured "resume" rows that every export reads ──
+  function summaryRows(){
+    const rows = [];
+    for (let r = 0; r < N_ROWS; r++){
+      const L = sysAt(leftSlotId(r)), R = sysAt(rightSlotId(r));
+      if (!L && !R) continue;
+      rows.push({ kind:'pair', title:`${L?L.label:'—'} ↔ ${R?R.label:'—'}`, items:(state.reasons[r]||[]).slice() });
+    }
+    const C = sysAt(CENTRE_SLOT);
+    if (C) rows.push({ kind:'centroid', title:C.label, items:(state.reasons.c||[]).slice() });
+    Object.keys(state.placed).forEach(slotId => {
+      const vs = state.verbs[slotId]; if (!vs || !vs.length) return;
+      const s = sysAt(slotId); if (!s) return;
+      rows.push({ kind:'verbs', title:s.label, items:vs.slice() });
+    });
+    Object.keys(state.subs).forEach(id => {
+      const rec = state.subs[id], sub = SUB_BY_ID[id]; if (!sub) return;
+      const tgt = sysAt(rec.slotId);
+      const items = (state.subReasons[id]||[]).concat((state.subVerbs[id]||[]).map(v => '→ ' + v));
+      rows.push({ kind:'subsystem', title:`${sub.label} (${rec.kind==='nerve'?'nervous':'immune'}) → ${tgt?tgt.label:'—'}`, items });
+    });
+    return rows;
+  }
+  // ── the flove element (JSON / Copy-as-JSON / Publish payload) ──
+  function buildElement(){
+    return {
+      app:'pracsys', type:'body', version:1, generatedAt:new Date().toISOString(),
+      placements: Object.fromEntries(Object.entries(state.placed).map(([k,v]) => [k, SYS[v].label])),
+      reasons: state.reasons,
+      verbs: state.verbs,
+      subs: Object.fromEntries(Object.entries(state.subs).map(([id,rec]) => [id, {
+        kind: rec.kind, target:(sysAt(rec.slotId)||{}).label || null,
+        reasons:(state.subReasons[id]||[]).slice(), verbs:(state.subVerbs[id]||[]).slice()
+      }])),
+      rows: summaryRows()
+    };
+  }
+  // ── plain-text resume (Copy / TXT / MD / Share / Email / Print) ──
+  function summaryText(){
+    const rows = summaryRows();
+    const out = ['✺ pracsys body', ''];
+    const group = (label, kind, fmt) => {
+      const items = rows.filter(r => r.kind === kind); if (!items.length) return;
+      out.push(label); items.forEach(r => out.push('  · ' + fmt(r))); out.push('');
+    };
+    group('Systems pairs', 'pair',      r => r.title + (r.items.length ? ' — ' + r.items.join('; ') : ''));
+    group('Centroid',      'centroid',  r => r.title + (r.items.length ? ' — ' + r.items.join('; ') : ''));
+    group('Verbs',         'verbs',     r => r.title + ': ' + r.items.join(', '));
+    group('Subsystems',    'subsystem', r => r.title + (r.items.length ? ' — ' + r.items.join(' · ') : ''));
+    out.push(new Date().toISOString().slice(0,10));
+    return out.join('\n').trim();
+  }
+
+  // ── Magic · a flowing remix with random prepositions (es ⇄ en on Shift) ──
+  const PREPOSITIONS = {
+    en:['with','about','beneath','between','toward','from','during','according to','before','after','beside','near','across','around','concerning','inside'],
+    es:['con','sobre','bajo','entre','hacia','desde','durante','según','ante','tras','junto a','cerca de','frente a','gracias a','a través de','en torno a']
+  };
+  let magicOn = false;
+  let magicLang = (document.documentElement.lang || 'en').slice(0,2);
+  if (!PREPOSITIONS[magicLang]) magicLang = 'en';
+  function magicPhrase(){
+    const pool = PREPOSITIONS[magicLang].slice();
+    const draw = () => { if (!pool.length) pool.push(...PREPOSITIONS[magicLang]); return pool.splice(Math.floor(Math.random()*pool.length), 1)[0]; };
+    const parts = summaryRows().map(r => `${draw()} ${r.title}${r.items.length ? ' (' + r.items.join(', ') + ')' : ''}`);
+    return '✺ pracsys — ' + (parts.length ? parts.join(' · ') : 'an empty body') + '.';
+  }
+  // what Copy / Share read: whatever the panel currently shows
+  function shownText(){ return magicOn ? magicPhrase() : summaryText(); }
+  function renderSummary(){
+    const pre = $('#summaryText'); if (!pre) return;
+    pre.textContent = shownText();
+    pre.classList.toggle('phrase--magic', magicOn);
+  }
+
+  // ── Insight · cycling reads of the body ──
+  function insightReads(){
+    const placed = Object.keys(state.placed).length;
+    const reasons = REASON_KEYS.filter(k => state.reasons[k] && state.reasons[k].length).length;
+    const verbs = Object.values(state.verbs).filter(a => a && a.length).length;
+    const subN = Object.values(state.subs).filter(s => s.kind === 'nerve').length;
+    const subI = Object.values(state.subs).filter(s => s.kind === 'immune').length;
+    const pairs = summaryRows().filter(r => r.kind === 'pair').map(r => r.title);
+    const C = sysAt(CENTRE_SLOT);
+    return [
+      ['The read', magicOn
+        ? `<p>A body breathing as <em>${placed}</em> systems${C?`, gathered at the <em>${C.label.toLowerCase()}</em> centroid`:''} — threaded by <em>${subN}</em> nervous and <em>${subI}</em> immune currents.</p>`
+        : `<p><strong>${placed}/11</strong> systems placed${C?`, centroid <em>${C.label}</em>`:''}. <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems threaded.</p>`],
+      ['By the numbers', `<p><strong>${placed}/11</strong> systems · <strong>${reasons}/6</strong> reasons · <strong>${verbs}/11</strong> verbs · <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems (<em>${subN}</em> nervous · <em>${subI}</em> immune).</p>`],
+      ['The pairs', pairs.length ? `<p>${pairs.map(p => `<em>${escHtml(p)}</em>`).join(' · ')}</p>` : '<p>—</p>'],
+      ['Polarities', `<p>Left column vs right column; and the first three left + first two rows right against the rest — two groupings the <em>Polarities</em> view colours in.</p>`]
+    ];
+  }
+  let insightIdx = -1;
+  function renderInsight(){
+    const panel = $('#insightPanel'); if (!panel) return;
+    const reads = insightReads();
+    const [label, html] = reads[((insightIdx % reads.length) + reads.length) % reads.length];
+    panel.innerHTML = `<h4>${escHtml(label)}</h4>${html}`;
+    panel.hidden = false;
+  }
+
+  // reveal the whole surface (called by the stage-4 Next)
+  function showSummary(){
+    renderSummary();
+    const sec = $('#summarySection');
+    sec.classList.add('show');
+    sec.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    toast('Your pracsys body — copy, save, share or publish it');
+  }
+
+  // ── action bar: Magic / Insight / Copy ──
+  $('#magicBtn').addEventListener('click', e => {
+    if (e.shiftKey){ magicLang = magicLang === 'en' ? 'es' : 'en'; toast('Magic language · ' + magicLang.toUpperCase()); if (!magicOn){ renderSummary(); return; } }
+    else magicOn = !magicOn;
+    $('#magicBtn').setAttribute('aria-pressed', String(magicOn));
+    renderSummary();
+    if (!$('#insightPanel').hidden) renderInsight();   // keep the open read in step
+  });
+  $('#insightBtn').addEventListener('click', () => {
+    insightIdx++; renderInsight();
+    $('#insightBtn').setAttribute('aria-expanded', 'true');
+    $('#insightPanel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+
+  // open-one-close-others cycle rows (Save / Share / Publish)
+  const cycleRow = key => $('#' + key + 'Row');
+  $$('.cycle-trigger[data-cycle-toggle]').forEach(trig => {
+    trig.addEventListener('click', () => {
+      const row = cycleRow(trig.dataset.cycleToggle); if (!row) return;
+      const open = row.hidden;
+      $$('.cycle-trigger[data-cycle-toggle]').forEach(t => {
+        const r = cycleRow(t.dataset.cycleToggle);
+        if (r && t !== trig){ r.hidden = true; t.setAttribute('aria-expanded', 'false'); }
+      });
+      if (trig.dataset.cycleToggle === 'publish' && open) renderPublishRow();
+      row.hidden = !open;
+      trig.setAttribute('aria-expanded', String(open));
+    });
+  });
+
+  // ── Publish · multi-select platforms + Add platform (dry-run) ──
+  const PUBLISH_KEY = 'flove.publish.platforms';
+  const DEFAULT_PLATFORMS = [
+    { id:'nety',     name:'Nety',     kind:'webhook'   },
+    { id:'oasis',    name:'0asis',    kind:'webhook'   },
+    { id:'download', name:'Download', kind:'download'  }
+  ];
+  function loadPlatforms(){
+    let custom = [];
+    try{ custom = JSON.parse(localStorage.getItem(PUBLISH_KEY)) || []; }catch(_){}
+    return DEFAULT_PLATFORMS.concat(custom.filter(p => p && p.name));
+  }
+  function savePlatforms(custom){ try{ localStorage.setItem(PUBLISH_KEY, JSON.stringify(custom)); }catch(_){} }
+  function renderPublishRow(){
+    const row = $('#publishRow');
+    const list = loadPlatforms();
+    row.innerHTML =
+      list.map((p,i) => `<label class="pub-platform"><input type="checkbox" data-pub="${escHtml(p.id)}"${i===0?' checked':''}> ${escHtml(p.name)}</label>`).join('')
+      + `<span class="pub-add"><input type="text" id="pubAdd" placeholder="Add platform name…" aria-label="Add a platform"><button class="sum-btn" type="button" id="pubAddBtn">+ Add</button></span>`
+      + `<button class="sum-btn" type="button" data-action="publish">↗ Publish</button>`;
+  }
+  document.addEventListener('click', e => {
+    const addBtn = e.target.closest('#pubAddBtn'); if (!addBtn) return;
+    const inp = $('#pubAdd'), name = inp.value.trim(); if (!name) return;
+    let custom = []; try{ custom = JSON.parse(localStorage.getItem(PUBLISH_KEY)) || []; }catch(_){}
+    custom.push({ id:'p' + Date.now(), name, kind:'webhook' });
+    savePlatforms(custom); renderPublishRow(); toast('Platform added · ' + name);
+  });
+
+  // ── the [data-action] surface: Copy / Save (download) / Share / Publish ──
+  function downloadBlob(body, mime, ext){
+    const blob = new Blob([body], { type:mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'pracsys-body.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function rowsCsv(){
+    const head = 'kind,title,items';
+    const q = s => '"' + String(s).replace(/"/g,'""') + '"';
+    return [head].concat(summaryRows().map(r => [r.kind, r.title, r.items.join(' | ')].map(q).join(','))).join('\n');
+  }
+  function rowsXml(){
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<pracsys>\n'
+      + summaryRows().map(r => `  <row kind="${escXml(r.kind)}" title="${escXml(r.title)}">`
+          + r.items.map(it => `<item>${escXml(it)}</item>`).join('') + '</row>').join('\n')
+      + '\n</pracsys>';
+  }
+  function summaryToJpg(){
+    const text = summaryText().split('\n');
+    const pad = 28, lh = 22, w = 720, h = pad*2 + lh*text.length;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#0b0c10'; ctx.fillRect(0,0,w,h);
+    ctx.font = '14px Inter, system-ui, sans-serif'; ctx.textBaseline = 'top';
+    text.forEach((ln,i) => { ctx.fillStyle = i===0 ? '#4dd0e1' : '#e6eef8'; ctx.fillText(ln, pad, pad + i*lh); });
+    cv.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = 'pracsys-body.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, 'image/jpeg', 0.92);
+  }
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('#summarySection [data-action]'); if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'copy'){
+      const payload = e.shiftKey ? JSON.stringify(buildElement(), null, 2) : shownText();
+      try{ await navigator.clipboard.writeText(payload); toast(e.shiftKey ? '✺ JSON copied' : '✺ phrase copied'); }
+      catch(_){ toast('Copy not available'); }
+    } else if (action === 'download'){
+      const fmt = (btn.dataset.fmt || 'txt').toLowerCase();
+      if (fmt === 'jpg'){ summaryToJpg(); toast('Downloaded · JPG'); return; }
+      if (fmt === 'json'){ downloadBlob(JSON.stringify(buildElement(), null, 2), 'application/json;charset=utf-8', 'json'); }
+      else if (fmt === 'csv'){ downloadBlob(rowsCsv(), 'text/csv;charset=utf-8', 'csv'); }
+      else if (fmt === 'xml'){ downloadBlob(rowsXml(), 'application/xml;charset=utf-8', 'xml'); }
+      else if (fmt === 'html'){ downloadBlob(`<!doctype html><meta charset="utf-8"><title>pracsys body</title><pre style="font:14px/1.5 ui-monospace,monospace">${escHtml(summaryText())}</pre>`, 'text/html;charset=utf-8', 'html'); }
+      else if (fmt === 'md'){ downloadBlob('# ✺ pracsys body\n\n```\n' + summaryText() + '\n```\n', 'text/markdown;charset=utf-8', 'md'); }
+      else { downloadBlob(summaryText(), 'text/plain;charset=utf-8', 'txt'); }
+      toast('Downloaded · ' + fmt.toUpperCase());
+    } else if (action === 'share' || action === 'share-mobile'){
+      const text = shownText();
+      if (navigator.share){ try{ await navigator.share({ title:'flove · pracsys', text }); }catch(_){} }
+      else if (action === 'share'){ try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }catch(_){ toast('Share not available'); } }
+      else { toast('Mobile share unavailable on this device'); }
+    } else if (action === 'email'){
+      location.href = 'mailto:?subject=' + encodeURIComponent('flove · pracsys body') + '&body=' + encodeURIComponent(summaryText());
+    } else if (action === 'print'){
+      const w = window.open('', '_blank');
+      if (w){ w.document.write(`<!doctype html><meta charset="utf-8"><title>pracsys body</title><pre style="font:14px/1.5 ui-monospace,monospace">${escHtml(summaryText())}</pre>`); w.document.close(); w.focus(); setTimeout(() => w.print(), 200); }
+    } else if (action === 'publish'){
+      const chosen = $$('#publishRow input[data-pub]:checked').map(c => c.parentElement.textContent.trim());
+      toast(chosen.length ? 'Dry-run · would publish to ' + chosen.join(', ') : 'Pick a platform to publish to');
+    }
+  });
 
   // ── toast ───────────────────────────────────────────────────
   const toastEl = $('#toast');

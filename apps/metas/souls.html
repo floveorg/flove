@@ -856,17 +856,19 @@
   /* two columns: stats on the left, click-by-click timeline on the right */
   .timestats__cols{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start; }
   @media (max-width:720px){ .timestats__cols{ grid-template-columns:1fr; } }
+  /* one stat per row (single column) */
   .timestats__row{
-    display:grid; gap:.3rem .9rem;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    display:grid; gap:.3rem;
+    grid-template-columns: 1fr;
   }
   .timestats__row > div{ display:flex; justify-content:space-between; gap:.6rem }
   .timestats__row b{ color:var(--ink); font-weight:600 }
+  /* one separation between the totals section and the per-stage section */
   .timestats__per{
     margin-top:.6rem; padding-top:.55rem;
     border-top:1px solid var(--line);
     display:grid; gap:.25rem;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: 1fr;
   }
   .timestats__per > div{ display:flex; justify-content:space-between; gap:.6rem; font-size:.84rem }
 
@@ -1115,17 +1117,27 @@
   .scale-list--b .scale-list__h{ color:var(--rose); }
   .scale-items{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; align-items:center; gap:.3rem; }
   .scale-item{
-    display:inline-flex; align-items:center; justify-content:center; gap:.3rem;
-    padding:.26rem .7rem; border-radius:999px;
+    display:inline-flex; flex-direction:column; align-items:center; gap:.25rem;
+    padding:.26rem .7rem; border-radius:16px;
     background:var(--panel-strong); border:1px solid var(--line);
     font-size:.84rem; color:var(--ink-soft); max-width:100%;
     transition:opacity .2s, background .2s, border-color .2s, box-shadow .2s;
   }
+  .scale-item__head{ display:inline-flex; align-items:center; justify-content:center; gap:.3rem; }
   .scale-item .opt-ico{ font-size:.9rem; line-height:1; }
   .scale-items:has(.is-picked) .scale-item:not(.is-picked){ opacity:.5; }
   .scale-item.is-picked{ color:var(--ink); font-weight:600; background:rgba(255,255,255,.09); }
   .scale-list--a .scale-item.is-picked{ border-color:var(--app-accent); box-shadow:0 0 0 1px var(--app-accent) inset; }
   .scale-list--b .scale-item.is-picked{ border-color:var(--rose); box-shadow:0 0 0 1px var(--rose) inset; }
+  /* content the user added to a chosen item, shown right below it */
+  .scale-added{
+    list-style:none; margin:.18rem 0 0; padding:.28rem 0 0; width:100%;
+    border-top:1px solid var(--line);
+    display:flex; flex-direction:column; gap:.08rem;
+    font-size:.76rem; font-weight:400; color:var(--ink-soft);
+  }
+  .scale-added li{ line-height:1.32; overflow-wrap:anywhere; }
+  .scale-added li::before{ content:'· '; color:var(--ink-dim); }
   .scale-table{
     background:var(--panel);
     border:1px solid var(--line);
@@ -2736,12 +2748,13 @@
   const $$ = s => [...document.querySelectorAll(s)];
 
   // ── data ────────────────────────────────────────────────
+  // order: taste before smell, sight after touch (applies to picker + summary)
   const SENSES = [
-    { id:'sight',   label:'Sight',   icon:'👁', verb:'seeing'   },
     { id:'hearing', label:'Hearing', icon:'👂', verb:'hearing'  },
-    { id:'smell',   label:'Smell',   icon:'👃', verb:'smelling' },
     { id:'taste',   label:'Taste',   icon:'👅', verb:'tasting'  },
-    { id:'touch',   label:'Touch',   icon:'✋', verb:'touching' }
+    { id:'smell',   label:'Smell',   icon:'👃', verb:'smelling' },
+    { id:'touch',   label:'Touch',   icon:'✋', verb:'touching' },
+    { id:'sight',   label:'Sight',   icon:'👁', verb:'seeing'   }
   ];
   // bio systems — reordered per Marc's spec. "nervous" first, "immune" last;
   // index defines the "below" filter.
@@ -4544,17 +4557,46 @@
   //    rest dimmed (free-text steps just show the answer) ──────────────
   function renderScales(){
     const wrap = $('#soulScales'); if (!wrap) return;
-    // one list item per option, on its own row; chosen ones highlighted
-    const item = (label, icon, picked) =>
-      `<li class="scale-item${picked ? ' is-picked' : ''}">`
-      + (icon ? `<span class="opt-ico">${icon}</span>` : '')
-      + `<span>${escapeHtml(label)}</span></li>`;
-    // free-text picks (animal, species, colour…) — always the chosen item, no alternatives
-    const freeItem = (val, ball) => {
+    // the content the user added to a chosen item, shown right below it
+    const addedHtml = (arr) => {
+      const items = (arr || []).map(x => (x || '').trim()).filter(Boolean);
+      return items.length ? `<ul class="scale-added">${items.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : '';
+    };
+    // option id → content the user added at the step that chose it
+    const addedFor = new Map();
+    const reg = (id, arr) => { if (id) addedFor.set(id, (addedFor.get(id) || []).concat(arr || [])); };
+
+    // channel pick lives as 'sense:id' | 'bio:id'
+    const chId = (state.s3Channel || '').split(':')[1] || '';
+
+    reg(state.s2Cat1,    [state.species, state.sp1, state.sp2, state.sp3]);
+    reg(state.s2Cat2,    [state.sp1, state.sp2, state.sp3]);
+    reg(state.s3Cat,     [state.s3Species, state.s3Sp1, state.s3Sp2, state.s3Sp3]);
+    reg(state.s4Matter,  [state.s4MatterSpecific, state.s4M1, state.s4M2, state.s4M3]);
+    reg(state.s5Particle,[state.s5P1, state.s5P2, state.s5P3]);
+    reg(state.sense,     [state.sn1, state.sn2, state.sn3]);
+    reg(chId,            [state.s3C1, state.s3C2, state.s3C3]);
+    reg(state.s4Bio,     [state.s4B1, state.s4B2, state.s4B3]);
+    reg(state.s5Immune,  [state.s5I1, state.s5I2, state.s5I3]);
+
+    // one list item per option; chosen ones highlighted, with their added content below
+    const item = (o, pickedSet) => {
+      const picked = pickedSet.has(o.id);
+      return `<li class="scale-item${picked ? ' is-picked' : ''}">`
+        + `<span class="scale-item__head">`
+        + (o.icon ? `<span class="opt-ico">${o.icon}</span>` : '')
+        + `<span>${escapeHtml(o.label)}</span></span>`
+        + (picked ? addedHtml(addedFor.get(o.id)) : '')
+        + `</li>`;
+    };
+    // free-text chosen pick (animal, colour) — always shown, with its added content
+    const freeItem = (val, added, ball) => {
       const t = (val || '').trim(); if (!t) return '';
-      return `<li class="scale-item is-picked">`
+      return `<li class="scale-item is-picked"><span class="scale-item__head">`
         + (ball ? `<span class="color-ball" aria-hidden="true"></span>` : '')
-        + `<span>${escapeHtml(t)}</span></li>`;
+        + `<span>${escapeHtml(t)}</span></span>`
+        + addedHtml(added)
+        + `</li>`;
     };
     // merge option groups into a single de-duplicated list (by id) — no repeats
     const unique = (...groups) => {
@@ -4562,30 +4604,21 @@
       groups.forEach(g => g.forEach(o => { if (!seen.has(o.id)) seen.set(o.id, o); }));
       return Array.from(seen.values());
     };
+    // species shown as a full list (like the others): the SPECIES_TREE categories
+    const SPECIES_CATS = Object.keys(SPECIES_TREE).map(k => ({ id:k, label:k }));
 
-    // channel pick lives as 'sense:id' | 'bio:id'
-    const chType = (state.s3Channel || '').split(':')[0];
-    const chId   = (state.s3Channel || '').split(':')[1] || '';
-
-    // LEFT — Being · matter (free picks first, then the de-duped matter + particle set)
-    const s2Title = (state.species  || state.s2Cat2 || state.s2Cat1 || '').trim();
-    const s3Title = (state.s3Species || state.s3Cat || '').trim();
-    const leftPicked = new Set([state.s4Matter, state.s5Particle].filter(Boolean));
+    // LEFT — Being · matter: animal, the species list, then the matter + particle set
+    const leftPicked = new Set([state.s2Cat1, state.s2Cat2, state.s3Cat, state.s4Matter, state.s5Particle].filter(Boolean));
     const leftHtml =
-        freeItem(state.animal) + freeItem(s2Title) + freeItem(s3Title)
-      + freeItem((state.s4MatterSpecific || '').trim())
-      + unique(MATTER_SCALE, PARTICLES).map(o => item(o.label, o.icon, leftPicked.has(o.id))).join('');
+        freeItem(state.animal, [state.aq1, state.aq2, state.aq3])
+      + SPECIES_CATS.map(o => item(o, leftPicked)).join('')
+      + unique(MATTER_SCALE, PARTICLES).map(o => item(o, leftPicked)).join('');
 
-    // RIGHT — Experience · sense (colour first, then the de-duped sense + system + immune set)
-    const rightPicked = new Set([
-      state.sense,
-      chType === 'sense' ? chId : '',
-      chType === 'bio'   ? chId : '',
-      state.s4Bio, state.s5Immune
-    ].filter(Boolean));
+    // RIGHT — Experience · sense: colour, then the sense + system + immune set
+    const rightPicked = new Set([state.sense, chId, state.s4Bio, state.s5Immune].filter(Boolean));
     const rightHtml =
-        freeItem(state.color, true)
-      + unique(SENSES, BIO_SYSTEMS, IMMUNE).map(o => item(o.label, o.icon, rightPicked.has(o.id))).join('');
+        freeItem(state.color, [state.cq1, state.cq2, state.cq3], true)
+      + unique(SENSES, BIO_SYSTEMS, IMMUNE).map(o => item(o, rightPicked)).join('');
 
     wrap.innerHTML =
         `<div class="scale-list scale-list--a"><h3 class="scale-list__h">◑ Being · matter</h3><ul class="scale-items">${leftHtml}</ul></div>`

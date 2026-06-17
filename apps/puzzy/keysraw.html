@@ -26,9 +26,21 @@
   textarea{width:100%;min-height:2.4em}
   .combo-row{margin:.2rem 0}
   small{color:#666}
-  .tabs{margin:.6rem 0;display:flex;gap:.3rem;flex-wrap:wrap}
-  .tab{padding:.3rem .8rem;cursor:pointer}
+  .tabs{margin:.6rem 0;display:flex;gap:.4rem;flex-wrap:wrap}
+  .tab{padding:.5rem 1rem;cursor:pointer;min-height:44px}
   .tab[aria-pressed="true"]{font-weight:bold;text-decoration:underline}
+  /* mobile-superfriendly: 16px controls (no iOS zoom-on-focus), roomy taps */
+  select,input,textarea,button{font-size:16px;font-family:inherit}
+  select,input[type=text],input[type=email],input[type=tel]{min-height:40px;padding:.25rem .4rem;max-width:100%}
+  button,.tab,.lang label{min-height:40px}
+  label{padding:.2rem .15rem}
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+  @media (max-width:560px){
+    body{padding:.8rem .7rem 3rem}
+    h1{font-size:1.4rem} h2{font-size:1.2rem}
+    .deck{padding:.5rem .6rem}
+    textarea{min-height:3em}
+  }
 </style>
 </head>
 <body>
@@ -176,11 +188,11 @@
 </div>
 <div class="row"><label><span class="en">Audience</span><span class="es">Audiencia</span>:
   <select name="audience">
-    <option value="groups">Groups / Grupos</option>
-    <option value="friends">Friends / Amigos</option>
-    <option value="followers">Followers / Seguidores</option>
-    <option value="lists">Lists / Listas</option>
-    <option value="links">Links / Enlaces</option>
+    <option value="groups" data-en="Groups" data-es="Grupos">Groups</option>
+    <option value="friends" data-en="Friends" data-es="Amigos">Friends</option>
+    <option value="followers" data-en="Followers" data-es="Seguidores">Followers</option>
+    <option value="lists" data-en="Lists" data-es="Listas">Lists</option>
+    <option value="links" data-en="Links" data-es="Enlaces">Links</option>
   </select></label>
   <label><span class="en">When</span><span class="es">Cuándo</span>:
   <select name="day"><option>1</option><option>5</option><option>10</option><option selected>15</option><option>20</option><option>25</option><option>30</option></select>
@@ -211,6 +223,14 @@
   ];
   const MAIN = DECKS.filter(d => !d.extra);   // the triads (favourites pick from these)
   const bx = (en, es) => `<span class="en">${en}</span><span class="es">${es}</span>`;
+  // i18n for things CSS can't toggle (<option> text, placeholders): re-text them
+  // from data-en/data-es (or data-ph-en/data-ph-es) on language change.
+  const curLang = () => document.getElementById('lang-es').checked ? 'es' : 'en';
+  function applyLang(){
+    const li = curLang();
+    document.querySelectorAll('option[data-en]').forEach(o => { o.textContent = o.dataset[li]; });
+    document.querySelectorAll('[data-ph-en]').forEach(el => { el.placeholder = (li === 'es' ? el.dataset.phEs : el.dataset.phEn); });
+  }
   // one item row: an order select (1..n) + the word (preset, or a blank input)
   const itemRow = (gid, ci, en, es, n, blank) => {
     let opts = '<option value="">–</option>';
@@ -248,7 +268,7 @@
   // master mode (Step 0): five groups of three, picked from the main pool, + order + why
   const POOL = [];
   MAIN.forEach(d => d.items.forEach(it => POOL.push(it)));
-  const wordOpts = '<option value="">–</option>' + POOL.map((it, i) => `<option value="${i}">${it[0]} / ${it[1]}</option>`).join('');
+  const wordOpts = '<option value="">–</option>' + POOL.map((it, i) => `<option value="${i}" data-en="${it[0]}" data-es="${it[1]}">${it[0]}</option>`).join('');
   document.getElementById('master-groups').innerHTML = [1,2,3,4,5].map(g => {
     const picks = [0,1,2].map(c => `<div class="row"><select name="mg${g}-${c}">${wordOpts}</select></div>`).join('');
     return `<div class="deck"><h3>${bx('Group', 'Grupo')} ${g}</h3>`
@@ -271,7 +291,7 @@
   const chosen = () => Array.from(favBox.querySelectorAll('.fav:checked'));
   const comboRow = (en, es, revEn, revEs) => {
     const sw = revEn ? ` <button type="button" class="swap" data-en="${revEn}" data-es="${revEs}">⇄</button>` : '';
-    return `<div class="combo-row"><b>${bx(en, es)}</b>${sw} <input type="text" placeholder="definition / definición" size="26"></div>`;
+    return `<div class="combo-row"><b>${bx(en, es)}</b>${sw} <input type="text" data-ph-en="definition" data-ph-es="definición" placeholder="definition" size="26"></div>`;
   };
   function renderCombos(){
     const it = chosen().map(c => flat[+c.value]);
@@ -286,6 +306,7 @@
         html += comboRow(it[a].en + ' + ' + it[b].en, it[a].es + ' + ' + it[b].es,
                          it[b].en + ' + ' + it[a].en, it[b].es + ' + ' + it[a].es);
     combos.innerHTML = html;
+    applyLang();   // set the new definition placeholders to the active language
   }
   favBox.addEventListener('change', (e) => {
     if (e.target.classList.contains('fav') && e.target.checked && chosen().length > 3) e.target.checked = false; // cap at 3
@@ -294,10 +315,15 @@
   combos.addEventListener('click', (e) => {   // ⇄ reveal the reversed combo below (once)
     const b = e.target.closest('.swap'); if (!b) return;
     const row = document.createElement('div'); row.className = 'combo-row';
-    row.innerHTML = `<b>${bx(b.dataset.en, b.dataset.es)}</b> <input type="text" placeholder="definition / definición" size="26">`;
+    row.innerHTML = `<b>${bx(b.dataset.en, b.dataset.es)}</b> <input type="text" data-ph-en="definition" data-ph-es="definición" placeholder="definition" size="26">`;
     b.closest('.combo-row').after(row);
     b.disabled = true;
+    applyLang();
   });
+
+  // language radios re-text the <option>s and placeholders CSS can't toggle
+  document.querySelectorAll('input[name="lang"]').forEach(r => r.addEventListener('change', applyLang));
+  applyLang();
 })();
 </script>
 </body>

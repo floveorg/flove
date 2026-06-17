@@ -3227,7 +3227,11 @@
   .std-quick .sq-h{color:var(--muted);font:600 .68rem/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
   .std-quick-insight{flex:1 1 220px;color:var(--ink);font-size:.88rem;line-height:1.5;text-align:left;border-left:1px solid var(--stroke);padding-left:1rem}
   .std-quick-insight:empty{display:none}
-  .std-quick-insight-btnwrap{display:flex;align-items:center;justify-content:center}
+  .std-quick-hints{display:flex;flex-direction:column;gap:.4rem}
+  .std-quick-hints:empty{display:none}
+  /* All right-column hints — hidden on screen (the "More" cycles them), shown
+     expanded only in the HTML export. */
+  .ts-insight-all{display:none}
   .std-quick-insight b{color:var(--gold);font-weight:600}
   /* Detailed time stats: breakdown left, analyze/more right */
   .std-ts-cols{display:flex;flex-wrap:wrap;gap:1.2rem}
@@ -4755,6 +4759,10 @@ window.tKey = function tKey(k){
         </div>
       </div>
     </div>
+
+    <!-- Pistas (perspective insights) — between the new perspective and the
+         summary. Populated by renderTimeStats. -->
+    <div class="std-quick-persp-wrap" id="persp-block-host"></div>
 
     <!-- Hints, lifted out of the summary into a clean (no background, no border)
          strip just above it. Populated by renderBottomSummary. -->
@@ -6516,7 +6524,9 @@ window.tKey = function tKey(k){
     if (!col) return;
     if (!pool.length){ col.innerHTML = ''; return; }
     col.innerHTML = `<div class="ts-insight-list" id="ts-insight-list"></div>`
-      + `<button class="btn btn-soft" id="ts-insight-more" type="button">${escapeHTML(tKey('common.more'))}</button>`;
+      + `<button class="btn btn-soft" id="ts-insight-more" type="button">${escapeHTML(tKey('common.more'))}</button>`
+      // All hints, kept hidden on screen but expanded in the HTML export.
+      + `<div class="ts-insight-all">${pool.map(h => `<div class="ts-hint">${h}</div>`).join('')}</div>`;
     const list = col.querySelector('#ts-insight-list');
     const btn  = col.querySelector('#ts-insight-more');
     const MAX = pool.length;
@@ -6604,35 +6614,27 @@ window.tKey = function tKey(k){
       quick += node(tKey('stats.main_triads'), decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node(tKey('stats.extra_triads'), ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node(tKey('stats.additional_perspective'), secondPlayMs, 0);
-      // The quick insight is no longer shown above the table by default: a
-      // centered "Insights" button sits here, and the text is revealed by the
-      // "More" button in the right column below the table (see wireTsInsight).
+      // Above the table: the stats, then two hints (these replaced the old
+      // "Insights"/Reflexiones button). The Pistas (perspective insights) moved
+      // down to their own block between the new perspective and the summary.
+      const topHint2 = (typeof buildContrastHintHTML === 'function' ? buildContrastHintHTML() : '');
       $top.innerHTML = `<div class="std-quick-wrap">`
         + `<div class="std-quick std-tsn-list">${quick}</div>`
-        + `<div class="std-quick-insight std-quick-insight-btnwrap">`
-        +   `<button class="btn btn-soft" id="quick-insight-btn" type="button">${escapeHTML(tKey('btn.insights'))}</button>`
-        + `</div>`
-        + `</div>`
-        // The perspective insights moved here (above the table): a "More" button
-        // under the hint reveals/cycles them. (Was the table's right column.)
-        + `<div class="std-quick-persp">`
-        +   `<button class="btn btn-soft persp-more-btn" id="persp-more" type="button">${escapeHTML(tKey('common.more'))}</button>`
-        +   `<div class="persp-insight-list" id="persp-insight-list" hidden></div>`
+        + `<div class="std-quick-insight std-quick-hints">${hintHTML || ''}${topHint2 || ''}</div>`
         + `</div>`;
-      // The "Insights" button surfaces the insight in the right column below the
-      // table (revealing the stats panel if collapsed) and scrolls to it.
-      const $qib = document.getElementById('quick-insight-btn');
-      if ($qib) $qib.addEventListener('click', () => {
-        _timeStatsOn = true;
-        if (typeof renderBottomSummary === 'function') renderBottomSummary();
-        renderTimeStats();
-        const col = document.getElementById('ts-insight-col');
-        if (col) setTimeout(() => col.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
-      });
       // Master-mode stats + substats stay visible above the table (not gated
       // behind the Stats toggle) once Master's Step 0 has been played.
       const masterPlayed = !!state.step0Completed || !!state.masterDone || state.gameMode === 'master';
       $top.hidden = !(_timeStatsOn || masterPlayed);
+    }
+    // Pistas (perspective insights), now rendered between the new-perspective
+    // section and the summary instead of above the table.
+    const $perspHost = document.getElementById('persp-block-host');
+    if ($perspHost){
+      $perspHost.innerHTML = `<div class="std-quick-persp">`
+        + `<button class="btn btn-soft persp-more-btn" id="persp-more" type="button">${escapeHTML(tKey('btn.hints'))}</button>`
+        + `<div class="persp-insight-list" id="persp-insight-list" hidden></div>`
+        + `</div>`;
       wirePerspInsights();
     }
 
@@ -9798,7 +9800,10 @@ window.tKey = function tKey(k){
       .kx-extras{position:relative;z-index:1;margin-top:20px;border-top:1px solid rgba(255,255,255,.12);padding-top:16px}
       .kx-extras .magic-panel,.kx-extras .insight-panel{display:block !important}
       .kx-extras .im-cols{display:flex;gap:1.2rem;justify-content:center;align-items:flex-start;flex-wrap:wrap}
-      .kx-extras .im-col{flex:1 1 0;min-width:220px;max-width:360px}`;
+      .kx-extras .im-col{flex:1 1 0;min-width:220px;max-width:360px}
+      /* Export: expand all right-column time-stats hints; hide the cycler. */
+      .kx-card .ts-insight-all{display:block !important}
+      .kx-card #ts-insight-list,.kx-card #ts-insight-more{display:none !important}`;
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>flove · keys — summary</title>`
       + `<style>${summaryPageCSS()}\n${frameCSS}</style></head>`
       + `<body class="kx-page"><div class="kx-frame"><div class="kx-card">`

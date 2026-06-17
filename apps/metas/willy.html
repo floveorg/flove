@@ -54,21 +54,37 @@
     letter-spacing:.01em;
   }
   .flove-bar .flove-spacer{ flex:1 1 auto }
-  .flove-bar .flove-home,
-  .flove-bar .about-btn{
-    color:var(--ink-dim); text-decoration:none;
-    font-size:.85rem; font-weight:600;
-    padding:6px 12px; border-radius:var(--radius-pill);
-    border:1px solid var(--line);
-    background:transparent; cursor:pointer;
-    font-family:inherit;
-    transition:all var(--fast);
+  /* logo + title act together as a menu trigger */
+  .flove-bar .app-trigger{
+    display:flex; align-items:center; gap:10px;
+    background:transparent; border:0; cursor:pointer;
+    color:var(--ink); font-family:inherit; padding:3px 8px; border-radius:10px;
+    transition:background var(--fast);
   }
-  .flove-bar .flove-home:hover,
-  .flove-bar .about-btn:hover{ color:var(--accent); border-color:var(--accent) }
-  body:has(#about-toggle:checked) .flove-bar .about-btn{
-    color:#001018; background:var(--accent); border-color:var(--accent);
+  .flove-bar .app-trigger:hover{ background:rgba(255,255,255,.05) }
+  .flove-bar .app-trigger:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+  .app-caret{ color:var(--ink-dim); font-size:.7rem; transition:transform var(--fast) }
+  .app-trigger[aria-expanded="true"] .app-caret{ transform:rotate(180deg); color:var(--accent) }
+
+  /* dropdown menu under the logo (holds About + flove) */
+  .app-menu{
+    position:absolute; top:50px; left:14px; z-index:33;
+    min-width:160px; padding:6px;
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:0 12px 32px rgba(0,0,0,.45);
+    display:none; flex-direction:column; gap:2px;
   }
+  .app-menu.open{ display:flex }
+  .app-menu-item{
+    display:block; text-align:left; width:100%;
+    padding:9px 12px; border-radius:var(--radius-sm);
+    background:transparent; border:0; cursor:pointer;
+    color:var(--ink); text-decoration:none;
+    font:600 .9rem/1 var(--font-ui);
+    transition:background var(--fast), color var(--fast);
+  }
+  .app-menu-item:hover{ background:rgba(77,208,225,.10); color:var(--accent) }
+  .app-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px }
 
   /* hidden state controls (focusable for keyboard users) */
   .about-ctl,
@@ -392,7 +408,7 @@
 </head>
 <body>
 
-<!-- About panel state (checkbox toggled by .about-btn / closed by backdrop) -->
+<!-- About panel state (checkbox set by the menu's About item / closed by backdrop) -->
 <input type="checkbox" id="about-toggle" class="about-ctl">
 
 <!-- ─── Share / Publish cycle state (Save is now a direct export button) ─── -->
@@ -404,26 +420,33 @@
 
 <!-- ─── topbar ─────────────────────────────────────────────────── -->
 <div class="flove-bar">
-  <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
-    <defs>
-      <linearGradient id="g-willy" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-        <stop offset="0%"   stop-color="#4dd0e1"/>
-        <stop offset="55%"  stop-color="#2ba5b5"/>
-        <stop offset="100%" stop-color="#ff8a65"/>
-      </linearGradient>
-    </defs>
-    <g fill="none" stroke="url(#g-willy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="14" y="14" width="72" height="72" rx="3"/>
-      <line x1="14" y1="50" x2="86" y2="50"/>
-      <line x1="50" y1="14" x2="50" y2="86"/>
-    </g>
-    <circle cx="50" cy="50" r="6" fill="url(#g-willy)"/>
-  </svg>
-  <span class="flove-app-name">willy</span>
+  <button class="app-trigger" id="appTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="appMenu" title="Menu">
+    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="g-willy" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#4dd0e1"/>
+          <stop offset="55%"  stop-color="#2ba5b5"/>
+          <stop offset="100%" stop-color="#ff8a65"/>
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke="url(#g-willy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="14" y="14" width="72" height="72" rx="3"/>
+        <line x1="14" y1="50" x2="86" y2="50"/>
+        <line x1="50" y1="14" x2="50" y2="86"/>
+      </g>
+      <circle cx="50" cy="50" r="6" fill="url(#g-willy)"/>
+    </svg>
+    <span class="flove-app-name">willy</span>
+    <span class="app-caret" aria-hidden="true">▾</span>
+  </button>
   <span class="flove-spacer"></span>
-  <label class="about-btn" for="about-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="about-panel" title="About">About</label>
-  <a class="flove-home" href="index.html" aria-label="Back to flove launcher">← flove</a>
 </div>
+
+<!-- App menu (opens under the logo/title) — About + flove moved here from the topbar -->
+<nav class="app-menu" id="appMenu" aria-label="App menu">
+  <button type="button" class="app-menu-item" id="menuAbout">About</button>
+  <a class="app-menu-item" href="index.html" aria-label="Back to flove launcher">← flove</a>
+</nav>
 
 <!-- Click-outside backdrop: clicking it unchecks #about-toggle and closes the panel -->
 <label class="about-backdrop" for="about-toggle" aria-label="Close About"></label>
@@ -1092,6 +1115,25 @@
     const aud   = $('#pub-all').checked ? 'All' : $('#pubTarget').selectedOptions[0].textContent;
     toast(`Scheduled ${when} → ${aud} (demo)`, 2400);
   });
+
+  // ── app menu (logo/title opens it; holds About + flove) ────
+  const appTrigger  = $('#appTrigger');
+  const appMenu     = $('#appMenu');
+  const aboutToggle = $('#about-toggle');
+  if (appTrigger && appMenu){
+    const closeMenu = () => { appMenu.classList.remove('open'); appTrigger.setAttribute('aria-expanded','false'); };
+    const openMenu  = () => { appMenu.classList.add('open');    appTrigger.setAttribute('aria-expanded','true'); };
+    appTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      appMenu.classList.contains('open') ? closeMenu() : openMenu();
+    });
+    document.addEventListener('click', (e) => {
+      if (appMenu.classList.contains('open') && !appMenu.contains(e.target) && !appTrigger.contains(e.target)) closeMenu();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+    const menuAbout = $('#menuAbout');
+    if (menuAbout) menuAbout.addEventListener('click', () => { if (aboutToggle) aboutToggle.checked = true; closeMenu(); });
+  }
 
   // ── boot ────────────────────────────────────────────────────
   ensureLayers();

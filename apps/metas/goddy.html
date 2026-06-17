@@ -233,9 +233,15 @@
 
         /* Insights */
         .insights-wrapper {
-            display: flex;
+            display: none;
             justify-content: center;
             margin: 20px 0 10px;
+        }
+        /* the Insights button appears once any cell has been tapped (lvl 1+) */
+        body:has(.cell-input[data-lvl="1"]:checked) .insights-wrapper,
+        body:has(.cell-input[data-lvl="2"]:checked) .insights-wrapper,
+        body:has(.cell-input[data-lvl="3"]:checked) .insights-wrapper {
+            display: flex;
         }
         .insight-btn {
             background: #2d253b;
@@ -263,19 +269,100 @@
             color: #3a2c4e;
             padding: 12px 18px;
         }
+
+        /* ── Brand (logo + title) opens a normal menu — no caret/triangle ── */
+        .flove-bar .goddy-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: 0;
+            padding: 2px 4px;
+            cursor: pointer;
+            color: inherit;
+            font: inherit;
+        }
+        .flove-bar .flove-app-name {
+            font-family: var(--gothic-modern);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            font-size: 1.05rem;
+            color: #2d253b;
+            text-transform: uppercase;
+        }
+        .goddy-menu {
+            position: fixed;
+            top: 48px;
+            left: 12px;
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            min-width: 190px;
+            background: #ffffff;
+            border: 1px solid #d9c9f0;
+            box-shadow: 0 18px 28px -12px rgba(61,44,85,0.35);
+            overflow: hidden;
+        }
+        .goddy-menu[hidden] { display: none; }
+        .goddy-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: none;
+            border: 0;
+            text-align: left;
+            font: 500 0.95rem system-ui, -apple-system, sans-serif;
+            color: #2d253b;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .goddy-menu-item:hover { background: #f1ebfb; }
+        .goddy-menu-item i { color: #7c6a9c; width: 16px; text-align: center; }
+
+        /* ── "About goddy" — the 1/2/1 insight typed above the table ── */
+        .about-goddy {
+            margin: 4px 0 14px;
+            padding: 14px 18px;
+            background: #2d253b;
+            color: #ede7fb;
+            font-size: 1rem;
+            line-height: 1.55;
+            border-left: 3px solid var(--app-accent);
+        }
+        .about-goddy[hidden] { display: none; }
+        .about-goddy .type-caret {
+            display: inline-block;
+            width: 0.55ch;
+            color: #d9c5ff;
+            animation: caret-blink 1s step-end infinite;
+        }
+        @keyframes caret-blink { 50% { opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) {
+            .about-goddy .type-caret { animation: none; }
+        }
     </style>
 </head>
 <body>
 
 <div class="flove-bar">
   <a class="flove-home" href="index.html">←</a>
-  <a href="goddess.html" class="flove-mark-link" aria-label="reload" style="display:inline-flex; align-items:center;">
+  <button type="button" class="flove-mark-link goddy-brand" id="goddyMenuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="goddyMenu" style="display:inline-flex; align-items:center;">
     <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;"><defs><linearGradient id="g-goddess" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c133ff"/><stop offset="50%" stop-color="#6a3aff"/><stop offset="100%" stop-color="#ff8aae"/></linearGradient></defs><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M64 22 a30 30 0 1 0 0 56 a18 18 0 1 1 0 -56 z" fill="url(#g-goddess)" stroke="none"/><circle cx="32" cy="50" r="5" fill="url(#g-goddess)" stroke="none"/></g></svg>
-  </a>
+    <span class="flove-app-name">Goddy</span>
+  </button>
   <span class="flove-spacer"></span>
+  <nav class="goddy-menu" id="goddyMenu" hidden aria-label="Goddy menu">
+    <button type="button" class="goddy-menu-item" data-action="about"><i class="fas fa-circle-info"></i> About goddy</button>
+    <a class="goddy-menu-item" href="goddess.html"><i class="fas fa-rotate-right"></i> Reload</a>
+  </nav>
 </div>
 
 <div class="app">
+    <!-- About goddy — the 1/2/1 insight, typed above the table -->
+    <div class="about-goddy" id="aboutGoddy" hidden aria-live="polite"></div>
+
     <!-- Interactive Matrix -->
     <div class="matrix-section">
         <div class="matrix-grid" id="matrixGrid">
@@ -435,6 +522,8 @@
 
         const rows = ['goddess', 'god', 'us'];
         const cols = ['goddess', 'god', 'us'];
+        const APP_TITLE = 'God(dess) Matrix';
+        const APP_DESC  = 'Goddess, God and Us — who sees who: a bipolar whole read through its unique part (1/2/1).';
 
         const hintMessage = document.getElementById('hintMessage');
         const saveBtn = document.getElementById('saveBtn');
@@ -496,9 +585,11 @@
         function buildFullHTML() {
             const matrixHtml = generateMatrixHTML();
             return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>God(dess) Matrix</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></head>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${APP_TITLE}</title><meta name="description" content="${APP_DESC}"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></head>
 <body style="background:#f8f9fc; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:16px; font-family:system-ui;">
-<div style="max-width:500px; width:100%;">
+<div style="max-width:500px; width:100%; text-align:center;">
+    <h1 style="font-family:Georgia,serif; font-size:1.5rem; letter-spacing:.02em; color:#2d253b; margin:0 0 6px;">${APP_TITLE}</h1>
+    <p style="font-size:.92rem; color:#6b6280; margin:0 0 18px; line-height:1.5;">${APP_DESC}</p>
     ${matrixHtml}
 </div>
 </body></html>`;
@@ -569,7 +660,7 @@
             ctx.fillText('GOD(DESS) MATRIX', W/2, 40);
             ctx.font = 'italic 13px system-ui';
             ctx.fillStyle = '#8b8398';
-            ctx.fillText('who sees who', W/2, 64);
+            ctx.fillText('Goddess · God · Us — who sees who (1/2/1)', W/2, 64);
 
             ctx.font = '600 16px system-ui';
             ctx.fillStyle = '#2d253b';
@@ -684,6 +775,44 @@
             insightStep = (insightStep + 1) % 3;
         }
         insightsBtn.addEventListener('click', (e) => { e.stopPropagation(); showInsightHint(); });
+
+        // ── Brand menu (logo + title) — a normal dropdown, no caret/triangle ──
+        const goddyMenuBtn = document.getElementById('goddyMenuBtn');
+        const goddyMenu = document.getElementById('goddyMenu');
+        function setMenu(open) {
+            goddyMenu.hidden = !open;
+            goddyMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        goddyMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(goddyMenu.hidden); });
+        goddyMenu.addEventListener('click', (e) => e.stopPropagation());
+        document.addEventListener('click', () => setMenu(false));
+
+        // ── About goddy: type the 1/2/1 insight above the table ──
+        const aboutGoddy = document.getElementById('aboutGoddy');
+        const ABOUT_TEXT = 'We normally see the whole divided by its parts (1/n). Goddy shows you a bipolar whole for a unique part (1/2/1) and invites you to tell what each one sees in the others.';
+        let aboutTimer = null;
+        function typeAbout() {
+            if (aboutTimer) { clearInterval(aboutTimer); aboutTimer = null; }
+            const caret = document.createElement('span');
+            caret.className = 'type-caret';
+            caret.textContent = '▏';
+            aboutGoddy.hidden = false;
+            aboutGoddy.textContent = '';
+            aboutGoddy.appendChild(caret);
+            aboutGoddy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            let i = 0;
+            aboutTimer = setInterval(() => {
+                i++;
+                aboutGoddy.textContent = ABOUT_TEXT.slice(0, i);
+                aboutGoddy.appendChild(caret);
+                if (i >= ABOUT_TEXT.length) { clearInterval(aboutTimer); aboutTimer = null; }
+            }, 22);
+        }
+        document.querySelector('.goddy-menu-item[data-action="about"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            setMenu(false);
+            typeAbout();
+        });
     })();
 </script>
 

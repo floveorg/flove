@@ -134,27 +134,14 @@
     border:1px solid var(--line);
     border-radius:var(--radius); padding:12px;
   }
-  .words-panel{ display:flex; flex-direction:column; gap:12px; min-height:300px }
-
-  /* ── tabs ───────────────────────────────────────────────────── */
-  .tabs{
-    display:flex; background:#0d1018;
-    border:1px solid var(--line); border-radius:var(--radius-sm);
-    overflow:hidden;
+  .words-panel{ display:flex; flex-direction:column; gap:10px; min-height:300px }
+  .col-title{
+    margin:8px 0 2px; font:700 .78rem/1 var(--font-ui);
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim);
   }
-  .tab{
-    flex:1; padding:10px 12px;
-    background:transparent; border:0;
-    color:var(--ink); cursor:pointer;
-    font:600 .9rem/1 var(--font-ui);
-    transition:background var(--fast), color var(--fast);
-  }
-  .tab:hover{ background:rgba(77,208,225,.08) }
-  .tab.active{ background:var(--accent); color:#001018; font-weight:700 }
-  .tab:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px }
-
-  .tabpanel{ display:none }
-  .tabpanel.active{ display:block }
+  .col-title:first-child{ margin-top:0 }
+  /* Wills square lives in the left column, full column width (override .axis-wrap's 75%) */
+  .words-panel .wills-wrap{ width:100%; max-width:100%; margin:4px auto 6px }
 
   /* ── chip lists ─────────────────────────────────────────────── */
   .word-list{ display:flex; flex-wrap:wrap; gap:8px; padding:8px }
@@ -249,12 +236,9 @@
     background:radial-gradient(120% 120% at 50% 0%, rgba(77,208,225,.08), transparent 60%);
   }
   .axis-svg{ position:absolute; inset:0; width:100%; height:100% }
-  /* per-mode axis lines: wills = dashed (to corners) · virtuesins = continuous (top/bottom trimmed) */
-  .lines-wills  .ln{ stroke:var(--line);  stroke-width:1.2 }                      /* continuous cross */
-  .lines-virtue .ln{ stroke:var(--faint); stroke-width:1; stroke-dasharray:2 3 }  /* discontinuous diagonals */
-  .lines-virtue{ display:none }
-  .axis-square.mode-virtue .lines-wills { display:none }
-  .axis-square.mode-virtue .lines-virtue{ display:block }
+  /* wills square: continuous cross · virtuesins square: discontinuous diagonals */
+  .lines-cross .ln{ stroke:var(--line);  stroke-width:1.2 }
+  .lines-diag  .ln{ stroke:var(--faint); stroke-width:1; stroke-dasharray:2 3 }
 
   /* ── dropzones ──────────────────────────────────────────────── */
   .zones-layer{ position:absolute; inset:0 }
@@ -460,56 +444,49 @@
 </aside>
 
 <main class="layout">
-  <!-- Column 1: Words / Tabs -->
+  <!-- Left column: Wills (words + its own cross square) then VirtueSins (title + words) -->
   <aside class="panel words-panel">
-    <nav class="tabs" role="tablist" aria-label="Word categories">
-      <button class="tab active" role="tab" aria-selected="true"  aria-controls="tab-wills"     data-tab="wills">Wills</button>
-      <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-virtuesin" data-tab="virtuesin">VirtueSins</button>
-    </nav>
+    <h2 class="col-title">Wills</h2>
+    <div class="word-list" id="wills-list"></div>
+    <div class="actions">
+      <button id="willsLoadMore" class="btn" aria-pressed="false">Informal</button>
+    </div>
 
-    <!-- Wills -->
-    <section id="tab-wills" class="tabpanel active" role="tabpanel" aria-labelledby="wills">
-      <div class="word-list" id="wills-list"></div>
-      <div class="actions">
-        <button id="willsLoadMore" class="btn" aria-pressed="false">Informal</button>
+    <!-- Wills square (continuous cross) — sized to the left column width -->
+    <div class="axis-wrap wills-wrap">
+      <div class="axis-square" id="willsAxis">
+        <svg viewBox="0 0 100 100" class="axis-svg" aria-hidden="true">
+          <g class="lines-cross">
+            <line class="ln" x1="1"  y1="50" x2="99" y2="50"/>
+            <line class="ln" x1="50" y1="1"  x2="50" y2="99"/>
+          </g>
+        </svg>
+        <!-- wills layers injected by JS -->
       </div>
-    </section>
+    </div>
 
-    <!-- Virtue/Sin -->
-    <section id="tab-virtuesin" class="tabpanel" role="tabpanel" aria-labelledby="virtuesin">
-      <div class="word-grid" id="virtuesin-list"></div>
-      <div class="actions">
-        <button id="virtueLoadMore" class="btn" aria-pressed="false">Informal</button>
-      </div>
-    </section>
-
-    <div class="actions mobile-only">
-      <button id="nextBtn" class="btn">Next →</button>
+    <h2 class="col-title">VirtueSins</h2>
+    <div class="word-grid" id="virtuesin-list"></div>
+    <div class="actions">
+      <button id="virtueLoadMore" class="btn" aria-pressed="false">Informal</button>
     </div>
   </aside>
 
-  <!-- Column 2: Axis Square -->
+  <!-- Right column: VirtueSins square only (discontinuous diagonals) -->
   <section class="panel axis-panel">
     <div class="axis-wrap">
       <div class="axis-square" id="axis">
         <svg viewBox="0 0 100 100" class="axis-svg" aria-hidden="true">
-          <!-- Wills view: continuous cross (horizontal + vertical), no diagonals -->
-          <g class="lines-wills">
-            <line class="ln" x1="1"  y1="50" x2="99" y2="50"/>
-            <line class="ln" x1="50" y1="1"  x2="50" y2="99"/>
-          </g>
-          <!-- VirtueSins view: discontinuous diagonals only (top/bottom ends pulled ~15px in), no cross -->
-          <g class="lines-virtue">
+          <g class="lines-diag">
             <line class="ln" x1="4"  y1="2.5"  x2="99" y2="50"/>
             <line class="ln" x1="96" y1="2.5"  x2="1"  y2="50"/>
             <line class="ln" x1="4"  y1="97.5" x2="99" y2="50"/>
             <line class="ln" x1="96" y1="97.5" x2="1"  y2="50"/>
           </g>
         </svg>
-        <!-- Layers are injected by JS -->
+        <!-- virtue layers injected by JS -->
       </div>
     </div>
-
   </section>
 </main>
 
@@ -632,13 +609,11 @@
   };
 
   // ── DOM refs ────────────────────────────────────────────────
-  const tabs            = $$('.tab');
-  const panels          = { wills: $('#tab-wills'), virtuesin: $('#tab-virtuesin') };
   const willsList       = $('#wills-list');
   const virtueList      = $('#virtuesin-list');
   const willsLoadMore   = $('#willsLoadMore');
   const virtueLoadMore  = $('#virtueLoadMore');
-  const nextBtn         = $('#nextBtn');
+  const willsAxis       = $('#willsAxis');
   const axis            = $('#axis');
   const tplCore         = $('#tpl-core-zones');
   const tplVirtue       = $('#tpl-virtue-zones');
@@ -647,7 +622,6 @@
   const STORAGE_KEY = 'flove.willy.v1';
 
   let state = {
-    tab: 'wills',
     wills:  { active: 'A' },
     virtue: { active: 'A' },
     layers: {
@@ -726,49 +700,19 @@
     ['A','B'].forEach(s => {
       state.layers.wills[s]  = createLayer('wills',  s);
       state.layers.virtue[s] = createLayer('virtue', s);
-      axis.appendChild(state.layers.wills[s]);
-      axis.appendChild(state.layers.virtue[s]);
+      willsAxis.appendChild(state.layers.wills[s]);   // wills cross square (left column)
+      axis.appendChild(state.layers.virtue[s]);        // virtuesins square (right column)
     });
   }
 
   function updateLayerVisibility(){
-    // hide everything first
+    // each square always shows its active set's layer; the other sets stay hidden
     Object.values(state.layers.wills)
       .concat(Object.values(state.layers.virtue))
       .forEach(el => el && el.classList.add('hidden'));
-
-    if (state.tab === 'wills'){
-      // wills tab: only the active wills layer shows
-      state.layers.wills[state.wills.active].classList.remove('hidden');
-    } else {
-      // virtue tab: only the active virtue layer shows
-      state.layers.virtue[state.virtue.active].classList.remove('hidden');
-    }
+    state.layers.wills[state.wills.active].classList.remove('hidden');
+    state.layers.virtue[state.virtue.active].classList.remove('hidden');
   }
-
-  function toggleAxisMode(mode){
-    // axis lines swap by mode: wills = dashed (to corners) · virtuesins = solid (trimmed)
-    axis.classList.toggle('mode-virtue', mode !== 'wills');
-    axis.classList.toggle('mode-wills',  mode === 'wills');
-    updateLayerVisibility();
-  }
-
-  // ── tabs ────────────────────────────────────────────────────
-  tabs.forEach(t => {
-    t.addEventListener('click', () => {
-      tabs.forEach(x => {
-        x.classList.remove('active');
-        x.setAttribute('aria-selected', 'false');
-      });
-      t.classList.add('active');
-      t.setAttribute('aria-selected', 'true');
-
-      const target = t.dataset.tab;
-      Object.entries(panels).forEach(([k, el]) => el.classList.toggle('active', k === target));
-      state.tab = target;
-      toggleAxisMode(target === 'wills' ? 'wills' : 'virtue');
-    });
-  });
 
   // ── set-toggle buttons: A = Informal (default), B = Formal ──
   function refreshSetButton(btn, set){
@@ -782,23 +726,14 @@
     state.wills.active = state.wills.active === 'A' ? 'B' : 'A';
     renderWillsList();
     refreshSetButton(willsLoadMore, state.wills.active);
-    toggleAxisMode('wills');
+    updateLayerVisibility();
   });
   virtueLoadMore.addEventListener('click', () => {
     state.virtue.active = state.virtue.active === 'A' ? 'B' : 'A';
     renderVirtuesList();
     refreshSetButton(virtueLoadMore, state.virtue.active);
-    toggleAxisMode('virtue');
+    updateLayerVisibility();
   });
-
-  // ── mobile "Next" button toggles between the two tabs ───────
-  if (nextBtn){
-    nextBtn.addEventListener('click', () => {
-      const next = state.tab === 'wills' ? 'virtuesin' : 'wills';
-      const btn = tabs.find(t => t.dataset.tab === next);
-      if (btn) btn.click();
-    });
-  }
 
   // ── drag and drop ───────────────────────────────────────────
   let dragged = null;
@@ -1143,7 +1078,7 @@
   loadPlacements();
   renderWillsList();
   renderVirtuesList();
-  toggleAxisMode('wills');
+  updateLayerVisibility();
 
   // sync button label with the (possibly restored) active set
   refreshSetButton(willsLoadMore,  state.wills.active);

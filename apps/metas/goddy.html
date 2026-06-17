@@ -328,9 +328,23 @@
             color: #2d253b;
             font-size: 1rem;
             line-height: 1.6;
-            white-space: pre-line;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
-        .about-goddy[hidden] { display: none; }
+        /* hidden until opened from the menu; the ✕ collapses it back — pure CSS */
+        body:not(:has(#aboutToggle:checked)) .about-goddy { display: none; }
+        .about-text { white-space: pre-line; }
+        .about-close {
+            margin-top: .7rem;
+            font-size: 1.05rem;
+            line-height: 1;
+            color: var(--app-accent);
+            cursor: pointer;
+            user-select: none;
+            transition: color .15s;
+        }
+        .about-close:hover { color: #6d28d9; }
         .about-goddy .type-caret {
             display: inline-block;
             width: 0.55ch;
@@ -358,8 +372,12 @@
 </div>
 
 <div class="app">
-    <!-- About goddy — the 1/2/1 insight, typed above the table -->
-    <div class="about-goddy" id="aboutGoddy" hidden aria-live="polite"></div>
+    <!-- About goddy — the 1/2/1 insight, typed above the table; ✕ collapses it (pure-CSS toggle) -->
+    <input type="checkbox" id="aboutToggle" hidden>
+    <div class="about-goddy" id="aboutGoddy" aria-live="polite">
+      <span class="about-text" id="aboutText"></span>
+      <label class="about-close" for="aboutToggle" aria-label="Collapse" title="Collapse">✕</label>
+    </div>
 
     <!-- Interactive Matrix -->
     <div class="matrix-section">
@@ -784,7 +802,8 @@
         document.addEventListener('click', () => setMenu(false));
 
         // ── About goddy: type the 1/2/1 insight above the table ──
-        const aboutGoddy = document.getElementById('aboutGoddy');
+        const aboutToggle = document.getElementById('aboutToggle');
+        const aboutText = document.getElementById('aboutText');
         const ABOUT_TEXT = [
             'We normally see the whole divided by its parts (1/n).',
             'Goddy shows you a bipolar whole for a unique part (1/2 /1)',
@@ -796,21 +815,25 @@
             const caret = document.createElement('span');
             caret.className = 'type-caret';
             caret.textContent = '▏';
-            aboutGoddy.hidden = false;
-            aboutGoddy.textContent = '';
-            aboutGoddy.appendChild(caret);
-            aboutGoddy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            aboutText.textContent = '';
+            aboutText.appendChild(caret);
+            aboutText.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             let i = 0;
             aboutTimer = setInterval(() => {
                 i++;
-                aboutGoddy.textContent = ABOUT_TEXT.slice(0, i);
-                aboutGoddy.appendChild(caret);
+                aboutText.textContent = ABOUT_TEXT.slice(0, i);
+                aboutText.appendChild(caret);
                 if (i >= ABOUT_TEXT.length) { clearInterval(aboutTimer); aboutTimer = null; }
             }, 110);
         }
+        // collapsing via the ✕ is pure CSS (label → checkbox); JS only stops the typing
+        aboutToggle.addEventListener('change', () => {
+            if (!aboutToggle.checked && aboutTimer) { clearInterval(aboutTimer); aboutTimer = null; }
+        });
         document.querySelector('.goddy-menu-item[data-action="about"]').addEventListener('click', (e) => {
             e.stopPropagation();
             setMenu(false);
+            aboutToggle.checked = true;
             typeAbout();
         });
     })();

@@ -334,7 +334,14 @@
         }
         /* hidden until opened from the menu; the ✕ collapses it back — pure CSS */
         body:not(:has(#aboutToggle:checked)) .about-goddy { display: none; }
-        .about-text { white-space: pre-line; }
+        .about-text { display: block; }
+        /* each line wipes in left-to-right (stepped = typed feel), staggered — pure CSS */
+        .about-line {
+            display: block;
+            clip-path: inset(0 100% 0 0);
+            animation: about-wipe .8s steps(28, end) var(--d, 0s) both;
+        }
+        @keyframes about-wipe { to { clip-path: inset(0 0 0 0); } }
         .about-close {
             margin-top: .7rem;
             font-size: 1.05rem;
@@ -354,6 +361,7 @@
         @keyframes caret-blink { 50% { opacity: 0; } }
         @media (prefers-reduced-motion: reduce) {
             .about-goddy .type-caret { animation: none; }
+            .about-line { clip-path: none; animation: none; }
         }
     </style>
 </head>
@@ -366,16 +374,20 @@
   </button>
   <span class="flove-spacer"></span>
   <nav class="goddy-menu" id="goddyMenu" hidden aria-label="Goddy menu">
-    <button type="button" class="goddy-menu-item" data-action="about"><i class="fas fa-circle-info"></i> About goddy</button>
+    <label class="goddy-menu-item" for="aboutToggle"><i class="fas fa-circle-info"></i> About goddy</label>
     <a class="goddy-menu-item" href="goddess.html"><i class="fas fa-rotate-right"></i> Reload</a>
   </nav>
 </div>
 
 <div class="app">
-    <!-- About goddy — the 1/2/1 insight, typed above the table; ✕ collapses it (pure-CSS toggle) -->
+    <!-- About goddy — the 1/2/1 insight, revealed line-by-line by CSS; ✕ collapses it. 100% CSS. -->
     <input type="checkbox" id="aboutToggle" hidden>
     <div class="about-goddy" id="aboutGoddy" aria-live="polite">
-      <span class="about-text" id="aboutText"></span>
+      <span class="about-text">
+        <span class="about-line" style="--d:0s">We normally see the whole divided by its parts (1/n).</span>
+        <span class="about-line" style="--d:.7s">Goddy shows you a bipolar whole for a unique part (1/2 /1)</span>
+        <span class="about-line" style="--d:1.4s">and invites you to tell what each part sees or not.<span class="type-caret">▏</span></span>
+      </span>
       <label class="about-close" for="aboutToggle" aria-label="Collapse" title="Collapse">✕</label>
     </div>
 
@@ -798,44 +810,9 @@
             goddyMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
         goddyMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(goddyMenu.hidden); });
-        goddyMenu.addEventListener('click', (e) => e.stopPropagation());
+        // menu items close the menu on click (bubbles up to the document handler);
+        // "About goddy" is a pure-CSS toggle (label → #aboutToggle), no JS needed
         document.addEventListener('click', () => setMenu(false));
-
-        // ── About goddy: type the 1/2/1 insight above the table ──
-        const aboutToggle = document.getElementById('aboutToggle');
-        const aboutText = document.getElementById('aboutText');
-        const ABOUT_TEXT = [
-            'We normally see the whole divided by its parts (1/n).',
-            'Goddy shows you a bipolar whole for a unique part (1/2 /1)',
-            'and invites you to tell what each part sees or not.'
-        ].join('\n');
-        let aboutTimer = null;
-        function typeAbout() {
-            if (aboutTimer) { clearInterval(aboutTimer); aboutTimer = null; }
-            const caret = document.createElement('span');
-            caret.className = 'type-caret';
-            caret.textContent = '▏';
-            aboutText.textContent = '';
-            aboutText.appendChild(caret);
-            aboutText.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            let i = 0;
-            aboutTimer = setInterval(() => {
-                i++;
-                aboutText.textContent = ABOUT_TEXT.slice(0, i);
-                aboutText.appendChild(caret);
-                if (i >= ABOUT_TEXT.length) { clearInterval(aboutTimer); aboutTimer = null; }
-            }, 110);
-        }
-        // collapsing via the ✕ is pure CSS (label → checkbox); JS only stops the typing
-        aboutToggle.addEventListener('change', () => {
-            if (!aboutToggle.checked && aboutTimer) { clearInterval(aboutTimer); aboutTimer = null; }
-        });
-        document.querySelector('.goddy-menu-item[data-action="about"]').addEventListener('click', (e) => {
-            e.stopPropagation();
-            setMenu(false);
-            aboutToggle.checked = true;
-            typeAbout();
-        });
     })();
 </script>
 

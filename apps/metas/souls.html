@@ -1138,6 +1138,24 @@
   }
   .scale-added li{ line-height:1.32; overflow-wrap:anywhere; }
   .scale-added li::before{ content:'· '; color:var(--ink-dim); }
+  /* little colour swatch inside a summary colour chip */
+  .opt-swatch{
+    width:.85rem; height:.85rem; border-radius:50%;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.3), 0 1px 2px rgba(0,0,0,.3);
+  }
+  /* colour-choice bar (stage 1 · colour) — 7 rainbow swatches, red→violet */
+  .color-bar{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .2rem; }
+  .color-bar__swatch{
+    width:42px; height:42px; border-radius:12px; cursor:pointer;
+    border:2px solid transparent; padding:0;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 2px 6px rgba(0,0,0,.3);
+    transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .color-bar__swatch:hover{ transform: translateY(-2px) scale(1.06); }
+  .color-bar__swatch.is-active{
+    border-color:#fff; transform: translateY(-2px) scale(1.08);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.4), 0 0 0 2px var(--app-accent), 0 4px 12px rgba(0,0,0,.4);
+  }
   .scale-table{
     background:var(--panel);
     border:1px solid var(--line);
@@ -2256,18 +2274,9 @@
   <section class="view" data-view="s1-color" data-stage="1">
     <span class="step-tag">Stage 1 · Colour</span>
     <h1>Now a colour.</h1>
-    <p class="hint">Any colour you want — write it freely.</p>
-    <form class="field" onsubmit="return false">
-      <input id="color" type="text" autocomplete="off" placeholder="" />
-      <button type="button" class="color-pick-ball" id="colorBanner" aria-label="Chosen colour — click to open the wheel" aria-haspopup="true" aria-expanded="false" aria-controls="colorPopup"></button>
-    </form>
-    <div class="color-popup" id="colorPopup" hidden role="region" aria-label="Colour wheel">
-      <div class="color-wheel" id="colorWheel">
-        <span class="color-wheel-handle" id="colorWheelHandle"></span>
-      </div>
-      <button type="button" class="color-swatch-plus" id="colorTweaksBtn" aria-label="Show colour effects" aria-expanded="false" aria-controls="colorTweaks">+</button>
-    </div>
-    <div class="color-tweaks" id="colorTweaks" hidden role="region" aria-label="Colour effects"></div>
+    <p class="hint">Pick one of the seven — red to violet.</p>
+    <input id="color" type="hidden" autocomplete="off" />
+    <div class="color-bar" id="colorBar" role="radiogroup" aria-label="Choose a colour"></div>
     <div class="nav">
       <button class="btn ghost" type="button" data-go="s1-aq">← Back</button>
       <button class="btn primary" type="button" data-next="s1-cq" disabled>Next →</button>
@@ -2642,13 +2651,7 @@
     <p class="hint">First answers in <em>warm</em>, second answers in <em>rose</em>. <span class="pill-tag">cloud sync coming soon</span></p>
 
     <div class="summary-stack">
-      <!-- Row 1 · results — two columns: left yellow cards, right violet cards -->
-      <div class="portrait-frame">
-        <div class="portrait-grid portrait-row-1" id="portraitRow1"></div>
-        <div class="portrait-grid portrait-row-2" id="portraitRow2"></div>
-      </div>
-
-      <!-- Row 2 · two parallel lists of every item, chosen ones highlighted -->
+      <!-- Row 1 · two parallel lists of every item, chosen ones highlighted -->
       <div class="soul-scales" id="soulScales"></div>
 
       <!-- Row 3 · time stats (left) + click-by-click timeline (right) -->
@@ -2755,6 +2758,17 @@
     { id:'smell',   label:'Smell',   icon:'👃', verb:'smelling' },
     { id:'touch',   label:'Touch',   icon:'✋', verb:'touching' },
     { id:'sight',   label:'Sight',   icon:'👁', verb:'seeing'   }
+  ];
+  // seven rainbow colours, red→violet (ids are valid CSS colour names so the
+  // existing colour pipeline — parseColorToHex, the ball, mirrors — just works)
+  const COLORS = [
+    { id:'red',    label:'Red'    },
+    { id:'orange', label:'Orange' },
+    { id:'gold',   label:'Yellow' },
+    { id:'green',  label:'Green'  },
+    { id:'blue',   label:'Blue'   },
+    { id:'indigo', label:'Indigo' },
+    { id:'violet', label:'Violet' }
   ];
   // bio systems — reordered per Marc's spec. "nervous" first, "immune" last;
   // index defines the "below" filter.
@@ -3635,7 +3649,7 @@
     const fill = (sel, val) => $$(sel).forEach(el => el.textContent = val);
     fill('[data-mirror="animal-or"]',   state.animal.trim() || 'my animal');
     fill('[data-mirror="animal-name"]', state.animal.trim() || 'that animal');
-    fill('[data-mirror="color-name"]',  state.color.trim() || 'that colour');
+    fill('[data-mirror="color-name"]',  (COLORS.find(c => c.id === state.color) || {}).label || state.color.trim() || 'that colour');
     fill('[data-mirror="species-or"]',  speciesName() || 'my creature');
     fill('[data-mirror="species2-or"]', speciesName() || 'my previous creature');
     fill('[data-mirror="species3-or"]', species2Name() || 'my creature');
@@ -3909,7 +3923,8 @@
         || viewId === 's4-matter' || viewId === 's5-particle'){
       refreshTierPreviews();
     }
-    if (viewId === 'save-form')  { renderPortrait(); renderScales(); renderTimeStats(); renderRelatedApps(); }
+    if (viewId === 'save-form')  { renderScales(); renderTimeStats(); renderRelatedApps(); }
+    if (viewId === 's1-color')   { syncColorBar(); }
     if (/^s\d-reveal$/.test(viewId)){
       const sNum = +viewId.match(/s(\d)-reveal/)[1];
       if (!state.stars[sNum]){
@@ -4569,6 +4584,9 @@
     // channel pick lives as 'sense:id' | 'bio:id'
     const chId = (state.s3Channel || '').split(':')[1] || '';
 
+    // the animal (a creature) belongs under the species — shown there, not alone
+    const speciesHost = state.s2Cat1 || state.s2Cat2;
+    reg(speciesHost,     [state.animal, state.aq1, state.aq2, state.aq3]);
     reg(state.s2Cat1,    [state.species, state.sp1, state.sp2, state.sp3]);
     reg(state.s2Cat2,    [state.sp1, state.sp2, state.sp3]);
     reg(state.s3Cat,     [state.s3Species, state.s3Sp1, state.s3Sp2, state.s3Sp3]);
@@ -4606,18 +4624,27 @@
     };
     // species shown as a full list (like the others): the SPECIES_TREE categories
     const SPECIES_CATS = Object.keys(SPECIES_TREE).map(k => ({ id:k, label:k }));
+    // a colour chip: a swatch + name; the chosen one carries its added content
+    const colourItem = (c) => {
+      const picked = (state.color === c.id);
+      return `<li class="scale-item${picked ? ' is-picked' : ''}"><span class="scale-item__head">`
+        + `<span class="opt-swatch" style="background:${c.id}"></span>`
+        + `<span>${escapeHtml(c.label)}</span></span>`
+        + (picked ? addedHtml([state.cq1, state.cq2, state.cq3]) : '')
+        + `</li>`;
+    };
 
-    // LEFT — Being · matter: animal, the species list, then the matter + particle set
+    // LEFT — Being · matter: the species list (animal nested in it), matter + particle
     const leftPicked = new Set([state.s2Cat1, state.s2Cat2, state.s3Cat, state.s4Matter, state.s5Particle].filter(Boolean));
     const leftHtml =
-        freeItem(state.animal, [state.aq1, state.aq2, state.aq3])
+        (speciesHost ? '' : freeItem(state.animal, [state.aq1, state.aq2, state.aq3]))
       + SPECIES_CATS.map(o => item(o, leftPicked)).join('')
       + unique(MATTER_SCALE, PARTICLES).map(o => item(o, leftPicked)).join('');
 
-    // RIGHT — Experience · sense: colour, then the sense + system + immune set
+    // RIGHT — Experience · sense: the 7 colours (red→violet) on top, then sense + system + immune
     const rightPicked = new Set([state.sense, chId, state.s4Bio, state.s5Immune].filter(Boolean));
     const rightHtml =
-        freeItem(state.color, [state.cq1, state.cq2, state.cq3], true)
+        COLORS.map(colourItem).join('')
       + unique(SENSES, BIO_SYSTEMS, IMMUNE).map(o => item(o, rightPicked)).join('');
 
     wrap.innerHTML =
@@ -5221,6 +5248,33 @@
       if (hex) applyColorHex(hex);
       else if (!input.value.trim()) clearColorBall();
     });
+  })();
+
+  // ── Seven-colour bar (stage 1) — red→violet, replaces the free text + wheel.
+  //    Writes the chosen colour into the (now hidden) #color field so the whole
+  //    existing pipeline (state, gate, ball, mirrors) keeps working unchanged. ──
+  function syncColorBar(){
+    const bar = $('#colorBar'); if (!bar) return;
+    bar.querySelectorAll('.color-bar__swatch').forEach(b => {
+      const on = b.dataset.color === state.color;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-checked', String(on));
+    });
+  }
+  (function wireColorBar(){
+    const bar = $('#colorBar'); const input = $('#color');
+    if (!bar || !input) return;
+    bar.innerHTML = COLORS.map(c =>
+      `<button type="button" class="color-bar__swatch" role="radio" aria-checked="false"`
+      + ` data-color="${c.id}" style="background:${c.id}" title="${escapeHtml(c.label)}" aria-label="${escapeHtml(c.label)}"></button>`
+    ).join('');
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('.color-bar__swatch'); if (!b) return;
+      input.value = b.dataset.color;
+      input.dispatchEvent(new Event('input', { bubbles:true }));
+      syncColorBar();
+    });
+    syncColorBar();
   })();
 
   // ── Custom rainbow colour wheel — opened by clicking the big banner ──

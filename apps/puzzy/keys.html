@@ -2813,12 +2813,26 @@
   .prelude.phaseB .phase-a-section{opacity:.6}
 
   /* Master-mode primer: free grouping shown above the scored phase-a. */
-  .phase-primer-section{display:none}
+  .phase-primer-section{display:none;transition:opacity .9s ease, transform .9s ease}
   .prelude.primer-on .phase-primer-section{display:block}
   .prelude.primer-on .phase-a-section,
   .prelude.primer-on .phase-b-section{display:none}
   .prelude.primer-done .phase-primer-section{display:block;opacity:.5;pointer-events:none;
     margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--stroke)}
+  /* Primer → phase-a hand-off: the scored section drifts up from below and fades
+     in on a soft, windy easing while the primer settles dimmed above it. */
+  @keyframes phase-a-windin{
+    0%{opacity:0;transform:translateY(54px) scale(.985)}
+    55%{opacity:1}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .prelude.primer-done .phase-a-section{
+    animation:phase-a-windin 1.15s cubic-bezier(.22,.61,.36,1) both;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .phase-primer-section{transition:none}
+    .prelude.primer-done .phase-a-section{animation:none}
+  }
   /* Live "stars per whys saved" indicator in the primer. */
   .primer-stars{margin:.5rem auto .2rem;text-align:center;color:var(--gold);font:700 .9rem/1 system-ui,sans-serif}
   .primer-stars[hidden]{display:none}
@@ -5106,7 +5120,12 @@ window.tKey = function tKey(k){
   DECKS.forEach(d => { state.orders[d.id] = d.items.map((_,i)=>i); });
 
   const TRIAD_DECK_IDXS = [0,1,2,3,4];
-  const TRIAD_ITEMS_FLAT = TRIAD_DECK_IDXS.flatMap(i => DECKS[i].items);
+  // Flat list of the 5 triads' items in the CURRENT language, read fresh on each
+  // call. applyDeckLang() swaps DECKS[i].items in place, so a frozen snapshot
+  // would leave the prelude pool in English during a Spanish session — then the
+  // phase-a check (which compares the dragged words against DECKS[i].items)
+  // would only ever match Psicosocial (identical in EN/ES) → 1 star, no progress.
+  function triadItemsFlat(){ return TRIAD_DECK_IDXS.flatMap(i => DECKS[i].items.slice()); }
 
   const $board     = document.getElementById('board');
   const $spotlight = document.getElementById('spotlight');
@@ -6696,6 +6715,7 @@ window.tKey = function tKey(k){
   // language-independent, so selections/orders are preserved.
   function setLang(code){
     const L = (code === 'es') ? 'es' : 'en';
+    const prevL = curLang();   // capture before flipping, to re-translate live prelude words
     if (!window.I18N || window.I18N.lang === L) {
       // still sync controls on a same-language call (e.g. boot)
     } else {
@@ -6717,7 +6737,13 @@ window.tKey = function tKey(k){
       const summaryEl = document.getElementById('summary');
       const summaryShown = summaryEl && !summaryEl.hidden && getComputedStyle(summaryEl).display !== 'none';
       if (state.introActive){ renderIntro(); typeThat(); }
-      else if (state.preludeActive){ if (typeof renderPrelude === 'function') renderPrelude(); }
+      else if (state.preludeActive){
+        // Keep the dragged pool + placed groups in the new language so the
+        // phase-a/primer words still match DECKS[i].items at check time.
+        if (typeof retranslatePreludeWords === 'function') retranslatePreludeWords(prevL, L);
+        if (typeof renderPrimer === 'function' && $prelude.classList.contains('primer-on')) renderPrimer();
+        if (typeof renderPrelude === 'function') renderPrelude();
+      }
       else if (typeof render === 'function'){ render(); }
       if (summaryShown){
         if (typeof renderSummaryGrid === 'function') renderSummaryGrid();
@@ -7635,12 +7661,17 @@ window.tKey = function tKey(k){
     const btn = document.getElementById('primer-next');
     if (btn) btn.disabled = true;
     primerSplash();                 // 3s celebratory burst around the panda + buttons
-    setTimeout(() => {              // then fade out to the normal (phase-a) state
+    setTimeout(() => {              // then drift down to the scored phase-a state
       startStep('step0');
       $prelude.classList.remove('primer-on');
       $prelude.classList.add('primer-done');
       renderPrelude();
       animatePreludeTitle();
+      // Glide the page down to the freshly revealed section as it winds in.
+      const $pa = document.querySelector('.phase-a-section');
+      if ($pa) setTimeout(() => {
+        try { $pa.scrollIntoView({ behavior:'smooth', block:'start' }); } catch(_){ $pa.scrollIntoView(); }
+      }, 80);
       if (btn) btn.disabled = false;
     }, 3000);
   });
@@ -7808,7 +7839,7 @@ window.tKey = function tKey(k){
 
   function initPrelude(){
     // Alphabetical pool — sorted so the user faces a stable, easy-to-scan list
-    state.preludePool = TRIAD_ITEMS_FLAT.slice().sort((a, b) => a.localeCompare(b, 'en'));
+    state.preludePool = triadItemsFlat().sort((a, b) => a.localeCompare(b, 'en'));
     // Groups are fixed-length 3 with nulls — keeps slot positions stable on drop
     state.preludeGroups = [
       [null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]
@@ -7818,6 +7849,27 @@ window.tKey = function tKey(k){
     state.preludeAxisOrder = shuffle([0,1,2,3,4]);
     state.preludeAxisChecked = null;
     state.preludeAxisStars = null;
+  }
+
+  // When the language switches mid-prelude, translate every word already sitting
+  // in the pools / placed groups from the old language to the new one (by triad
+  // index), in place — so they keep matching DECKS[i].items at check time.
+  function retranslatePreludeWords(fromL, toL){
+    if (fromL === toL) return;
+    const map = {};
+    TRIAD_DECK_IDXS.forEach(di => {
+      const d = DECKS[di];
+      if (!d.itemsI18n || !d.itemsI18n[fromL] || !d.itemsI18n[toL]) return;
+      d.itemsI18n[fromL].forEach((w, i) => { map[w] = d.itemsI18n[toL][i]; });
+    });
+    const tr = w => (w != null && map[w] != null ? map[w] : w);
+    const mapArr = a => { if (Array.isArray(a)) for (let i = 0; i < a.length; i++) a[i] = tr(a[i]); };
+    if (Array.isArray(state.preludePool)) mapArr(state.preludePool);
+    if (Array.isArray(state.preludeGroups)) state.preludeGroups.forEach(mapArr);
+    if (Array.isArray(primerCtx.pool)) mapArr(primerCtx.pool);
+    if (Array.isArray(primerCtx.groups)) primerCtx.groups.forEach(mapArr);
+    // primerCtx.groups and state.primer.groups share a reference (set in
+    // initPrimer), so the in-place edits above cover both.
   }
 
   // The grouping mechanic (pool + 5 groups of 3, drag/drop) is shared by two
@@ -7910,7 +7962,7 @@ window.tKey = function tKey(k){
 
   // ----- Master-mode primer: a free first grouping + at least one "why" -----
   function initPrimer(){
-    primerCtx.pool = TRIAD_ITEMS_FLAT.slice().sort((a, b) => a.localeCompare(b, 'en'));
+    primerCtx.pool = triadItemsFlat().sort((a, b) => a.localeCompare(b, 'en'));
     primerCtx.groups = [[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]];
     primerCtx.drag = null;
     state.primer = { groups: primerCtx.groups, groupWhys: ['','','','',''] };

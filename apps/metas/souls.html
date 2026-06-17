@@ -1082,6 +1082,20 @@
   }
   .scale-added li{ line-height:1.32; overflow-wrap:anywhere; }
   .scale-added li::before{ content:'· '; color:var(--ink-dim); }
+  /* single-field inputs (animal, species name, colour qualities' parents, specific
+     matter…): capitals + 50% bigger. triple-field inputs stay plain (singular). */
+  .scale-added .added-single{ text-transform:uppercase; font-size:1.5em; font-weight:600; letter-spacing:.02em; }
+  /* long input (>15 chars): collapsed preview + ＋; expands on click, with a
+     collapse button at the bottom-left. Pure CSS via the hidden checkbox. */
+  .added-long{ position:relative; }
+  .al-tog{ position:absolute; width:0; height:0; opacity:0; pointer-events:none; }
+  .al-preview{ cursor:pointer; }
+  .al-plus{ color:var(--app-accent); font-weight:700; margin-left:.15rem; }
+  .al-full, .al-collapse{ display:none; }
+  .al-collapse{ cursor:pointer; margin-top:.2rem; font-size:.82em; color:var(--app-accent); }
+  .al-tog:checked ~ .al-preview{ display:none; }
+  .al-tog:checked ~ .al-full{ display:inline; }
+  .al-tog:checked ~ .al-collapse{ display:block; }
   /* little colour swatch inside a summary colour chip */
   .opt-swatch{
     width:.85rem; height:.85rem; border-radius:50%;
@@ -2527,11 +2541,12 @@
     { id:'z-boson',  label:'Z boson',  icon:'Z' },
     { id:'higgs',    label:'Higgs',    icon:'H' }
   ];
+  // order: adaptative · lymphatic · innate · neuroimmune (selection + summary)
   const IMMUNE = [
     { id:'somatic',     label:'Adaptative',  icon:'🫀', verb:'adapting'  },
-    { id:'neuroimmune', label:'Neuroimmune', icon:'🧠', verb:'dreaming'  },
+    { id:'lymphatic',   label:'Lymphatic',   icon:'💧', verb:'cleansing' },
     { id:'innate',      label:'Innate',      icon:'🛡', verb:'defending' },
-    { id:'lymphatic',   label:'Lymphatic',   icon:'💧', verb:'cleansing' }
+    { id:'neuroimmune', label:'Neuroimmune', icon:'🧠', verb:'dreaming'  }
   ];
 
   // ── state ───────────────────────────────────────────────
@@ -4203,10 +4218,33 @@
   //    rest dimmed (free-text steps just show the answer) ──────────────
   function renderScales(){
     const wrap = $('#soulScales'); if (!wrap) return;
+    // an "added" entry: a single-field input (shown big + caps) or a triple-field
+    // input (plain), optionally carrying a refine "remark". Long ones get a +/−.
+    const single = (text)         => ({ text, single:true });
+    const triple = (text, remark) => ({ text, single:false, remark });
+    let _alSeq = 0;
+    const LONG = 15;
+    const entryHtml = (e) => {
+      const text = (e && e.text || '').trim(); if (!text) return '';
+      const remark = (e.remark || '').trim();
+      const full = remark ? `${text} › ${remark}` : text;
+      const cls = e.single ? 'added-single' : 'added-triple';
+      if (full.length > LONG){
+        const id = 'al' + (_alSeq++);
+        const preview = escapeHtml(full.slice(0, LONG).trimEnd()) + '…';
+        return `<li class="${cls} added-long">`
+          + `<input type="checkbox" id="${id}" class="al-tog">`
+          + `<label for="${id}" class="al-preview">${preview}<span class="al-plus">＋</span></label>`
+          + `<span class="al-full">${escapeHtml(full)}</span>`
+          + `<label for="${id}" class="al-collapse" aria-label="collapse">− collapse</label>`
+          + `</li>`;
+      }
+      return `<li class="${cls}">${escapeHtml(full)}</li>`;
+    };
     // the content the user added to a chosen item, shown right below it
-    const addedHtml = (arr) => {
-      const items = (arr || []).map(x => (x || '').trim()).filter(Boolean);
-      return items.length ? `<ul class="scale-added">${items.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : '';
+    const addedHtml = (entries) => {
+      const list = (entries || []).filter(e => e && (e.text || '').trim());
+      return list.length ? `<ul class="scale-added">${list.map(entryHtml).join('')}</ul>` : '';
     };
     // option id → content the user added at the step that chose it
     const addedFor = new Map();
@@ -4214,19 +4252,22 @@
 
     // channel pick lives as 'sense:id' | 'bio:id'
     const chId = (state.s3Channel || '').split(':')[1] || '';
+    const aqN = state.aqNest || {}, cqN = state.cqNest || {};
 
-    // the animal (a creature) belongs under the species — shown there, not alone
+    // the animal (a creature) belongs under the species — shown there, not alone.
+    // aq + cq carry their refine remark alongside the parent input.
+    const aqEntries = [triple(state.aq1, aqN.aq1), triple(state.aq2, aqN.aq2), triple(state.aq3, aqN.aq3)];
     const speciesHost = state.s2Cat1 || state.s2Cat2;
-    reg(speciesHost,     [state.animal, state.aq1, state.aq2, state.aq3]);
-    reg(state.s2Cat1,    [state.species, state.sp1, state.sp2, state.sp3]);
-    reg(state.s2Cat2,    [state.sp1, state.sp2, state.sp3]);
-    reg(state.s3Cat,     [state.s3Species, state.s3Sp1, state.s3Sp2, state.s3Sp3]);
-    reg(state.s4Matter,  [state.s4MatterSpecific, state.s4M1, state.s4M2, state.s4M3]);
-    reg(state.s5Particle,[state.s5P1, state.s5P2, state.s5P3]);
-    reg(state.sense,     [state.sn1, state.sn2, state.sn3]);
-    reg(chId,            [state.s3C1, state.s3C2, state.s3C3]);
-    reg(state.s4Bio,     [state.s4B1, state.s4B2, state.s4B3]);
-    reg(state.s5Immune,  [state.s5I1, state.s5I2, state.s5I3]);
+    reg(speciesHost,     [single(state.animal), ...aqEntries]);
+    reg(state.s2Cat1,    [single(state.species), triple(state.sp1), triple(state.sp2), triple(state.sp3)]);
+    reg(state.s2Cat2,    [triple(state.sp1), triple(state.sp2), triple(state.sp3)]);
+    reg(state.s3Cat,     [single(state.s3Species), triple(state.s3Sp1), triple(state.s3Sp2), triple(state.s3Sp3)]);
+    reg(state.s4Matter,  [single(state.s4MatterSpecific), triple(state.s4M1), triple(state.s4M2), triple(state.s4M3)]);
+    reg(state.s5Particle,[triple(state.s5P1), triple(state.s5P2), triple(state.s5P3)]);
+    reg(state.sense,     [triple(state.sn1), triple(state.sn2), triple(state.sn3)]);
+    reg(chId,            [triple(state.s3C1), triple(state.s3C2), triple(state.s3C3)]);
+    reg(state.s4Bio,     [triple(state.s4B1), triple(state.s4B2), triple(state.s4B3)]);
+    reg(state.s5Immune,  [triple(state.s5I1), triple(state.s5I2), triple(state.s5I3)]);
 
     // one list item per option; chosen ones highlighted, with their added content below
     const item = (o, pickedSet) => {
@@ -4261,14 +4302,14 @@
       return `<li class="scale-item${picked ? ' is-picked' : ''}"><span class="scale-item__head">`
         + `<span class="opt-swatch" style="background:${c.id}"></span>`
         + `<span>${escapeHtml(c.label)}</span></span>`
-        + (picked ? addedHtml([state.cq1, state.cq2, state.cq3]) : '')
+        + (picked ? addedHtml([triple(state.cq1, cqN.cq1), triple(state.cq2, cqN.cq2), triple(state.cq3, cqN.cq3)]) : '')
         + `</li>`;
     };
 
     // LEFT — Being · matter: the species list (animal nested in it), matter + particle
     const leftPicked = new Set([state.s2Cat1, state.s2Cat2, state.s3Cat, state.s4Matter, state.s5Particle].filter(Boolean));
     const leftHtml =
-        (speciesHost ? '' : freeItem(state.animal, [state.aq1, state.aq2, state.aq3]))
+        (speciesHost ? '' : freeItem(state.animal, aqEntries))
       + SPECIES_CATS.map(o => item(o, leftPicked)).join('')
       + unique(MATTER_SCALE, PARTICLES).map(o => item(o, leftPicked)).join('');
 

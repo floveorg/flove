@@ -307,8 +307,20 @@ body {
   opacity:0; transform:translateY(28px) scale(.7);
   transition: transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .45s ease, background .45s ease, color .35s ease;
 }
-.btn-docs { animation: settleIn 1.05s cubic-bezier(.2,.9,.25,1.1) 8.6s forwards, huddleLeft  2.8s ease-in-out 13.7s 3; }
-.btn-apps { animation: settleIn 1.05s cubic-bezier(.2,.9,.25,1.1) 9.8s forwards, huddleRight 2.8s ease-in-out 13.7s 3; }
+/* docs + apps now flow like the intro's grey — same moving-gradient trick, tinted:
+   docs=reddish · apps=blueish. greyShift slides the oversized gradient across forever. */
+.btn-docs {
+  background: linear-gradient(110deg, #ffe0e4 0%, #ff9aa8 22%, #ffedef 44%, #ff7184 66%, #ffdadf 88%, #ff9aa8 100%);
+  background-size:250% 100%;
+  color:#1a1820;
+  animation: settleIn 1.05s cubic-bezier(.2,.9,.25,1.1) 8.6s forwards, huddleLeft  2.8s ease-in-out 13.7s 3, greyShift 8s linear infinite;
+}
+.btn-apps {
+  background: linear-gradient(110deg, #dce8ff 0%, #93b9ff 22%, #e8f0ff 44%, #6aa1ff 66%, #d4e4ff 88%, #93b9ff 100%);
+  background-size:250% 100%;
+  color:#1a1820;
+  animation: settleIn 1.05s cubic-bezier(.2,.9,.25,1.1) 9.8s forwards, huddleRight 2.8s ease-in-out 13.7s 3, greyShift 8s linear infinite;
+}
 @keyframes huddleLeft  { 0%,100% { translate:0 0; } 50% { translate: 22px 0; } }
 @keyframes huddleRight { 0%,100% { translate:0 0; } 50% { translate:-22px 0; } }
 @keyframes settleIn {
@@ -318,28 +330,15 @@ body {
   100% { opacity:1; transform:translateY(0) scale(1) rotate(0); filter:blur(0); }
 }
 
-/* slight coloured wash inside each pill — fades in 2s after the button appears, then gently breathes.
-   docs=reddish · apps=blueish · intro(both)=greenish. Lives behind the text, above the white fill. */
-.btn-tint {
-  position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none;
-  background: radial-gradient(120% 160% at 50% 130%, var(--tint) 0%, transparent 62%);
-  opacity:0;
-}
-.btn-docs .btn-tint { --tint:#ff6a7d; animation: tintIn 1.6s ease 10.6s forwards, tintPulse 6s ease-in-out 12.2s infinite; }
-.btn-apps .btn-tint { --tint:#5a9bff; animation: tintIn 1.6s ease 11.8s forwards, tintPulse 6s ease-in-out 13.4s infinite; }
-.btn-both .btn-tint { --tint:#3fd98a; animation: tintIn 1.6s ease 15.7s forwards, tintPulse 6s ease-in-out 17.3s infinite; }
-@keyframes tintIn    { from { opacity:0; } to { opacity:.40; } }
-@keyframes tintPulse { 0%,100% { opacity:.40; } 50% { opacity:.56; } }
-
 /* "Both" button — oversized bloom + double spark + greyShift */
 .btn-both {
-  background: linear-gradient(110deg, #f0f0f4 0%, #c8c8d0 22%, #ededf0 44%, #a8a8b2 66%, #e0e0e6 88%, #c8c8d0 100%);
+  background: linear-gradient(110deg, #dff7ea 0%, #9fe6c2 22%, #ecfbf3 44%, #5fcf95 66%, #cdf2df 88%, #9fe6c2 100%);
   background-size:250% 100%;
   color:#1a1820;
   animation: bothGrand 2.8s cubic-bezier(.2,.7,.3,1) 13.7s forwards, greyShift 8s linear infinite;
 }
 .btn-both:hover, .btn-both:focus-visible {
-  background-image: linear-gradient(110deg, #fafafd 0%, #d2d2da 22%, #f8f8fa 44%, #b8b8c2 66%, #ededf2 88%, #d2d2da 100%);
+  background-image: linear-gradient(110deg, #eafdf3 0%, #b6efd4 22%, #f4fdf8 44%, #74d9a6 66%, #ddf6ea 88%, #b6efd4 100%);
 }
 @keyframes bothGrand {
   0%   { opacity:0; transform:translateY(24px) scale(.85); filter:blur(8px); }
@@ -518,6 +517,30 @@ body:has(.bubbles-view:target) .flove-foot {
 
 /* ── inlined bubbles view (was bubbles.html) — everything scoped under .bubbles-view ── */
 /* dreamy drifting blobs — reuse the drift1‒5 keyframes already defined above */
+/* slowly-flowing grey backdrop — same moving-gradient trick as the buttons, but big and slow.
+   It darkens step by step as the cloud grows: --murk (a brightness factor) drops with each rev state. */
+.bubbles-view { --murk:1; }
+.bubbles-view:has(#r1:checked) { --murk:.93; }
+.bubbles-view:has(#r2:checked) { --murk:.86; }
+.bubbles-view:has(#r3:checked) { --murk:.79; }
+.bubbles-view:has(#r4:checked) { --murk:.72; }
+.bubbles-view:has(#r5:checked) { --murk:.65; }
+.bubbles-view:has(#r6:checked) { --murk:.58; }
+.bubbles-view:has(#r7:checked) { --murk:.52; }
+.bubbles-view:has(#r8:checked) { --murk:.46; }
+.bubbles-view .bv-flow {
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background: linear-gradient(115deg,
+    #f3f3f6 0%, #d9d9e0 16%, #ececf1 32%, #c7c7d1 48%,
+    #e2e2e8 64%, #cfcfd8 80%, #f3f3f6 100%);
+  background-size:300% 100%;
+  background-position:0% 50%;
+  animation: bvFlow 70s linear infinite;
+  filter: brightness(var(--murk, 1));
+  transition: filter 1.4s ease;
+}
+@keyframes bvFlow { from { background-position:0% 50%; } to { background-position:300% 50%; } }
+
 .bubbles-view .bv-veil { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
 .bubbles-view .bv-blob { position:absolute; width:80vmax; height:80vmax; border-radius:50%;
   filter:blur(80px); mix-blend-mode:multiply; opacity:.5; will-change:transform; }
@@ -657,7 +680,7 @@ body:has(.bubbles-view:target) .flove-foot {
 .bubbles-view .info-box .ib-close:hover { color:var(--ink); border-color:rgba(20,16,32,.25); }
 @media (prefers-reduced-motion: reduce) {
   .bubbles-view .bubble { animation:none; opacity:1; transform:none; pointer-events:auto; transition:none; }
-  .bubbles-view .bv-blob { animation:none; }
+  .bubbles-view .bv-blob, .bubbles-view .bv-flow { animation:none; }
   .bubbles-view .info-box { transition:opacity .2s ease; }
 }
 
@@ -687,7 +710,6 @@ body:has(.bubbles-view:target) .flove-foot {
   :root:has(#s3:checked) .btn-text[data-st~="3"],
   :root:has(#s4:checked) .btn-text[data-st~="4"] { display:inline-block !important; }
   .btn::after, .splash, .dream-veil, .dream-blob { animation:none !important; opacity:0 !important; }
-  .btn-tint { animation:none !important; opacity:.26 !important; }
   .press-bloom { transition:none !important; opacity:0 !important; }
   .logo .star::before, .logo .star::after { display:none !important; }
   .logo .star { transition:none !important; }
@@ -748,7 +770,6 @@ body:has(.bubbles-view:target) .flove-foot {
   <nav class="cta" aria-label="primary">
     <div class="cta-row">
       <a class="btn btn-docs" href="./blog/">
-        <span class="btn-tint" aria-hidden="true"></span>
         <span class="btn-cycle">
           <span class="btn-text" data-st="0 1 3">Docs&nbsp;</span>
           <span class="btn-text" data-st="2">Theory</span>
@@ -757,7 +778,6 @@ body:has(.bubbles-view:target) .flove-foot {
         <span class="btn-hint">read the deep theory</span>
       </a>
       <a class="btn btn-apps" href="./apps/index.html">
-        <span class="btn-tint" aria-hidden="true"></span>
         <span class="btn-cycle">
           <span class="btn-text" data-st="0 1 3">Apps&nbsp;</span>
           <span class="btn-text" data-st="2">Practice</span>
@@ -767,7 +787,6 @@ body:has(.bubbles-view:target) .flove-foot {
       </a>
     </div>
     <a class="btn btn-both" href="#bubbles" role="button">
-      <span class="btn-tint" aria-hidden="true"></span>
       <span class="btn-cycle">
         <span class="btn-text" data-st="0 1 3">Intro</span>
         <span class="btn-text" data-st="2">Bubbles</span>
@@ -795,6 +814,7 @@ body:has(.bubbles-view:target) .flove-foot {
      and the click-away scrim resets to #b-none. -->
 <section class="bubbles-view" id="bubbles" aria-label="flove · bubbles">
   <a class="home-link" href="#" aria-label="back to flove home">← flove</a>
+  <div class="bv-flow" aria-hidden="true"></div>
   <div class="bv-veil" aria-hidden="true">
     <div class="bv-blob b1"></div>
     <div class="bv-blob b2"></div>

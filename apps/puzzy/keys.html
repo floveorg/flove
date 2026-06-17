@@ -161,6 +161,43 @@
   body:has(#ui-lang-en:checked) .lang-others label[for="ui-lang-en"],
   body:has(#ui-lang-es:checked) .lang-others label[for="ui-lang-es"]{color:var(--accent)}
 
+  /* ===== Topbar language picker — the single language control, fixed in the
+     topbar right after the title. 🌐 toggles a dropdown of available languages
+     (the active one is marked ✓); picking one live-switches the whole UI. ===== */
+  .topbar-lang{position:relative;flex:none}
+  .topbar-lang-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:10px;
+    border:1px solid var(--stroke);background:rgba(255,255,255,.03);
+    color:var(--ink);cursor:pointer;font-size:1.08rem;line-height:1;
+    transition:border-color .15s ease,transform .15s ease,background .2s ease;
+  }
+  .topbar-lang-btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .topbar-lang-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .topbar-lang-btn[aria-expanded="true"]{border-color:var(--accent);background:rgba(255,255,255,.06)}
+  .topbar-lang-menu{
+    position:absolute;top:calc(100% + 6px);left:0;z-index:90;
+    margin:0;padding:6px;list-style:none;
+    display:flex;flex-direction:column;gap:2px;min-width:178px;
+    background:var(--panel);border:1px solid var(--stroke);border-radius:14px;
+    box-shadow:0 14px 36px rgba(0,0,0,.5);animation:menuFade .18s ease;
+  }
+  .topbar-lang-menu[hidden]{display:none}
+  .topbar-lang-menu li{margin:0}
+  .topbar-lang-menu label{
+    display:flex;align-items:center;gap:8px;padding:.46rem .6rem;border-radius:9px;
+    color:var(--ink);font:500 .88rem/1 system-ui,sans-serif;cursor:pointer;
+    transition:background .15s ease,color .15s ease;
+  }
+  .topbar-lang-menu label:hover,.topbar-lang-menu label:focus-visible{background:var(--fx);color:var(--accent);outline:none}
+  .topbar-lang-menu .lang-flag{flex:none;font-size:1.05rem;line-height:1}
+  .topbar-lang-more label{border-top:1px solid var(--stroke);margin-top:2px;padding-top:.55rem}
+  /* mark the active / default language */
+  body:has(#ui-lang-en:checked) .topbar-lang-menu label[for="ui-lang-en"],
+  body:has(#ui-lang-es:checked) .topbar-lang-menu label[for="ui-lang-es"]{color:var(--accent);font-weight:700}
+  body:has(#ui-lang-en:checked) .topbar-lang-menu label[for="ui-lang-en"]::after,
+  body:has(#ui-lang-es:checked) .topbar-lang-menu label[for="ui-lang-es"]::after{content:"✓";margin-left:auto;color:var(--accent)}
+
   /* related apps card */
   .related-apps-card{
     margin:4px 4px;padding:9px 10px;border:1px solid var(--stroke);border-radius:12px;
@@ -974,6 +1011,9 @@
   }
   @media (max-width:520px){ .play-more-hint{font-size:1.2rem} }
   .play-more-hint[hidden]{display:none}
+  /* Inline combos block below the favourite cards (pairings + definitions). */
+  .fp-combos{max-width:560px;margin:.6rem auto 1.2rem;padding:.9rem 1rem;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.02)}
+  .fp-combos[hidden]{display:none}
   /* "Click me click me" — strong recalling effect on the BORDERS of every
      group item while free-play is active. Persistent until the user clicks
      an item, with rotating-rainbow accent borders + outline glow that read
@@ -2308,17 +2348,7 @@
   .intro-hero{display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:intro-hero-in 2s ease both}
   @keyframes intro-hero-in{to{opacity:1}}
   .intro-logo{width:54px;height:54px;display:block}
-  /* Language flag tucked at the corner of the Keys logo on slide 0. */
   .intro-logo-wrap{position:relative;display:inline-flex}
-  .intro-lang-flag{
-    position:absolute;top:-8px;right:-14px;
-    border:1px solid var(--stroke);background:rgba(47,47,68,.85);
-    border-radius:999px;padding:1px 5px;line-height:1;font-size:.92rem;
-    cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);
-    transition:transform .15s ease, border-color .2s ease, box-shadow .2s ease;
-  }
-  .intro-lang-flag:hover{transform:translateY(-1px) scale(1.08);border-color:var(--accent);box-shadow:0 8px 18px rgba(255,95,220,.3)}
-  .intro-lang-flag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .intro-hero-sentence{color:var(--ink);margin:0;font-size:.98rem;max-width:50ch;line-height:1.55;min-height:1.6em}
   .intro-slide .typed-sentence.typing{border-right:2px solid var(--gold);animation:type-caret .7s steps(1,end) infinite}
   @keyframes type-caret{50%{border-color:transparent}}
@@ -3920,10 +3950,16 @@ window.I18N = { lang: 'en', strings: { en: {
   "magic.4": "🔮 Magic",
   "magic.5": "🎲 Magic",
 
-  "related.adv": "Adventure",
-  "related.cre": "Creative",
-  "related.free": "Free",
   "related.getdecks": "Get real Decks",
+  "combos.fav_keys": "Favourite Keys",
+  "combos.hint": "My 3 favourite keywords are:",
+  "comby.pick_first": "Pick your three favourite keys first to combine them.",
+  "comby.save": "Save",
+  "comby.record": "Record",
+  "comby.type_below": "Type below",
+  "comby.swap": "Switch word order",
+  "comby.swap_title": "Add / remove the reversed order",
+  "comby.def_for": "Definition for",
   "related.more_apps": "show more apps",
 
   "counters.show": "Show counters",
@@ -4103,10 +4139,16 @@ window.I18N = { lang: 'en', strings: { en: {
   "magic.4": "🔮 Magia",
   "magic.5": "🎲 Magia",
 
-  "related.adv": "Aventura",
-  "related.cre": "Creativo",
-  "related.free": "Libre",
   "related.getdecks": "Consigue Mazos reales",
+  "combos.fav_keys": "Claves favoritas",
+  "combos.hint": "Mis 3 palabras clave favoritas son:",
+  "comby.pick_first": "Elige primero tus tres claves favoritas para combinarlas.",
+  "comby.save": "Guardar",
+  "comby.record": "Grabar",
+  "comby.type_below": "Escribe abajo",
+  "comby.swap": "Cambiar el orden de las palabras",
+  "comby.swap_title": "Añadir / quitar el orden inverso",
+  "comby.def_for": "Definición de",
   "related.more_apps": "mostrar más apps",
 
   "counters.show": "Mostrar contadores",
@@ -4160,6 +4202,17 @@ window.applyI18N = function applyI18N(){
     });
   } catch (e) { /* never block the app on i18n */ }
 };
+// Lookup helper for JS-built strings (mirrors applyI18N's resolution: active
+// language → English fallback → the key itself). Used by the dynamically
+// rendered combos / favourites UI so they translate alongside the static chrome.
+window.tKey = function tKey(k){
+  var I = window.I18N || {};
+  var S = (I.strings && I.strings[I.lang || 'en']) || {};
+  var EN = (I.strings && I.strings.en) || {};
+  if (Object.prototype.hasOwnProperty.call(S, k)) return S[k];
+  if (Object.prototype.hasOwnProperty.call(EN, k)) return EN[k];
+  return k;
+};
 (function bootI18N(){
   function run(){ window.applyI18N(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
@@ -4175,6 +4228,24 @@ window.applyI18N = function applyI18N(){
       <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="url(#brandGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 6px rgba(167,99,250,.75))"><defs><linearGradient id="brandGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8b5cf6"/><stop offset=".55" stop-color="#c084fc"/><stop offset="1" stop-color="#ff5fdc"/></linearGradient></defs><path d="M12 7.4v9.2M8.2 9.6l7.6 4.8M15.8 9.6l-7.6 4.8"/></svg>
       <span class="brand-text" data-i18n="brand.name">Keys</span>
     </button>
+
+    <!-- Language picker — the single language control, fixed in the topbar right
+         after the title. 🌐 opens a dropdown of available languages (the active
+         one is marked); picking one live-switches the whole UI via setLang(). The
+         hidden ui-lang radios + new-language modal remain the underlying engine. -->
+    <div class="topbar-lang" id="topbarLang">
+      <button type="button" class="topbar-lang-btn" id="topbarLangBtn"
+              aria-haspopup="true" aria-expanded="false" aria-controls="topbarLangMenu"
+              aria-label="Language" data-i18n-attr="aria-label:cust.language">
+        <span class="glyph" aria-hidden="true">🌐</span>
+      </button>
+      <ul class="topbar-lang-menu" id="topbarLangMenu" role="menu" aria-label="Language" hidden>
+        <li><label for="ui-lang-en" tabindex="0" role="menuitemradio" data-i18n-html="lang.menu_en"><span class="lang-flag">🇬🇧</span>English</label></li>
+        <li><label for="ui-lang-es" tabindex="0" role="menuitemradio" data-i18n-html="lang.menu_es"><span class="lang-flag">🇪🇸</span>Español</label></li>
+        <li class="topbar-lang-more"><label for="new-language-modal" tabindex="0" role="menuitem" data-i18n-html="lang.add"><span class="lang-flag">＋</span>Add a language</label></li>
+      </ul>
+    </div>
+
     <!-- Single merged stage-progress bar — lives in the topbar (centred). It
          tracks stage progress while playing and the dynamic Analyze labels in
          the summary. -->
@@ -4201,18 +4272,6 @@ window.applyI18N = function applyI18N(){
           <button class="menu-item" id="menuAboutBtn" type="button" role="menuitem" data-i18n-html="menu.about">
             <span class="glyph">ⓘ</span> About keys
           </button>
-        </li>
-        <li class="menu-switch menu-switch--lang">
-          <button type="button" class="menu-item menu-lang-toggle" id="menuLangToggle" aria-expanded="false">
-            <span class="glyph">🌐</span>
-            <span class="menu-lang-current" id="menuLangCurrent" data-i18n="menu.lang_current">English</span>
-            <span class="menu-switch-caret" aria-hidden="true">▾</span>
-          </button>
-          <ul class="lang-others" id="menuLangOthers" role="menu" aria-label="Other languages" hidden>
-            <li><label for="ui-lang-en" tabindex="0" data-i18n-html="lang.menu_en"><span class="lang-flag">🇬🇧</span>English</label></li>
-            <li><label for="ui-lang-es" tabindex="0" data-i18n-html="lang.menu_es"><span class="lang-flag">🇪🇸</span>Español</label></li>
-            <li class="lang-others-more"><label for="new-language-modal" tabindex="0" data-i18n-html="lang.add"><span class="lang-flag">＋</span>Add a language</label></li>
-          </ul>
         </li>
 
         <li class="menu-divider" role="separator" aria-hidden="true"></li>
@@ -4323,14 +4382,6 @@ window.applyI18N = function applyI18N(){
             </div>
           </div>
           <div class="cert-intro" id="custPlayIntro" hidden></div>
-        </div>
-        <div class="cust-group">
-          <div class="cust-label" data-i18n="cust.language">Language</div>
-          <ul class="cust-lang-list" role="menu" aria-label="Language">
-            <li><label for="ui-lang-en" tabindex="0" data-i18n-html="lang.cust_en"><span class="lang-flag">🇬🇧</span>English</label></li>
-            <li><label for="ui-lang-es" tabindex="0" data-i18n-html="lang.cust_es"><span class="lang-flag">🇪🇸</span>Spanish</label></li>
-            <li class="cust-lang-more"><label for="new-language-modal" id="custLangPlus" tabindex="0" title="Add a language" aria-label="Add a language" data-i18n-html="lang.add" data-i18n-attr="title:cust.lang_add_title;aria-label:cust.lang_add_title"><span class="lang-flag">＋</span>Add a language</label></li>
-          </ul>
         </div>
         <div class="cust-group">
           <div class="cust-certify-row" id="custCertifyRow">
@@ -4534,6 +4585,11 @@ window.applyI18N = function applyI18N(){
     </div>
 
     <div class="summary-fivys" id="summary-fivys"></div>
+
+    <!-- Combos: the pairwise combinations of the three favourite keys + a
+         definition field for each. Surfaced inline below the favourite cards
+         once all three favourites are selected (was a Comby-card overlay). -->
+    <div class="fp-combos ai-comby" id="fp-combos" hidden></div>
 
     <section class="second-play" id="second-play" hidden>
       <!-- The new (parallel) perspective bars render here, above the reorder
@@ -4862,12 +4918,7 @@ window.applyI18N = function applyI18N(){
     </div>
 
     <div class="related-apps" id="related-apps" hidden>
-      <!-- Custom-mode links + Get real Decks (moved here from the chooser See more). -->
-      <div class="chooser-modes-links related-modes">
-        <a class="chooser-mode-link mode-adv"  href="keys.html?mode=adventure" target="_blank" rel="noopener" data-i18n="related.adv">Adventure</a>
-        <a class="chooser-mode-link mode-cre"  href="keys.html?mode=creative"  target="_blank" rel="noopener" data-i18n="related.cre">Creative</a>
-        <a class="chooser-mode-link mode-free" href="keys.html?mode=master"    target="_blank" rel="noopener" data-i18n="related.free">Free</a>
-      </div>
+      <!-- Get real Decks (moved here from the chooser See more). -->
       <a class="chooser-getdecks related-getdecks" href="../decks.html" data-i18n="related.getdecks">Get real Decks</a>
       <div class="related-row related-row-featured" id="related-row-3"></div>
       <button class="btn-related-plus" id="btn-related-plus" type="button" aria-label="show more apps" data-i18n-attr="aria-label:related.more_apps">+</button>
@@ -6656,10 +6707,10 @@ window.applyI18N = function applyI18N(){
     applyDeckLang(L);
     INTRO_SLIDES = INTRO_SLIDES_I18N[L];
     // sync controls
+    // Flip the hidden radio that drives the active-language marker (the topbar
+    // picker reflects it via CSS :has()).
     const radio = document.getElementById(L === 'es' ? 'ui-lang-es' : 'ui-lang-en');
     if (radio && !radio.checked) radio.checked = true;
-    const cur = document.getElementById('menuLangCurrent');
-    if (cur) cur.textContent = (L === 'es') ? 'Español' : 'English';
     if (typeof cust === 'object' && cust) cust.lang = L;
     // re-render the visible view (best-effort, never throw)
     try {
@@ -6668,7 +6719,12 @@ window.applyI18N = function applyI18N(){
       if (state.introActive){ renderIntro(); typeThat(); }
       else if (state.preludeActive){ if (typeof renderPrelude === 'function') renderPrelude(); }
       else if (typeof render === 'function'){ render(); }
-      if (summaryShown && typeof renderSummaryGrid === 'function') renderSummaryGrid();
+      if (summaryShown){
+        if (typeof renderSummaryGrid === 'function') renderSummaryGrid();
+        // Re-translate the JS-built recap + inline combos (they use tKey()).
+        if (typeof renderBottomSummary === 'function') renderBottomSummary();
+        if (typeof renderFpCombos === 'function') renderFpCombos();
+      }
       if (typeof renderCounters === 'function') renderCounters();
     } catch (_e) {}
   }
@@ -6678,12 +6734,8 @@ window.applyI18N = function applyI18N(){
     const $track = document.getElementById('intro-track');
     const $dots  = document.getElementById('intro-dots');
     $track.innerHTML = ''; $dots.innerHTML = '';
-    // Language flag tucked beside the Keys logo on the first slide: shows the
-    // language you'd switch TO, and toggles it on click (a teaser/shortcut that
-    // ties the intro into the live language switcher).
-    const otherLang = curLang() === 'es' ? 'en' : 'es';
-    const flagEmoji = curLang() === 'es' ? '🇬🇧' : '🇪🇸';
-    const flagAria  = curLang() === 'es' ? 'Switch to English' : 'Cambiar a español';
+    // The language switcher now lives only in the topbar (the world icon after
+    // the title), so the first slide shows just the Keys logo.
     INTRO_SLIDES.forEach((s, i) => {
       const slide = document.createElement('div');
       slide.className = 'intro-slide';
@@ -6693,7 +6745,6 @@ window.applyI18N = function applyI18N(){
         ? `<div class="intro-hero">
              <span class="intro-logo-wrap">
                <svg class="intro-logo" viewBox="0 0 100 100" aria-hidden="true"><g fill="url(#g-keys)" stroke="none"><g transform="rotate(0 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(72 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(288 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><circle cx="50" cy="50" r="4.5"/></g></svg>
-               <button type="button" class="intro-lang-flag" id="introLangFlag" aria-label="${flagAria}" title="${flagAria}">${flagEmoji}</button>
              </span>
              <h2>${s.t}</h2>
            </div>
@@ -6708,8 +6759,6 @@ window.applyI18N = function applyI18N(){
       dot.addEventListener('click', () => gotoSlide(i));
       $dots.appendChild(dot);
     });
-    const flagBtn = $track.querySelector('#introLangFlag');
-    if (flagBtn) flagBtn.addEventListener('click', (e) => { e.stopPropagation(); setLang(otherLang); });
     // Observe which slide is centered to keep dots in sync
     if (introObserver) introObserver.disconnect();
     introObserver = new IntersectionObserver((entries) => {
@@ -7508,27 +7557,37 @@ window.applyI18N = function applyI18N(){
       });
     }
 
-    // Language switch: toggles the sub-list; picking a flag flips the existing
-    // uiLang radios and updates the current-language label.
-    const langToggle = document.getElementById('menuLangToggle');
-    const langOthers = document.getElementById('menuLangOthers');
-    const langCurrent= document.getElementById('menuLangCurrent');
-    if (langToggle && langOthers){
-      langToggle.addEventListener('click', e => {
+    // Topbar language picker (the single language control, after the title). The
+    // 🌐 button toggles the dropdown; the labels flip the hidden uiLang radios —
+    // whose change listener live-switches the UI via setLang — and the active
+    // language is marked via CSS :has(). Selecting any item closes the dropdown.
+    const langBtn  = document.getElementById('topbarLangBtn');
+    const langMenu = document.getElementById('topbarLangMenu');
+    if (langBtn && langMenu){
+      const closeLang = () => { langMenu.hidden = true; langBtn.setAttribute('aria-expanded', 'false'); };
+      langBtn.addEventListener('click', e => {
         e.stopPropagation();
-        const show = langOthers.hidden;
-        langOthers.hidden = !show;
-        langToggle.setAttribute('aria-expanded', String(show));
+        const show = langMenu.hidden;
+        langMenu.hidden = !show;
+        langBtn.setAttribute('aria-expanded', String(show));
       });
-      langOthers.querySelectorAll('label[for^="ui-lang-"]').forEach(lbl => {
+      // Each label closes the menu after its click. The two language labels also
+      // live-switch explicitly (belt-and-braces alongside the hidden-radio change
+      // handler); the "Add a language" label just opens the modal via its for=.
+      langMenu.querySelectorAll('label').forEach(lbl => {
         lbl.addEventListener('click', () => {
-          const L = lbl.getAttribute('for') === 'ui-lang-es' ? 'es' : 'en';
-          setLang(L);   // live-switch (also flips the customize radio + label)
-          if (langCurrent) langCurrent.textContent = L === 'es' ? 'Español' : 'English';
-          langOthers.hidden = true;
-          langToggle.setAttribute('aria-expanded', 'false');
+          const f = lbl.getAttribute('for');
+          if (f === 'ui-lang-en' || f === 'ui-lang-es'){
+            setLang(f === 'ui-lang-es' ? 'es' : 'en');
+          }
+          setTimeout(closeLang, 0);
         });
       });
+      // Dismiss on outside click / Escape.
+      document.addEventListener('click', e => {
+        if (!langMenu.hidden && !langBtn.contains(e.target) && !langMenu.contains(e.target)) closeLang();
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !langMenu.hidden) closeLang(); });
     }
   })();
 
@@ -9056,10 +9115,9 @@ window.applyI18N = function applyI18N(){
     const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
     if (!picks.length) return '';
     const links = picks.map(w => {
-      const key = w.toLowerCase();
-      // Each favourite key opens its specific app in a new window; unmapped
-      // keys fall back to the apps index filtered by that key.
-      const href = KEY_APP_LINKS[key] || ('index.html?filter=' + encodeURIComponent(key));
+      // Each favourite key opens the matching section of the apps index
+      // (apps/index.html#section), not an individual app.
+      const href = keySectionHref(w);
       return `<a class="combos-key" href="${href}" target="_blank" rel="noopener">${escapeHTML(w)}</a>`;
     }).join('');
     // Saved Comby combinations (recorded/typed against each pair) sit below.
@@ -9070,7 +9128,7 @@ window.applyI18N = function applyI18N(){
       ).join('');
       saved = `<div class="combos-saved">${items}</div>`;
     }
-    return `<div class="combos-keys"><span class="combos-keys-title">Favourite Keys</span>${links}</div>`
+    return `<div class="combos-keys"><span class="combos-keys-title">${escapeHTML(tKey('combos.fav_keys'))}</span>${links}</div>`
       + saved;
   }
   // Chosen perspectives. Two columns (original | new), two rows each (one per
@@ -9653,14 +9711,36 @@ window.applyI18N = function applyI18N(){
     [],   // last slide: no "See more"
   ];
 
-  // Favourite keys → their specific app (summary "Favourite Keys" links).
-  const KEY_APP_LINKS = {
-    love:'../lovy.html', joy:'../../index.html#bubbles', wisdom:'sety.html',
-    ecological:'../economy/worthing.html', craft:'../economy/crafty.html', offer:'../economy/dealy/',
-    what:'index.html', how:'../nety.html',
-    gift:'../economy/dealy/freed.html', exchange:'../economy/dealy/rewardy.html', lend:'../economy/dealy/shareful.html',
-    why:'../metas/souls.html', personal:'../profily.html', local:'../trusty/parenty.html', social:'../trusty/trusty.html',
+  // Favourite keys → the matching section of the apps index (apps/index.html),
+  // not individual apps. Mapped by deck word to a category / emotion anchor;
+  // anything unmapped (custom or extra words) falls back to the #words section.
+  const KEY_SECTION_LINKS = {
+    // Philosophy (emotion + mind)
+    joy:'#joyful', love:'#tender', wisdom:'#inside',
+    // Psicosocial
+    local:'#social', personal:'#social', social:'#social',
+    // Service
+    gift:'#economy', lend:'#economy', exchange:'#economy',
+    // Economy
+    craft:'#economy', ecological:'#economy', offer:'#economy',
+    // Journalism
+    why:'#words', what:'#words', how:'#words',
+    // Senses
+    taste:'#inside', smell:'#inside', hearing:'#inside', touch:'#inside', sight:'#inside',
+    // Flavors
+    acid:'#inside', sour:'#inside', sweet:'#inside', umami:'#inside', salty:'#inside',
+    // Powers
+    economy:'#social', judicial:'#social', media:'#social', military:'#social', political:'#social',
+    // Pathologies (dark patterns of close relationships)
+    mythomania:'#mating', hypergamy:'#mating', masochism:'#mating', hybristophilia:'#mating', sadism:'#mating',
+    // Elements
+    water:'#inside', air:'#inside', fire:'#inside', plasma:'#inside', earth:'#inside',
   };
+  // Resolve a favourite key (word) to its apps-index section URL.
+  function keySectionHref(word){
+    const section = KEY_SECTION_LINKS[(word || '').toLowerCase()] || '#words';
+    return '../index.html' + section;
+  }
   let analyzeClickAt = null, gendersClickAt = null, perspClickAt = null;   // analysis-step timestamps
   let _spDrag = null;
 
@@ -9897,7 +9977,7 @@ window.applyI18N = function applyI18N(){
     if ($hint){
       $hint.hidden = !_playMoreOn;
       // Prompt sits below the buttons / above the cards while Favourites is on.
-      $hint.textContent = _playMoreOn ? 'My 3 favourite keywords are:' : '';
+      $hint.textContent = _playMoreOn ? tKey('combos.hint') : '';
     }
     if (_playMoreOn){
       if (typeof extraOpen !== 'undefined'){ Object.keys(extraOpen).forEach(k => { extraOpen[k] = false; }); }
@@ -9909,6 +9989,21 @@ window.applyI18N = function applyI18N(){
       $summary.querySelectorAll('.fp-selected').forEach(el => el.classList.remove('fp-selected'));
       $summary.classList.remove('click-me-call');
       renderSummaryGrid();
+    }
+    renderFpCombos();
+  }
+  // Inline combos: once all three favourites are picked, render the pairwise
+  // combinations + their definition fields just below the favourite cards.
+  // Hidden whenever Favourites is off or fewer than three are selected.
+  function renderFpCombos(){
+    const $fp = document.getElementById('fp-combos');
+    if (!$fp) return;
+    if (_playMoreOn && _fpSelectedWords.size === 3){
+      buildCombyUI($fp);
+      $fp.hidden = false;
+    } else {
+      $fp.hidden = true;
+      $fp.innerHTML = '';
     }
   }
   // Multiselect: each click toggles whether a card is selected. The set of
@@ -9936,6 +10031,7 @@ window.applyI18N = function applyI18N(){
       }
     });
     if (typeof renderBottomSummary === 'function') renderBottomSummary();
+    renderFpCombos();
   }
   function wireFreePlayHandlers(){
     document.querySelectorAll('.summary.free-play .deck-done.in-summary, .summary.free-play .ad-deck').forEach(deck => {
@@ -9977,6 +10073,8 @@ window.applyI18N = function applyI18N(){
           }
           // Reflect the picked keys in the bottom std-summary recap.
           if (typeof renderBottomSummary === 'function') renderBottomSummary();
+          // Surface / hide the inline combos block (shown once all 3 are picked).
+          renderFpCombos();
         });
       });
     });
@@ -10576,33 +10674,20 @@ window.applyI18N = function applyI18N(){
     }
     const $note  = document.getElementById('ai-note');
     const $comby = document.getElementById('ai-comby');
-    const isComby = opts.key === 'combos';
-    // Comby: the icon + title open the full Comby app (comby.html); the overlay
-    // body lists the pairwise combinations with a record/transcribe + Save field.
-    const combyHref = isComby ? (opts.href || 'comby.html') : '';
+    // The Comby combinations now live inline below the favourite cards (built by
+    // renderFpCombos), so every app card — Comby included — uses the plain
+    // phrase + Go layout here.
     [$icon, $name].forEach($el => {
       if (!$el) return;
-      $el.classList.toggle('ai-linked', isComby);
-      $el.onclick = isComby ? (() => { window.location.href = combyHref; }) : null;
+      $el.classList.remove('ai-linked');
+      $el.onclick = null;
     });
-    if ($comby){
-      if (isComby){
-        $phr.hidden = true;
-        if ($note) $note.hidden = true;
-        $comby.hidden = false;
-        buildCombyUI($comby);
-        $go.textContent = 'Done';
-      } else {
-        $phr.hidden = false;
-        $comby.hidden = true;
-        $comby.innerHTML = '';
-        $go.textContent = 'Go →';
-        if ($note){ $note.hidden = true; $note.textContent = ''; }
-      }
-    }
+    $phr.hidden = false;
+    if ($comby){ $comby.hidden = true; $comby.innerHTML = ''; }
+    $go.textContent = tKey('common.go_arrow');
+    if ($note){ $note.hidden = true; $note.textContent = ''; }
     $go.onclick = () => {
       $bd.hidden = true;
-      if (isComby) return;   // Comby: Done just closes; combinations live in the Summary
       if (typeof opts.onGo === 'function'){ opts.onGo(); return; }
       if (opts.href){
         if (opts.external) window.open(opts.href, '_blank', 'noopener');
@@ -10617,7 +10702,7 @@ window.applyI18N = function applyI18N(){
     const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
     $comby.innerHTML = '';
     if (picks.length < 2){
-      $comby.innerHTML = `<p class="comby-unsupported">Pick your three favourite keys first to combine them.</p>`;
+      $comby.innerHTML = `<p class="comby-unsupported">${escapeHTML(tKey('comby.pick_first'))}</p>`;
       return;
     }
     // Pairwise combinations only (no repeats, unordered).
@@ -10634,15 +10719,15 @@ window.applyI18N = function applyI18N(){
       combo.className = 'comby-combo';
       combo.innerHTML = `
         <div class="comby-combo-head">
-          ${withSwap === false ? '' : '<button class="comby-swap" type="button" title="Add / remove the reversed order" aria-label="Switch word order">⇄</button>'}
+          ${withSwap === false ? '' : `<button class="comby-swap" type="button" title="${escapeHTML(tKey('comby.swap_title'))}" aria-label="${escapeHTML(tKey('comby.swap'))}">⇄</button>`}
           <span class="comby-combo-title">${escapeHTML(label)}</span>
         </div>
         <div class="comby-rec">
           <div class="comby-rec-row">
-            <button class="comby-mic" type="button" title="${SR ? 'Record' : 'Type below'}" aria-label="Record">🎤</button>
-            <div class="comby-field" contenteditable="true" role="textbox" aria-label="Definition for ${escapeHTML(label)}"></div>
+            <button class="comby-mic" type="button" title="${escapeHTML(SR ? tKey('comby.record') : tKey('comby.type_below'))}" aria-label="${escapeHTML(tKey('comby.record'))}">🎤</button>
+            <div class="comby-field" contenteditable="true" role="textbox" aria-label="${escapeHTML(tKey('comby.def_for') + ' ' + label)}"></div>
           </div>
-          <button class="comby-save btn btn-soft" type="button" hidden>Save</button>
+          <button class="comby-save btn btn-soft" type="button" hidden>${escapeHTML(tKey('comby.save'))}</button>
         </div>`;
       const mic   = combo.querySelector('.comby-mic');
       const field = combo.querySelector('.comby-field');
@@ -10816,9 +10901,7 @@ window.applyI18N = function applyI18N(){
     INTRO_SLIDES = INTRO_SLIDES_I18N[L];
     applyDeckLang(L);
     const radio = document.getElementById(L === 'es' ? 'ui-lang-es' : 'ui-lang-en');
-    if (radio) radio.checked = true;
-    const cur = document.getElementById('menuLangCurrent');
-    if (cur) cur.textContent = (L === 'es') ? 'Español' : 'English';
+    if (radio) radio.checked = true;   // drives the topbar picker's active marker
     if (typeof cust === 'object' && cust) cust.lang = L;
   })();
   initPrelude();

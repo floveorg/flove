@@ -1013,14 +1013,17 @@
   .play-more-hint[hidden]{display:none}
   /* Inline combos block above the favourite cards: a combined trio field, then
      the pairwise definition fields in two columns, then the mirrored "more". */
-  .fp-combos{max-width:680px;margin:.5rem auto 1rem;padding:.9rem 1rem;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.02)}
+  /* Combos block — spans the same width as the decks above it. The 4 fields
+     (trio + 3 pairs) sit in two columns; the reversed-order twin opens inside
+     its own cell so the columns don't shift. */
+  .fp-combos{margin:.6rem 0 1rem;padding:.9rem 1rem;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.02)}
   .fp-combos[hidden]{display:none}
-  .fp-combos .comby-pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .9rem;align-items:start}
+  .fp-combos .comby-pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .9rem;align-items:start}
   @media (max-width:560px){ .fp-combos .comby-pairs-grid{grid-template-columns:1fr} }
-  .fp-combos .comby-trio{margin-bottom:.7rem;padding-bottom:.6rem;border-bottom:1px dashed var(--stroke)}
+  .fp-combos .comby-cell{display:flex;flex-direction:column;gap:.45rem;min-width:0}
   .fp-combos .comby-trio .comby-combo-title{color:var(--gold);font-weight:800}
-  .fp-combos .fp-more-mirror{display:flex;justify-content:center;margin-top:.85rem}
-  .fp-combos .fp-more-mirror[hidden]{display:none}
+  .fp-combos .fp-done-row{display:flex;justify-content:center;margin-top:.9rem}
+  .fp-combos .fp-done-row[hidden]{display:none}
   /* "Click me click me" — strong recalling effect on the BORDERS of every
      group item while free-play is active. Persistent until the user clicks
      an item, with rotating-rainbow accent borders + outline glow that read
@@ -3829,6 +3832,7 @@ window.I18N = { lang: 'en', strings: { en: {
   "common.next": "Next →",
   "common.go_back": "← Go back",
   "common.more": "More",
+  "common.done": "Done",
   "common.see_more": "See more",
   "common.cancel": "Cancel",
   "common.on": "ON",
@@ -4018,6 +4022,7 @@ window.I18N = { lang: 'en', strings: { en: {
   "common.next": "Siguiente →",
   "common.go_back": "← Volver",
   "common.more": "Más",
+  "common.done": "Hecho",
   "common.see_more": "Ver más",
   "common.cancel": "Cancelar",
   "common.on": "ON",
@@ -4606,12 +4611,6 @@ window.tKey = function tKey(k){
     <!-- Play-more prompt: shown above the decks once "Play more" is engaged. -->
     <p class="play-more-hint" id="play-more-hint" hidden></p>
 
-    <!-- Combos: above the cards once "more" (Favourites) is engaged — a first
-         combined "three words together" field, then the pairwise definition
-         fields in two columns. A mirrored Perspectives "more" appears below
-         after the first save. -->
-    <div class="fp-combos ai-comby" id="fp-combos" hidden></div>
-
     <!-- First-perspective bars (+ the "+") sit ABOVE the decks. The parallel
          "new perspective" bars + reorder decks live below (in #second-play). -->
     <div class="analyze-bars" id="analyze-bars" hidden></div>
@@ -4630,6 +4629,11 @@ window.tKey = function tKey(k){
     </div>
 
     <div class="summary-fivys" id="summary-fivys"></div>
+
+    <!-- Combos: below the decks (above the new-perspective section), once
+         Favourites is engaged — the 4 definition fields (trio + 3 pairs) in two
+         columns; a centered Done appears once a comby is saved. -->
+    <div class="fp-combos ai-comby" id="fp-combos" hidden></div>
 
     <section class="second-play" id="second-play" hidden>
       <!-- The new (parallel) perspective bars render here, above the reorder
@@ -9624,9 +9628,20 @@ window.tKey = function tKey(k){
   function summaryPageCSS(){
     return Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
   }
-  // A small self-contained inline panda for the HTML export header (no external
-  // assets, so the downloaded file stands alone).
+  // The app's own neutral panda, fetched once and inlined into the HTML export
+  // so the saved file shows the same panda yet still stands alone. Falls back to
+  // a drawn panda if the fetch isn't available (e.g. opened from file://).
+  let _pandaSvgCache = null;
+  (function loadExportPanda(){
+    try {
+      fetch('../../others/panda/animated/frame-00.svg')
+        .then(r => r.ok ? r.text() : null)
+        .then(t => { if (t && t.indexOf('<svg') !== -1) _pandaSvgCache = t; })
+        .catch(() => {});
+    } catch(_){}
+  })();
   function summaryPandaSVG(){
+    if (_pandaSvgCache) return `<span class="kx-panda" aria-hidden="true">${_pandaSvgCache}</span>`;
     return `<svg class="kx-panda" viewBox="0 0 120 112" width="90" height="84" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">`
       + `<ellipse cx="30" cy="26" rx="16" ry="16" fill="#1b1b25"/><ellipse cx="90" cy="26" rx="16" ry="16" fill="#1b1b25"/>`
       + `<ellipse cx="30" cy="26" rx="8" ry="8" fill="#46466a"/><ellipse cx="90" cy="26" rx="8" ry="8" fill="#46466a"/>`
@@ -9655,7 +9670,8 @@ window.tKey = function tKey(k){
       .kx-card::before{background:#ff5fdc;top:-96px;right:-66px}
       .kx-card::after{background:#a8e4ff;bottom:-110px;left:-76px}
       .kx-head{position:relative;display:flex;align-items:center;gap:14px;margin:0 0 18px}
-      .kx-panda{flex:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+      .kx-panda{flex:none;display:inline-flex;width:84px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+      .kx-panda svg,.kx-panda img{width:84px;height:auto;display:block}
       .kx-title{font:800 1.5rem/1 ui-serif,Georgia,serif;letter-spacing:.5px;background:linear-gradient(135deg,#fadc92,#ff5fdc 60%,#a8e4ff);-webkit-background-clip:text;background-clip:text;color:transparent}
       .kx-sub{display:block;margin-top:4px;font:600 .72rem/1.3 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#c4c7d2}
       .kx-card #std-summary{position:relative;z-index:1}`;
@@ -10779,15 +10795,12 @@ window.tKey = function tKey(k){
   function buildCombyUI($comby){
     const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
     $comby.innerHTML = '';
-    if (picks.length < 1){
-      $comby.innerHTML = `<p class="comby-unsupported">${escapeHTML(tKey('comby.pick_first'))}</p>`;
-      return;
-    }
+    if (!picks.length) return;   // nothing to show yet — no "pick first" prompt
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const savedLabels = new Set(_combySaved.map(s => s.combo));
     // A definition field for one label (the combined trio or a pair). opts.swap
     // adds the reversed-order toggle (pairs only); opts.trio styles the header.
-    function makeCombo(label, opts){
+    function makeField(label, opts){
       opts = opts || {};
       const combo = document.createElement('div');
       combo.className = 'comby-combo' + (opts.trio ? ' comby-trio' : '');
@@ -10829,8 +10842,8 @@ window.tKey = function tKey(k){
         mic.classList.add('is-recording');
         rec.start();
       });
-      // Save → the field disappears, its content joins the Summary, +1 star, and
-      // the perspectives "more" (row + inline mirror) is revealed.
+      // Save → the field's content joins the Summary, +1 star, and the Done +
+      // perspectives "more" are revealed.
       save.addEventListener('click', () => {
         const text = field.textContent.trim();
         if (!text) return;
@@ -10842,61 +10855,60 @@ window.tKey = function tKey(k){
         combo.remove();
         revealPerspMore();
       });
-      // Exchange → toggle a reversed-order field below (no swap button on it).
+      // Exchange → reveal the reversed-order field BELOW this one inside the same
+      // cell (so the two columns stay put).
       if (swap){
         let rev = null;
         swap.addEventListener('click', () => {
           if (rev && rev.isConnected){ rev.remove(); rev = null; return; }   // collapse
           const parts = label.split(' ');
-          rev = makeCombo(parts.slice().reverse().join(' '), {});
-          combo.after(rev);
+          rev = makeField(parts.slice().reverse().join(' '), {});
+          combo.parentNode.appendChild(rev);   // within the cell, not across columns
           const rf = rev.querySelector('.comby-field');
           if (rf) rf.focus();
         });
       }
       return combo;
     }
-    // First: a single field titled with the three words together (when all 3 are
-    // chosen) — a definition for the whole trio.
+    const makeCell = (label, opts) => {
+      const cell = document.createElement('div');
+      cell.className = 'comby-cell';
+      cell.appendChild(makeField(label, opts));
+      return cell;
+    };
+    // The 4 fields — the combined trio + the 3 pairs — laid out in two columns
+    // (2 in each). Saved ones are not re-shown.
+    const grid = document.createElement('div');
+    grid.className = 'comby-pairs-grid';
     if (picks.length === 3 && !savedLabels.has(picks.join(' · '))){
-      $comby.appendChild(makeCombo(picks.join(' · '), { trio:true }));
+      grid.appendChild(makeCell(picks.join(' · '), { trio:true }));
     }
-    // Then: the pairwise fields, laid out in two columns.
     const pairs = [];
     for (let i = 0; i < picks.length; i++)
       for (let j = i + 1; j < picks.length; j++)
         pairs.push([picks[i], picks[j]]);
-    const fresh = pairs.filter(([a, b]) => !savedLabels.has(`${a} ${b}`));
-    if (fresh.length){
-      const grid = document.createElement('div');
-      grid.className = 'comby-pairs-grid';
-      fresh.forEach(([a, b]) => grid.appendChild(makeCombo(`${a} ${b}`, { swap:true })));
-      $comby.appendChild(grid);
-    } else if (picks.length < 2){
-      $comby.appendChild(Object.assign(document.createElement('p'), {
-        className:'comby-unsupported', textContent: tKey('comby.pick_first')
-      }));
-    }
-    // The mirrored perspectives "more", centered below both columns. Revealed on
-    // the first save; disappears when clicked (the row button stays).
-    const mirror = document.createElement('div');
-    mirror.className = 'fp-more-mirror';
-    mirror.hidden = !(_combySaved.length > 0);
-    mirror.innerHTML = `<button type="button" class="btn btn-primary fp-more-mirror-btn">${escapeHTML(tKey('common.more'))}</button>`;
-    mirror.querySelector('button').addEventListener('click', () => {
-      mirror.hidden = true;
+    pairs.filter(([a, b]) => !savedLabels.has(`${a} ${b}`))
+      .forEach(([a, b]) => grid.appendChild(makeCell(`${a} ${b}`, { swap:true })));
+    if (grid.children.length) $comby.appendChild(grid);
+    // Done, centered below — appears once a comby is saved; advances to the
+    // perspectives step (same as the row button, which also appears then).
+    const doneRow = document.createElement('div');
+    doneRow.className = 'fp-done-row';
+    doneRow.hidden = !(_combySaved.length > 0);
+    doneRow.innerHTML = `<button type="button" class="btn btn-primary fp-done-btn">${escapeHTML(tKey('common.done'))}</button>`;
+    doneRow.querySelector('button').addEventListener('click', () => {
       const b = perspectivesMoreBtn();
       if (b){ b.hidden = false; b.click(); }
     });
-    $comby.appendChild(mirror);
+    $comby.appendChild(doneRow);
   }
-  // Reveal the perspectives "more": ensure the row button shows (it stays) and
-  // un-hide the inline mirror below the combo columns.
+  // On the first save: reveal the perspectives "more" in the actions row (it
+  // stays) and the centered Done below the combo columns.
   function revealPerspMore(){
     const rowBtn = perspectivesMoreBtn();
     if (rowBtn) rowBtn.hidden = false;
-    const mirror = document.querySelector('#fp-combos .fp-more-mirror');
-    if (mirror) mirror.hidden = false;
+    const done = document.querySelector('#fp-combos .fp-done-row');
+    if (done) done.hidden = false;
   }
 
   // Global cancel + Esc handling for the app-intro overlay.

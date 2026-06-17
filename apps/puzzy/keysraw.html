@@ -85,19 +85,21 @@
   <label><input type="checkbox" name="an-ordinals"> <span class="en">Ordinals</span><span class="es">Ordinales</span></label>
   <label><input type="checkbox" name="an-extras"> <span class="en">Extra decks</span><span class="es">Mazos extra</span></label>
   <label><input type="checkbox" name="an-genders"> <span class="en">Genders</span><span class="es">Géneros</span></label>
-  <label><input type="checkbox" name="an-favourites"> <span class="en">Favourites</span><span class="es">Favoritas</span></label>
   <label><input type="checkbox" name="an-perspectives"> <span class="en">Perspectives</span><span class="es">Perspectivas</span></label>
 </div>
 
-<!-- ===== Perspective ===== -->
+<!-- ===== New perspective: the decks again, under a titled angle ===== -->
 <h2><span class="en">New perspective</span><span class="es">Nueva perspectiva</span></h2>
-<div class="row"><label><span class="en">Name</span><span class="es">Nombre</span>: <input type="text" name="persp-name"></label></div>
+<div class="row"><label><span class="en">Perspective</span><span class="es">Perspectiva</span>: <input type="text" name="persp-name" value="Objective"></label> <small><span class="en">(the general / objective perspective — re-order the decks below from this angle)</span><span class="es">(la perspectiva general / objetiva — reordena los mazos de abajo desde este ángulo)</span></small></div>
+<div id="persp-decks"></div>
 <div class="row"><span class="en">Note</span><span class="es">Nota</span>: <textarea name="persp-note"></textarea></div>
 
-<!-- ===== Combos ===== -->
-<h2><span class="en">Combos</span><span class="es">Combinaciones</span></h2>
-<div id="combos"></div>
-<button type="button" id="add-combo"><span class="en">+ Add combo</span><span class="es">+ Añadir combinación</span></button>
+<!-- ===== Favourites → combos ===== -->
+<h2><span class="en">Favourites</span><span class="es">Favoritas</span></h2>
+<div class="row"><small><span class="en">Choose three items from the main decks; their combos appear below.</span><span class="es">Elige tres ítems de los mazos principales; sus combinaciones aparecen abajo.</span></small></div>
+<div id="fav-items"></div>
+<h3><span class="en">Combos</span><span class="es">Combinaciones</span></h3>
+<div id="combos"><small><span class="en">Pick three favourites above.</span><span class="es">Elige tres favoritas arriba.</span></small></div>
 
 <!-- ===== Summary ===== -->
 <h2><span class="en">Summary</span><span class="es">Resumen</span></h2>
@@ -181,16 +183,12 @@
     { en:'Service', es:'Servicio',       items:[['Gift','Regalo'],['Lend','Prestar'],['Exchange','Intercambio']] },
     { en:'Economy', es:'Economía',       items:[['Craft','Artesanía'],['Ecological','Ecológico'],['Offer','Oferta']] },
     { en:'Journalism', es:'Periodismo',  items:[['Why','Por qué'],['What','Qué'],['How','Cómo']] },
-    { en:'Senses', es:'Sentidos',        items:[['Taste','Gusto'],['Smell','Olfato'],['Hearing','Oído'],['Touch','Tacto'],['Sight','Vista']] },
-    { en:'Flavors', es:'Sabores',        items:[['Acid','Ácido'],['Sour','Agrio'],['Sweet','Dulce'],['Umami','Umami'],['Salty','Salado']] },
-    { en:'Powers', es:'Poderes',         items:[['Economy','Economía'],['Judicial','Judicial'],['Media','Medios'],['Military','Militar'],['Political','Político']] },
-    { en:'Pathologies', es:'Patologías', items:[['Mythomania','Mitomanía'],['Hypergamy','Hipergamia'],['Masochism','Masoquismo'],['Hybristophilia','Hibristofilia'],['Sadism','Sadismo']] },
-    { en:'Elements', es:'Elementos',     items:[['Water','Agua'],['Air','Aire'],['Fire','Fuego'],['Plasma','Plasma'],['Earth','Tierra']] },
-    { en:'Time', es:'Tiempo',            items:[['Future','Futuro'],['Past','Pasado'],['Present','Presente']] },
-    { en:'Metaphysics', es:'Metafísica', items:[['Tao','Tao'],['Yang','Yang'],['Yin','Yin']] },
-    { en:'Space', es:'Espacio',          items:[['Confluence','Confluencia'],['Macro','Macro'],['Micro','Micro']] },
-    { en:'Sectors', es:'Sectores',       items:[['Mining','Minería'],['Manufacture','Manufactura'],['Service','Servicio']] },
+    { en:'Time', es:'Tiempo',            items:[['Future','Futuro'],['Past','Pasado'],['Present','Presente']], extra:true },
+    { en:'Metaphysics', es:'Metafísica', items:[['Tao','Tao'],['Yang','Yang'],['Yin','Yin']], extra:true },
+    { en:'Space', es:'Espacio',          items:[['Confluence','Confluencia'],['Macro','Macro'],['Micro','Micro']], extra:true },
+    { en:'Sectors', es:'Sectores',       items:[['Mining','Minería'],['Manufacture','Manufactura'],['Service','Servicio']], extra:true },
   ];
+  const MAIN = DECKS.filter(d => !d.extra);   // the triads (favourites pick from these)
   const bx = (en, es) => `<span class="en">${en}</span><span class="es">${es}</span>`;
   // one item row: the word + a native order select (1..n)
   const itemRow = (gid, ci, en, es, n) => {
@@ -208,19 +206,33 @@
   document.getElementById('custom-items').innerHTML = [0, 1, 2].map(ci =>
     `<div class="row"><select name="cu-${ci}"><option value="">–</option><option>1</option><option>2</option><option>3</option></select> `
     + `<input type="text" name="cu-word-${ci}" placeholder="…"></div>`).join('');
-  // combos: add/remove rows (the one place that genuinely needs JS)
-  const combos = document.getElementById('combos');
-  function addCombo(){
-    const row = document.createElement('div');
-    row.className = 'combo-row';
-    row.innerHTML = `<input type="text" placeholder="A + B" size="12"> `
-      + `<input type="text" placeholder="${'definition / definición'}" size="34"> `
-      + `<button type="button" class="rm">×</button>`;
-    row.querySelector('.rm').addEventListener('click', () => row.remove());
-    combos.appendChild(row);
+  // new perspective: the same decks again, re-ordered from this angle
+  document.getElementById('persp-decks').innerHTML = DECKS.map((d, gi) => {
+    const rows = d.items.map((it, ci) => itemRow('pd' + gi, ci, it[0], it[1], d.items.length)).join('');
+    return `<div class="deck"><h3>${bx(d.en, d.es)}</h3>${rows}</div>`;
+  }).join('');
+
+  // favourites: pick three items from the MAIN (triad) decks → produce combos
+  const favBox = document.getElementById('fav-items'), combos = document.getElementById('combos');
+  const flat = [];
+  MAIN.forEach(d => d.items.forEach(it => flat.push({ en: it[0], es: it[1] })));
+  favBox.innerHTML = flat.map((it, i) =>
+    `<label class="row"><input type="checkbox" class="fav" value="${i}"> ${bx(it.en, it.es)}</label>`).join('');
+  const chosen = () => Array.from(favBox.querySelectorAll('.fav:checked'));
+  function renderCombos(){
+    const items = chosen().map(c => flat[+c.value]);
+    if (items.length < 2){ combos.innerHTML = `<small>${bx('Pick three favourites above.', 'Elige tres favoritas arriba.')}</small>`; return; }
+    let html = '';
+    for (let a = 0; a < items.length; a++)
+      for (let b = a + 1; b < items.length; b++)
+        html += `<div class="combo-row"><b>${bx(items[a].en + ' + ' + items[b].en, items[a].es + ' + ' + items[b].es)}</b> `
+              + `<input type="text" placeholder="definition / definición" size="30"></div>`;
+    combos.innerHTML = html;
   }
-  document.getElementById('add-combo').addEventListener('click', addCombo);
-  addCombo();   // start with one
+  favBox.addEventListener('change', (e) => {
+    if (e.target.classList.contains('fav') && e.target.checked && chosen().length > 3) e.target.checked = false; // cap at 3
+    renderCombos();
+  });
 })();
 </script>
 </body>

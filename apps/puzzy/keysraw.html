@@ -21,6 +21,9 @@
   textarea{width:100%;min-height:2.4em}
   .combo-row{margin:.2rem 0}
   small{color:#666}
+  .tabs{margin:.6rem 0;display:flex;gap:.3rem;flex-wrap:wrap}
+  .tab{padding:.3rem .8rem;cursor:pointer}
+  .tab[aria-pressed="true"]{font-weight:bold;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -69,7 +72,20 @@
 </fieldset>
 <div class="row"><button type="button"><span class="en">↓ Download app</span><span class="es">↓ Descargar app</span></button></div>
 
-<!-- ===== Decks (rendered) ===== -->
+<!-- ===== Master mode (Step 0): make 5 groups of 3, then order them ===== -->
+<h2><span class="en">Master mode (Step 0)</span><span class="es">Modo Maestro (Paso 0)</span></h2>
+<div class="row"><small><span class="en">Make five groups of three from the words, then order them abstract → concrete.</span><span class="es">Forma cinco grupos de tres con las palabras, luego ordénalos de abstracto a concreto.</span></small></div>
+<div id="master-groups"></div>
+
+<!-- ===== Mode tabs — change how the decks below are displayed ===== -->
+<div class="tabs" id="mode-tabs">
+  <button type="button" class="tab" data-mode="normal" aria-pressed="true"><span class="en">Normal</span><span class="es">Normal</span></button>
+  <button type="button" class="tab" data-mode="adventure" aria-pressed="false"><span class="en">Adventure</span><span class="es">Aventura</span></button>
+  <button type="button" class="tab" data-mode="creative" aria-pressed="false"><span class="en">Creative</span><span class="es">Creativo</span></button>
+  <button type="button" class="tab" data-mode="free" aria-pressed="false"><span class="en">Free</span><span class="es">Libre</span></button>
+</div>
+
+<!-- ===== Decks (rendered per the active tab) ===== -->
 <h2><span class="en">Decks — order each + why</span><span class="es">Mazos — ordena cada uno + por qué</span></h2>
 <div id="decks"></div>
 <div class="deck" id="custom-deck">
@@ -88,9 +104,8 @@
   <label><input type="checkbox" name="an-perspectives"> <span class="en">Perspectives</span><span class="es">Perspectivas</span></label>
 </div>
 
-<!-- ===== New perspective: the decks again, under a titled angle ===== -->
-<h2><span class="en">New perspective</span><span class="es">Nueva perspectiva</span></h2>
-<div class="row"><label><span class="en">Perspective</span><span class="es">Perspectiva</span>: <input type="text" name="persp-name" value="Objective"></label> <small><span class="en">(the general / objective perspective — re-order the decks below from this angle)</span><span class="es">(la perspectiva general / objetiva — reordena los mazos de abajo desde este ángulo)</span></small></div>
+<!-- ===== New perspective: the main decks again, under the objective angle ===== -->
+<h2><span class="en">New perspective · Objective &amp; General</span><span class="es">Nueva perspectiva · Objetiva y General</span></h2>
 <div id="persp-decks"></div>
 <div class="row"><span class="en">Note</span><span class="es">Nota</span>: <textarea name="persp-note"></textarea></div>
 
@@ -190,48 +205,92 @@
   ];
   const MAIN = DECKS.filter(d => !d.extra);   // the triads (favourites pick from these)
   const bx = (en, es) => `<span class="en">${en}</span><span class="es">${es}</span>`;
-  // one item row: the word + a native order select (1..n)
-  const itemRow = (gid, ci, en, es, n) => {
+  // one item row: an order select (1..n) + the word (preset, or a blank input)
+  const itemRow = (gid, ci, en, es, n, blank) => {
     let opts = '<option value="">–</option>';
     for (let r = 1; r <= n; r++) opts += `<option>${r}</option>`;
-    return `<div class="row"><label><select name="${gid}-${ci}">${opts}</select> ${bx(en, es)}</label></div>`;
+    const word = blank ? `<input type="text" name="${gid}-w${ci}" placeholder="…" size="14">` : bx(en, es);
+    return `<div class="row"><select name="${gid}-${ci}">${opts}</select> ${word}</div>`;
   };
-  // render the fixed decks
-  document.getElementById('decks').innerHTML = DECKS.map((d, gi) => {
-    const rows = d.items.map((it, ci) => itemRow('d' + gi, ci, it[0], it[1], d.items.length)).join('');
+  const deckBlock = (gid, d, blankFn) => {
+    const n = d.items.length;
+    const rows = d.items.map((it, ci) => itemRow(gid, ci, it[0], it[1], n, blankFn ? blankFn(ci, n) : false)).join('');
     return `<div class="deck"><h3>${bx(d.en, d.es)}</h3>${rows}`
-         + `<div class="row">${bx('Why', 'Por qué')}: <textarea name="d${gi}-why"></textarea></div></div>`;
-  }).join('');
+         + `<div class="row">${bx('Why', 'Por qué')}: <textarea name="${gid}-why"></textarea></div></div>`;
+  };
+
+  // ---- decks, displayed per the active mode tab ----
+  // normal: all preset · adventure: last 1 blank · creative: last 2 blank · free: all blank
+  const BLANKS = { normal:0, adventure:1, creative:2, free:99 };
+  function renderDecks(mode){
+    const k = BLANKS[mode] || 0;
+    const blankFn = (ci, n) => (mode === 'free') ? true : (ci >= n - k);
+    document.getElementById('decks').innerHTML = DECKS.map((d, gi) => deckBlock('d' + gi, d, blankFn)).join('');
+  }
+  document.querySelectorAll('#mode-tabs .tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('#mode-tabs .tab').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    t.setAttribute('aria-pressed', 'true');
+    renderDecks(t.dataset.mode);
+  }));
+  renderDecks('normal');
+
   // custom group: 3 editable words, each with an order select
   document.getElementById('custom-items').innerHTML = [0, 1, 2].map(ci =>
     `<div class="row"><select name="cu-${ci}"><option value="">–</option><option>1</option><option>2</option><option>3</option></select> `
     + `<input type="text" name="cu-word-${ci}" placeholder="…"></div>`).join('');
-  // new perspective: the same decks again, re-ordered from this angle
-  document.getElementById('persp-decks').innerHTML = DECKS.map((d, gi) => {
-    const rows = d.items.map((it, ci) => itemRow('pd' + gi, ci, it[0], it[1], d.items.length)).join('');
-    return `<div class="deck"><h3>${bx(d.en, d.es)}</h3>${rows}</div>`;
+
+  // master mode (Step 0): five groups of three, picked from the main pool, + order + why
+  const POOL = [];
+  MAIN.forEach(d => d.items.forEach(it => POOL.push(it)));
+  const wordOpts = '<option value="">–</option>' + POOL.map((it, i) => `<option value="${i}">${it[0]} / ${it[1]}</option>`).join('');
+  document.getElementById('master-groups').innerHTML = [1,2,3,4,5].map(g => {
+    const picks = [0,1,2].map(c => `<div class="row"><select name="mg${g}-${c}">${wordOpts}</select></div>`).join('');
+    return `<div class="deck"><h3>${bx('Group', 'Grupo')} ${g}</h3>`
+      + `<div class="row"><label>${bx('Order (abstract→concrete)', 'Orden (abstracto→concreto)')}: `
+      + `<select name="mg${g}-ord"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label></div>`
+      + picks
+      + `<div class="row">${bx('Why', 'Por qué')}: <textarea name="mg${g}-why"></textarea></div></div>`;
   }).join('');
 
-  // favourites: pick three items from the MAIN (triad) decks → produce combos
+  // new perspective (Objective & General): the MAIN decks only, a why on each
+  document.getElementById('persp-decks').innerHTML = MAIN.map((d, gi) => deckBlock('pd' + gi, d, null)).join('');
+
+  // favourites: pick three items from the MAIN decks → produce the combos
+  // (the three-words combo + the pairs), each with a ⇄ switch to its reverse
   const favBox = document.getElementById('fav-items'), combos = document.getElementById('combos');
   const flat = [];
   MAIN.forEach(d => d.items.forEach(it => flat.push({ en: it[0], es: it[1] })));
   favBox.innerHTML = flat.map((it, i) =>
     `<label class="row"><input type="checkbox" class="fav" value="${i}"> ${bx(it.en, it.es)}</label>`).join('');
   const chosen = () => Array.from(favBox.querySelectorAll('.fav:checked'));
+  const comboRow = (en, es, revEn, revEs) => {
+    const sw = revEn ? ` <button type="button" class="swap" data-en="${revEn}" data-es="${revEs}">⇄</button>` : '';
+    return `<div class="combo-row"><b>${bx(en, es)}</b>${sw} <input type="text" placeholder="definition / definición" size="26"></div>`;
+  };
   function renderCombos(){
-    const items = chosen().map(c => flat[+c.value]);
-    if (items.length < 2){ combos.innerHTML = `<small>${bx('Pick three favourites above.', 'Elige tres favoritas arriba.')}</small>`; return; }
+    const it = chosen().map(c => flat[+c.value]);
+    if (it.length < 2){ combos.innerHTML = `<small>${bx('Pick three favourites above.', 'Elige tres favoritas arriba.')}</small>`; return; }
     let html = '';
-    for (let a = 0; a < items.length; a++)
-      for (let b = a + 1; b < items.length; b++)
-        html += `<div class="combo-row"><b>${bx(items[a].en + ' + ' + items[b].en, items[a].es + ' + ' + items[b].es)}</b> `
-              + `<input type="text" placeholder="definition / definición" size="30"></div>`;
+    if (it.length === 3){   // the three-words combo first
+      const e = it.map(x => x.en), s = it.map(x => x.es);
+      html += comboRow(e.join(' '), s.join(' '), e.slice().reverse().join(' '), s.slice().reverse().join(' '));
+    }
+    for (let a = 0; a < it.length; a++)
+      for (let b = a + 1; b < it.length; b++)
+        html += comboRow(it[a].en + ' + ' + it[b].en, it[a].es + ' + ' + it[b].es,
+                         it[b].en + ' + ' + it[a].en, it[b].es + ' + ' + it[a].es);
     combos.innerHTML = html;
   }
   favBox.addEventListener('change', (e) => {
     if (e.target.classList.contains('fav') && e.target.checked && chosen().length > 3) e.target.checked = false; // cap at 3
     renderCombos();
+  });
+  combos.addEventListener('click', (e) => {   // ⇄ reveal the reversed combo below (once)
+    const b = e.target.closest('.swap'); if (!b) return;
+    const row = document.createElement('div'); row.className = 'combo-row';
+    row.innerHTML = `<b>${bx(b.dataset.en, b.dataset.es)}</b> <input type="text" placeholder="definition / definición" size="26">`;
+    b.closest('.combo-row').after(row);
+    b.disabled = true;
   });
 })();
 </script>

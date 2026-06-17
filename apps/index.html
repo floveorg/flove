@@ -227,7 +227,9 @@
 
   /* ── NEW category buttons: Custom=red, Inside=orange, Mating=yellow,
      Linguistics=green, Social=blue, Economy=indigo, Keys=violet ── */
-  .cat.cat-tune    { background:#ff8a8a; color:#3a0e0e; border-color:#ff8a8a; text-decoration:none; }
+  /* Deep-link anchors for the #hash filters: invisible, zero-size, never grab
+     layout; their only job is to be a :target the union rules can read. */
+  .filter-anchor { position: absolute; width: 0; height: 0; overflow: hidden; scroll-margin-top: 140px; }
   /* filterable categories: 50% brighter (toward white) when unchecked … */
   .cat.cat-inside  { background:color-mix(in srgb,#ff9b5e 50%,#fff); color:#3a1a0a; border-color:color-mix(in srgb,#ff9b5e 60%,#fff); }
   .cat.cat-mating  { background:color-mix(in srgb,#ffd84d 50%,#fff); color:#3d2a0a; border-color:color-mix(in srgb,#ffd84d 60%,#fff); }
@@ -367,8 +369,11 @@
     opacity: 1; visibility: visible;
     transition: opacity .7s ease, visibility .7s ease;
   }
-  /* once any category is chosen, the splash fades away to reveal the page */
-  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .intro-splash {
+  /* once any category is chosen — by chip OR by #hash deep-link — the splash
+     fades away to reveal the page */
+  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .intro-splash,
+  body:has(#all:target, #inside:target, #mating:target, #words:target, #social:target, #economy:target) .intro-splash,
+  body:has(#joyful:target, #tender:target, #playful:target, #curious:target, #dreamy:target) .intro-splash {
     opacity: 0; visibility: hidden; pointer-events: none;
   }
   .intro-head {
@@ -518,8 +523,10 @@
     .ib-all, .ib-all::before { animation: none; }
   }
 
-  /* grid fades in once a category is chosen */
-  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid {
+  /* grid fades in once a category is chosen (chip or #hash deep-link) */
+  body:has(#cat-all:checked, #cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid,
+  body:has(#all:target, #inside:target, #mating:target, #words:target, #social:target, #economy:target) .grid,
+  body:has(#joyful:target, #tender:target, #playful:target, #curious:target, #dreamy:target) .grid {
     animation: grid-fade-in .9s ease both;
   }
   @keyframes grid-fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -3070,7 +3077,8 @@
      Categories are checkboxes. When one or more is checked we hide every
      filterable tile, then re-show the tiles of each checked category — so the
      grid shows the UNION of the picked colours. "All" re-shows everything. */
-  body:has(#cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid > .tile:not(.sub-float) {
+  body:has(#cat-inside:checked, #cat-mating:checked, #cat-ling:checked, #cat-social:checked, #cat-economy:checked) .grid > .tile:not(.sub-float),
+  body:has(#all:target, #inside:target, #mating:target, #words:target, #social:target, #economy:target) .grid > .tile:not(.sub-float) {
     display: none;
   }
   body:has(#cat-inside:checked)  .grid > .tile.cat-inside:not(.sub-float),
@@ -3078,7 +3086,14 @@
   body:has(#cat-ling:checked)    .grid > .tile.cat-ling:not(.sub-float),
   body:has(#cat-social:checked)  .grid > .tile.cat-social:not(.sub-float),
   body:has(#cat-economy:checked) .grid > .tile.cat-economy:not(.sub-float),
-  body:has(#cat-all:checked)     .grid > .tile:not(.sub-float) { display: flex; }
+  body:has(#cat-all:checked)     .grid > .tile:not(.sub-float),
+  /* …and the same union driven by #hash deep-links */
+  body:has(#inside:target)  .grid > .tile.cat-inside:not(.sub-float),
+  body:has(#mating:target)  .grid > .tile.cat-mating:not(.sub-float),
+  body:has(#words:target)   .grid > .tile.cat-ling:not(.sub-float),
+  body:has(#social:target)  .grid > .tile.cat-social:not(.sub-float),
+  body:has(#economy:target) .grid > .tile.cat-economy:not(.sub-float),
+  body:has(#all:target)     .grid > .tile:not(.sub-float) { display: flex; }
 
   /* ── FEELING (emoji) FILTER · the 🙂 button after ALL reveals the 5 Custom
      feelings as plain emoji buttons (no bg / no border), left-aligned, below the
@@ -3086,17 +3101,21 @@
      filter below is live: pick 1+ faces → show apps tagged with any of them. */
   body:has(#emo-tog:checked) .cat-emo { box-shadow: 0 0 0 2px rgba(20,16,32,.18) inset; }
   .emo-row { display: none; }
-  body:has(#emo-tog:checked) .emo-row { display: flex; }
+  body:has(#emo-tog:checked) .emo-row,
+  /* a feeling #hash deep-link also reveals the feelings strip */
+  body:has(#joyful:target, #tender:target, #playful:target, #curious:target, #dreamy:target) .emo-row { display: flex; }
   .emo-filter {
     display: flex; flex-direction: row; flex-wrap: wrap;
     justify-content: flex-start; align-items: center; gap: 10px; padding: 4px 6px;
   }
   .emo-btn {
-    background: none; border: 0; padding: 2px; cursor: pointer;
+    /* reddish wash behind each custom feeling face */
+    background: rgba(255,90,70,.14); border: 1px solid rgba(255,90,70,.30);
+    border-radius: 50%; padding: 2px; cursor: pointer;
     width: 34px; height: 34px; display: grid; place-items: center;
-    opacity: .65; transition: opacity .15s ease, transform .15s ease;
+    opacity: .7; transition: opacity .15s ease, transform .15s ease, background .15s ease, border-color .15s ease;
   }
-  .emo-btn:hover { opacity: 1; transform: scale(1.14); }
+  .emo-btn:hover { opacity: 1; transform: scale(1.14); background: rgba(255,90,70,.22); border-color: rgba(255,90,70,.45); }
   .emo-btn .cmoji { width: 28px; height: 28px; }
   .emo-btn.e1 .cmoji { color: #b85a1c; }
   .emo-btn.e2 .cmoji { color: #9c2418; }
@@ -3104,14 +3123,24 @@
   .emo-btn.e4 .cmoji { color: #181210; }
   .emo-btn.e5 .cmoji { color: #181210; }
   #emo1:checked + .emo-btn, #emo2:checked + .emo-btn, #emo3:checked + .emo-btn,
-  #emo4:checked + .emo-btn, #emo5:checked + .emo-btn { opacity: 1; transform: scale(1.1); }
+  #emo4:checked + .emo-btn, #emo5:checked + .emo-btn {
+    opacity: 1; transform: scale(1.1);
+    background: rgba(255,80,60,.30); border-color: rgba(255,80,60,.60);
+  }
   /* App↔feeling filter · pick 1+ feelings → show apps tagged with any of them */
-  body:has(#emo1:checked, #emo2:checked, #emo3:checked, #emo4:checked, #emo5:checked) .grid > .tile:not(.sub-float) { display: none; }
+  body:has(#emo1:checked, #emo2:checked, #emo3:checked, #emo4:checked, #emo5:checked) .grid > .tile:not(.sub-float),
+  body:has(#joyful:target, #tender:target, #playful:target, #curious:target, #dreamy:target) .grid > .tile:not(.sub-float) { display: none; }
   body:has(#emo1:checked) .grid > .tile.cat-emo1:not(.sub-float),
   body:has(#emo2:checked) .grid > .tile.cat-emo2:not(.sub-float),
   body:has(#emo3:checked) .grid > .tile.cat-emo3:not(.sub-float),
   body:has(#emo4:checked) .grid > .tile.cat-emo4:not(.sub-float),
-  body:has(#emo5:checked) .grid > .tile.cat-emo5:not(.sub-float) { display: flex; }
+  body:has(#emo5:checked) .grid > .tile.cat-emo5:not(.sub-float),
+  /* …and the same feeling union driven by #hash deep-links */
+  body:has(#joyful:target)  .grid > .tile.cat-emo1:not(.sub-float),
+  body:has(#tender:target)  .grid > .tile.cat-emo2:not(.sub-float),
+  body:has(#playful:target) .grid > .tile.cat-emo3:not(.sub-float),
+  body:has(#curious:target) .grid > .tile.cat-emo4:not(.sub-float),
+  body:has(#dreamy:target)  .grid > .tile.cat-emo5:not(.sub-float) { display: flex; }
 
   /* Inside sub-category narrowing — only effective while Inside is active.
      Filters the same way the main icons do (Metaphysics · Linguistics · Psychology). */
@@ -3632,6 +3661,20 @@ details.tile-big:hover > summary .tag,
 <input type="checkbox" id="cat-ling"    class="vh" />
 <input type="checkbox" id="cat-social"  class="vh" />
 <input type="checkbox" id="cat-economy" class="vh" />
+<!-- Filter deep-link anchors (pure-CSS :target). Visiting #inside / #economy /
+     #joyful … filters the grid via :has(:target); it unions with the checkbox
+     multiselect, so a shared link lands filtered and chips can still add more. -->
+<i id="all"     class="filter-anchor" aria-hidden="true"></i>
+<i id="inside"  class="filter-anchor" aria-hidden="true"></i>
+<i id="mating"  class="filter-anchor" aria-hidden="true"></i>
+<i id="words"   class="filter-anchor" aria-hidden="true"></i>
+<i id="social"  class="filter-anchor" aria-hidden="true"></i>
+<i id="economy" class="filter-anchor" aria-hidden="true"></i>
+<i id="joyful"  class="filter-anchor" aria-hidden="true"></i>
+<i id="tender"  class="filter-anchor" aria-hidden="true"></i>
+<i id="playful" class="filter-anchor" aria-hidden="true"></i>
+<i id="curious" class="filter-anchor" aria-hidden="true"></i>
+<i id="dreamy"  class="filter-anchor" aria-hidden="true"></i>
 <!-- Inside sub-category radios (Metaphysics · Linguistics · Psychology) -->
 <input type="radio" name="incat" id="in-all"  class="vh" checked />
 <input type="radio" name="incat" id="in-meta" class="vh" />
@@ -3882,7 +3925,6 @@ details.tile-big:hover > summary .tag,
       <label class="flow-btn flow-all" for="cat-all" aria-label="All · show every app"><span class="flow-txt">ALL</span></label>
       <input type="checkbox" id="emo-tog" class="vh">
       <label class="cat cat-emo" for="emo-tog" aria-label="filter apps by feeling" title="filter by feeling">🙂</label>
-      <label class="cat cat-tune" for="prev-custom" aria-label="Custom · feelings" title="Custom · feelings">Custom</label>
       <label class="cat cat-inside" for="cat-inside">Inside<span class="cat-count">10</span></label>
       <span class="inside-subs" aria-label="Inside subcategories">
         <label class="subbtn subbtn-meta" for="in-meta">Metaphysics<span class="cat-count">3</span></label>

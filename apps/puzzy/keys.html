@@ -3227,6 +3227,7 @@
   .std-quick .sq-h{color:var(--muted);font:600 .68rem/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
   .std-quick-insight{flex:1 1 220px;color:var(--ink);font-size:.88rem;line-height:1.5;text-align:left;border-left:1px solid var(--stroke);padding-left:1rem}
   .std-quick-insight:empty{display:none}
+  .std-quick-insight-btnwrap{display:flex;align-items:center;justify-content:center}
   .std-quick-insight b{color:var(--gold);font-weight:600}
   /* Detailed time stats: breakdown left, analyze/more right */
   .std-ts-cols{display:flex;flex-wrap:wrap;gap:1.2rem}
@@ -6603,9 +6604,14 @@ window.tKey = function tKey(k){
       quick += node(tKey('stats.main_triads'), decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node(tKey('stats.extra_triads'), ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node(tKey('stats.additional_perspective'), secondPlayMs, 0);
+      // The quick insight is no longer shown above the table by default: a
+      // centered "Insights" button sits here, and the text is revealed by the
+      // "More" button in the right column below the table (see wireTsInsight).
       $top.innerHTML = `<div class="std-quick-wrap">`
         + `<div class="std-quick std-tsn-list">${quick}</div>`
-        + `<div class="std-quick-insight">${buildQuickInsight(decksTotal, secondPlayMs, analysisMs)}</div>`
+        + `<div class="std-quick-insight std-quick-insight-btnwrap">`
+        +   `<button class="btn btn-soft" id="quick-insight-btn" type="button">${escapeHTML(tKey('btn.insights'))}</button>`
+        + `</div>`
         + `</div>`
         // The perspective insights moved here (above the table): a "More" button
         // under the hint reveals/cycles them. (Was the table's right column.)
@@ -6613,6 +6619,16 @@ window.tKey = function tKey(k){
         +   `<button class="btn btn-soft persp-more-btn" id="persp-more" type="button">${escapeHTML(tKey('common.more'))}</button>`
         +   `<div class="persp-insight-list" id="persp-insight-list" hidden></div>`
         + `</div>`;
+      // The "Insights" button surfaces the insight in the right column below the
+      // table (revealing the stats panel if collapsed) and scrolls to it.
+      const $qib = document.getElementById('quick-insight-btn');
+      if ($qib) $qib.addEventListener('click', () => {
+        _timeStatsOn = true;
+        if (typeof renderBottomSummary === 'function') renderBottomSummary();
+        renderTimeStats();
+        const col = document.getElementById('ts-insight-col');
+        if (col) setTimeout(() => col.scrollIntoView({ behavior:'smooth', block:'center' }), 0);
+      });
       // Master-mode stats + substats stay visible above the table (not gated
       // behind the Stats toggle) once Master's Step 0 has been played.
       const masterPlayed = !!state.step0Completed || !!state.masterDone || state.gameMode === 'master';
@@ -6632,8 +6648,10 @@ window.tKey = function tKey(k){
       </div>
     `;
     // Right column: one insight by default, "More" loads the next, "Hide" at the end.
-    // Right column below the table cycles at most 4 insights (not 5).
-    wireTsInsight([hintHTML, primaryHint, ...cyclePool].filter(Boolean).slice(0, 4));
+    // Right column below the table: the quick insight (moved down from above the
+    // table) is the first one its "More" reveals; cycles at most 4 (not 5).
+    const quickInsight = buildQuickInsight(decksTotal, secondPlayMs, analysisMs);
+    wireTsInsight([quickInsight, hintHTML, primaryHint, ...cyclePool].filter(Boolean).slice(0, 4));
     // Light up the breakdown rows named by whichever insights are visible.
     highlightMentionedStats($panel);
     // Hidden until the Stats "More" expands the Summary section.

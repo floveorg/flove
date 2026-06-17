@@ -118,6 +118,7 @@
     background: transparent;
     border-bottom: 0;
     color:var(--ink);
+    display:flex; align-items:center; gap:.5rem; position:relative;
   }
   .flove-bar button.flove-mark-btn,
   .flove-bar button.flove-app-name{
@@ -134,11 +135,21 @@
   .flove-bar .title-voice[hidden]{ display:none }
   .flove-bar .flove-mark{ width:1.6em; height:1.6em }
   .flove-bar .flove-spacer{ flex:1 }
-  .flove-bar .topmenu-btn{
-    background:transparent; border:0; color:var(--ink-soft); font-size:1.4em;
-    cursor:pointer; padding:.25rem .4rem; border-radius:8px;
+  /* logo + title both open this dropdown (no triangle indicator) */
+  .flove-menu{
+    position:absolute; top:100%; left:0; z-index:50;
+    min-width:180px; margin-top:.45rem; padding:.35rem;
+    background:#1e1630; border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 14px 34px rgba(0,0,0,.5);
+    display:flex; flex-direction:column; gap:.1rem;
   }
-  .flove-bar .topmenu-btn:hover{ color:var(--ink); background:rgba(255,255,255,.06) }
+  .flove-menu[hidden]{ display:none }
+  .flove-menu__item{
+    background:transparent; border:0; cursor:pointer; text-align:left;
+    padding:.5rem .7rem; border-radius:8px;
+    color:var(--ink); font:inherit; font-size:.95rem;
+  }
+  .flove-menu__item:hover{ background:rgba(255,255,255,.08) }
 
   /* intro panel */
   .app-info{ max-width:640px; margin:1.2rem auto 0; padding:0 1.1rem; }
@@ -1836,13 +1847,17 @@
 </div>
 
 <nav class="flove-bar">
-  <button class="flove-mark-btn" id="floveMarkBtn" type="button" aria-label="Back to flove">
+  <button class="flove-mark-btn" id="floveMarkBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="floveMenu" aria-label="Menu">
     <span class="yin-yang" aria-hidden="true"></span>
   </button>
-  <button class="flove-app-name" id="appNameBtn" type="button" aria-expanded="false" aria-controls="appInfo">Souls</button>
+  <button class="flove-app-name" id="appNameBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="floveMenu">Souls</button>
   <span class="title-voice" id="titleVoice" aria-hidden="true" hidden>🔊</span>
   <span class="flove-spacer"></span>
-  <button class="topmenu-btn" id="resetBtn" type="button" aria-label="Restart">↻</button>
+  <div class="flove-menu" id="floveMenu" role="menu" aria-label="Menu" hidden>
+    <button class="flove-menu__item" type="button" role="menuitem" id="menuAbout">About</button>
+    <button class="flove-menu__item" type="button" role="menuitem" id="menuRestart">Restart</button>
+    <button class="flove-menu__item" type="button" role="menuitem" id="menuBack">Back to flove</button>
+  </div>
 </nav>
 
 <section class="app-info" id="appInfo" hidden aria-labelledby="appNameBtn">
@@ -4655,21 +4670,32 @@
     goTo('welcome');
     flash('Fresh start');
   };
-  $('#resetBtn').addEventListener('click', reset);
-
-  // ── info panel toggle ──
+  // ── info panel (opened from the menu) ──
   const info = $('#appInfo');
-  const nameBtn = $('#appNameBtn');
   const toggleInfo = () => {
     const wasHidden = info.hasAttribute('hidden');
     if (wasHidden) info.removeAttribute('hidden'); else info.setAttribute('hidden','');
-    nameBtn.setAttribute('aria-expanded', String(wasHidden));
   };
-  nameBtn.addEventListener('click', toggleInfo);
   $('#appInfoCloseBtn').addEventListener('click', toggleInfo);
 
-  // ── back-to-flove ──
-  $('#floveMarkBtn').addEventListener('click', () => { location.href = 'index.html'; });
+  // ── top menu: the logo + the title both open one normal dropdown ──
+  (function wireFloveMenu(){
+    const menu = $('#floveMenu'), logo = $('#floveMarkBtn'), name = $('#appNameBtn');
+    if (!menu || !logo || !name) return;
+    const setOpen = (open) => {
+      menu.hidden = !open;
+      logo.setAttribute('aria-expanded', String(open));
+      name.setAttribute('aria-expanded', String(open));
+    };
+    const toggle = (e) => { e.stopPropagation(); setOpen(menu.hidden); };
+    logo.addEventListener('click', toggle);
+    name.addEventListener('click', toggle);
+    document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+    $('#menuAbout').addEventListener('click',   () => { setOpen(false); toggleInfo(); });
+    $('#menuRestart').addEventListener('click', () => { setOpen(false); reset(); });
+    $('#menuBack').addEventListener('click',    () => { location.href = 'index.html'; });
+  })();
 
   // ── counters ──
   function countSelections(){

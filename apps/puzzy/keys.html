@@ -1020,10 +1020,12 @@
   .fp-combos[hidden]{display:none}
   .fp-combos .comby-pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .9rem;align-items:start}
   @media (max-width:560px){ .fp-combos .comby-pairs-grid{grid-template-columns:1fr} }
+  .fp-combos .comby-col{display:flex;flex-direction:column;gap:.55rem;min-width:0}
   .fp-combos .comby-cell{display:flex;flex-direction:column;gap:.45rem;min-width:0}
   .fp-combos .comby-trio .comby-combo-title{color:var(--gold);font-weight:800}
   .fp-combos .fp-done-row{display:flex;justify-content:center;margin-top:.9rem}
   .fp-combos .fp-done-row[hidden]{display:none}
+  .fp-combos .fp-autopick-row{display:flex;justify-content:center}
   /* "Click me click me" — strong recalling effect on the BORDERS of every
      group item while free-play is active. Persistent until the user clicks
      an item, with rotating-rainbow accent borders + outline glow that read
@@ -3229,6 +3231,8 @@
   .std-quick-insight:empty{display:none}
   .std-quick-hints{display:flex;flex-direction:column;gap:.4rem}
   .std-quick-hints:empty{display:none}
+  .std-quick-hints .quick-hint-text{margin:0;line-height:1.55}
+  .std-quick-hints .quick-hint-text b{color:var(--gold);font-weight:700}
   /* All right-column hints — hidden on screen (the "More" cycles them), shown
      expanded only in the HTML export. */
   .ts-insight-all{display:none}
@@ -6614,12 +6618,12 @@ window.tKey = function tKey(k){
       quick += node(tKey('stats.main_triads'), decksTotal, 0);   // renamed from Main decks / Main Keys
       if (ordinalsMs)   quick += node(tKey('stats.extra_triads'), ordinalsMs, 0);   // time on the extra triads
       if (secondPlayMs) quick += node(tKey('stats.additional_perspective'), secondPlayMs, 0);
-      // Above the table: the stats, then a single hint (replaced the old
-      // "Insights"/Reflexiones button). The Pistas (perspective insights) moved
-      // down to their own block between the new perspective and the summary.
+      // Above the table: the stats, then a single hint — a general comparison of
+      // the very stats shown to its left (which slice of time took the most).
+      const topInsight = buildQuickInsight(decksTotal, secondPlayMs, analysisMs);
       $top.innerHTML = `<div class="std-quick-wrap">`
         + `<div class="std-quick std-tsn-list">${quick}</div>`
-        + `<div class="std-quick-insight std-quick-hints">${hintHTML || ''}</div>`
+        + `<div class="std-quick-insight std-quick-hints">${topInsight ? `<p class="quick-hint-text">${topInsight}</p>` : ''}</div>`
         + `</div>`;
       // Master-mode stats + substats stay visible above the table (not gated
       // behind the Stats toggle) once Master's Step 0 has been played.
@@ -6649,10 +6653,9 @@ window.tKey = function tKey(k){
       </div>
     `;
     // Right column: one insight by default, "More" loads the next, "Hide" at the end.
-    // Right column below the table: the quick insight (moved down from above the
-    // table) is the first one its "More" reveals; cycles at most 4 (not 5).
-    const quickInsight = buildQuickInsight(decksTotal, secondPlayMs, analysisMs);
-    wireTsInsight([quickInsight, hintHTML, primaryHint, ...cyclePool].filter(Boolean).slice(0, 4));
+    // Right column below the table cycles at most 4 insights (not 5). The
+    // stats-comparison line lives above the table now (see topInsight).
+    wireTsInsight([hintHTML, primaryHint, ...cyclePool].filter(Boolean).slice(0, 4));
     // Light up the breakdown rows named by whichever insights are visible.
     highlightMentionedStats($panel);
     // Hidden until the Stats "More" expands the Summary section.
@@ -8860,11 +8863,31 @@ window.tKey = function tKey(k){
   }
   document.getElementById('btn-analyze-more-1').addEventListener('click', toggleAnalyzeMore1);
 
+  // Clicking Favourites clears the Ordinals / Genders / Extras overlays so the
+  // three keys can be freely picked from the plain triads (otherwise, with the
+  // extra decks shown, the multiselect ends up limited to a single pick).
+  function resetAnalyzeOverlays(){
+    _analyzeOn = false;
+    const ov = document.getElementById('analyze-arrows'); if (ov) ov.classList.remove('is-on');
+    const ab = document.getElementById('btn-analyze');
+    if (ab){ ab.textContent = 'Ordinals'; ab.classList.remove('btn-primary'); ab.classList.add('btn-ghost'); }
+    _extrasOn = false; state.showExtras = false; $summary.classList.remove('swap-design');
+    const eb = document.getElementById('btn-analyze-extras');
+    if (eb){ eb.textContent = tKey('btn.extras'); eb.classList.remove('btn-primary'); eb.classList.add('btn-ghost'); }
+    _finishApplied = false;
+    if (typeof removeFinishIcons === 'function') removeFinishIcons();
+    const gb = document.getElementById('btn-analyze-more-1');
+    if (gb){ gb.textContent = tKey('btn.genders'); gb.classList.remove('btn-primary'); gb.classList.add('btn-ghost'); }
+    if (typeof extraOpen !== 'undefined'){ Object.keys(extraOpen).forEach(k => extraOpen[k] = false); }
+  }
   // Favourites step: turn the summary keys into a 3-pick multiselect; reveal Perspectives.
   function toggleKeys(){
     const $btn = document.getElementById('btn-analyze-keys');
     togglePlayMore();   // toggles the select-keys mode (_playMoreOn)
     if (_playMoreOn){
+      resetAnalyzeOverlays();      // clear ordinals/genders/extras so 3 can be picked
+      renderSummaryGrid();         // re-render the plain triads…
+      wireFreePlayHandlers();      // …and re-wire the 3-pick multiselect on them
       bumpAnalyzeLevel(4);
       markSectionTouched('keys');
       $btn.textContent = '✓ Favourites';
@@ -10895,7 +10918,19 @@ window.tKey = function tKey(k){
   function buildCombyUI($comby){
     const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
     $comby.innerHTML = '';
-    if (!picks.length) return;   // nothing to show yet — no "pick first" prompt
+    if (!picks.length){
+      // No favourite picked yet → a "More" button that auto-selects the three
+      // default favourites and shows their combos.
+      const row = document.createElement('div');
+      row.className = 'fp-autopick-row';
+      row.innerHTML = `<button type="button" class="btn btn-soft fp-autopick-btn">${escapeHTML(tKey('common.more'))}</button>`;
+      row.querySelector('button').addEventListener('click', () => {
+        applyDefaultFavourites();
+        renderFpCombos();
+      });
+      $comby.appendChild(row);
+      return;
+    }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const savedLabels = new Set(_combySaved.map(s => s.combo));
     // A definition field for one label (the combined trio or a pair). opts.swap
@@ -10906,7 +10941,7 @@ window.tKey = function tKey(k){
       combo.className = 'comby-combo' + (opts.trio ? ' comby-trio' : '');
       combo.innerHTML = `
         <div class="comby-combo-head">
-          ${opts.swap ? `<button class="comby-swap" type="button" title="${escapeHTML(tKey('comby.swap_title'))}" aria-label="${escapeHTML(tKey('comby.swap'))}">⇄</button>` : ''}
+          ${(opts.swap || opts.perms) ? `<button class="comby-swap" type="button" title="${escapeHTML(tKey('comby.swap_title'))}" aria-label="${escapeHTML(tKey('comby.swap'))}">⇄</button>` : ''}
           <span class="comby-combo-title">${escapeHTML(label)}</span>
         </div>
         <div class="comby-rec">
@@ -10955,18 +10990,32 @@ window.tKey = function tKey(k){
         combo.remove();
         revealPerspMore();
       });
-      // Exchange → reveal the reversed-order field BELOW this one inside the same
-      // cell (so the two columns stay put).
       if (swap){
-        let rev = null;
-        swap.addEventListener('click', () => {
-          if (rev && rev.isConnected){ rev.remove(); rev = null; return; }   // collapse
-          const parts = label.split(' ');
-          rev = makeField(parts.slice().reverse().join(' '), {});
-          combo.parentNode.appendChild(rev);   // within the cell, not across columns
-          const rf = rev.querySelector('.comby-field');
-          if (rf) rf.focus();
-        });
+        if (opts.perms){
+          // Trio switcher → reveal a further word-ordering below it, one per
+          // click (cycling through the permutations of the three words).
+          let pi = 1;
+          swap.addEventListener('click', () => {
+            if (pi >= opts.perms.length) return;
+            const next = makeField(opts.perms[pi].join(' '), {});
+            combo.parentNode.appendChild(next);   // stacked below, in the same column
+            pi++;
+            const rf = next.querySelector('.comby-field');
+            if (rf) rf.focus();
+          });
+        } else {
+          // Pair exchange → reveal the reversed-order field below this one, in
+          // the same cell (so the two columns stay put).
+          let rev = null;
+          swap.addEventListener('click', () => {
+            if (rev && rev.isConnected){ rev.remove(); rev = null; return; }   // collapse
+            const parts = label.split(' ');
+            rev = makeField(parts.slice().reverse().join(' '), {});
+            combo.parentNode.appendChild(rev);
+            const rf = rev.querySelector('.comby-field');
+            if (rf) rf.focus();
+          });
+        }
       }
       return combo;
     }
@@ -10976,20 +11025,27 @@ window.tKey = function tKey(k){
       cell.appendChild(makeField(label, opts));
       return cell;
     };
-    // The 4 fields — the combined trio + the 3 pairs — laid out in two columns
-    // (2 in each). Saved ones are not re-shown.
+    // The six orderings of the three favourite words (the trio switcher cycles
+    // through these, the first being the plain order shown by default).
+    const perms3 = (a) => (a.length === 3)
+      ? [[a[0],a[1],a[2]],[a[0],a[2],a[1]],[a[1],a[0],a[2]],[a[1],a[2],a[0]],[a[2],a[0],a[1]],[a[2],a[1],a[0]]]
+      : [a.slice()];
+    // Two columns: LEFT = the trio (with its switcher revealing further
+    // orderings below); RIGHT = the pairs, combo3 (B+C) above combo2 (A+C).
     const grid = document.createElement('div');
     grid.className = 'comby-pairs-grid';
+    const colL = document.createElement('div'); colL.className = 'comby-col comby-col-l';
+    const colR = document.createElement('div'); colR.className = 'comby-col comby-col-r';
+    grid.appendChild(colL); grid.appendChild(colR);
     if (picks.length === 3 && !savedLabels.has(picks.join(' '))){
-      grid.appendChild(makeCell(picks.join(' '), { trio:true }));
+      colL.appendChild(makeCell(picks.join(' '), { trio:true, perms: perms3(picks) }));
     }
-    const pairs = [];
-    for (let i = 0; i < picks.length; i++)
-      for (let j = i + 1; j < picks.length; j++)
-        pairs.push([picks[i], picks[j]]);
-    pairs.filter(([a, b]) => !savedLabels.has(`${a} ${b}`))
-      .forEach(([a, b]) => grid.appendChild(makeCell(`${a} ${b}`, { swap:true })));
-    if (grid.children.length) $comby.appendChild(grid);
+    const rightPairs = (picks.length === 3)
+      ? [[picks[0],picks[1]], [picks[1],picks[2]], [picks[0],picks[2]]]   // A+B, B+C, A+C
+      : (() => { const p = []; for (let i=0;i<picks.length;i++) for (let j=i+1;j<picks.length;j++) p.push([picks[i],picks[j]]); return p; })();
+    rightPairs.filter(([a, b]) => !savedLabels.has(`${a} ${b}`))
+      .forEach(([a, b]) => colR.appendChild(makeCell(`${a} ${b}`, { swap:true })));
+    if (colL.children.length || colR.children.length) $comby.appendChild(grid);
     // Next, centered below — appears once a comby is saved; goes to the
     // perspectives step (the Perspectives button in the row appears at the same
     // time). Until then there's no way forward, so the combos get filled first.

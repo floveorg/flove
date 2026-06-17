@@ -1019,6 +1019,7 @@
   .fp-combos{margin:.6rem 0 1rem;padding:.9rem 1rem;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.02)}
   .fp-combos[hidden]{display:none}
   .fp-combos .comby-pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .9rem;align-items:start}
+  .fp-combos .comby-pairs-grid.comby-onecol{grid-template-columns:1fr}
   @media (max-width:560px){ .fp-combos .comby-pairs-grid{grid-template-columns:1fr} }
   .fp-combos .comby-col{display:flex;flex-direction:column;gap:.55rem;min-width:0}
   .fp-combos .comby-cell{display:flex;flex-direction:column;gap:.45rem;min-width:0}
@@ -8883,11 +8884,11 @@ window.tKey = function tKey(k){
   // Favourites step: turn the summary keys into a 3-pick multiselect; reveal Perspectives.
   function toggleKeys(){
     const $btn = document.getElementById('btn-analyze-keys');
-    togglePlayMore();   // toggles the select-keys mode (_playMoreOn)
+    // Clear ordinals/genders/extras BEFORE toggling so togglePlayMore renders
+    // the plain triads (and wires the 3-pick multiselect) in one pass.
+    if (!_playMoreOn) resetAnalyzeOverlays();
+    togglePlayMore();   // toggles the select-keys mode (_playMoreOn); renders + wires
     if (_playMoreOn){
-      resetAnalyzeOverlays();      // clear ordinals/genders/extras so 3 can be picked
-      renderSummaryGrid();         // re-render the plain triads…
-      wireFreePlayHandlers();      // …and re-wire the 3-pick multiselect on them
       bumpAnalyzeLevel(4);
       markSectionTouched('keys');
       $btn.textContent = '✓ Favourites';
@@ -10925,8 +10926,7 @@ window.tKey = function tKey(k){
       row.className = 'fp-autopick-row';
       row.innerHTML = `<button type="button" class="btn btn-soft fp-autopick-btn">${escapeHTML(tKey('common.more'))}</button>`;
       row.querySelector('button').addEventListener('click', () => {
-        applyDefaultFavourites();
-        renderFpCombos();
+        applyDefaultFavourites();   // selects the 3 defaults + rebuilds the combos
       });
       $comby.appendChild(row);
       return;
@@ -11045,6 +11045,8 @@ window.tKey = function tKey(k){
       : (() => { const p = []; for (let i=0;i<picks.length;i++) for (let j=i+1;j<picks.length;j++) p.push([picks[i],picks[j]]); return p; })();
     rightPairs.filter(([a, b]) => !savedLabels.has(`${a} ${b}`))
       .forEach(([a, b]) => colR.appendChild(makeCell(`${a} ${b}`, { swap:true })));
+    // With no trio (fewer than 3 picks) the left column is empty → one column.
+    if (!colL.children.length) grid.classList.add('comby-onecol');
     if (colL.children.length || colR.children.length) $comby.appendChild(grid);
     // Next, centered below — appears once a comby is saved; goes to the
     // perspectives step (the Perspectives button in the row appears at the same

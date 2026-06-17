@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLOVE · KEYS · basic</title>
+<link rel="icon" type="image/svg+xml" href="favicon-keys.svg">
+<style>
+  :root{
+    --bg:#252538; --panel:#2f2f44; --ink:#f6f7fb; --muted:#c4c7d2;
+    --fx:#3a3a52; --stroke:#4a4a66; --accent:#ff5fdc; --gold:#fadc92; --sky:#a8e4ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 85% -10%, #3a3a58 0%, transparent 55%),
+      radial-gradient(900px 600px at -10% 110%, #3a2548 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font:16px/1.55 system-ui,Roboto,Arial,sans-serif;
+    min-height:100vh;-webkit-font-smoothing:antialiased;
+  }
+  .vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;margin:-1px;overflow:hidden}
+
+  /* bilingual engine: default EN; #lang-es flips to ES */
+  body:not(:has(#lang-es:checked)) .es{display:none}
+  body:has(#lang-es:checked) .en{display:none}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:.6rem;padding:12px 18px;
+    border-bottom:1px solid var(--stroke);background:rgba(37,37,56,.78);backdrop-filter:blur(14px)}
+  .logo{width:30px;height:30px;display:block;flex:none;filter:drop-shadow(0 0 6px rgba(167,99,250,.7))}
+  .brand{font:600 1.2rem/1.4 ui-serif,Georgia,serif;letter-spacing:.4px;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand-sub{color:var(--muted);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;margin-left:.1rem}
+  .spacer{flex:1}
+  .chip{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--stroke);
+    background:rgba(255,255,255,.03);color:var(--ink);border-radius:10px;padding:.35rem .6rem;
+    cursor:pointer;font:600 .85rem/1 system-ui,sans-serif;user-select:none}
+  .chip:hover{border-color:var(--accent)}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* layout */
+  .wrap{max-width:760px;margin:0 auto;padding:18px 18px 48px}
+  .intro{color:var(--muted);text-align:center;margin:.4rem 0 1rem;line-height:1.5}
+  .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin:0 0 1.2rem}
+
+  /* groups & cards */
+  .group{border:1px solid var(--stroke);border-radius:16px;background:var(--panel);padding:14px 16px;margin:0 0 1rem}
+  .group[hidden]{display:none}
+  .group-title{font:700 1.05rem/1.2 ui-serif,Georgia,serif;color:var(--gold);margin:0 0 .7rem}
+  .cards{display:flex;flex-direction:column;gap:.5rem}
+  .card{display:flex;align-items:center;gap:.6rem;border:1px solid var(--stroke);border-radius:12px;
+    background:var(--fx);padding:.5rem .7rem;transition:order .2s ease}
+  .word{flex:1;min-width:0;font:600 .98rem/1.2 ui-serif,Georgia,serif;display:flex;align-items:center;gap:.4rem}
+  .word input.cust{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed var(--stroke);
+    color:var(--ink);font:inherit;padding:.1rem 0}
+  .word input.cust:focus{outline:none;border-bottom-color:var(--accent)}
+  .gender-icon{font-size:.95em;font-weight:700}
+  .gender-icon.female{color:#ed8aa6}
+  .gender-icon.male{color:#7ea0ff}
+
+  /* 1·2·3 rank control */
+  .ranks{display:inline-flex;gap:.3rem;flex:none}
+  .ranks label{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;
+    border:1px solid var(--stroke);background:rgba(255,255,255,.03);color:var(--muted);cursor:pointer;
+    font:700 .85rem/1 system-ui,sans-serif;user-select:none;
+    transition:background .15s ease,color .15s ease,border-color .15s ease}
+  .ranks label:hover{border-color:var(--accent)}
+  .ranks input:checked + label{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* live recap */
+  .recap{border:1px solid var(--stroke);border-radius:16px;background:rgba(255,255,255,.02);padding:14px 16px;margin-top:.4rem}
+  .recap[hidden]{display:none}
+  .recap h2{font:700 .72rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 .6rem}
+  .recap ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.3rem}
+  .recap li{font-size:.92rem}
+  .recap .gname{color:var(--sky);font-weight:700}
+  .recap .done{color:var(--gold);font-weight:700;margin-top:.5rem;font-size:.85rem}
+
+  @media (max-width:420px){ .card{flex-wrap:wrap} .ranks{margin-left:auto} }
+</style>
+</head>
+<body>
+<input type="checkbox" id="lang-es" class="vh" aria-label="Switch language">
+
+<header class="topbar">
+  <svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="g-keys" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8b5cf6"/><stop offset=".55" stop-color="#c084fc"/><stop offset="1" stop-color="#ff5fdc"/></linearGradient></defs><g fill="url(#g-keys)" stroke="none"><g transform="rotate(0 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(72 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(288 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><circle cx="50" cy="50" r="4.5"/></g></svg>
+  <span class="brand">Keys</span>
+  <span class="brand-sub">basic</span>
+  <span class="spacer"></span>
+  <label class="chip" for="lang-es" title="Language">🌐 <span class="en">ES</span><span class="es">EN</span></label>
+</header>
+
+<main class="wrap">
+  <p class="intro"><span class="en">Rank each group's three cards 1·2·3. Toggle the extras, genders and order below.</span><span class="es">Ordena del 1 al 3 las cartas de cada grupo. Activa extras, géneros y orden abajo.</span></p>
+
+  <div class="toolbar">
+    <button type="button" class="chip" id="t-extras"  aria-pressed="false"><span class="en">Extra decks</span><span class="es">Mazos extra</span></button>
+    <button type="button" class="chip" id="t-genders" aria-pressed="false"><span class="en">Genders</span><span class="es">Géneros</span></button>
+    <button type="button" class="chip" id="t-ordinals" aria-pressed="true"><span class="en">Ordinals</span><span class="es">Ordinales</span></button>
+  </div>
+
+  <div id="triads"></div>
+  <div id="extras" hidden></div>
+  <div id="custom"></div>
+
+  <section class="recap" id="recap" hidden>
+    <h2><span class="en">Your keys</span><span class="es">Tus claves</span></h2>
+    <ul id="recap-list"></ul>
+    <div class="done" id="recap-done"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  // ---- data (bilingual). gender marks live only on Metaphysics Yin/Yang. ----
+  const TRIADS = [
+    { en:'Philosophy', es:'Filosofía',  items:[['Joy','Alegría'],['Love','Amor'],['Wisdom','Sabiduría']] },
+    { en:'Psicosocial', es:'Psicosocial', items:[['Local','Local'],['Personal','Personal'],['Social','Social']] },
+    { en:'Service', es:'Servicio',       items:[['Gift','Regalo'],['Lend','Prestar'],['Exchange','Intercambio']] },
+  ];
+  const EXTRAS = [
+    { en:'Time', es:'Tiempo',           items:[['Future','Futuro'],['Past','Pasado'],['Present','Presente']] },
+    { en:'Metaphysics', es:'Metafísica', items:[['Tao','Tao'],['Yang','Yang'],['Yin','Yin']], gender:{ Yang:'male', Yin:'female' } },
+    { en:'Space', es:'Espacio',         items:[['Confluence','Confluencia'],['Macro','Macro'],['Micro','Micro']] },
+    { en:'Sectors', es:'Sectores',      items:[['Mining','Minería'],['Manufacture','Manufactura'],['Service','Servicio']] },
+  ];
+
+  const $ = (s, r=document) => r.querySelector(s);
+  const elc = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
+  const groups = [];   // every rendered group element, in document order
+
+  // Build one group element (gid unique). custom=true → editable word inputs.
+  function buildGroup(data, gid, custom){
+    const sec = elc('section', 'group');
+    sec.dataset.gid = gid;
+    const h = elc('h2', 'group-title');
+    if (custom){ h.innerHTML = `<span class="en">Your group</span><span class="es">Tu grupo</span>`; }
+    else { h.innerHTML = `<span class="en">${data.en}</span><span class="es">${data.es}</span>`; }
+    sec.appendChild(h);
+    const cards = elc('div', 'cards');
+    for (let ci = 0; ci < 3; ci++){
+      const card = elc('div', 'card');
+      const word = elc('span', 'word');
+      if (custom){
+        const inp = elc('input', 'cust'); inp.type = 'text'; inp.maxLength = 24;
+        inp.placeholder = '…'; inp.setAttribute('aria-label', 'your word');
+        inp.addEventListener('input', () => { card.dataset.en = card.dataset.es = inp.value; updateRecap(); });
+        word.appendChild(inp);
+      } else {
+        const [en, es] = data.items[ci];
+        card.dataset.en = en; card.dataset.es = es;
+        if (data.gender && data.gender[en]) card.dataset.gender = data.gender[en];
+        word.innerHTML = `<span class="en">${en}</span><span class="es">${es}</span>`;
+      }
+      card.appendChild(word);
+      const ranks = elc('span', 'ranks'); ranks.setAttribute('role', 'radiogroup'); ranks.setAttribute('aria-label', 'rank');
+      for (let r = 1; r <= 3; r++){
+        const name = gid + 'c' + ci, id = name + '-' + r;
+        const inp = elc('input'); inp.type = 'radio'; inp.name = name; inp.id = id; inp.className = 'vh'; inp.value = String(r);
+        const lab = elc('label'); lab.setAttribute('for', id); lab.textContent = String(r);
+        inp.addEventListener('change', () => onRank(sec, card, r));
+        ranks.append(inp, lab);
+      }
+      card.appendChild(ranks);
+      cards.appendChild(card);
+    }
+    sec.appendChild(cards);
+    groups.push(sec);
+    return sec;
+  }
+
+  // Rank a card within its group: enforce uniqueness (swap), then reorder + recap.
+  function onRank(sec, card, rank){
+    const prev = card.dataset.rank || '';
+    const siblings = Array.from(sec.querySelectorAll('.card'));
+    siblings.forEach(other => {
+      if (other !== card && other.dataset.rank === String(rank)){
+        // hand this card's previous rank to the displaced one (or clear it)
+        setRank(other, prev);
+      }
+    });
+    card.dataset.rank = String(rank);
+    applyOrder(sec);
+    updateRecap();
+  }
+  // Set a card's rank programmatically (''=clear), keeping its radios in sync.
+  function setRank(card, rank){
+    card.dataset.rank = rank ? String(rank) : '';
+    card.querySelectorAll('.ranks input').forEach(inp => { inp.checked = (rank && inp.value === String(rank)); });
+  }
+  // Reorder cards by rank when Ordinals is on; ranked first (1→3), then the rest.
+  function applyOrder(sec){
+    Array.from(sec.querySelectorAll('.card')).forEach((card, i) => {
+      const r = parseInt(card.dataset.rank, 10);
+      card.style.order = ordinalsOn ? (r ? r : 9) : i;
+    });
+  }
+
+  // ---- toggles ----
+  let ordinalsOn = true, extrasBuilt = false;
+  function setPressed(btn, on){ btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+
+  $('#t-extras').addEventListener('click', () => {
+    const box = $('#extras'), on = box.hidden;     // about to show?
+    if (on && !extrasBuilt){
+      EXTRAS.forEach((d, i) => box.appendChild(buildGroup(d, 'x' + i)));
+      extrasBuilt = true;
+      if (gendersOn) applyGenders();
+    }
+    box.hidden = !on;
+    setPressed($('#t-extras'), on);
+    updateRecap();
+  });
+
+  let gendersOn = false;
+  $('#t-genders').addEventListener('click', () => {
+    gendersOn = !gendersOn;
+    setPressed($('#t-genders'), gendersOn);
+    applyGenders();
+  });
+  function applyGenders(){
+    document.querySelectorAll('.gender-icon').forEach(n => n.remove());
+    if (!gendersOn) return;
+    document.querySelectorAll('.card[data-gender]').forEach(card => {
+      const kind = card.dataset.gender;
+      const ic = elc('span', 'gender-icon ' + kind);
+      ic.textContent = kind === 'female' ? '♀' : '♂';
+      card.querySelector('.word').prepend(ic);
+    });
+  }
+
+  $('#t-ordinals').addEventListener('click', () => {
+    ordinalsOn = !ordinalsOn;
+    setPressed($('#t-ordinals'), ordinalsOn);
+    groups.forEach(applyOrder);
+  });
+
+  // ---- live recap: each group's #1 pick ----
+  function updateRecap(){
+    const list = $('#recap-list'); list.innerHTML = '';
+    let ranked = 0;
+    groups.forEach(sec => {
+      if (sec.parentElement && sec.parentElement.hidden) return;   // skip hidden extras
+      const top = sec.querySelector('.card[data-rank="1"]');
+      const title = sec.querySelector('.group-title').innerHTML;
+      const li = elc('li');
+      if (top){
+        ranked++;
+        const en = top.dataset.en || '', es = top.dataset.es || '';
+        li.innerHTML = `<span class="gname">${title}</span> · <span class="en">${en || '—'}</span><span class="es">${es || en || '—'}</span>`;
+      } else {
+        li.innerHTML = `<span class="gname">${title}</span> · <span class="muted">—</span>`;
+      }
+      list.appendChild(li);
+    });
+    const total = list.children.length;
+    $('#recap-done').innerHTML = `<span class="en">${ranked}/${total} ranked</span><span class="es">${ranked}/${total} ordenadas</span>`;
+    $('#recap').hidden = total === 0;
+  }
+
+  // ---- init: triads always; one make-your-own group ----
+  const triadsBox = $('#triads');
+  TRIADS.forEach((d, i) => triadsBox.appendChild(buildGroup(d, 't' + i)));
+  $('#custom').appendChild(buildGroup(null, 'cu', true));
+  groups.forEach(applyOrder);
+  updateRecap();
+})();
+</script>
+</body>
+</html>

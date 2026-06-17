@@ -1011,9 +1011,16 @@
   }
   @media (max-width:520px){ .play-more-hint{font-size:1.2rem} }
   .play-more-hint[hidden]{display:none}
-  /* Inline combos block below the favourite cards (pairings + definitions). */
-  .fp-combos{max-width:560px;margin:.6rem auto 1.2rem;padding:.9rem 1rem;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.02)}
+  /* Inline combos block above the favourite cards: a combined trio field, then
+     the pairwise definition fields in two columns, then the mirrored "more". */
+  .fp-combos{max-width:680px;margin:.5rem auto 1rem;padding:.9rem 1rem;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.02)}
   .fp-combos[hidden]{display:none}
+  .fp-combos .comby-pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .9rem;align-items:start}
+  @media (max-width:560px){ .fp-combos .comby-pairs-grid{grid-template-columns:1fr} }
+  .fp-combos .comby-trio{margin-bottom:.7rem;padding-bottom:.6rem;border-bottom:1px dashed var(--stroke)}
+  .fp-combos .comby-trio .comby-combo-title{color:var(--gold);font-weight:800}
+  .fp-combos .fp-more-mirror{display:flex;justify-content:center;margin-top:.85rem}
+  .fp-combos .fp-more-mirror[hidden]{display:none}
   /* "Click me click me" — strong recalling effect on the BORDERS of every
      group item while free-play is active. Persistent until the user clicks
      an item, with rotating-rainbow accent borders + outline glow that read
@@ -4594,6 +4601,12 @@ window.tKey = function tKey(k){
     <!-- Play-more prompt: shown above the decks once "Play more" is engaged. -->
     <p class="play-more-hint" id="play-more-hint" hidden></p>
 
+    <!-- Combos: above the cards once "more" (Favourites) is engaged — a first
+         combined "three words together" field, then the pairwise definition
+         fields in two columns. A mirrored Perspectives "more" appears below
+         after the first save. -->
+    <div class="fp-combos ai-comby" id="fp-combos" hidden></div>
+
     <!-- First-perspective bars (+ the "+") sit ABOVE the decks. The parallel
          "new perspective" bars + reorder decks live below (in #second-play). -->
     <div class="analyze-bars" id="analyze-bars" hidden></div>
@@ -4612,11 +4625,6 @@ window.tKey = function tKey(k){
     </div>
 
     <div class="summary-fivys" id="summary-fivys"></div>
-
-    <!-- Combos: the pairwise combinations of the three favourite keys + a
-         definition field for each. Surfaced inline below the favourite cards
-         once all three favourites are selected (was a Comby-card overlay). -->
-    <div class="fp-combos ai-comby" id="fp-combos" hidden></div>
 
     <section class="second-play" id="second-play" hidden>
       <!-- The new (parallel) perspective bars render here, above the reorder
@@ -10037,13 +10045,13 @@ window.tKey = function tKey(k){
     }
     renderFpCombos();
   }
-  // Inline combos: once all three favourites are picked, render the pairwise
-  // combinations + their definition fields just below the favourite cards.
-  // Hidden whenever Favourites is off or fewer than three are selected.
+  // Inline combos: once Favourites ("more") is engaged — whether or not any key
+  // is selected yet — render the combined trio field + the pairwise definition
+  // fields (two columns) above the cards. Fills in as keys are picked.
   function renderFpCombos(){
     const $fp = document.getElementById('fp-combos');
     if (!$fp) return;
-    if (_playMoreOn && _fpSelectedWords.size === 3){
+    if (_playMoreOn){
       buildCombyUI($fp);
       $fp.hidden = false;
     } else {
@@ -10743,28 +10751,32 @@ window.tKey = function tKey(k){
   }
   // Build the pairwise (A+B, A+C, B+C) combinations of the three favourite keys,
   // each expandable into a record/transcribe + Save field that feeds the Summary.
+  // The next perspectives "More" button in the summary actions row (the one the
+  // analyze flow is currently offering). Stays in the row; the inline mirror
+  // below the combo columns is the disposable twin.
+  function perspectivesMoreBtn(){
+    const ids = ['btn-analyze-more-1','btn-analyze-extras','btn-analyze-keys','btn-analyze-more-2','btn-analyze'];
+    for (const id of ids){ const el = document.getElementById(id); if (el && !el.hidden) return el; }
+    return document.getElementById('btn-analyze');
+  }
   function buildCombyUI($comby){
     const picks = (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [];
     $comby.innerHTML = '';
-    if (picks.length < 2){
+    if (picks.length < 1){
       $comby.innerHTML = `<p class="comby-unsupported">${escapeHTML(tKey('comby.pick_first'))}</p>`;
       return;
     }
-    // Pairwise combinations only (no repeats, unordered).
-    const pairs = [];
-    for (let i = 0; i < picks.length; i++)
-      for (let j = i + 1; j < picks.length; j++)
-        pairs.push([picks[i], picks[j]]);
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    // Each combination is shown already expanded (no collapse), borderless title
-    // with an exchange button that spawns the reversed-order pair below it.
-    function makeCombo(a, b, withSwap){
-      const label = `${a} ${b}`;   // no "+" between the chosen words
+    const savedLabels = new Set(_combySaved.map(s => s.combo));
+    // A definition field for one label (the combined trio or a pair). opts.swap
+    // adds the reversed-order toggle (pairs only); opts.trio styles the header.
+    function makeCombo(label, opts){
+      opts = opts || {};
       const combo = document.createElement('div');
-      combo.className = 'comby-combo';
+      combo.className = 'comby-combo' + (opts.trio ? ' comby-trio' : '');
       combo.innerHTML = `
         <div class="comby-combo-head">
-          ${withSwap === false ? '' : `<button class="comby-swap" type="button" title="${escapeHTML(tKey('comby.swap_title'))}" aria-label="${escapeHTML(tKey('comby.swap'))}">⇄</button>`}
+          ${opts.swap ? `<button class="comby-swap" type="button" title="${escapeHTML(tKey('comby.swap_title'))}" aria-label="${escapeHTML(tKey('comby.swap'))}">⇄</button>` : ''}
           <span class="comby-combo-title">${escapeHTML(label)}</span>
         </div>
         <div class="comby-rec">
@@ -10778,10 +10790,8 @@ window.tKey = function tKey(k){
       const field = combo.querySelector('.comby-field');
       const save  = combo.querySelector('.comby-save');
       const swap  = combo.querySelector('.comby-swap');
-      // Save only appears once the field has content.
       const refreshSave = () => { save.hidden = field.textContent.trim() === ''; };
       field.addEventListener('input', refreshSave);
-      // Web Speech API recorder (toggle). Transcribes into the field.
       let rec = null;
       mic.addEventListener('click', () => {
         if (!SR){ field.focus(); return; }
@@ -10802,7 +10812,8 @@ window.tKey = function tKey(k){
         mic.classList.add('is-recording');
         rec.start();
       });
-      // Save → the field disappears, its content joins the Summary, +1 star.
+      // Save → the field disappears, its content joins the Summary, +1 star, and
+      // the perspectives "more" (row + inline mirror) is revealed.
       save.addEventListener('click', () => {
         const text = field.textContent.trim();
         if (!text) return;
@@ -10812,13 +10823,15 @@ window.tKey = function tKey(k){
         if (typeof renderBottomSummary === 'function') renderBottomSummary();
         if (typeof renderCounters === 'function') renderCounters();   // 1 star per saved field
         combo.remove();
+        revealPerspMore();
       });
       // Exchange → toggle a reversed-order field below (no swap button on it).
       if (swap){
         let rev = null;
         swap.addEventListener('click', () => {
           if (rev && rev.isConnected){ rev.remove(); rev = null; return; }   // collapse
-          rev = makeCombo(b, a, false);
+          const parts = label.split(' ');
+          rev = makeCombo(parts.slice().reverse().join(' '), {});
           combo.after(rev);
           const rf = rev.querySelector('.comby-field');
           if (rf) rf.focus();
@@ -10826,7 +10839,47 @@ window.tKey = function tKey(k){
       }
       return combo;
     }
-    pairs.forEach(([a, b]) => $comby.appendChild(makeCombo(a, b, true)));
+    // First: a single field titled with the three words together (when all 3 are
+    // chosen) — a definition for the whole trio.
+    if (picks.length === 3 && !savedLabels.has(picks.join(' · '))){
+      $comby.appendChild(makeCombo(picks.join(' · '), { trio:true }));
+    }
+    // Then: the pairwise fields, laid out in two columns.
+    const pairs = [];
+    for (let i = 0; i < picks.length; i++)
+      for (let j = i + 1; j < picks.length; j++)
+        pairs.push([picks[i], picks[j]]);
+    const fresh = pairs.filter(([a, b]) => !savedLabels.has(`${a} ${b}`));
+    if (fresh.length){
+      const grid = document.createElement('div');
+      grid.className = 'comby-pairs-grid';
+      fresh.forEach(([a, b]) => grid.appendChild(makeCombo(`${a} ${b}`, { swap:true })));
+      $comby.appendChild(grid);
+    } else if (picks.length < 2){
+      $comby.appendChild(Object.assign(document.createElement('p'), {
+        className:'comby-unsupported', textContent: tKey('comby.pick_first')
+      }));
+    }
+    // The mirrored perspectives "more", centered below both columns. Revealed on
+    // the first save; disappears when clicked (the row button stays).
+    const mirror = document.createElement('div');
+    mirror.className = 'fp-more-mirror';
+    mirror.hidden = !(_combySaved.length > 0);
+    mirror.innerHTML = `<button type="button" class="btn btn-primary fp-more-mirror-btn">${escapeHTML(tKey('common.more'))}</button>`;
+    mirror.querySelector('button').addEventListener('click', () => {
+      mirror.hidden = true;
+      const b = perspectivesMoreBtn();
+      if (b){ b.hidden = false; b.click(); }
+    });
+    $comby.appendChild(mirror);
+  }
+  // Reveal the perspectives "more": ensure the row button shows (it stays) and
+  // un-hide the inline mirror below the combo columns.
+  function revealPerspMore(){
+    const rowBtn = perspectivesMoreBtn();
+    if (rowBtn) rowBtn.hidden = false;
+    const mirror = document.querySelector('#fp-combos .fp-more-mirror');
+    if (mirror) mirror.hidden = false;
   }
 
   // Global cancel + Esc handling for the app-intro overlay.

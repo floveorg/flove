@@ -2813,7 +2813,9 @@
   .prelude p{color:var(--muted);margin:0 0 1rem;font-size:.92rem}
   .prelude .phase-b-section{display:none;margin-top:18px;padding-top:18px;border-top:1px dashed var(--stroke)}
   .prelude.phaseB .phase-b-section{display:block;animation:fadein .3s ease}
-  .prelude.phaseB .phase-a-section{opacity:.6}
+  /* Once ordering (phase B) starts, the groups are settled — no editing them
+     in place (the Back button still returns to phase A to re-group on purpose). */
+  .prelude.phaseB .phase-a-section{opacity:.6;pointer-events:none}
 
   /* Master-mode primer: free grouping shown above the scored phase-a. */
   .phase-primer-section{display:none;transition:opacity .9s ease, transform .9s ease}
@@ -2840,18 +2842,30 @@
   .primer-stars{margin:.5rem auto .2rem;text-align:center;color:var(--gold);font:700 .9rem/1 system-ui,sans-serif}
   .primer-stars[hidden]{display:none}
   .primer-stars .primer-stars-icons{letter-spacing:.1em}
-  /* 3s splash on primer "Next": expanding rings + a popping panda over the buttons. */
+  /* 3s splash on primer "Next": a popping panda over the buttons (the celebratory
+     burst itself is now the colour wave fired from JS — see .step-wave). */
   .phase-primer-section .prelude-actions{position:relative}
   .primer-splash{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     width:0;height:0;pointer-events:none;z-index:30;display:grid;place-items:center;
     animation:primer-splash-fade 3s ease forwards}
   .primer-splash-panda{width:78px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
     animation:primer-pop 1s ease both}
-  .primer-splash .ps-ring{position:absolute;width:48px;height:48px;border-radius:50%;
-    border:3px solid var(--accent);animation:ps-ring-expand 1.2s ease-out infinite}
-  .primer-splash .ps-ring2{border-color:var(--gold);animation-delay:.45s}
-  @keyframes ps-ring-expand{from{transform:scale(.3);opacity:.85}to{transform:scale(4);opacity:0}}
   @keyframes primer-pop{0%{transform:scale(.3);opacity:0}25%{transform:scale(1.15);opacity:1}45%{transform:scale(1)}100%{transform:scale(1)}}
+
+  /* Step-finish celebration: waves of colour rising from below upwards, fired
+     when each of the three steps is completed — reddish (Primer), greenish
+     (Groups), blueish (Play). Replaces the old expanding circles. */
+  .step-wave{position:fixed;inset:0;z-index:140;pointer-events:none;overflow:hidden}
+  .step-wave .sw-band{position:absolute;left:-12%;right:-12%;bottom:-45%;height:62%;
+    border-radius:50% 50% 0 0 / 100% 100% 0 0;transform:translateY(100%);opacity:0;
+    animation:sw-rise 1.5s cubic-bezier(.22,.61,.36,1) forwards}
+  .step-wave .sw-band:nth-child(2){animation-delay:.12s;height:74%}
+  .step-wave .sw-band:nth-child(3){animation-delay:.24s;height:88%}
+  .step-wave--r .sw-band{background:radial-gradient(120% 100% at 50% 100%, rgba(255,95,140,.55), rgba(255,95,140,0) 70%)}
+  .step-wave--g .sw-band{background:radial-gradient(120% 100% at 50% 100%, rgba(0,247,167,.5),  rgba(0,247,167,0) 70%)}
+  .step-wave--b .sw-band{background:radial-gradient(120% 100% at 50% 100%, rgba(120,180,255,.6), rgba(120,180,255,0) 70%)}
+  @keyframes sw-rise{0%{transform:translateY(100%);opacity:0}22%{opacity:1}100%{transform:translateY(-32%);opacity:0}}
+  @media (prefers-reduced-motion: reduce){ .step-wave{display:none} }
   @keyframes primer-splash-fade{0%,70%{opacity:1}100%{opacity:0}}
   @media (prefers-reduced-motion: reduce){ .primer-splash,.primer-splash-panda,.primer-splash .ps-ring{animation:none} .primer-splash{opacity:0} }
   /* Per-group "why" field under each of the 5 primer groups. */
@@ -6195,6 +6209,7 @@ window.tKey = function tKey(k){
   }
 
   function showSummary(){
+    stepFinishWave('b');           // Play step finished → blueish wave
     finalizeTiming();
     stopTimer();
     if (seeResultsAt === null) seeResultsAt = Date.now();   // start the Analisys clock
@@ -7666,13 +7681,23 @@ window.tKey = function tKey(k){
     }, 3000);
   });
   // A 3-second splash (panda + expanding rings) over the primer actions, then fades.
+  // Reusable step-finish celebration: waves of colour rising from below upwards.
+  // tone: 'r' (Primer) · 'g' (Groups) · 'b' (Play).
+  function stepFinishWave(tone){
+    const layer = document.createElement('div');
+    layer.className = 'step-wave step-wave--' + (tone || 'r');
+    layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = '<span class="sw-band"></span><span class="sw-band"></span><span class="sw-band"></span>';
+    document.body.appendChild(layer);
+    setTimeout(() => layer.remove(), 1600);
+  }
   function primerSplash(){
+    stepFinishWave('r');   // Primer step finished → reddish wave
     const host = document.querySelector('.phase-primer-section .prelude-actions');
     if (!host) return;
     const splash = document.createElement('div');
     splash.className = 'primer-splash';
-    splash.innerHTML = '<span class="ps-ring"></span><span class="ps-ring ps-ring2"></span>'
-      + '<img class="primer-splash-panda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">';
+    splash.innerHTML = '<img class="primer-splash-panda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">';
     host.appendChild(splash);
     setTimeout(() => splash.remove(), 3000);
   }
@@ -8318,6 +8343,7 @@ window.tKey = function tKey(k){
   }
 
   function finishPrelude(){
+    stepFinishWave('g');           // Groups step finished → greenish wave
     state.preludeActive = false;
     state.step0Completed = true;   // Step 0 played to 100%
     // Master forces Step 0; once done it returns to the Modes screen with the

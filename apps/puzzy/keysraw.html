@@ -51,6 +51,11 @@
 <h1><span class="en">Keys — all fields (raw)</span><span class="es">Keys — todos los campos (raw)</span></h1>
 <p><small><span class="en">Every field from the advanced app, barebones.</span><span class="es">Todos los campos de la app avanzada, en crudo.</span></small></p>
 
+<!-- ===== Free grouping: make your own 5 groups (no check) ===== -->
+<h2><span class="en">Free grouping</span><span class="es">Agrupación libre</span></h2>
+<div class="row"><small><span class="en">Make the five groups of three you like best right now — no right answer here.</span><span class="es">Forma los cinco grupos de tres que más te gusten ahora — aquí no hay respuesta correcta.</span></small></div>
+<div id="free-groups"></div>
+
 <!-- ===== Master mode (Step 0): make 5 groups of 3, then order them ===== -->
 <h2><span class="en">Master mode (Step 0)</span><span class="es">Modo Maestro (Paso 0)</span></h2>
 <div class="row"><small><span class="en">Make five groups of three from the words, then order them abstract → concrete.</span><span class="es">Forma cinco grupos de tres con las palabras, luego ordénalos de abstracto a concreto.</span></small></div>
@@ -234,18 +239,23 @@
     `<div class="row"><select name="cu-${ci}"><option value="">–</option><option>1</option><option>2</option><option>3</option></select> `
     + `<input type="text" name="cu-word-${ci}" placeholder="…"></div>`).join('');
 
-  // master mode (Step 0): five groups of three, picked from the main pool, + order + why
+  // free grouping + master mode: five groups of three, picked from the main pool.
+  // Same UI for both; the master one (mg) is what the Check validates, the free
+  // one (fg) is never checked.
   const POOL = [];
   MAIN.forEach(d => d.items.forEach(it => POOL.push(it)));
   const wordOpts = '<option value="">–</option>' + POOL.map((it, i) => `<option value="${i}" data-en="${it[0]}" data-es="${it[1]}">${it[0]}</option>`).join('');
-  document.getElementById('master-groups').innerHTML = [1,2,3,4,5].map(g => {
-    const picks = [0,1,2].map(c => `<div class="row"><select name="mg${g}-${c}">${wordOpts}</select></div>`).join('');
+  const groupHTML = (prefix, g) => {
+    const picks = [0,1,2].map(c => `<div class="row"><select name="${prefix}${g}-${c}">${wordOpts}</select></div>`).join('');
     return `<div class="deck"><h3>${bx('Group', 'Grupo')} ${g}</h3>`
       + `<div class="row"><label>${bx('Order (abstract→concrete)', 'Orden (abstracto→concreto)')}: `
-      + `<select name="mg${g}-ord"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label></div>`
+      + `<select name="${prefix}${g}-ord"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label></div>`
       + picks
-      + `<div class="row">${bx('Why', 'Por qué')}: <textarea name="mg${g}-why"></textarea></div></div>`;
-  }).join('');
+      + `<div class="row">${bx('Why', 'Por qué')}: <textarea name="${prefix}${g}-why"></textarea></div></div>`;
+  };
+  const renderGroups = (boxId, prefix) => { document.getElementById(boxId).innerHTML = [1,2,3,4,5].map(g => groupHTML(prefix, g)).join(''); };
+  renderGroups('free-groups', 'fg');     // exploratory — never checked
+  renderGroups('master-groups', 'mg');   // validated by the Check button
 
   // new perspective (Objective & General): the MAIN decks only, a why on each
   document.getElementById('persp-decks').innerHTML = MAIN.map((d, gi) => deckBlock('pd' + gi, d, null)).join('');

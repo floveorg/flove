@@ -446,6 +446,12 @@
 <main class="layout">
   <!-- Left column: Wills (words + its own cross square) then VirtueSins (title + words) -->
   <aside class="panel words-panel">
+    <h2 class="col-title">VirtueSins</h2>
+    <div class="word-grid" id="virtuesin-list"></div>
+    <div class="actions">
+      <button id="virtueLoadMore" class="btn" aria-pressed="false">Informal</button>
+    </div>
+
     <h2 class="col-title">Wills</h2>
     <div class="word-list" id="wills-list"></div>
     <div class="actions">
@@ -463,12 +469,6 @@
         </svg>
         <!-- wills layers injected by JS -->
       </div>
-    </div>
-
-    <h2 class="col-title">VirtueSins</h2>
-    <div class="word-grid" id="virtuesin-list"></div>
-    <div class="actions">
-      <button id="virtueLoadMore" class="btn" aria-pressed="false">Informal</button>
     </div>
   </aside>
 
@@ -961,25 +961,29 @@
   function exportPlayHTML(){
     const styleEl   = document.querySelector('style');
     const styleHTML = styleEl ? styleEl.outerHTML : '';
-    const axisClone = axis.cloneNode(true);
-    // keep the active set's layer for BOTH kinds (the full play), drop the rest
-    axisClone.querySelectorAll('.zones-layer').forEach(l => {
-      if (l.dataset.set === state[l.dataset.kind].active) l.classList.remove('hidden');
-      else l.remove();
-    });
-    // show the complete axis (guides/diagonals), since both kinds are present
-    axisClone.querySelectorAll('.line-extra').forEach(el => el.classList.remove('hide'));
-    axisClone.querySelectorAll('.chip').forEach(c => {
-      c.setAttribute('draggable', 'false');
-      c.style.cursor = 'default';
-    });
+    // freeze a square: keep only its active set's layer, make every chip inert
+    const freeze = (square) => {
+      const c = square.cloneNode(true);
+      c.querySelectorAll('.zones-layer').forEach(l => {
+        if (l.dataset.set === state[l.dataset.kind].active) l.classList.remove('hidden');
+        else l.remove();
+      });
+      c.querySelectorAll('.chip').forEach(ch => {
+        ch.setAttribute('draggable', 'false');
+        ch.style.cursor = 'default';
+      });
+      return c.outerHTML;
+    };
     return '<!doctype html>\n<html lang="en">\n<head>\n' +
       '<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
       '<title>MyPlay</title>\n' + styleHTML + '\n</head>\n<body>\n' +
       '<main class="layout" style="grid-template-columns:1fr">\n' +
       '  <h1 style="grid-column:1/-1;text-align:center;margin:8px 0 0;font:700 1.3rem var(--font-ui);color:var(--ink)">MyPlay</h1>\n' +
       '  <section class="panel axis-panel">\n' +
-      '    <div class="axis-wrap" style="max-width:min(560px,92vw)">' + axisClone.outerHTML + '</div>\n' +
+      '    <h2 class="col-title">VirtueSins</h2>\n' +
+      '    <div class="axis-wrap" style="max-width:min(560px,92vw)">' + freeze(axis) + '</div>\n' +
+      '    <h2 class="col-title">Wills</h2>\n' +
+      '    <div class="axis-wrap" style="max-width:min(360px,80vw)">' + freeze(willsAxis) + '</div>\n' +
       '  </section>\n</main>\n</body>\n</html>';
   }
 

@@ -3276,17 +3276,17 @@
     letter-spacing:.08em;text-transform:uppercase;margin:.1rem 0 .3rem}
   .flv-std .pt-cell-extra{opacity:.92;font-style:italic}
   /* "Free triads" aside: the FIRST column (left of the tables), styled like an extra column. */
-  .flv-std .pt-free-wrap{display:flex;gap:1.1rem;align-items:flex-start}
-  .flv-std .pt-free-wrap .pt-tables{flex:1 1 0;min-width:0}
-  .flv-std .pr-free-aside{flex:0 0 auto;max-width:40%;border-right:1px solid var(--stroke);padding-right:1rem}
+  /* Free column integrated as the leading cell of each triad row, so the free
+     groups line up horizontally with the rows beside them. */
+  .flv-std .pr-pair.pr-has-free .pr-free-cell{flex:0 0 auto;max-width:34%;border-right:1px solid var(--stroke);padding-right:1rem}
+  .flv-std .pr-free-empty{border-right:1px solid transparent}
+  .flv-std .pr-free-headrow{margin-bottom:.3rem}
+  @media (max-width:560px){
+    .flv-std .pr-pair.pr-has-free .pr-free-cell{max-width:none;border-right:0;padding-right:0;border-bottom:1px solid var(--stroke);padding-bottom:.35rem}
+  }
   .flv-std .pr-free-head{display:block;color:var(--sky);font:700 .72rem/1 system-ui,sans-serif;
     letter-spacing:.1em;text-transform:uppercase;margin:0 0 .45rem}
-  .flv-std .pr-free-group{margin-bottom:.6rem}
   .flv-std .pr-free-why{color:var(--muted);font-size:.78rem;font-style:italic;margin-top:.15rem}
-  @media (max-width:560px){
-    .flv-std .pt-free-wrap{flex-direction:column;gap:.6rem}
-    .flv-std .pr-free-aside{max-width:none;border-right:0;padding-right:0;border-bottom:1px solid var(--stroke);padding-bottom:.5rem}
-  }
   /* Master-mode total time, shown first above the table. */
   .flv-std .master-stats{margin:.6rem 0 .6rem;text-align:center;color:var(--ink);font-size:.9rem}
   .flv-std .master-stats-label{display:inline-block;margin-right:.4rem;color:var(--gold);font:800 .72rem/1 Impact,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase}
@@ -6502,7 +6502,10 @@ window.tKey = function tKey(k){
         +   `<button class="btn btn-soft persp-more-btn" id="persp-more" type="button">More</button>`
         +   `<div class="persp-insight-list" id="persp-insight-list" hidden></div>`
         + `</div>`;
-      $top.hidden = !_timeStatsOn;
+      // Master-mode stats + substats stay visible above the table (not gated
+      // behind the Stats toggle) once Master's Step 0 has been played.
+      const masterPlayed = !!state.step0Completed || !!state.masterDone || state.gameMode === 'master';
+      $top.hidden = !(_timeStatsOn || masterPlayed);
       wirePerspInsights();
     }
 
@@ -9051,20 +9054,6 @@ window.tKey = function tKey(k){
     if (m === 'master')    return 'Free Mode';
     return '';
   }
-  // The master-mode primer's free grouping, shown as an aside styled like the
-  // extra-decks column (only when a primer was actually played).
-  function buildPrimerAsideHTML(){
-    if (!state.primer || !state.primer.groups) return '';
-    const gw = state.primer.groupWhys || [];
-    const rows = state.primer.groups.map((g, i) => {
-      if (!g.some(x => x)) return '';
-      const words = g.filter(x => x).map(w => `<span class="pt-cell pt-cell-extra">${escapeHTML(w)}</span>`).join('');
-      const why = (gw[i] && gw[i].trim()) ? `<div class="pr-free-why">${escapeHTML(gw[i])}</div>` : '';
-      return `<div class="pr-free-group"><span class="pr-extra-title">Free ${i+1}</span><span class="pr-cells">${words}</span>${why}</div>`;
-    }).filter(Boolean).join('');
-    if (!rows) return '';
-    return `<aside class="pr-free-aside"><span class="pr-free-head">Free triads</span>${rows}</aside>`;
-  }
   function buildMasterStatsHTML(){
     // Custom modes use the "<Mode> Mode" title (above Main triads) instead.
     if (['adventure','creative','master'].includes(state.gameMode)) return '';
@@ -9298,7 +9287,21 @@ window.tKey = function tKey(k){
     const cellsHTML = (id, words) => words.map((w, rank) =>
       `<span class="pt-cell" data-group="${id}" data-rank="${rank}">${escapeHTML(w)}</span>`
     ).join('');
-    const groups = first.map(g => {
+    // Master-mode free groups become a leading column — one free group per triad
+    // row, in order — so each lines up horizontally with the row beside it
+    // (replaces the old free-standing aside that floated out of alignment).
+    const freeGroups = (state.primer && state.primer.groups)
+      ? state.primer.groups.filter(g => g.some(x => x)) : [];
+    const gw = (state.primer && state.primer.groupWhys) || [];
+    const hasFree = freeGroups.length > 0;
+    const freeCellFor = (i) => {
+      const g = freeGroups[i];
+      if (!g) return `<div class="pr-free-cell pr-free-empty"></div>`;
+      const words = g.filter(x => x).map(w => `<span class="pt-cell pt-cell-extra">${escapeHTML(w)}</span>`).join('');
+      const why = (gw[i] && gw[i].trim()) ? `<div class="pr-free-why">${escapeHTML(gw[i])}</div>` : '';
+      return `<div class="pr-free-cell"><span class="pr-extra-title">Free ${i + 1}</span><span class="pr-cells">${words}</span>${why}</div>`;
+    };
+    const groups = first.map((g, idx) => {
       // Left: the main (and, if present, the alternative) perspective shown as
       // two side-by-side 3-cell columns, so each matches the extra triad's height.
       const mainCol = `<span class="pr-cells">${cellsHTML(g.id, g.words)}</span>`;
@@ -9314,21 +9317,15 @@ window.tKey = function tKey(k){
         ? `<div class="pr-extra"><span class="pr-extra-title">${escapeHTML(extra.title)}</span>`
           + `<span class="pr-cells">${extra.words.map(w => `<span class="pt-cell pt-cell-extra">${escapeHTML(w)}</span>`).join('')}</span></div>`
         : `<div class="pr-extra pr-extra-empty"></div>`;
-      return `<div class="pr-group pr-pair">${mainBlock}${extraCell}</div>`;
+      const freeCell = hasFree ? freeCellFor(idx) : '';
+      return `<div class="pr-group pr-pair${hasFree ? ' pr-has-free' : ''}">${freeCell}${mainBlock}${extraCell}</div>`;
     }).join('');
-    // Main triads (with perspective pairs) on the left, their extra triads on the
-    // right; the modes table (Adventure/Creative/Free) sits above the perspectives.
     captureModeWords();
     // Adventure / Creative / Free are one-shot (non-accumulative) → no modes table.
     const modesTable = ['adventure','creative','master'].includes(state.gameMode) ? '' : buildModesTableHTML();
-    // (mode title now lives in the top time-stats panel, below "Create triads")
-    // The master-mode "first free choice" sits as an aside to the right.
-    const freeAside = buildPrimerAsideHTML();
-    const tables = `<div class="pt-tables"><div class="play-rows">${groups}</div></div>`;
-    const tablesBlock = freeAside
-      ? `<div class="pt-free-wrap">${freeAside}${tables}</div>`   // Free triads = first column
-      : tables;
-    return tablesBlock
+    const headRow = hasFree ? `<div class="pr-free-headrow"><span class="pr-free-head">Free triads</span></div>` : '';
+    const tables = `<div class="pt-tables">${headRow}<div class="play-rows">${groups}</div></div>`;
+    return tables
       + modesTable
       + buildPerspectivesHTML()
       + buildCombosKeysHTML();

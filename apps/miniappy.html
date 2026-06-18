@@ -1,0 +1,3232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="description" content="miniappy — interactive prototype of the nety/appy access system" />
+<title>✺ miniappy · access prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{ margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --bg:#0b0b0f; --ink:#e9eaf2; --muted:#a3a7b4;
+  --line:#1e2133; --card:#11131a; --panel:#13162a;
+  --accent:#8d89ff; --accent-soft:#c9c6ff; --signal:#00f7a7;
+  --warn:#ffce6b; --danger:#ff6b6b;
+  --glow-a:rgba(141,137,255,.32); --glow-s:rgba(0,247,167,.32);
+  --glass:rgba(17,19,26,.78); --glass-border:rgba(141,137,255,.18);
+}
+html{ scroll-behavior:smooth; }
+body{
+  font-family:"Space Mono",ui-monospace,monospace; color:var(--ink);
+  background:var(--bg); min-height:100svh;
+  -webkit-font-smoothing:antialiased; line-height:1.65; overflow-x:hidden;
+  font-size:14px;
+}
+
+/* ============================================================
+   MESH BACKGROUND
+   ============================================================ */
+.mesh-bg{
+  position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;
+  opacity:0; animation:mesh-fade 2s ease .08s both;
+}
+
+/* Deep atmospheric gradients — layered, distinct speeds via separate elements */
+.mesh-bg::before{
+  content:""; position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 1200px 750px at 108% -8%,  rgba(0,247,167,.11)   0%, transparent 52%),
+    radial-gradient(ellipse 950px  650px at -14% 8%,   rgba(141,137,255,.16) 0%, transparent 50%),
+    radial-gradient(ellipse 700px  500px at 55%  96%,  rgba(141,137,255,.09) 0%, transparent 48%),
+    radial-gradient(ellipse 520px  380px at 88%  58%,  rgba(0,247,167,.06)   0%, transparent 46%),
+    radial-gradient(ellipse 400px  300px at 12%  68%,  rgba(141,137,255,.05) 0%, transparent 44%),
+    radial-gradient(ellipse 320px  240px at 68%  32%,  rgba(0,247,167,.04)   0%, transparent 42%),
+    var(--bg);
+  animation:aurora-drift 28s ease-in-out infinite alternate;
+}
+
+/* Film grain overlay */
+.mesh-bg::after{
+  content:""; position:absolute; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.032'/%3E%3C/svg%3E");
+  opacity:.6; mix-blend-mode:screen;
+}
+
+@keyframes aurora-drift{
+  0%  { background-position: 0% 0%; opacity:1; }
+  50% { opacity:.85; }
+  100%{ background-position:3% 2%; opacity:1; }
+}
+
+/* Drift lines — three depth planes */
+.mesh-lines{
+  position:absolute; inset:0; width:100%; height:100%; overflow:visible;
+}
+.mesh-lines line{
+  stroke:var(--accent); stroke-width:1; opacity:0;
+  animation:drift-line 18s ease-in-out infinite;
+}
+.mesh-lines line:nth-child(1){ opacity:.065; animation-duration:19s; animation-delay:0s; }
+.mesh-lines line:nth-child(2){ opacity:.042; animation-duration:26s; animation-delay:-6s; }
+.mesh-lines line:nth-child(3){ opacity:.035; animation-duration:22s; animation-delay:-11s; stroke:var(--signal); }
+.mesh-lines line:nth-child(4){ opacity:.055; animation-duration:31s; animation-delay:-17s; }
+.mesh-lines line:nth-child(5){ opacity:.038; animation-duration:24s; animation-delay:-8s; stroke:var(--signal); }
+.mesh-lines line:nth-child(6){ opacity:.028; animation-duration:37s; animation-delay:-21s; stroke:var(--accent); }
+.mesh-lines line:nth-child(7){ opacity:.022; animation-duration:43s; animation-delay:-3s; stroke:var(--signal); }
+
+@keyframes drift-line{
+  0%  { transform:translate(0,0) rotate(0deg); }
+  25% { transform:translate(14px,-9px) rotate(1.2deg); }
+  55% { transform:translate(-6px,16px) rotate(-.8deg); }
+  80% { transform:translate(8px,4px) rotate(.4deg); }
+  100%{ transform:translate(0,0) rotate(0deg); }
+}
+
+/* Orbit groups — three concentric constellations */
+.mesh-orbit{ position:absolute; pointer-events:none; overflow:visible; }
+.mesh-orbit.mo1{
+  width:480px; height:480px; top:-80px; right:-100px;
+  opacity:.16; animation:spin 38s linear infinite; transform-origin:50% 50%;
+}
+.mesh-orbit.mo2{
+  width:360px; height:360px; bottom:8%; left:-70px;
+  opacity:.11; animation:spin 58s linear infinite reverse; transform-origin:50% 50%;
+}
+.mesh-orbit.mo3{
+  width:280px; height:280px; top:36%; right:4%;
+  opacity:.09; animation:spin 46s linear infinite; transform-origin:50% 50%;
+}
+/* Fourth slow deep-field orbit */
+.mesh-orbit.mo4{
+  width:640px; height:640px; top:20%; left:-180px;
+  opacity:.06; animation:spin 72s linear infinite reverse; transform-origin:50% 50%;
+}
+
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@keyframes mesh-fade{ from{ opacity:0; } to{ opacity:1; } }
+
+/* ============================================================
+   PAGE-LOAD STAGGERED REVEAL
+   ============================================================ */
+@keyframes reveal-up{
+  from{ opacity:0; transform:translateY(18px); }
+  to{   opacity:1; transform:translateY(0); }
+}
+@keyframes reveal-fade{
+  from{ opacity:0; }
+  to{   opacity:1; }
+}
+
+.top-bar    { animation:reveal-up .45s cubic-bezier(.22,1,.36,1) .15s both; }
+.candid     { animation:reveal-up .5s  cubic-bezier(.22,1,.36,1) .42s both; }
+.tour-wrap  { animation:reveal-up .55s cubic-bezier(.22,1,.36,1) .54s both; }
+.tabs-wrap  { animation:reveal-up .5s  cubic-bezier(.22,1,.36,1) .66s both; }
+.foot       { animation:reveal-fade .6s ease .9s both; }
+
+/* Tab panel appear animation (triggered when .active is added by JS) */
+.tab-panel.active{
+  display:block;
+  animation:reveal-up .38s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.top-bar{
+  position:sticky; top:0; z-index:200;
+  background:rgba(11,11,15,.88);
+  backdrop-filter:blur(20px) saturate(1.5);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);
+  border-bottom:1px solid rgba(141,137,255,.13);
+  padding:.52rem clamp(1rem,4vw,2rem);
+  display:flex; align-items:center; gap:.75rem;
+  box-shadow:0 2px 24px -8px rgba(141,137,255,.12);
+}
+.top-bar::after{
+  content:""; position:absolute; bottom:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(141,137,255,.22) 25%,
+    rgba(0,247,167,.15) 55%,
+    rgba(141,137,255,.22) 80%,
+    transparent 100%);
+}
+
+/* Logo + title button */
+.top-bar-brand{
+  display:inline-flex; align-items:center; gap:.55rem;
+  background:none; border:none; cursor:pointer; padding:.2rem .35rem;
+  border-radius:10px; transition:background .18s;
+  font-family:"Fredoka",sans-serif; color:var(--ink);
+  position:relative;
+}
+.top-bar-brand:hover{ background:rgba(141,137,255,.08); }
+.top-bar-brand:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.top-bar-brand .bee-mark-sm{ width:28px; height:28px; flex-none; }
+.top-bar-brand .brand-text{
+  font-size:1.05rem; font-weight:700; letter-spacing:-.01em; line-height:1;
+}
+.top-bar-brand .brand-text em{ font-style:normal; color:var(--signal); text-shadow:0 0 14px rgba(0,247,167,.45); }
+.t-mini{ color:var(--ink); }
+.t-appy{ color:var(--signal); text-shadow:0 0 14px rgba(0,247,167,.45); }
+.top-bar-brand .brand-sub{
+  font-size:.48rem; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--muted); font-family:"Space Mono",monospace; font-weight:400;
+  display:block; margin-top:.18rem;
+}
+
+/* Dropdown */
+.top-bar-menu-wrap{ position:relative; }
+.top-bar-dropdown{
+  position:absolute; top:calc(100% + .55rem); left:0;
+  min-width:140px; border-radius:12px;
+  background:rgba(13,15,24,.97);
+  border:1px solid rgba(141,137,255,.25);
+  box-shadow:0 8px 32px -6px rgba(0,0,0,.6), 0 0 18px -6px rgba(141,137,255,.18);
+  padding:.35rem;
+  display:none; flex-direction:column; gap:.1rem;
+  z-index:300;
+  animation:reveal-up .22s cubic-bezier(.22,1,.36,1) both;
+}
+.top-bar-menu-wrap.open .top-bar-dropdown{ display:flex; }
+.top-menu-item{
+  background:none; border:none; cursor:pointer;
+  font-family:"Space Mono",monospace; font-size:.65rem; letter-spacing:.05em;
+  color:var(--muted); padding:.5rem .8rem; border-radius:8px; text-align:left;
+  transition:background .16s, color .16s;
+  width:100%;
+}
+.top-menu-item:hover{ background:rgba(141,137,255,.1); color:var(--ink); }
+.top-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.top-menu-item.active-item{ color:var(--accent-soft); }
+
+/* About reveal panel — sits at top of tour area */
+.about-reveal{
+  display:none; overflow:hidden;
+  margin-bottom:1.4rem;
+  border-radius:15px;
+  border:1px solid rgba(141,137,255,.18);
+  background:rgba(11,11,15,.7);
+  padding:1.5rem 1.6rem 1.3rem;
+  position:relative;
+}
+.about-reveal.open{ display:block; animation:reveal-up .32s cubic-bezier(.22,1,.36,1) both; }
+.about-reveal::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(135deg, rgba(141,137,255,.05) 0%, transparent 60%);
+}
+.about-bee{
+  display:flex; align-items:center; gap:1rem; margin-bottom:.9rem; flex-wrap:wrap;
+}
+.about-bee .bee-mark-lg{ width:54px; height:54px; flex-none; }
+.about-title{
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:2rem;
+  color:var(--ink); letter-spacing:-.01em; line-height:1;
+}
+.about-title em{ font-style:normal; color:var(--signal); text-shadow:0 0 20px rgba(0,247,167,.5); }
+.about-sub{
+  font-size:.6rem; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--muted); margin-top:.3rem;
+  font-family:"Space Mono",monospace; font-weight:400;
+}
+.about-desc{
+  font-size:.72rem; color:var(--muted); line-height:1.7; margin-bottom:.7rem;
+}
+.about-slogans{
+  display:flex; gap:.55rem; flex-wrap:wrap;
+}
+.about-slogan{
+  font-size:.62rem; padding:.28rem .7rem; border-radius:8px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03); color:var(--muted);
+  font-family:"Space Mono",monospace;
+}
+.about-slogan.hi{ border-color:rgba(0,247,167,.28); color:var(--signal); background:rgba(0,247,167,.05); }
+
+/* ============================================================
+   BEE MARK ANIMATIONS
+   ============================================================ */
+@keyframes bee-wing-flutter{
+  0%,100%{ opacity:1; }
+  40%    { opacity:.65; transform:scaleY(.88); }
+  70%    { opacity:.9;  transform:scaleY(1.05); }
+}
+@keyframes bee-antenna-pulse{
+  0%,100%{ r:2.4; opacity:1; }
+  50%    { r:3.2; opacity:.6; }
+}
+/* Wing flutter on left wing */
+.bee-mark .wing-left{
+  transform-origin:22px 25px;
+  animation:bee-wing-flutter 2.8s ease-in-out infinite;
+}
+/* Wing flutter on right wing — offset */
+.bee-mark .wing-right{
+  transform-origin:42px 25px;
+  animation:bee-wing-flutter 2.8s ease-in-out infinite;
+  animation-delay:.4s;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.wrap{
+  position:relative; z-index:1;
+  max-width:960px; margin:0 auto;
+  padding:clamp(.5rem,1.5vw,1rem) clamp(1rem,4vw,2rem) 6rem;
+}
+
+/* ============================================================
+   GLASS CARD
+   ============================================================ */
+.vcard{
+  position:relative; z-index:1;
+  background:var(--glass);
+  backdrop-filter:blur(22px) saturate(1.4);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);
+  padding:1.6rem 1.5rem; display:flex; flex-direction:column; gap:.8rem;
+  border:1px solid var(--glass-border); border-radius:18px;
+  transition:border-color .32s, box-shadow .32s;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 4px 32px -8px rgba(0,0,0,.5);
+}
+.vcard::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(135deg, rgba(141,137,255,.04) 0%, transparent 60%);
+}
+.vcard:hover{
+  border-color:rgba(141,137,255,.38);
+  box-shadow:
+    0 0 36px -6px var(--glow-a),
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 4px 32px -8px rgba(0,0,0,.5);
+}
+
+/* Decorative corner accent on vcards */
+.vcard::after{
+  content:""; position:absolute; top:0; right:0;
+  width:48px; height:48px; border-radius:0 18px 0 0; pointer-events:none;
+  background:linear-gradient(225deg, rgba(141,137,255,.07) 0%, transparent 60%);
+}
+
+/* ============================================================
+   CANDID NOTE
+   ============================================================ */
+.candid{
+  position:relative; overflow:hidden;
+  padding:1rem 1.2rem; border-radius:13px;
+  border:1px solid rgba(255,206,107,.22); border-left:3px solid var(--warn);
+  background:rgba(255,206,107,.05);
+  font-size:.7rem; color:var(--muted); line-height:1.7;
+  margin-bottom:1.6rem;
+}
+.candid::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(90deg, rgba(255,206,107,.04) 0%, transparent 50%);
+}
+.candid strong{ color:var(--warn); letter-spacing:.02em; }
+
+/* (app-header styles removed — replaced by .top-bar) */
+
+/* ============================================================
+   STATUS BAR — polished HUD
+   ============================================================ */
+.status-bar{
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  background:rgba(10,10,14,.92);
+  backdrop-filter:blur(24px) saturate(1.5);
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border-top:1px solid rgba(141,137,255,.14);
+  padding:.5rem clamp(1rem,4vw,2rem);
+  display:flex; align-items:center; gap:.7rem; flex-wrap:wrap;
+  font-size:.62rem;
+  box-shadow:0 -4px 32px -8px rgba(141,137,255,.1);
+}
+/* Left separator glow line */
+.status-bar::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(141,137,255,.28) 20%,
+    rgba(0,247,167,.2) 50%,
+    rgba(141,137,255,.28) 80%,
+    transparent 100%);
+}
+
+.sb-label{
+  font-size:.48rem; letter-spacing:.18em; text-transform:uppercase;
+  color:rgba(163,167,180,.5); display:block; margin-bottom:.08rem;
+}
+
+.sb-stars{
+  display:flex; flex-direction:column; align-items:flex-start;
+  color:var(--signal); font-weight:700; font-size:.82rem;
+  font-family:"Fredoka",sans-serif; line-height:1;
+  text-shadow:0 0 14px rgba(0,247,167,.6);
+}
+.sb-stars .sb-label{ color:rgba(0,247,180,.45); }
+
+.sb-chip{
+  display:flex; flex-direction:column; align-items:flex-start;
+  padding:.28rem .7rem; border-radius:8px; border:1px solid rgba(255,255,255,.06);
+  font-size:.65rem; letter-spacing:.04em; color:var(--muted);
+  background:rgba(255,255,255,.03); line-height:1.2;
+}
+.sb-chip.hi{
+  border-color:rgba(141,137,255,.35); color:var(--accent-soft);
+  background:rgba(141,137,255,.07);
+  box-shadow:0 0 10px -3px rgba(141,137,255,.2);
+}
+.sb-chip span{ color:var(--ink); font-weight:700; }
+.sb-chip.hi span{ color:var(--accent); }
+
+/* Separator pip */
+.sb-sep{
+  width:1px; height:22px; background:rgba(255,255,255,.07); flex-none;
+  display:none;
+}
+@media(min-width:480px){ .sb-sep{ display:block; } }
+
+.sb-facets{
+  display:flex; gap:.4rem; margin-left:auto; align-items:center;
+}
+.sb-facet{
+  display:flex; flex-direction:column; align-items:center;
+  font-size:.52rem; color:var(--muted); letter-spacing:.05em;
+  padding:.2rem .45rem; border-radius:7px;
+  border:1px solid rgba(255,255,255,.05); background:rgba(255,255,255,.02);
+  min-width:34px; text-align:center;
+}
+.sb-facet .sb-label{ margin-bottom:.1rem; font-size:.44rem; }
+.sb-facet span{ color:var(--accent-soft); font-weight:700; font-size:.62rem; }
+
+/* Update pulse — JS can add .sb-pulse class to trigger (read-only: won't break JS) */
+@keyframes sb-val-pulse{
+  0%  { color:var(--signal); text-shadow:0 0 12px rgba(0,247,167,.9); }
+  100%{ color:inherit; text-shadow:none; }
+}
+
+/* ============================================================
+   PRESENCE BADGES
+   ============================================================ */
+.pbadge{
+  display:inline-flex; align-items:center; gap:.4rem;
+  font-size:.56rem; letter-spacing:.1em; text-transform:uppercase;
+  padding:.24rem .68rem; border-radius:999px; border:1px solid transparent;
+  font-family:"Space Mono",monospace;
+}
+.pbadge.LIVE{
+  color:var(--signal); border-color:rgba(0,247,167,.45);
+  background:rgba(0,247,167,.09);
+  box-shadow:0 0 12px -3px rgba(0,247,167,.25), inset 0 1px 0 rgba(0,247,167,.1);
+}
+.pbadge.LIVE::before{
+  content:""; width:5px; height:5px; border-radius:50%; background:var(--signal);
+  animation:pulse-live 1.8s ease-in-out infinite;
+  box-shadow:0 0 7px 2px rgba(0,247,167,.7);
+}
+@keyframes pulse-live{
+  0%,100%{ opacity:1; transform:scale(1); box-shadow:0 0 7px 2px rgba(0,247,167,.7); }
+  50%    { opacity:.4; transform:scale(1.5); box-shadow:0 0 12px 4px rgba(0,247,167,.3); }
+}
+.pbadge.RECENT{
+  color:var(--signal); border-color:rgba(0,247,167,.3);
+  background:rgba(0,247,167,.05);
+}
+.pbadge.RECENT::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--signal); opacity:.7; }
+.pbadge.REACHABLE{
+  color:var(--warn); border-color:rgba(255,206,107,.4);
+  background:rgba(255,206,107,.06);
+}
+.pbadge.REACHABLE::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--warn); opacity:.8; }
+.pbadge.DARK{
+  color:var(--muted); border-color:var(--line);
+  background:rgba(255,255,255,.02);
+}
+.pbadge.DARK::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:.4; }
+
+.sbadge{
+  display:inline-block; font-size:.52rem; letter-spacing:.12em; text-transform:uppercase;
+  padding:.22rem .6rem; border-radius:999px;
+  color:var(--accent); border:1px solid rgba(141,137,255,.38);
+  background:rgba(141,137,255,.09);
+  font-family:"Space Mono",monospace;
+}
+
+/* ============================================================
+   SECTION LABEL
+   ============================================================ */
+.sec{
+  font-size:.54rem; letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+  display:flex; align-items:center; gap:.7rem; margin:1rem 0 .65rem;
+  font-family:"Space Mono",monospace;
+}
+.sec::before{ content:""; width:16px; height:1px; background:var(--accent); opacity:.5; flex-none; }
+.sec::after { content:""; flex:1; height:1px;
+  background:linear-gradient(90deg, rgba(30,33,51,1) 0%, transparent 100%); }
+
+/* ============================================================
+   TOUR (Part A)
+   ============================================================ */
+.tour-wrap{ margin-bottom:2.2rem; }
+.tour-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1.1rem;
+}
+.tour-title{
+  font-family:"Fredoka",sans-serif; font-weight:600; font-size:1.1rem;
+  color:var(--accent-soft); letter-spacing:.01em;
+}
+.tour-step-label{ font-size:.6rem; color:var(--muted); letter-spacing:.1em; }
+
+.tour-steps{ position:relative; }
+.tour-step{ display:none; }
+.tour-step.active{
+  display:block;
+  animation:reveal-up .35s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* Slides float transparently on the mesh — no card chrome */
+.tour-wrap{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  padding-left:0 !important;
+  padding-right:0 !important;
+}
+.tour-wrap::before,.tour-wrap::after{ display:none !important; }
+
+.step-indicators{ display:flex; gap:.55rem; margin-top:.7rem; align-items:center; }
+.step-dot{
+  width:7px; height:7px; border-radius:50%; background:var(--line); cursor:pointer;
+  border:1px solid rgba(141,137,255,.2);
+  transition:background .2s, box-shadow .2s, transform .2s;
+}
+.step-dot:hover{ background:rgba(141,137,255,.4); transform:scale(1.3); }
+.step-dot.active{
+  background:var(--accent); border-color:var(--accent);
+  box-shadow:0 0 10px 2px rgba(141,137,255,.55);
+  transform:scale(1.2);
+}
+
+.tour-nav{ display:flex; gap:.7rem; margin-top:1.2rem; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn{
+  display:inline-flex; align-items:center; gap:.45rem; cursor:pointer;
+  font-family:"Space Mono",monospace; font-size:.68rem; letter-spacing:.04em;
+  padding:.52rem 1.1rem; border-radius:9px; border:1px solid var(--accent);
+  background:rgba(141,137,255,.1); color:var(--ink);
+  transition:background .18s, border-color .18s, box-shadow .18s, transform .12s;
+  position:relative; overflow:hidden;
+}
+.btn::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:linear-gradient(135deg, rgba(255,255,255,.05) 0%, transparent 60%);
+  pointer-events:none;
+}
+.btn:hover{
+  background:rgba(141,137,255,.22);
+  box-shadow:0 0 16px -4px var(--glow-a);
+  transform:translateY(-1px);
+}
+.btn:active{ transform:translateY(0); }
+.btn:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.btn.ghost{
+  border-color:rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:var(--muted);
+}
+.btn.ghost:hover{
+  border-color:rgba(141,137,255,.4); color:var(--ink);
+  box-shadow:0 0 14px -4px var(--glow-a);
+}
+.btn.signal{
+  border-color:rgba(0,247,167,.6); background:rgba(0,247,167,.1); color:var(--signal);
+}
+.btn.signal:hover{
+  background:rgba(0,247,167,.2);
+  box-shadow:0 0 18px -4px var(--glow-s);
+}
+.btn.danger{
+  border-color:rgba(255,107,107,.45); background:rgba(255,107,107,.07); color:var(--danger);
+}
+.btn.danger:hover{ background:rgba(255,107,107,.16); box-shadow:0 0 14px -4px rgba(255,107,107,.3); }
+.btn:disabled{ opacity:.38; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* ============================================================
+   TIER/STAGE TABLE
+   ============================================================ */
+.map-table{ width:100%; border-collapse:collapse; font-size:.65rem; margin-top:.8rem; }
+.map-table th{
+  color:var(--muted); font-weight:400; letter-spacing:.12em; text-transform:uppercase;
+  font-size:.56rem; padding:.55rem .8rem; border-bottom:1px solid var(--line); text-align:left;
+}
+.map-table td{
+  padding:.48rem .8rem; border-bottom:1px solid rgba(30,33,51,.55);
+}
+.map-table tr:last-child td{ border-bottom:none; }
+.map-table tr.current-row td{
+  color:var(--signal);
+  background:rgba(0,247,167,.03);
+}
+
+/* ============================================================
+   ENTRY PATH CARDS
+   ============================================================ */
+.path-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.75rem; }
+.path-card{
+  padding:1.1rem 1rem; border-radius:13px; border:1px solid rgba(255,255,255,.06);
+  background:rgba(17,19,26,.7); cursor:pointer;
+  transition:border-color .24s, background .24s, box-shadow .24s, transform .16s;
+  display:flex; flex-direction:column; gap:.45rem;
+  position:relative; overflow:hidden;
+}
+.path-card::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:linear-gradient(135deg, rgba(141,137,255,.03) 0%, transparent 55%);
+  pointer-events:none;
+}
+.path-card:hover{
+  border-color:rgba(141,137,255,.38); background:rgba(19,22,42,.85);
+  transform:translateY(-2px);
+  box-shadow:0 6px 24px -6px rgba(141,137,255,.2);
+}
+.path-card.selected{
+  border-color:var(--accent); background:rgba(141,137,255,.1);
+  box-shadow:0 0 22px -4px var(--glow-a), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.path-card .path-id{
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.2rem;
+  color:var(--accent); line-height:1;
+}
+.path-card .path-name{ font-size:.72rem; color:var(--ink); font-weight:700; letter-spacing:.02em; }
+.path-card .path-desc{ font-size:.62rem; color:var(--muted); line-height:1.55; }
+
+/* ============================================================
+   TAB BAR
+   ============================================================ */
+.tabs-wrap{ margin-top:.6rem; }
+.tab-bar{
+  display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:1.3rem;
+  padding:.45rem; border-radius:14px;
+  background:rgba(14,15,22,.75);
+  border:1px solid rgba(255,255,255,.07);
+  backdrop-filter:blur(12px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.tab-btn{
+  font-family:"Space Mono",monospace; font-size:.6rem; letter-spacing:.08em;
+  padding:.46rem .92rem; border-radius:8px; border:none; background:transparent;
+  color:var(--muted); cursor:pointer; transition:color .18s, background .18s, box-shadow .18s;
+  white-space:nowrap; position:relative;
+}
+.tab-btn:hover{ color:var(--ink); background:rgba(255,255,255,.04); }
+.tab-btn.active{
+  background:var(--accent); color:#0b0b0f; font-weight:700;
+  box-shadow:0 0 18px -2px rgba(141,137,255,.65), inset 0 1px 0 rgba(255,255,255,.15);
+}
+.tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.tab-panel{ display:none; }
+.tab-panel.active{
+  display:block;
+  animation:reveal-up .38s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ============================================================
+   PROFILY MINI CARD
+   ============================================================ */
+.profily-mini{
+  display:flex; flex-direction:column; gap:.55rem; padding:1.2rem 1.3rem;
+  background:rgba(10,10,14,.8); border-radius:13px;
+  border:1px solid rgba(141,137,255,.24);
+  max-width:420px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 0 24px -8px rgba(141,137,255,.18);
+}
+.profily-handle{
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.15rem;
+  color:var(--signal); text-shadow:0 0 16px rgba(0,247,167,.4);
+  letter-spacing:.01em;
+}
+.profily-peer{ font-size:.56rem; color:var(--muted); word-break:break-all; opacity:.75; }
+.profily-hw{ font-size:.63rem; color:var(--muted); }
+.profily-hw span{ color:var(--accent-soft); font-weight:700; }
+.profily-badges{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+
+/* ============================================================
+   SVG RINGS (Trust tab) — signature moment
+   ============================================================ */
+.rings-wrap{
+  display:flex; justify-content:center; align-items:center;
+  margin:1.2rem 0; position:relative;
+}
+.rings-wrap::before{
+  content:""; position:absolute;
+  width:180px; height:180px; border-radius:50%;
+  background:radial-gradient(ellipse 80% 80% at 50% 50%, rgba(141,137,255,.06) 0%, transparent 70%);
+  pointer-events:none;
+}
+.rings-wrap svg{
+  overflow:visible;
+  filter:drop-shadow(0 0 8px rgba(141,137,255,.12));
+}
+
+/* Ring animated transitions via CSS (JS updates stroke-dasharray directly, we layer glow) */
+#ring-personal{ filter:drop-shadow(0 0 6px rgba(0,247,167,.6)); }
+#ring-local    { filter:drop-shadow(0 0 5px rgba(201,198,255,.4)); }
+#ring-social   { filter:drop-shadow(0 0 4px rgba(141,137,255,.4)); }
+#ring-global   { filter:drop-shadow(0 0 3px rgba(141,137,255,.3)); }
+
+/* Pulse animation on center ring indicator — scale, not r (SVG r not animatable via CSS) */
+#ring-pulse{
+  animation:ring-heartbeat 2.4s ease-in-out infinite;
+  transform-origin:140px 140px;
+}
+@keyframes ring-heartbeat{
+  0%,100%{ transform:scale(1);   opacity:1; }
+  40%    { transform:scale(1.3); opacity:.75; }
+  60%    { transform:scale(.9);  opacity:.9; }
+}
+
+/* Activity pulse on outer ring — decorative ring around SVG */
+.rings-activity-halo{
+  position:absolute; width:240px; height:240px; border-radius:50%;
+  border:1px solid rgba(141,137,255,.08);
+  animation:halo-pulse 3.2s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes halo-pulse{
+  0%,100%{ transform:scale(1); opacity:.6; border-color:rgba(141,137,255,.08); }
+  50%    { transform:scale(1.04); opacity:.3; border-color:rgba(141,137,255,.04); }
+}
+
+/* Facet legend dots */
+.facet-legend{
+  display:flex; gap:1rem; flex-wrap:wrap; font-size:.63rem;
+  justify-content:center; margin-bottom:.9rem;
+}
+.fl-item{ display:flex; align-items:center; gap:.4rem; }
+.fl-dot{
+  width:8px; height:8px; border-radius:50%; flex-none;
+  box-shadow:0 0 6px 1px currentColor;
+}
+
+/* ============================================================
+   IDENTITY LADDER
+   ============================================================ */
+.id-ladder{ display:flex; flex-direction:column; gap:.5rem; }
+.id-rung{
+  display:flex; align-items:center; gap:.9rem; padding:.7rem 1rem;
+  border-radius:11px; border:1px solid rgba(255,255,255,.05);
+  background:rgba(17,19,26,.55);
+  transition:border-color .22s, background .22s, box-shadow .22s;
+}
+.id-rung:hover{ border-color:rgba(141,137,255,.25); background:rgba(19,22,42,.6); }
+.id-rung.linked{
+  border-color:rgba(0,247,167,.38); background:rgba(0,247,167,.05);
+  box-shadow:0 0 16px -6px rgba(0,247,167,.2);
+}
+.id-rung .rung-icon{ font-size:1rem; flex-none; }
+.id-rung .rung-name{ font-size:.7rem; flex:1; letter-spacing:.02em; }
+.id-rung .rung-status{ font-size:.56rem; color:var(--muted); }
+.id-rung.linked .rung-status{ color:var(--signal); }
+
+/* ============================================================
+   STAGE LADDER
+   ============================================================ */
+.stage-ladder{
+  display:flex; gap:0; overflow:hidden;
+  border-radius:11px; border:1px solid rgba(255,255,255,.07);
+}
+.stage-step{
+  flex:1; padding:.6rem .35rem; text-align:center; font-size:.54rem;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+  background:rgba(17,19,26,.6); border-right:1px solid rgba(255,255,255,.05);
+  transition:background .24s, color .24s, box-shadow .24s;
+  font-family:"Space Mono",monospace;
+}
+.stage-step:last-child{ border-right:none; }
+.stage-step.reached{
+  background:rgba(141,137,255,.12); color:var(--accent-soft);
+}
+.stage-step.current{
+  background:linear-gradient(135deg, rgba(141,137,255,.3) 0%, rgba(141,137,255,.2) 100%);
+  color:var(--accent); font-weight:700;
+  box-shadow:inset 0 0 14px -3px rgba(141,137,255,.35), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* ============================================================
+   QUEUE ITEMS
+   ============================================================ */
+.queue-list{ display:flex; flex-direction:column; gap:.55rem; margin-top:.8rem; }
+.queue-item{
+  display:flex; align-items:center; gap:.8rem; padding:.65rem .9rem;
+  border-radius:11px; border:1px solid rgba(255,255,255,.06);
+  background:rgba(17,19,26,.55); font-size:.66rem;
+  transition:border-color .2s;
+}
+.queue-item:hover{ border-color:rgba(141,137,255,.25); }
+.queue-item .qi-type{
+  color:var(--muted); font-size:.52rem; letter-spacing:.12em;
+  text-transform:uppercase; min-width:34px;
+}
+.queue-item .qi-content{
+  flex:1; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.qi-status{
+  font-size:.52rem; letter-spacing:.09em; padding:.22rem .55rem; border-radius:999px;
+  border:1px solid var(--line); font-family:"Space Mono",monospace;
+}
+.qi-status.pending  { color:var(--warn);       border-color:rgba(255,206,107,.38); background:rgba(255,206,107,.06); }
+.qi-status.live     { color:var(--signal);      border-color:rgba(0,247,167,.4);   background:rgba(0,247,167,.07); }
+.qi-status.rejected { color:var(--danger);      border-color:rgba(255,107,107,.4); background:rgba(255,107,107,.06); }
+.qi-status.reviewing{ color:var(--accent-soft); border-color:rgba(141,137,255,.4); background:rgba(141,137,255,.06); }
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.field{ display:flex; flex-direction:column; gap:.38rem; }
+.field label{
+  font-size:.58rem; color:var(--muted); letter-spacing:.1em; text-transform:uppercase;
+  font-family:"Space Mono",monospace;
+}
+.field input, .field textarea, .field select{
+  font-family:"Space Mono",monospace; font-size:.7rem; color:var(--ink);
+  background:rgba(10,10,14,.85); border:1px solid rgba(255,255,255,.07);
+  border-radius:9px; padding:.58rem .85rem; transition:border-color .18s, box-shadow .18s; outline:none;
+}
+.field input:focus, .field textarea:focus, .field select:focus{
+  border-color:rgba(141,137,255,.6);
+  box-shadow:0 0 0 3px rgba(141,137,255,.12), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.field input::placeholder, .field textarea::placeholder{ color:rgba(163,167,180,.35); }
+.field textarea{ resize:vertical; min-height:82px; }
+.field select{ cursor:pointer; }
+
+/* Toggle row */
+.toggle-row{
+  display:flex; align-items:center; gap:.8rem; padding:.58rem .8rem;
+  border-radius:9px; border:1px solid rgba(255,255,255,.06);
+  background:rgba(17,19,26,.45); cursor:pointer;
+  transition:border-color .2s, background .2s;
+}
+.toggle-row:hover{ border-color:rgba(141,137,255,.28); background:rgba(19,22,42,.5); }
+.toggle-name{ font-size:.68rem; flex:1; }
+.toggle-switch{
+  width:36px; height:19px; border-radius:999px; background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.06);
+  position:relative; transition:background .22s, border-color .22s; flex-none;
+}
+.toggle-switch::after{
+  content:""; position:absolute; top:2px; left:2px;
+  width:13px; height:13px; border-radius:50%; background:var(--muted);
+  transition:left .22s, background .22s;
+}
+.toggle-row.on .toggle-switch{
+  background:rgba(0,247,167,.7); border-color:rgba(0,247,167,.4);
+  box-shadow:0 0 10px -2px rgba(0,247,167,.5);
+}
+.toggle-row.on .toggle-switch::after{ left:19px; background:#fff; }
+
+/* Stars balance */
+.stars-big{
+  display:inline-flex; align-items:center; gap:.6rem;
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:2.4rem;
+  color:var(--signal);
+  text-shadow:0 0 28px rgba(0,247,167,.55);
+  letter-spacing:-.01em;
+}
+.stars-big .star-icon{ font-size:1.7rem; }
+
+/* Peer list */
+.peer-list{ display:flex; flex-direction:column; gap:.5rem; }
+.peer-row{
+  display:flex; align-items:center; gap:.9rem; padding:.65rem 1rem;
+  border-radius:11px; border:1px solid rgba(255,255,255,.06);
+  background:rgba(17,19,26,.5);
+  transition:border-color .2s, background .2s;
+}
+.peer-row:hover{ border-color:rgba(141,137,255,.22); }
+.peer-handle{ font-size:.7rem; flex:1; letter-spacing:.02em; }
+.peer-circle{ font-size:.56rem; color:var(--muted); }
+
+/* Permission picker */
+.perm-grid{
+  display:grid; grid-template-columns:auto 1fr; gap:.65rem 1.1rem;
+  align-items:center; margin-top:.6rem;
+}
+.perm-label{ font-size:.6rem; color:var(--muted); letter-spacing:.06em; }
+.perm-select{
+  font-family:"Space Mono",monospace; font-size:.6rem; color:var(--ink);
+  background:rgba(17,19,26,.85); border:1px solid rgba(255,255,255,.07);
+  border-radius:7px; padding:.32rem .65rem; cursor:pointer; outline:none;
+  transition:border-color .18s;
+}
+.perm-select:focus{ border-color:rgba(141,137,255,.5); }
+
+/* Seed phrase */
+.seed-phrase{
+  display:flex; flex-wrap:wrap; gap:.45rem; padding:1.1rem; border-radius:12px;
+  border:1px solid rgba(141,137,255,.18);
+  background:rgba(10,10,14,.85);
+  font-size:.66rem; line-height:1.85;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.seed-word{
+  display:inline-flex; align-items:center; gap:.28rem;
+  padding:.18rem .5rem; border-radius:7px;
+  background:rgba(141,137,255,.09); border:1px solid rgba(141,137,255,.18);
+  transition:border-color .18s, background .18s;
+}
+.seed-word:hover{ background:rgba(141,137,255,.15); border-color:rgba(141,137,255,.3); }
+.seed-word em{ font-style:normal; font-size:.5rem; color:rgba(163,167,180,.55); }
+
+/* Small note */
+.note{
+  font-size:.63rem; color:var(--muted); line-height:1.65;
+  padding:.55rem .8rem; border-left:2px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.02); border-radius:0 7px 7px 0;
+}
+.note.warn{
+  border-left-color:rgba(255,206,107,.6); color:rgba(255,206,107,.9);
+  background:rgba(255,206,107,.04);
+}
+
+/* Probation badge */
+.prob-badge{
+  display:inline-flex; align-items:center; gap:.45rem; font-size:.62rem;
+  padding:.32rem .75rem; border-radius:999px;
+  border:1px solid rgba(255,206,107,.4); background:rgba(255,206,107,.08);
+  color:var(--warn); font-family:"Space Mono",monospace;
+}
+
+/* Footer */
+.foot{
+  margin-top:1.6rem; padding-top:1.3rem;
+  border-top:1px solid rgba(255,255,255,.05);
+  display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; align-items:center;
+  font-size:.6rem; color:rgba(163,167,180,.55);
+}
+.foot .dot{
+  width:5px; height:5px; border-radius:50%; background:var(--signal);
+  display:inline-block; box-shadow:0 0 8px 2px rgba(0,247,167,.55);
+  animation:dot-breathe 3s ease-in-out infinite;
+}
+@keyframes dot-breathe{
+  0%,100%{ box-shadow:0 0 8px 2px rgba(0,247,167,.55); }
+  50%    { box-shadow:0 0 14px 4px rgba(0,247,167,.25); }
+}
+
+/* ============================================================
+   EXPANDABLE CARDS
+   ============================================================ */
+.expandable-card{
+  border-radius:13px; border:1px solid rgba(255,255,255,.07);
+  background:rgba(17,19,26,.65);
+  transition:border-color .25s, box-shadow .25s;
+  overflow:hidden;
+  position:relative;
+}
+.expandable-card::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(135deg, rgba(141,137,255,.03) 0%, transparent 50%);
+}
+.expandable-card:hover{ border-color:rgba(141,137,255,.35); }
+.expandable-card.open{
+  border-color:rgba(141,137,255,.52);
+  box-shadow:0 0 28px -6px rgba(141,137,255,.2), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.ec-header{
+  display:flex; align-items:center; gap:.65rem; padding:.9rem 1.05rem;
+  cursor:pointer; user-select:none;
+  transition:background .18s;
+}
+.ec-header:hover{ background:rgba(141,137,255,.04); }
+.ec-id{
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.1rem;
+  color:var(--accent); min-width:26px; line-height:1;
+}
+.ec-title{ font-size:.7rem; font-weight:700; flex:1; letter-spacing:.02em; }
+.ec-summary{ font-size:.62rem; color:var(--muted); line-height:1.5; flex:1; }
+.ec-chevron{
+  font-size:.65rem; color:var(--accent); transition:transform .26s cubic-bezier(.4,0,.2,1);
+  display:inline-block; flex-none; opacity:.7;
+}
+.expandable-card.open .ec-chevron{ transform:rotate(90deg); opacity:1; }
+.ec-body{
+  max-height:0; overflow:hidden;
+  transition:max-height .36s cubic-bezier(.4,0,.2,1), opacity .26s ease;
+  opacity:0;
+}
+.expandable-card.open .ec-body{ max-height:960px; opacity:1; }
+.ec-inner{
+  padding:.3rem 1.05rem 1.1rem;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+
+/* Tour entry-path squared tiles */
+.tour-paths-grid{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:.65rem; align-items:start;
+}
+.tour-paths-grid .ec-header{
+  flex-direction:column; align-items:flex-start; gap:.28rem;
+  padding:.85rem .95rem; min-height:100px; position:relative;
+}
+.tour-paths-grid .ec-id{ font-size:1.5rem; line-height:1; }
+.tour-paths-grid .ec-title{ flex:none; font-size:.76rem; }
+.tour-paths-grid .ec-summary{ flex:none; }
+.tour-paths-grid .ec-chevron{ position:absolute; top:.8rem; right:.95rem; }
+.tour-paths-grid .ec-inner{ padding:.25rem .95rem .95rem; }
+@media (max-width:560px){ .tour-paths-grid{ grid-template-columns:1fr; } }
+@media (max-width:600px){ .mynet-cols{ grid-template-columns:1fr !important; } }
+
+/* ============================================================
+   ENGAGEMENT LAYER
+   ============================================================ */
+.engagement-bar{
+  display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+  padding:.58rem .8rem; border-top:1px solid rgba(255,255,255,.05);
+  background:rgba(10,10,14,.45);
+}
+.eng-btn{
+  display:inline-flex; align-items:center; gap:.32rem;
+  font-family:"Space Mono",monospace; font-size:.56rem; letter-spacing:.05em;
+  padding:.3rem .65rem; border-radius:7px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03); color:var(--muted); cursor:pointer;
+  transition:border-color .18s, color .18s, background .18s, box-shadow .18s;
+}
+.eng-btn:hover{
+  border-color:rgba(141,137,255,.38); color:var(--ink);
+  background:rgba(141,137,255,.07);
+}
+.eng-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.eng-btn.liked{
+  border-color:rgba(255,107,107,.5); color:#ff9090;
+  background:rgba(255,107,107,.09);
+  box-shadow:0 0 10px -4px rgba(255,107,107,.4);
+}
+.eng-btn.reposted{
+  border-color:rgba(0,247,167,.4); color:var(--signal);
+  background:rgba(0,247,167,.07);
+  box-shadow:0 0 10px -4px rgba(0,247,167,.35);
+}
+.eng-btn.reported{
+  border-color:rgba(255,206,107,.4); color:var(--warn);
+  background:rgba(255,206,107,.06); cursor:not-allowed;
+}
+.eng-count{ font-size:.62rem; color:var(--accent-soft); font-weight:700; }
+
+.comment-thread{
+  display:flex; flex-direction:column; gap:.45rem;
+  padding:.65rem .8rem; border-top:1px solid rgba(255,255,255,.05);
+  background:rgba(10,10,14,.3);
+}
+.comment-item{ display:flex; gap:.55rem; font-size:.63rem; }
+.comment-author{ color:var(--accent-soft); font-weight:700; min-width:58px; }
+.comment-text{ color:var(--ink); flex:1; line-height:1.55; }
+.comment-add{ display:flex; gap:.5rem; margin-top:.4rem; }
+.comment-add input{
+  flex:1; font-family:"Space Mono",monospace; font-size:.67rem; color:var(--ink);
+  background:rgba(10,10,14,.85); border:1px solid rgba(255,255,255,.07);
+  border-radius:7px; padding:.42rem .75rem; outline:none; transition:border-color .18s;
+}
+.comment-add input:focus{ border-color:rgba(141,137,255,.5); box-shadow:0 0 0 2px rgba(141,137,255,.12); }
+
+.refs-list{
+  padding:.55rem .8rem; border-top:1px solid rgba(255,255,255,.05);
+  background:rgba(10,10,14,.3); font-size:.62rem;
+}
+.ref-item{ color:var(--accent-soft); margin-bottom:.28rem; }
+.ref-item a{ color:inherit; text-decoration:none; border-bottom:1px dotted rgba(141,137,255,.35); }
+.ref-item a:hover{ border-bottom-color:var(--accent); }
+
+.live-content-card{
+  border-radius:13px; border:1px solid rgba(0,247,167,.22);
+  background:rgba(10,10,14,.7); overflow:hidden; margin-top:.6rem;
+  box-shadow:0 0 20px -8px rgba(0,247,167,.15);
+}
+.lc-header{
+  padding:.8rem 1.05rem; display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.lc-type{ font-size:.52rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.lc-body{
+  padding:.6rem 1.05rem .8rem; font-size:.7rem; color:var(--ink); line-height:1.65;
+  font-style:italic; border-left:2px solid rgba(0,247,167,.2); margin:.1rem .6rem .1rem;
+  border-radius:0 0 4px 4px;
+}
+.lc-credit-note{
+  font-size:.58rem; color:var(--signal); padding:.22rem 1.05rem .55rem;
+  animation:reveal-fade .3s ease both;
+}
+
+/* ============================================================
+   INVITE WEB SVG helpers
+   ============================================================ */
+.invite-web-wrap{
+  background:rgba(10,10,14,.6); border-radius:13px;
+  border:1px solid rgba(255,255,255,.06); overflow:hidden;
+  margin-bottom:.8rem;
+}
+
+/* ============================================================
+   TIER LADDER (step 2)
+   ============================================================ */
+.tier-rung{
+  display:flex; flex-direction:column; align-items:center; gap:.3rem;
+  padding:.7rem .4rem .65rem; border-radius:12px; position:relative;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(17,19,26,.6);
+  transition:border-color .22s, box-shadow .22s, background .22s;
+  text-align:center;
+}
+.tier-rung.reached{
+  border-color:rgba(141,137,255,.22);
+  background:rgba(141,137,255,.07);
+}
+.tier-rung.current-tier{
+  border-color:var(--signal);
+  background:rgba(0,247,167,.07);
+  box-shadow:0 0 22px -6px rgba(0,247,167,.35), inset 0 0 12px -4px rgba(0,247,167,.08);
+}
+.tier-rung.current-tier::after{
+  content:"YOU"; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+  font-size:.44rem; letter-spacing:.14em; background:var(--signal); color:#0b0b0f;
+  padding:.12rem .45rem; border-radius:999px; font-family:"Space Mono",monospace; font-weight:700;
+}
+.tier-rung .tr-stage{
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:.85rem;
+  color:var(--muted); line-height:1; letter-spacing:.01em;
+}
+.tier-rung.reached .tr-stage{ color:var(--accent-soft); }
+.tier-rung.current-tier .tr-stage{ color:var(--signal); text-shadow:0 0 12px rgba(0,247,167,.5); }
+.tier-rung .tr-arrow{
+  font-size:.55rem; color:rgba(255,255,255,.15); line-height:1;
+}
+.tier-rung.reached .tr-arrow,.tier-rung.current-tier .tr-arrow{ color:rgba(0,247,167,.4); }
+.tier-rung .tr-tier{
+  font-size:.58rem; letter-spacing:.1em; text-transform:uppercase;
+  padding:.2rem .5rem; border-radius:999px;
+  border:1px solid rgba(255,255,255,.08); color:rgba(163,167,180,.6);
+  font-family:"Space Mono",monospace;
+}
+.tier-rung.reached .tr-tier{ border-color:rgba(141,137,255,.3); color:var(--accent-soft); }
+.tier-rung.current-tier .tr-tier{
+  border-color:rgba(0,247,167,.5); color:var(--signal);
+  background:rgba(0,247,167,.08);
+  box-shadow:0 0 8px -2px rgba(0,247,167,.3);
+}
+.tier-rung.locked-curator .tr-tier{
+  border-color:rgba(255,206,107,.3); color:var(--warn); background:rgba(255,206,107,.05);
+}
+.tier-rung .tr-stars{
+  font-size:.52rem; color:rgba(163,167,180,.45); font-family:"Space Mono",monospace;
+}
+.tier-rung.reached .tr-stars,.tier-rung.current-tier .tr-stars{ color:rgba(0,247,167,.55); }
+
+/* ============================================================
+   STAGE DETAIL PANEL (step 2 expandable)
+   ============================================================ */
+.tr-stage-btn{
+  background:none; border:none; cursor:pointer; padding:0; font:inherit;
+  color:inherit; display:inline-block; width:100%; text-align:center;
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:.85rem;
+  line-height:1; letter-spacing:.01em;
+  transition:color .18s, text-shadow .18s;
+  position:relative;
+}
+.tr-stage-btn::after{
+  content:""; display:block; width:16px; height:1px;
+  background:currentColor; margin:.18rem auto 0; opacity:.35;
+  transition:width .2s, opacity .2s;
+}
+.tier-rung:not(.current-tier) .tr-stage-btn{ color:var(--muted); }
+.tier-rung.reached .tr-stage-btn{ color:var(--accent-soft); }
+.tier-rung.current-tier .tr-stage-btn{ color:var(--signal); text-shadow:0 0 12px rgba(0,247,167,.5); }
+.tr-stage-btn:hover{ opacity:.85; }
+.tr-stage-btn:hover::after{ width:24px; opacity:.6; }
+.tr-stage-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+
+/* Detail panel that opens below the full grid row */
+.stage-detail-row{
+  grid-column:1 / -1;
+  max-height:0; overflow:hidden; opacity:0;
+  transition:max-height .34s cubic-bezier(.4,0,.2,1), opacity .24s ease;
+}
+.stage-detail-row.open{ max-height:320px; opacity:1; }
+.stage-detail-inner{
+  padding:.7rem .85rem .8rem;
+  border-radius:11px;
+  border:1px solid rgba(141,137,255,.22);
+  background:rgba(13,15,26,.82);
+  margin-top:.4rem;
+  font-size:.64rem; line-height:1.65;
+  position:relative;
+}
+.stage-detail-inner::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(135deg, rgba(141,137,255,.04) 0%, transparent 55%);
+}
+.stage-detail-inner.current-detail{
+  border-color:rgba(0,247,167,.3);
+  background:rgba(0,15,10,.82);
+}
+.sd-reach{
+  color:var(--muted); margin-bottom:.45rem;
+}
+.sd-reach strong{ color:var(--ink); }
+.sd-unlocks-label{
+  font-size:.56rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:.28rem; display:block;
+}
+.sd-unlocks{
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:.18rem;
+}
+.sd-unlocks li{
+  display:flex; align-items:flex-start; gap:.4rem; color:var(--ink);
+}
+.sd-unlocks li::before{
+  content:"›"; color:var(--accent); flex-none; line-height:1.5;
+}
+.stage-detail-inner.current-detail .sd-unlocks li::before{ color:var(--signal); }
+
+/* ============================================================
+   FEATURE TIER LADDER (ts-feat slide)
+   ============================================================ */
+.feat-rung{
+  display:flex; flex-direction:column; align-items:center; gap:.28rem;
+  padding:.65rem .35rem .6rem; border-radius:12px; position:relative;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(17,19,26,.6);
+  transition:border-color .22s, box-shadow .22s, background .22s;
+  text-align:center;
+}
+.feat-rung.feat-reached{
+  border-color:rgba(141,137,255,.22);
+  background:rgba(141,137,255,.07);
+}
+.feat-rung.feat-current{
+  border-color:var(--signal);
+  background:rgba(0,247,167,.07);
+  box-shadow:0 0 22px -6px rgba(0,247,167,.35), inset 0 0 12px -4px rgba(0,247,167,.08);
+}
+.feat-rung.feat-current::after{
+  content:"YOU"; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+  font-size:.44rem; letter-spacing:.14em; background:var(--signal); color:#0b0b0f;
+  padding:.12rem .45rem; border-radius:999px; font-family:"Space Mono",monospace; font-weight:700;
+}
+.feat-rung .fr-name{
+  font-family:"Fredoka",sans-serif; font-weight:700; font-size:.85rem;
+  color:var(--muted); line-height:1; letter-spacing:.01em;
+}
+.feat-rung.feat-reached .fr-name{ color:var(--accent-soft); }
+.feat-rung.feat-current .fr-name{ color:var(--signal); text-shadow:0 0 12px rgba(0,247,167,.5); }
+.feat-rung .fr-feats{
+  list-style:none; padding:0; margin:.18rem 0 0; text-align:left; width:100%;
+  display:flex; flex-direction:column; gap:.1rem;
+}
+.feat-rung .fr-feats li{
+  font-size:.5rem; font-family:"Space Mono",monospace; letter-spacing:.03em;
+  color:rgba(163,167,180,.55); line-height:1.4;
+  padding-left:.55rem; position:relative;
+}
+.feat-rung .fr-feats li::before{
+  content:"·"; position:absolute; left:0; color:rgba(141,137,255,.4);
+}
+.feat-rung.feat-reached .fr-feats li{ color:rgba(201,198,255,.65); }
+.feat-rung.feat-reached .fr-feats li::before{ color:var(--accent); }
+.feat-rung.feat-current .fr-feats li{ color:rgba(0,247,167,.8); }
+.feat-rung.feat-current .fr-feats li::before{ color:var(--signal); }
+
+/* ============================================================
+   REDUCED MOTION — comprehensive
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition-duration:.01ms !important; }
+  html{ scroll-behavior:auto; }
+  .mesh-bg{ opacity:1; animation:none !important; }
+  .mesh-bg::before{ animation:none !important; }
+  .mesh-orbit{ animation:none !important; }
+  .ec-body{ transition:none !important; max-height:none; }
+  .expandable-card:not(.open) .ec-body{ max-height:0; opacity:0; }
+  .ec-chevron{ transition:none !important; }
+  .btn:hover{ transform:none; }
+  .path-card:hover{ transform:none; }
+  .tour-step.active{ animation:none !important; }
+  .tab-panel.active{ animation:none !important; }
+  .top-bar,.candid,.tour-wrap,.tabs-wrap,.foot{ animation:none !important; opacity:1; }
+  .about-reveal.open{ animation:none !important; }
+  .top-bar-dropdown{ animation:none !important; }
+  #ring-pulse{ animation:none !important; }
+  .rings-activity-halo{ animation:none !important; }
+  .pbadge.LIVE::before{ animation:none !important; }
+  .foot .dot{ animation:none !important; }
+  .bee-mark .wing-left,.bee-mark .wing-right{ animation:none !important; }
+  .stage-detail-row{ transition:none !important; }
+  .stage-detail-row:not(.open){ max-height:0; opacity:0; }
+  .stage-detail-row.open{ max-height:320px; opacity:1; }
+  #stat-ways-panel{ transition:none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Mesh background -->
+<div class="mesh-bg" aria-hidden="true">
+  <svg class="mesh-lines" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <line x1="120" y1="80"  x2="820" y2="640"/>
+    <line x1="900" y1="40"  x2="200" y2="780"/>
+    <line x1="300" y1="200" x2="1300" y2="500"/>
+    <line x1="50"  y1="450" x2="1100" y2="200"/>
+    <line x1="700" y1="700" x2="1400" y2="100"/>
+    <line x1="480" y1="30"  x2="1360" y2="720"/>
+    <line x1="20"  y1="300" x2="880"  y2="50"/>
+  </svg>
+
+  <!-- mo1 — large fast foreground constellation -->
+  <svg class="mesh-orbit mo1" viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="240" cy="240" r="200" stroke="#8d89ff" stroke-width="1.2" opacity=".45"/>
+    <circle cx="240" cy="38"  r="9" fill="#8d89ff" opacity=".9"/>
+    <circle cx="440" cy="310" r="6" fill="#00f7a7" opacity=".9"/>
+    <circle cx="72"  cy="380" r="5" fill="#8d89ff" opacity=".55"/>
+    <circle cx="380" cy="70"  r="4" fill="#00f7a7" opacity=".45"/>
+    <line x1="240" y1="38"  x2="440" y2="310" stroke="#8d89ff" stroke-width="1" opacity=".38"/>
+    <line x1="440" y1="310" x2="72"  y2="380" stroke="#8d89ff" stroke-width="1" opacity=".28"/>
+    <line x1="72"  y1="380" x2="240" y2="38"  stroke="#8d89ff" stroke-width="1" opacity=".22"/>
+    <line x1="380" y1="70"  x2="72"  y2="380" stroke="#00f7a7" stroke-width="1" opacity=".18"/>
+  </svg>
+
+  <!-- mo2 — medium slow reverse orbit -->
+  <svg class="mesh-orbit mo2" viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="180" cy="180" r="148" stroke="#8d89ff" stroke-width="1" opacity=".42"/>
+    <circle cx="180" cy="30"  r="7" fill="#00f7a7" opacity=".9"/>
+    <circle cx="326" cy="190" r="5" fill="#8d89ff" opacity=".8"/>
+    <circle cx="86"  cy="318" r="4" fill="#00f7a7" opacity=".6"/>
+    <circle cx="280" cy="50"  r="3" fill="#8d89ff" opacity=".5"/>
+    <line x1="180" y1="30"  x2="326" y2="190" stroke="#00f7a7" stroke-width="1" opacity=".28"/>
+    <line x1="326" y1="190" x2="86"  y2="318" stroke="#00f7a7" stroke-width="1" opacity=".22"/>
+    <line x1="86"  y1="318" x2="280" y2="50"  stroke="#8d89ff" stroke-width="1" opacity=".18"/>
+  </svg>
+
+  <!-- mo3 — small mid-field orbit -->
+  <svg class="mesh-orbit mo3" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="140" cy="140" r="108" stroke="#00f7a7" stroke-width="1" opacity=".35"/>
+    <circle cx="140" cy="30"  r="6" fill="#8d89ff" opacity=".8"/>
+    <circle cx="246" cy="140" r="4" fill="#00f7a7" opacity=".8"/>
+    <circle cx="60"  cy="220" r="3" fill="#8d89ff" opacity=".55"/>
+    <line x1="140" y1="30" x2="246" y2="140" stroke="#8d89ff" stroke-width="1" opacity=".28"/>
+    <line x1="246" y1="140" x2="60" y2="220" stroke="#00f7a7" stroke-width="1" opacity=".2"/>
+  </svg>
+
+  <!-- mo4 — slow deep-field haze ring -->
+  <svg class="mesh-orbit mo4" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="320" cy="320" r="290" stroke="#8d89ff" stroke-width="1" opacity=".3"/>
+    <circle cx="320" cy="28"  r="5" fill="#8d89ff" opacity=".4"/>
+    <circle cx="606" cy="220" r="4" fill="#00f7a7" opacity=".3"/>
+    <circle cx="120" cy="580" r="3" fill="#8d89ff" opacity=".28"/>
+    <line x1="320" y1="28" x2="606" y2="220" stroke="#8d89ff" stroke-width="1" opacity=".15"/>
+    <line x1="606" y1="220" x2="120" y2="580" stroke="#00f7a7" stroke-width="1" opacity=".12"/>
+  </svg>
+</div>
+
+<!-- Persistent status bar -->
+<div class="status-bar" role="status" aria-live="polite" aria-label="Account status">
+  <span class="sb-stars">
+    <span class="sb-label">stars</span>
+    ⭐ <span id="sb-stars-val">42</span>
+  </span>
+  <span class="sb-sep" aria-hidden="true"></span>
+  <span class="sb-chip">
+    <span class="sb-label">stage</span>
+    <span id="sb-stage">newbie</span>
+  </span>
+  <span class="sb-chip hi">
+    <span class="sb-label">ceiling</span>
+    <span id="sb-ceiling">mini</span>
+  </span>
+  <span class="sb-chip">
+    <span class="sb-label">mode</span>
+    <span id="sb-mode">basic</span>
+  </span>
+  <span class="sb-sep" aria-hidden="true"></span>
+  <div class="sb-facets" aria-label="Facet scores">
+    <span class="sb-facet"><span class="sb-label">personal</span><span id="sb-p">0</span></span>
+    <span class="sb-facet"><span class="sb-label">local</span><span id="sb-l">30</span></span>
+    <span class="sb-facet"><span class="sb-label">social</span><span id="sb-s">20</span></span>
+    <span class="sb-facet"><span class="sb-label">global</span><span id="sb-g">15</span></span>
+  </div>
+</div>
+
+<!-- Sticky top bar -->
+<header class="top-bar" role="banner">
+  <div class="top-bar-menu-wrap" id="top-menu-wrap">
+    <button class="top-bar-brand" id="top-brand-btn" onclick="toggleTopMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Open site menu">
+      <svg class="bee-mark bee-mark-sm" viewBox="0 0 64 64" fill="none" role="img" aria-label="nety bee">
+        <ellipse class="wing-left" cx="22" cy="25" rx="11" ry="6.5" transform="rotate(-22 22 25)" fill="rgba(141,137,255,.16)" stroke="#8d89ff" stroke-width="1.4"/>
+        <ellipse class="wing-right" cx="42" cy="25" rx="11" ry="6.5" transform="rotate(22 42 25)" fill="rgba(0,247,167,.13)" stroke="#00f7a7" stroke-width="1.4"/>
+        <rect x="23.5" y="29" width="17" height="25" rx="8.5" fill="#0b0b0f" stroke="#8d89ff" stroke-width="1.6"/>
+        <line x1="25" y1="37" x2="39" y2="37" stroke="#00f7a7" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="25" y1="44" x2="39" y2="44" stroke="#00f7a7" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="27" y1="50.5" x2="37" y2="50.5" stroke="#00f7a7" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="32" cy="27" r="5" fill="#0b0b0f" stroke="#8d89ff" stroke-width="1.4"/>
+        <path d="M29 23.5 L25 16" stroke="#8d89ff" stroke-width="1.3" stroke-linecap="round"/>
+        <circle cx="25" cy="16" r="2.4" fill="#00f7a7"/>
+        <path d="M35 23.5 L39 16" stroke="#8d89ff" stroke-width="1.3" stroke-linecap="round"/>
+        <circle cx="39" cy="16" r="2.4" fill="#00f7a7"/>
+      </svg>
+      <span>
+        <span class="brand-text"><span class="t-mini">mini</span><span class="t-appy">appy</span></span>
+      </span>
+    </button>
+    <div class="top-bar-dropdown" id="top-dropdown" role="menu">
+      <button class="top-menu-item" id="menu-about-btn" role="menuitem" onclick="toggleAbout()">About</button>
+    </div>
+  </div>
+</header>
+
+<!-- Main content -->
+<div class="wrap">
+
+  <!-- About reveal panel (hidden by default, toggled by top-bar menu) -->
+  <div class="about-reveal" id="about-reveal" aria-label="About miniappy">
+    <div class="about-bee">
+      <svg class="bee-mark bee-mark-lg" viewBox="0 0 64 64" fill="none" role="img" aria-label="nety bee">
+        <ellipse class="wing-left" cx="22" cy="25" rx="11" ry="6.5" transform="rotate(-22 22 25)" fill="rgba(141,137,255,.16)" stroke="#8d89ff" stroke-width="1.4"/>
+        <ellipse class="wing-right" cx="42" cy="25" rx="11" ry="6.5" transform="rotate(22 42 25)" fill="rgba(0,247,167,.13)" stroke="#00f7a7" stroke-width="1.4"/>
+        <rect x="23.5" y="29" width="17" height="25" rx="8.5" fill="#0b0b0f" stroke="#8d89ff" stroke-width="1.6"/>
+        <line x1="25" y1="37" x2="39" y2="37" stroke="#00f7a7" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="25" y1="44" x2="39" y2="44" stroke="#00f7a7" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="27" y1="50.5" x2="37" y2="50.5" stroke="#00f7a7" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="32" cy="27" r="5" fill="#0b0b0f" stroke="#8d89ff" stroke-width="1.4"/>
+        <path d="M29 23.5 L25 16" stroke="#8d89ff" stroke-width="1.3" stroke-linecap="round"/>
+        <circle cx="25" cy="16" r="2.4" fill="#00f7a7"/>
+        <path d="M35 23.5 L39 16" stroke="#8d89ff" stroke-width="1.3" stroke-linecap="round"/>
+        <circle cx="39" cy="16" r="2.4" fill="#00f7a7"/>
+      </svg>
+      <div>
+        <div class="about-title">mini<em>appy</em></div>
+        <div class="about-sub">nety · appy · access prototype</div>
+      </div>
+    </div>
+    <p class="about-desc">A guided interactive prototype of the <strong style="color:var(--accent-soft)">nety/appy access system</strong> — the layer that lets people earn presence on the mesh through trust, contribution, and identity. Walk the tour to see how stages, tiers, and entry paths fit together.</p>
+    <div class="about-slogans">
+      <span class="about-slogan hi">mesh-native</span>
+      <span class="about-slogan">trust-gated</span>
+      <span class="about-slogan">tier-aware</span>
+      <span class="about-slogan">curator-curated</span>
+      <span class="about-slogan hi">p2p · no server</span>
+    </div>
+    <div class="candid" style="margin-top:.9rem;margin-bottom:0">
+      <strong>Honest preview</strong> — This is an interactive mockup simulating the nety/appy access system. No real network, no real keys, no real data. Flows are illustrative; the spec is still evolving.
+    </div>
+  </div>
+
+  <!-- =============================================
+       PART A: TOUR
+       ============================================= -->
+  <div class="tour-wrap vcard">
+
+    <div class="tour-steps">
+
+      <!-- Step 1: mini (nety) is open -->
+      <div class="tour-step active" id="ts-0">
+        <p style="font-size:.7rem;color:var(--muted);margin-bottom:.8rem">Your node is running. This is your profily-mini — the face of your mini-tier presence.</p>
+        <div class="profily-mini">
+          <div class="profily-handle">@marcflove</div>
+          <div class="profily-peer">peer: nety:p2p:7e3a9c…f12b4</div>
+          <div class="profily-hw">hardware contribution: <span id="t1-hw">5 CU</span></div>
+          <div class="profily-badges">
+            <span id="t1-presence" class="pbadge LIVE">LIVE</span>
+            <span class="sbadge">newbie</span>
+          </div>
+        </div>
+        <div style="margin-top:.8rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+          <span style="font-size:.62rem;color:var(--muted)">Cycle presence:</span>
+          <button class="btn ghost" onclick="cyclePresence()">Next state →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Climb tiers — the journey at a glance (moved from step 4; redesigned) -->
+      <div class="tour-step" id="ts-1">
+
+        <!-- Global-activity framing -->
+        <p style="font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem">Your global-activity level</p>
+
+        <!-- Ladder/map graphic -->
+        <div id="ts1-ladder-wrap" style="position:relative;margin-bottom:1.1rem">
+          <!-- Glow bar behind the ladder -->
+          <div style="position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+            background:linear-gradient(90deg,rgba(141,137,255,.04),rgba(141,137,255,.22),rgba(0,247,167,.18),rgba(0,247,167,.04));
+            pointer-events:none;border-radius:2px"></div>
+
+          <div id="ts1-ladder" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;position:relative">
+            <!-- Each rung: stage + tier ceiling + stars threshold + current highlight -->
+            <!-- Populated by buildTierLadder() -->
+          </div>
+        </div>
+        <p style="font-size:.64rem;color:var(--muted);line-height:1.65">Stages measure how much you've contributed to the mesh — stars, approved content, hardware sharing. Click any stage for requirements &amp; what it unlocks.</p>
+
+      </div>
+
+      <!-- Step 3 (new): Feature tiers — what each app tier unlocks -->
+      <div class="tour-step" id="ts-feat">
+        <p style="font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem">Feature tiers</p>
+        <p style="font-size:.64rem;color:var(--muted);margin-bottom:.9rem;line-height:1.65">Tiers unlock features — independent of your activity stage. Your stage sets the ceiling; within it you can use everything below.</p>
+        <div id="ts-feat-ladder" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;position:relative">
+          <!-- Populated by buildFeatureTiers() -->
+        </div>
+      </div>
+
+      <!-- Step 3: Enter basic (appy) (was step 2) -->
+      <div class="tour-step" id="ts-2">
+        <p style="font-size:.7rem;color:var(--muted);margin-bottom:.8rem">Four paths into the appy tier. Click a card for its little action.</p>
+        <div class="tour-paths-grid">
+          <!-- A: Add Basic code -->
+          <div class="expandable-card" id="tc-A">
+            <div class="ec-header" onclick="toggleTourCard('A')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-A-body">
+              <span class="ec-id">A</span>
+              <span class="ec-title">Add Basic code</span>
+              <span class="ec-summary">A member shares a token. Fast, lineage-tracked.</span>
+              <span class="ec-chevron" aria-hidden="true">▸</span>
+            </div>
+            <div class="ec-body" id="tc-A-body" role="region">
+              <div class="ec-inner">
+                <div class="field" style="margin-bottom:.5rem">
+                  <label>Enter your invite code</label>
+                  <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Tour invite code">
+                </div>
+                <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem" onclick="tourValidateInvite()">Validate code</button>
+                <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+                <div class="note" style="margin-top:.6rem">Fast entry — your inviter's standing lightly transfers to you, giving you a warmer start.</div>
+              </div>
+            </div>
+          </div>
+          <!-- B: Authenticate -->
+          <div class="expandable-card" id="tc-B">
+            <div class="ec-header" onclick="toggleTourCard('B')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-B-body">
+              <span class="ec-id">B</span>
+              <span class="ec-title">Authenticate</span>
+              <span class="ec-summary">Link Telegram, email, phone, or biometrics. Builds personal facet.</span>
+              <span class="ec-chevron" aria-hidden="true">▸</span>
+            </div>
+            <div class="ec-body" id="tc-B-body" role="region">
+              <div class="ec-inner">
+                <p style="font-size:.66rem;color:var(--muted);margin-bottom:.6rem">Toggle identity links — each raises your Personal facet. Telegram is the verified minimum for publishing.</p>
+                <div style="display:flex;flex-direction:column;gap:.35rem" id="tc-B-toggles">
+                  <div class="toggle-row" id="tc-tog-telegram" onclick="tcLinkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram">
+                    <span class="rung-icon">✈</span><span class="toggle-name">Telegram <span style="font-size:.58rem;color:var(--signal)">✦ publish gate</span></span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-row" id="tc-tog-email" onclick="tcLinkIdentity('email')" role="button" tabindex="0" aria-label="Link email">
+                    <span class="rung-icon">✉</span><span class="toggle-name">Email</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-row" id="tc-tog-phone" onclick="tcLinkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone">
+                    <span class="rung-icon">📱</span><span class="toggle-name">Phone</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-row" id="tc-tog-biometrics" onclick="tcLinkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics">
+                    <span class="rung-icon">👁</span><span class="toggle-name">Biometrics</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                </div>
+                <div id="tc-B-msg" style="margin-top:.5rem;font-size:.64rem;color:var(--muted)"></div>
+                <!-- Social profile linker -->
+                <div style="margin-top:.85rem;border-top:1px solid rgba(255,255,255,.05);padding-top:.75rem">
+                  <div style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Social profiles</div>
+                  <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap" id="tc-B-social-row">
+                    <select id="tc-B-social-platform" aria-label="Social platform" style="font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:.38rem .6rem;outline:none;cursor:pointer;transition:border-color .18s">
+                      <option value="instagram">Instagram</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="x">X / Twitter</option>
+                      <option value="github">GitHub</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="mastodon">Mastodon</option>
+                    </select>
+                    <input type="text" id="tc-B-social-handle" placeholder="handle or link" aria-label="Social handle or link" style="font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:.38rem .7rem;outline:none;flex:1;min-width:90px;transition:border-color .18s" onkeydown="if(event.key==='Enter')tcAddSocialProfile()">
+                    <button class="btn ghost" style="font-size:.62rem;padding:.38rem .75rem;flex-none" onclick="tcAddSocialProfile()">Add</button>
+                  </div>
+                  <div id="tc-B-social-list" style="margin-top:.45rem;display:flex;flex-direction:column;gap:.28rem"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- C: Add content -->
+          <div class="expandable-card" id="tc-C">
+            <div class="ec-header" onclick="toggleTourCard('C')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-C-body">
+              <span class="ec-id">C</span>
+              <span class="ec-title">Add content</span>
+              <span class="ec-summary">Publish content that passes moderation. Slow but independent.</span>
+              <span class="ec-chevron" aria-hidden="true">▸</span>
+            </div>
+            <div class="ec-body" id="tc-C-body" role="region">
+              <div class="ec-inner">
+                <div style="display:flex;gap:.4rem;align-items:center">
+                  <input type="text" id="tc-C-content" placeholder="What's in your love" aria-label="Add content" style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:.52rem .85rem;flex:1;outline:none;transition:border-color .18s,box-shadow .18s" onkeydown="if(event.key==='Enter')tcGoPublish()">
+                  <button class="btn signal" style="font-size:.64rem;padding:.42rem .9rem;flex-none" onclick="tcGoPublish()">Go</button>
+                </div>
+                <div id="tc-C-msg" style="margin-top:.38rem;font-size:.64rem;color:var(--muted)"></div>
+                <!-- kept hidden for render() null-guard compatibility -->
+                <span id="tc-C-stars" style="display:none">42</span>
+                <span id="tc-C-progress" style="display:none">known (10⭐)</span>
+              </div>
+            </div>
+          </div>
+          <!-- D: Additional Info -->
+          <div class="expandable-card" id="tc-D">
+            <div class="ec-header" onclick="toggleTourCard('D')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-D-body">
+              <span class="ec-id">D</span>
+              <span class="ec-title">Additional Info</span>
+              <span class="ec-summary">Send extra info for a curator to admit you. Highest trust signal.</span>
+              <span class="ec-chevron" aria-hidden="true">▸</span>
+            </div>
+            <div class="ec-body" id="tc-D-body" role="region">
+              <div class="ec-inner">
+                <p style="font-size:.66rem;color:var(--muted);margin-bottom:.6rem">Add additional info about yourself for a curator to review — you must also authenticate (path B).</p>
+                <div class="field" style="margin-bottom:.5rem">
+                  <label>Additional info</label>
+                  <textarea id="tc-D-msg-input" placeholder="Who you are, what you'll bring, links to your work…" style="min-height:60px" aria-label="Additional info"></textarea>
+                </div>
+                <button class="btn" style="font-size:.64rem;padding:.4rem .85rem" onclick="tcRequestCurator()">Send</button>
+                <div id="tc-D-status" style="margin-top:.5rem;font-size:.64rem;color:var(--muted)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Publish (was step 3) -->
+      <div class="tour-step" id="ts-3">
+        <p style="font-size:.7rem;color:var(--muted);margin-bottom:.8rem">Submit content → moderation queue → curator review → live. Approved content earns points and stars.</p>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <div style="display:flex;align-items:center;gap:.7rem;font-size:.7rem;flex-wrap:wrap">
+            <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(255,206,107,.08);border:1px solid rgba(255,206,107,.3);color:var(--warn)">pending</span>
+            <span style="color:var(--muted)">→</span>
+            <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(141,137,255,.08);border:1px solid rgba(141,137,255,.3);color:var(--accent-soft)">curator review</span>
+            <span style="color:var(--muted)">→</span>
+            <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(0,247,167,.08);border:1px solid rgba(0,247,167,.3);color:var(--signal)">live ✓</span>
+          </div>
+          <div class="note">Approval credits the author with ⭐ stars and increments their contribution score. Rejection is silent-by-default.</div>
+        </div>
+
+        <div class="sec" style="margin-top:.9rem">Sample · live content + peer engagement</div>
+        <p style="font-size:.66rem;color:var(--muted);margin-bottom:.5rem">A brave homie gives it a like — and it lightly credits the author's standing.</p>
+        <div class="live-content-card" id="tour-live-card">
+          <div class="lc-header">
+            <span class="pbadge LIVE">LIVE</span>
+            <span class="lc-type">post</span>
+            <span style="flex:1;font-size:.7rem;font-weight:700">On the mesh and what it means to contribute</span>
+            <span style="font-size:.6rem;color:var(--muted)">by @marcflove</span>
+          </div>
+          <div class="lc-body">
+            "Every node that shares resources makes the mesh a little more real for everyone else. Contributing isn't a cost — it's the act that builds the commons."
+          </div>
+          <div class="lc-credit-note" id="tour-like-credit" style="display:none">⭐ Author credited — this like nudges @marcflove's standing.</div>
+          <div class="engagement-bar">
+            <button class="eng-btn" id="tour-like-btn" onclick="tourLike()" aria-label="Like this post">
+              ♥ <span id="tour-like-count">3</span>
+            </button>
+            <button class="eng-btn" id="tour-repost-btn" onclick="tourRepost()" aria-label="Repost">
+              ↻ <span id="tour-repost-count">1</span>
+            </button>
+            <button class="eng-btn" onclick="toggleTourComments()" aria-label="View comments">
+              💬 <span id="tour-comment-count">1</span>
+            </button>
+            <button class="eng-btn" id="tour-report-btn" onclick="tourReport()" aria-label="Flag content">
+              ⚑ flag
+            </button>
+          </div>
+          <div id="tour-comments-section" style="display:none">
+            <div class="refs-list">
+              <div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">Further references</div>
+              <div class="ref-item">→ <a href="#" onclick="return false">alice: "The mesh and collective action" (nety:p2p:3a1f…)</a></div>
+            </div>
+            <div class="comment-thread" id="tour-comment-thread">
+              <div class="comment-item">
+                <span class="comment-author">alice</span>
+                <span class="comment-text">Exactly this. Glad you put it into words.</span>
+              </div>
+            </div>
+            <div class="comment-add">
+              <input type="text" id="tour-comment-input" placeholder="Reply…" aria-label="Add a comment" onkeydown="if(event.key==='Enter')tourAddComment()">
+              <button class="btn ghost" style="font-size:.62rem;padding:.35rem .7rem" onclick="tourAddComment()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- tour-steps -->
+
+    <div class="tour-nav">
+      <button class="btn ghost" id="tour-prev" onclick="tourNav(-1)" disabled>← Prev</button>
+      <button class="btn"       id="tour-next" onclick="tourNav(1)">Next →</button>
+    </div>
+
+    <div class="step-indicators" role="list" aria-label="Tour steps">
+      <div class="step-dot active" role="listitem" aria-label="Step 1" data-step="0"></div>
+      <div class="step-dot"        role="listitem" aria-label="Step 2" data-step="1"></div>
+      <div class="step-dot"        role="listitem" aria-label="Step 3" data-step="2"></div>
+      <div class="step-dot"        role="listitem" aria-label="Step 4" data-step="3"></div>
+      <div class="step-dot"        role="listitem" aria-label="Step 5" data-step="4"></div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       PART B: TABS
+       ============================================= -->
+  <div class="tabs-wrap" style="margin-top:1.6rem">
+    <nav class="tab-bar" role="tablist" aria-label="App sections">
+      <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('access')"   id="tab-access">Access</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('invites')"  id="tab-invites">Invites</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('trust')"    id="tab-trust">Trust</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"    id="tab-mynet">MyNet</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('economy')"  id="tab-economy">Economy</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('publish')"  id="tab-publish">Publish</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('recovery')" id="tab-recovery">Recovery</button>
+    </nav>
+
+    <!-- ACCESS TAB -->
+    <div class="tab-panel active" id="panel-access" role="tabpanel">
+      <div class="vcard">
+        <div class="sec">Passport</div>
+        <div class="profily-mini">
+          <div class="profily-handle">@<span id="acc-handle">marcflove</span></div>
+          <div class="profily-peer">peer: nety:p2p:7e3a9c…f12b4</div>
+          <div class="profily-hw">hardware: <span id="acc-hw">5 CU</span> · linked: <span id="acc-ids">none</span></div>
+          <div class="profily-badges">
+            <span id="acc-presence" class="pbadge LIVE">LIVE</span>
+            <span class="sbadge" id="acc-stage-badge">newbie</span>
+          </div>
+        </div>
+
+        <div class="sec">Entry path</div>
+        <div class="path-grid" id="access-paths">
+          <div class="path-card" onclick="selectPath('invite')" id="path-invite">
+            <div class="path-id">A</div>
+            <div class="path-name">Add Basic code</div>
+            <div class="path-desc">Enter a token from a member.</div>
+          </div>
+          <div class="path-card" onclick="selectPath('auth')" id="path-auth">
+            <div class="path-id">B</div>
+            <div class="path-name">Authenticate</div>
+            <div class="path-desc">Link external identities.</div>
+          </div>
+          <div class="path-card" onclick="selectPath('earn')" id="path-earn">
+            <div class="path-id">C</div>
+            <div class="path-name">Add content</div>
+            <div class="path-desc">Publish approved content for points.</div>
+          </div>
+          <div class="path-card" onclick="selectPath('curator')" id="path-curator">
+            <div class="path-id">D</div>
+            <div class="path-name">Additional Info</div>
+            <div class="path-desc">Send extra info for a curator.</div>
+          </div>
+        </div>
+
+        <!-- Add Basic code sub-panel -->
+        <div id="sub-invite" style="display:none;margin-top:.5rem">
+          <div class="field">
+            <label>Add Basic code</label>
+            <input type="text" id="invite-input" placeholder="e.g. FLOVE2024" aria-label="Add Basic code">
+          </div>
+          <button class="btn signal" style="margin-top:.6rem" onclick="submitInvite()">Register with code</button>
+          <div id="invite-msg" style="margin-top:.5rem;font-size:.66rem;color:var(--muted)"></div>
+        </div>
+
+        <!-- Auth sub-panel -->
+        <div id="sub-auth" style="display:none;margin-top:.5rem">
+          <div class="sec">Link identities</div>
+          <div id="auth-toggles" style="display:flex;flex-direction:column;gap:.4rem">
+            <div class="toggle-row" id="tog-telegram" onclick="linkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram">
+              <span class="rung-icon">✈</span>
+              <span class="toggle-name">Telegram</span>
+              <div class="toggle-switch"></div>
+            </div>
+            <div class="toggle-row" id="tog-email" onclick="linkIdentity('email')" role="button" tabindex="0" aria-label="Link email">
+              <span class="rung-icon">✉</span>
+              <span class="toggle-name">Email</span>
+              <div class="toggle-switch"></div>
+            </div>
+            <div class="toggle-row" id="tog-phone" onclick="linkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone">
+              <span class="rung-icon">📱</span>
+              <span class="toggle-name">Phone</span>
+              <div class="toggle-switch"></div>
+            </div>
+            <div class="toggle-row" id="tog-bio" onclick="linkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics">
+              <span class="rung-icon">👁</span>
+              <span class="toggle-name">Biometrics</span>
+              <div class="toggle-switch"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Earn sub-panel -->
+        <div id="sub-earn" style="display:none;margin-top:.5rem">
+          <div class="note">Share hardware to accumulate contribution units. Use the Economy tab to trigger sharing.</div>
+        </div>
+
+        <!-- Curator sub-panel -->
+        <div id="sub-curator" style="display:none;margin-top:.5rem">
+          <div class="note">A curator must approve your admission. Contact a known curator through your network.</div>
+        </div>
+
+        <div class="sec">Identity ladder</div>
+        <p style="font-size:.64rem;color:var(--muted);margin-bottom:.6rem;line-height:1.6">Link identities to raise your Personal facet score and unlock gated features like publishing.</p>
+        <div class="id-ladder">
+          <div class="id-rung" id="rung-social-link">
+            <span class="rung-icon">🔗</span>
+            <span class="rung-name">Social link</span>
+            <span class="rung-status">base level</span>
+          </div>
+          <div class="id-rung" id="rung-telegram" onclick="linkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram" style="cursor:pointer">
+            <span class="rung-icon">✈</span>
+            <span class="rung-name">Telegram ✦</span>
+            <span class="rung-status" id="rung-tel-status">click to link · unlocks publish</span>
+          </div>
+          <div class="id-rung" id="rung-phone" onclick="linkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone" style="cursor:pointer">
+            <span class="rung-icon">📱</span>
+            <span class="rung-name">Phone</span>
+            <span class="rung-status" id="rung-phone-status">click to link</span>
+          </div>
+          <div class="id-rung" id="rung-bio" onclick="linkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics" style="cursor:pointer">
+            <span class="rung-icon">👁</span>
+            <span class="rung-name">Biometrics</span>
+            <span class="rung-status" id="rung-bio-status">click to link</span>
+          </div>
+        </div>
+
+        <div class="sec">Registration</div>
+        <div class="field">
+          <label>Handle</label>
+          <input type="text" id="reg-handle" value="marcflove" aria-label="Handle" oninput="updateHandle(this.value)">
+        </div>
+        <div class="field" style="margin-top:.5rem">
+          <label>Keypair (mock)</label>
+          <input type="text" readonly value="pub:Ed25519·8f3c…a92d / priv:••••••••" style="color:var(--muted)" aria-label="Mock keypair">
+        </div>
+      </div>
+    </div>
+
+    <!-- INVITES TAB -->
+    <div class="tab-panel" id="panel-invites" role="tabpanel">
+      <div class="vcard">
+        <div class="sec">Invite web</div>
+        <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.6rem">
+          <span style="font-size:.68rem;color:var(--muted)">Budget:</span>
+          <span class="sbadge" id="invite-budget-chip">3/month · 2 remaining</span>
+          <button class="btn ghost" style="margin-left:auto" onclick="generateInvite()">Generate</button>
+        </div>
+        <div id="invite-generated-row" style="display:none;margin-bottom:.6rem;align-items:center;gap:.7rem;flex-wrap:wrap">
+          <span style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Code:</span>
+          <span id="invite-generated-code" style="font-family:'Space Mono',monospace;font-size:.82rem;color:var(--signal);letter-spacing:.12em;text-shadow:0 0 12px rgba(0,247,167,.5);padding:.3rem .7rem;border-radius:8px;border:1px solid rgba(0,247,167,.3);background:rgba(0,247,167,.06)"></span>
+          <span style="font-size:.58rem;color:var(--muted)">(share this with your invitee)</span>
+        </div>
+
+        <div class="invite-web-wrap">
+        <svg viewBox="0 0 400 260" width="100%" height="auto" aria-label="Invite lineage tree" style="max-height:240px;padding:1rem;display:block">
+          <defs>
+            <!-- Glow filter for "you" node -->
+            <filter id="glow-you" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <!-- Subtle glow for invitee nodes -->
+            <filter id="glow-node" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Parent connector -->
+          <line x1="200" y1="52" x2="200" y2="95" stroke="#8d89ff" stroke-width="1.5" opacity=".55"/>
+
+          <!-- Parent node -->
+          <circle cx="200" cy="36" r="15" fill="rgba(141,137,255,.08)" stroke="#8d89ff" stroke-width="1.5" opacity=".7"/>
+          <text x="200" y="40" text-anchor="middle" fill="#a3a7b4" font-size="7.5" font-family="Space Mono">parent</text>
+
+          <!-- Solid lineage lines (you → invitees) -->
+          <line x1="200" y1="112" x2="100" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+          <line x1="200" y1="112" x2="200" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+          <line x1="200" y1="112" x2="300" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+
+          <!-- You (marcflove) — glowing hero node -->
+          <circle cx="200" cy="98" r="20" fill="rgba(0,247,167,.18)" stroke="#00f7a7" stroke-width="2.5" filter="url(#glow-you)"/>
+          <circle cx="200" cy="98" r="14" fill="rgba(0,247,167,.1)"/>
+          <text x="200" y="94" text-anchor="middle" fill="#00f7a7" font-size="7" font-family="Space Mono" font-weight="700">marc</text>
+          <text x="200" y="104" text-anchor="middle" fill="#00f7a7" font-size="6.5" font-family="Space Mono">flove</text>
+
+          <!-- Invitee nodes -->
+          <circle cx="100" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+          <text x="100" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">alice</text>
+
+          <circle cx="200" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+          <text x="200" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">bob</text>
+
+          <circle cx="300" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+          <text x="300" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">carol</text>
+
+          <!-- Vouch threads (faint dashed) -->
+          <line x1="113" y1="180" x2="187" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
+          <line x1="213" y1="180" x2="287" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
+          <line x1="113" y1="176" x2="287" y2="176" stroke="#00f7a7" stroke-width="1" stroke-dasharray="3 6" opacity=".18"/>
+
+          <!-- Co-signed label -->
+          <text x="200" y="212" text-anchor="middle" fill="rgba(90,94,114,.7)" font-size="6.5" font-family="Space Mono" letter-spacing=".5">co-signed vouch threads</text>
+        </svg>
+        </div>
+
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem">
+          <button class="btn ghost" onclick="revokeInvite()">Revoke</button>
+          <button class="btn danger" onclick="disownInvite()">Disown (−10 local)</button>
+        </div>
+        <div id="invite-action-msg" style="font-size:.64rem;color:var(--muted);margin-top:.4rem"></div>
+      </div>
+    </div>
+
+    <!-- TRUST TAB -->
+    <div class="tab-panel" id="panel-trust" role="tabpanel">
+      <div class="vcard">
+        <div class="sec">Trust facets</div>
+
+        <!-- Concentric rings SVG — signature moment -->
+        <!-- NOTE: radii preserved to match JS circumference constants (r110=692, r85=534, r60=377, r35=220) -->
+        <div class="rings-wrap">
+          <div class="rings-activity-halo" aria-hidden="true"></div>
+          <svg id="rings-svg" viewBox="0 0 280 280" width="280" height="280" aria-label="Trust facet rings">
+            <!-- Decorative tick marks -->
+            <g opacity=".2" stroke="#8d89ff" stroke-width="1">
+              <line x1="140" y1="15"  x2="140" y2="26"/>
+              <line x1="140" y1="254" x2="140" y2="265"/>
+              <line x1="15"  y1="140" x2="26"  y2="140"/>
+              <line x1="254" y1="140" x2="265" y2="140"/>
+            </g>
+
+            <!-- Global (outermost): r=110, circ=692 — track + fill -->
+            <circle cx="140" cy="140" r="110" fill="none" stroke="#1a1d2e" stroke-width="16"/>
+            <circle id="ring-global" cx="140" cy="140" r="110" fill="none"
+              stroke="#8d89ff" stroke-width="16" stroke-linecap="round"
+              stroke-dasharray="0 692" transform="rotate(-90 140 140)" opacity=".72"/>
+            <text x="140" y="22" text-anchor="middle" fill="#7a7eb8" font-size="7" font-family="Space Mono" letter-spacing="1">GLOBAL</text>
+
+            <!-- Social: r=85, circ=534 -->
+            <circle cx="140" cy="140" r="85" fill="none" stroke="#141625" stroke-width="16"/>
+            <circle id="ring-social" cx="140" cy="140" r="85" fill="none"
+              stroke="#8d89ff" stroke-width="16" stroke-linecap="round"
+              stroke-dasharray="0 534" transform="rotate(-90 140 140)" opacity=".85"/>
+
+            <!-- Local: r=60, circ=377 -->
+            <circle cx="140" cy="140" r="60" fill="none" stroke="#141625" stroke-width="16"/>
+            <circle id="ring-local" cx="140" cy="140" r="60" fill="none"
+              stroke="#c9c6ff" stroke-width="16" stroke-linecap="round"
+              stroke-dasharray="0 377" transform="rotate(-90 140 140)" opacity=".9"/>
+
+            <!-- Personal (innermost): r=35, circ=220 -->
+            <circle cx="140" cy="140" r="35" fill="none" stroke="#141625" stroke-width="14"/>
+            <circle id="ring-personal" cx="140" cy="140" r="35" fill="none"
+              stroke="#00f7a7" stroke-width="14" stroke-linecap="round"
+              stroke-dasharray="0 220" transform="rotate(-90 140 140)"/>
+
+            <!-- Center: ambient glow + LIVE pulse -->
+            <circle cx="140" cy="140" r="17" fill="rgba(0,247,167,.08)" stroke="rgba(0,247,167,.25)" stroke-width="1"/>
+            <circle id="ring-pulse" cx="140" cy="140" r="11" fill="rgba(0,247,167,.2)" stroke="#00f7a7" stroke-width="1.5"/>
+            <text x="140" y="138" text-anchor="middle" fill="#00f7a7" font-size="5.5" font-family="Space Mono" letter-spacing=".5">LIVE</text>
+          </svg>
+        </div>
+
+        <div class="facet-legend">
+          <span class="fl-item">
+            <span class="fl-dot" style="background:#00f7a7;color:#00f7a7"></span>
+            <span style="color:var(--signal)">Personal: <strong id="tr-p">0</strong></span>
+          </span>
+          <span class="fl-item">
+            <span class="fl-dot" style="background:#c9c6ff;color:#c9c6ff"></span>
+            <span style="color:var(--accent-soft)">Local: <strong id="tr-l">30</strong></span>
+          </span>
+          <span class="fl-item">
+            <span class="fl-dot" style="background:#8d89ff;color:#8d89ff"></span>
+            <span style="color:var(--accent)">Social: <strong id="tr-s">20</strong></span>
+          </span>
+          <span class="fl-item">
+            <span class="fl-dot" style="background:#6e6adb;color:#6e6adb;opacity:.75"></span>
+            <span style="color:#8d89ff;opacity:.8">Global: <strong id="tr-g">15</strong></span>
+          </span>
+        </div>
+
+        <!-- "+" button: 3 ways to increase stats -->
+        <div style="display:flex;align-items:center;gap:.75rem;margin-top:.5rem">
+          <button id="stat-ways-btn" onclick="toggleStatWays()" aria-expanded="false" aria-controls="stat-ways-panel"
+            style="width:44px;height:44px;border-radius:50%;border:2px solid var(--accent);background:rgba(141,137,255,.1);
+              color:var(--accent);font-size:1.4rem;font-weight:700;cursor:pointer;
+              display:flex;align-items:center;justify-content:center;flex-none;
+              transition:background .18s,box-shadow .18s;line-height:1"
+            onmouseover="this.style.background='rgba(141,137,255,.22)';this.style.boxShadow='0 0 16px -4px rgba(141,137,255,.5)'"
+            onmouseout="this.style.background='rgba(141,137,255,.1)';this.style.boxShadow='none'">+</button>
+          <span style="font-size:.62rem;color:var(--muted)">Ways to increase your stats</span>
+        </div>
+        <div id="stat-ways-panel" style="max-height:0;overflow:hidden;opacity:0;transition:max-height .34s cubic-bezier(.4,0,.2,1),opacity .24s ease" aria-hidden="true">
+          <div style="margin-top:.65rem;display:flex;flex-direction:column;gap:.5rem">
+            <div style="display:flex;gap:.8rem;padding:.7rem 1rem;border-radius:11px;border:1px solid rgba(0,247,167,.2);background:rgba(0,247,167,.04)">
+              <span style="font-size:1.1rem;flex-none">🪪</span>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;color:var(--signal);margin-bottom:.18rem">Verify your identity</div>
+                <div style="font-size:.62rem;color:var(--muted);line-height:1.55">Link Telegram / phone / biometrics — raises <strong style="color:var(--signal)">Personal</strong>.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:.8rem;padding:.7rem 1rem;border-radius:11px;border:1px solid rgba(141,137,255,.2);background:rgba(141,137,255,.04)">
+              <span style="font-size:1.1rem;flex-none">🤝</span>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;color:var(--accent-soft);margin-bottom:.18rem">Get vouched &amp; invite well</div>
+                <div style="font-size:.62rem;color:var(--muted);line-height:1.55">Receive vouches and grow your invite net — raises <strong style="color:var(--accent-soft)">Social + Local</strong>.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:.8rem;padding:.7rem 1rem;border-radius:11px;border:1px solid rgba(201,198,255,.15);background:rgba(201,198,255,.03)">
+              <span style="font-size:1.1rem;flex-none">🌐</span>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;color:var(--accent);margin-bottom:.18rem">Contribute &amp; publish</div>
+                <div style="font-size:.62rem;color:var(--muted);line-height:1.55">Share hardware and publish approved content — raises <strong style="color:var(--accent)">Global</strong>.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MYNET TAB -->
+    <div class="tab-panel" id="panel-mynet" role="tabpanel">
+      <div class="vcard">
+
+        <!-- Two-column layout: f2f connections (left) + tribes/circles (right) -->
+        <div class="mynet-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start">
+
+          <!-- Left column: f2f connections -->
+          <div>
+            <div class="sec" style="margin-top:0">f2f connections</div>
+            <div class="peer-list" id="peers-list">
+              <!-- populated by renderMyNet() -->
+            </div>
+          </div>
+
+          <!-- Right column: tribes / social circles -->
+          <div>
+            <div class="sec" style="margin-top:0">tribes &amp; circles</div>
+            <div class="peer-list" id="circles-list">
+              <!-- populated by renderMyNet() -->
+            </div>
+          </div>
+
+        </div><!-- end two-column grid -->
+
+        <!-- Add-friend / join-group inputs — aligned under each column -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:.75rem">
+          <!-- Under left column: add a friend -->
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <input type="text" id="mynet-add-friend-input" placeholder="peer handle or @id…" aria-label="Add a friend"
+              style="font-family:'Space Mono',monospace;font-size:.67rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:.48rem .75rem;flex:1;outline:none;transition:border-color .18s,box-shadow .18s"
+              onkeydown="if(event.key==='Enter')mynetAddFriend()">
+            <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetAddFriend()">Go</button>
+          </div>
+          <!-- Under right column: join a group -->
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <input type="text" id="mynet-join-group-input" placeholder="circle / group name…" aria-label="Join a group"
+              style="font-family:'Space Mono',monospace;font-size:.67rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:.48rem .75rem;flex:1;outline:none;transition:border-color .18s,box-shadow .18s"
+              onkeydown="if(event.key==='Enter')mynetJoinGroup()">
+            <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetJoinGroup()">Go</button>
+          </div>
+        </div>
+
+        <div class="sec">Permissions</div>
+        <div class="perm-grid">
+          <span class="perm-label">Content</span>
+          <select class="perm-select" onchange="updatePerm('content',this.value)" id="perm-content">
+            <option value="mynet">MyNet</option><option value="circle">Circle</option><option value="public">Public</option><option value="private">Private</option>
+          </select>
+          <span class="perm-label">Resources</span>
+          <select class="perm-select" onchange="updatePerm('resources',this.value)" id="perm-resources">
+            <option value="mynet">MyNet</option><option value="circle">Circle</option><option value="public">Public</option><option value="private">Private</option>
+          </select>
+          <span class="perm-label">Profile</span>
+          <select class="perm-select" onchange="updatePerm('profile',this.value)" id="perm-profile">
+            <option value="private">Private</option><option value="mynet">MyNet</option><option value="circle">Circle</option><option value="public">Public</option>
+          </select>
+          <span class="perm-label">Scores</span>
+          <select class="perm-select" onchange="updatePerm('scores',this.value)" id="perm-scores">
+            <option value="private">Private</option><option value="mynet">MyNet</option><option value="circle">Circle</option><option value="public">Public</option>
+          </select>
+        </div>
+        <div class="sec" style="margin-top:.6rem">Score visibility (per facet)</div>
+        <div class="perm-grid">
+          <span class="perm-label">Personal</span>
+          <select class="perm-select" onchange="updateVis('personal',this.value)"><option>private</option><option>mynet</option><option>public</option></select>
+          <span class="perm-label">Local</span>
+          <select class="perm-select" onchange="updateVis('local',this.value)"><option>mynet</option><option>private</option><option>public</option></select>
+          <span class="perm-label">Social</span>
+          <select class="perm-select" onchange="updateVis('social',this.value)"><option>mynet</option><option>private</option><option>public</option></select>
+          <span class="perm-label">Global</span>
+          <select class="perm-select" onchange="updateVis('global',this.value)"><option>public</option><option>mynet</option><option>private</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ECONOMY TAB -->
+    <div class="tab-panel" id="panel-economy" role="tabpanel">
+      <div class="vcard">
+        <div class="sec">Stars balance</div>
+        <div class="stars-big"><span class="star-icon">⭐</span><span id="eco-stars">42</span></div>
+
+        <div class="sec">Stage ladder</div>
+        <div class="stage-ladder" id="stage-ladder">
+          <div class="stage-step current" data-idx="0">newbie</div>
+          <div class="stage-step"         data-idx="1">known</div>
+          <div class="stage-step"         data-idx="2">homie</div>
+          <div class="stage-step"         data-idx="3">expert</div>
+          <div class="stage-step"         data-idx="4">legend</div>
+        </div>
+        <div style="font-size:.64rem;color:var(--muted);margin-top:.4rem">
+          Next: <span id="eco-next-stage">known</span> at <span id="eco-threshold">10</span> ⭐ · current: <span id="eco-current-stars">42</span>
+        </div>
+
+        <div class="sec">Tier ceiling</div>
+        <div style="font-size:.72rem">Stage <strong id="eco-stage-name">newbie</strong> → ceiling <strong id="eco-ceiling" style="color:var(--signal)">mini</strong></div>
+
+        <div class="sec">Hardware sharing</div>
+        <button class="btn signal" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
+        <div style="font-size:.64rem;color:var(--muted);margin-top:.3rem">Contributions: <span id="eco-cu">5</span> CU</div>
+
+        <div class="sec">Donation directing</div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;font-size:.68rem">
+          <span style="color:var(--muted)">Target:</span>
+          <select class="perm-select" id="donation-target">
+            <option value="close">Close</option>
+            <option value="friends">Friends</option>
+            <option value="mynet" selected>MyNet</option>
+          </select>
+          <select class="perm-select" id="donation-mode">
+            <option value="mostly">Mostly</option>
+            <option value="only">Only</option>
+          </select>
+        </div>
+        <div class="note" style="margin-top:.5rem">Pool fallback: if target circle is empty, stars flow to global pool.</div>
+        <div class="note warn" style="margin-top:.4rem">Stage normal+ requires curator note to advance.</div>
+      </div>
+    </div>
+
+    <!-- PUBLISH TAB -->
+    <div class="tab-panel" id="panel-publish" role="tabpanel">
+      <div class="vcard">
+        <div id="publish-locked-note" class="note warn" style="margin-bottom:.7rem">Publish is locked. Link Telegram in Trust tab to unlock.</div>
+
+        <div class="sec">Submit content</div>
+        <div class="field">
+          <label>Type</label>
+          <select id="pub-type" aria-label="Content type">
+            <option value="post">post</option>
+            <option value="page">page</option>
+            <option value="file">file</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:.5rem">
+          <label>Content</label>
+          <textarea id="pub-content" placeholder="Write something…" aria-label="Content body"></textarea>
+        </div>
+        <button class="btn signal" style="margin-top:.6rem" id="pub-submit-btn" onclick="submitContent()" disabled>Submit to queue</button>
+
+        <div class="sec" style="margin-top:.9rem">Your posts</div>
+        <div id="queue-list" class="queue-list">
+          <div style="font-size:.66rem;color:var(--muted)">No posts yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOVERY TAB -->
+    <div class="tab-panel" id="panel-recovery" role="tabpanel">
+      <div class="vcard">
+        <div class="sec">Self-backup</div>
+        <div class="seed-phrase" aria-label="Mock seed phrase">
+          <span class="seed-word"><em>1</em> orbit</span>
+          <span class="seed-word"><em>2</em> mesh</span>
+          <span class="seed-word"><em>3</em> facet</span>
+          <span class="seed-word"><em>4</em> signal</span>
+          <span class="seed-word"><em>5</em> nety</span>
+          <span class="seed-word"><em>6</em> quorum</span>
+          <span class="seed-word"><em>7</em> ledger</span>
+          <span class="seed-word"><em>8</em> vouch</span>
+          <span class="seed-word"><em>9</em> trust</span>
+          <span class="seed-word"><em>10</em> alpha</span>
+          <span class="seed-word"><em>11</em> delta</span>
+          <span class="seed-word"><em>12</em> node</span>
+        </div>
+        <label style="display:flex;align-items:center;gap:.6rem;font-size:.68rem;margin-top:.6rem;cursor:pointer">
+          <input type="checkbox" id="backup-check" onchange="render()"> Backup confirmed
+        </label>
+
+        <div class="sec">Social quorum</div>
+        <div class="note">Needs 2 of 3 MyNet peers to co-sign key rotation.</div>
+        <div class="peer-list" style="margin-top:.5rem">
+          <div class="peer-row"><span class="pbadge LIVE">LIVE</span><span class="peer-handle">alice</span><span class="peer-circle" style="color:var(--signal)">signed ✓</span></div>
+          <div class="peer-row"><span class="pbadge RECENT">RECENT</span><span class="peer-handle">bob</span><span class="peer-circle" style="color:var(--signal)">signed ✓</span></div>
+          <div class="peer-row"><span class="pbadge REACHABLE">REACHABLE</span><span class="peer-handle">carol</span><span class="peer-circle">pending</span></div>
+        </div>
+
+        <div class="sec">Key rotation</div>
+        <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap">
+          <button class="btn danger" onclick="rotateKey()">Rotate key</button>
+          <div id="prob-badge-wrap"></div>
+        </div>
+        <div id="prob-timer" style="font-size:.62rem;color:var(--muted);margin-top:.4rem"></div>
+
+        <div class="sec">Loss vs. compromise</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.2rem">
+          <div class="note"><strong style="color:var(--warn)">Compromise</strong> — key stolen. Revoke immediately. 30-day probation.</div>
+          <div class="note"><strong style="color:var(--accent-soft)">Loss</strong> — seed lost. Quorum restores. No probation.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- tabs-wrap -->
+
+  <footer class="foot">
+    <span class="dot"></span>
+    <span>miniappy · prototype</span>
+    <span>nety/appy spec · 2026</span>
+    <span style="margin-left:auto">not a real app</span>
+  </footer>
+
+</div><!-- wrap -->
+
+<script>
+'use strict';
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  handle: 'marcflove',
+  stars: 42,
+  stage: 0,
+  stageName: ['newbie','known','homie','expert','legend'],
+  stageThresholds: [0, 10, 100, 1000, 10000],
+  tierCeiling: 'mini',
+  tierCeilingMap: ['mini','basic','normal','advanced','super'],
+  currentMode: 'basic',
+  linkedIdentities: [],
+  socialProfiles: [],
+  facets: { personal: 0, local: 30, social: 20, global: 15 },
+  activity: 'LIVE',
+  queue: [],
+  peers: [
+    { handle: 'alice', presence: 'LIVE',      circles: 'close · friends · collaborators' },
+    { handle: 'bob',   presence: 'RECENT',    circles: 'friends · bookclub' },
+    { handle: 'carol', presence: 'REACHABLE', circles: 'mynet · collaborators' },
+  ],
+  circles: { close: ['alice'], friends: ['alice','bob'], mynet: ['alice','bob','carol'] },
+  tags: { collaborators: ['alice','carol'], bookclub: ['bob'] },
+  joinedGroups: ['close','friends'],
+  permissions: { content: 'mynet', resources: 'mynet', profile: 'private', scores: 'private' },
+  inviteBudget: { total: 3, used: 1 },
+  recovered: false,
+  inProbation: false,
+  curatorMode: false,
+  publishUnlocked: false,
+  entryPath: null,
+  contributions: 5,
+  tourCardOpen: null,
+  tourLiked: false,
+  tourReposted: false,
+  tourReported: false,
+  tourLikeCount: 3,
+  tourRepostCount: 1,
+  tourCommentCount: 1,
+  tourComments: [{ author: 'alice', text: 'Exactly this. Glad you put it into words.' }],
+  tourCommentsOpen: false,
+  engagement: {},
+  openStageDetail: null,
+  sessionQueueCount: 0,
+};
+
+let tourStep = 0;
+let activeTab = 'access';
+let queueCounter = 1;
+
+// ============================================================
+// TOUR
+// ============================================================
+function tourNav(dir) {
+  const steps = document.querySelectorAll('.tour-step');
+  const dots   = document.querySelectorAll('.step-dot');
+  steps[tourStep].classList.remove('active');
+  dots[tourStep].classList.remove('active');
+  tourStep = Math.max(0, Math.min(4, tourStep + dir));
+  steps[tourStep].classList.add('active');
+  dots[tourStep].classList.add('active');
+  const tcEl = document.getElementById('tour-current');
+  if (tcEl) tcEl.textContent = tourStep + 1;
+  document.getElementById('tour-prev').disabled = (tourStep === 0);
+  document.getElementById('tour-next').disabled = (tourStep === 4);
+}
+
+// Build tour map table once
+function buildTourMap() {
+  const tbody = document.getElementById('tour-map-body');
+  const stages = state.stageName;
+  const thresholds = state.stageThresholds;
+  const ceilings = state.tierCeilingMap;
+  tbody.innerHTML = '';
+  stages.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    if (i === state.stage) tr.classList.add('current-row');
+    tr.innerHTML = `<td>${s}${i === state.stage ? ' ←' : ''}</td><td>${thresholds[i]}</td><td>${ceilings[i]}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.id === 'tab-' + name);
+    b.setAttribute('aria-selected', b.id === 'tab-' + name ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'panel-' + name);
+  });
+  activeTab = name;
+}
+
+// ============================================================
+// PRESENCE CYCLE
+// ============================================================
+const presenceCycle = ['LIVE','RECENT','REACHABLE','DARK'];
+function cyclePresence() {
+  const idx = presenceCycle.indexOf(state.activity);
+  state.activity = presenceCycle[(idx + 1) % presenceCycle.length];
+  render();
+}
+
+// ============================================================
+// ENTRY PATH
+// ============================================================
+function selectPath(path) {
+  state.entryPath = path;
+  ['invite','auth','earn','curator'].forEach(p => {
+    document.getElementById('path-' + p).classList.toggle('selected', p === path);
+    document.getElementById('sub-'  + p).style.display = (p === path) ? 'block' : 'none';
+  });
+}
+
+function submitInvite() {
+  const code = document.getElementById('invite-input').value.trim();
+  const msg = document.getElementById('invite-msg');
+  if (code === 'FLOVE2024') {
+    state.currentMode = 'basic';
+    state.tierCeiling = 'basic';
+    msg.style.color = 'var(--signal)';
+    msg.textContent = '✓ Registered. Tier ceiling upgraded to basic.';
+    render();
+  } else {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = '✗ Invalid code.';
+  }
+}
+
+function updateHandle(v) {
+  state.handle = v || 'marcflove';
+  render();
+}
+
+// ============================================================
+// IDENTITY LINKING
+// ============================================================
+function linkIdentity(id) {
+  if (state.linkedIdentities.includes(id)) return;
+  state.linkedIdentities.push(id);
+  if (id === 'telegram') {
+    state.facets.personal = Math.min(100, state.facets.personal + 12);
+    state.publishUnlocked = true;
+  }
+  if (id === 'phone')      state.facets.personal = Math.min(100, state.facets.personal + 6);
+  if (id === 'biometrics') state.facets.personal = Math.min(100, state.facets.personal + 8);
+  if (id === 'email')      state.facets.personal = Math.min(100, state.facets.personal + 4);
+  render();
+}
+
+// ============================================================
+// INVITES
+// ============================================================
+function generateInvite() {
+  if (state.inviteBudget.used >= state.inviteBudget.total) {
+    document.getElementById('invite-action-msg').textContent = 'Monthly budget exhausted.';
+    return;
+  }
+  state.inviteBudget.used++;
+  // Pseudo-random invite code (user action — Math.random() is fine here)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function seg(n) {
+    let s = '';
+    for (let i = 0; i < n; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+  const code = 'FLV-' + seg(4) + '-' + seg(2) + Math.floor(Math.random() * 10);
+  const row = document.getElementById('invite-generated-row');
+  const codeEl = document.getElementById('invite-generated-code');
+  if (row) row.style.display = 'flex';
+  if (codeEl) codeEl.textContent = code;
+  document.getElementById('invite-action-msg').textContent = 'Invite generated — share the code above.';
+  render();
+}
+function sendInvite() {
+  // legacy alias kept for any internal calls
+  generateInvite();
+}
+function revokeInvite() {
+  document.getElementById('invite-action-msg').textContent = 'Invite revoked (mock).';
+}
+function disownInvite() {
+  state.facets.local = Math.max(0, state.facets.local - 10);
+  document.getElementById('invite-action-msg').textContent = '⚠ Disowned. −10 local score.';
+  render();
+}
+
+// ============================================================
+// ECONOMY
+// ============================================================
+function shareHardware() {
+  state.contributions += 5;
+  state.stars += 8;
+  state.facets.global = Math.min(100, state.facets.global + 5);
+  checkStageThreshold();
+  render();
+}
+
+function checkStageThreshold() {
+  const thresholds = state.stageThresholds;
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (state.stars >= thresholds[i]) {
+      if (i > state.stage) {
+        state.stage = i;
+        state.tierCeiling = state.tierCeilingMap[i];
+      }
+      break;
+    }
+  }
+}
+
+function updatePerm(area, val) {
+  state.permissions[area] = val;
+}
+function updateVis(facet, val) { /* visibility prefs, no state impact needed */ }
+
+// ============================================================
+// STAT WAYS PANEL (Trust tab + button)
+// ============================================================
+function toggleStatWays() {
+  const panel = document.getElementById('stat-ways-panel');
+  const btn   = document.getElementById('stat-ways-btn');
+  if (!panel || !btn) return;
+  const isOpen = panel.style.maxHeight !== '0px' && panel.style.maxHeight !== '';
+  if (isOpen) {
+    panel.style.maxHeight = '0';
+    panel.style.opacity   = '0';
+    panel.setAttribute('aria-hidden', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+  } else {
+    panel.style.maxHeight = '600px';
+    panel.style.opacity   = '1';
+    panel.setAttribute('aria-hidden', 'false');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+// ============================================================
+// PUBLISH
+// ============================================================
+function submitContent() {
+  const type = document.getElementById('pub-type').value;
+  const content = document.getElementById('pub-content').value.trim();
+  if (!content) return;
+  state.queue.push({ id: queueCounter++, type, content, status: 'pending' });
+  document.getElementById('pub-content').value = '';
+  render();
+}
+
+function approveItem(id) {
+  const item = state.queue.find(q => q.id === id);
+  if (item && item.status === 'pending') {
+    item.status = 'live';
+    state.stars += 5;
+    checkStageThreshold();
+    render();
+  }
+}
+
+function rejectItem(id) {
+  const item = state.queue.find(q => q.id === id);
+  if (item && item.status === 'pending') {
+    item.status = 'rejected';
+    render();
+  }
+}
+
+function toggleCurator() {
+  state.curatorMode = !state.curatorMode;
+  const tog = document.getElementById('tog-curator');
+  if (tog) tog.classList.toggle('on', state.curatorMode);
+  render();
+}
+
+// ============================================================
+// RECOVERY
+// ============================================================
+function rotateKey() {
+  state.recovered = true;
+  state.inProbation = true;
+  render();
+}
+
+// ============================================================
+// TOUR CARD EXPAND/COLLAPSE
+// ============================================================
+function toggleTourCard(id) {
+  state.tourCardOpen = (state.tourCardOpen === id) ? null : id;
+  ['A','B','C','D'].forEach(k => {
+    const card = document.getElementById('tc-' + k);
+    const hdr  = card ? card.querySelector('.ec-header') : null;
+    const open = (state.tourCardOpen === k);
+    if (card) card.classList.toggle('open', open);
+    if (hdr)  hdr.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  renderTourCardState();
+}
+
+function renderTourCardState() {
+  ['telegram','email','phone','biometrics'].forEach(id => {
+    const tog = document.getElementById('tc-tog-' + id);
+    if (tog) tog.classList.toggle('on', state.linkedIdentities.includes(id));
+  });
+  const cs = document.getElementById('tc-C-stars');
+  if (cs) cs.textContent = state.stars;
+  const cp = document.getElementById('tc-C-progress');
+  if (cp) {
+    const nextIdx = Math.min(4, state.stage + 1);
+    cp.textContent = state.stageName[nextIdx] + ' (' + state.stageThresholds[nextIdx] + '⭐)';
+  }
+  renderSocialProfiles();
+}
+
+function tourValidateInvite() {
+  const inp = document.getElementById('tc-invite-input');
+  const msg = document.getElementById('tc-invite-msg');
+  if (!inp || !msg) return;
+  const code = inp.value.trim();
+  if (code === 'FLOVE2024') {
+    state.currentMode = 'basic';
+    state.tierCeiling = 'basic';
+    msg.style.color = 'var(--signal)';
+    msg.textContent = '✓ Valid! Tier ceiling upgraded to basic. You can proceed.';
+    render();
+  } else if (code === '') {
+    msg.style.color = 'var(--warn)';
+    msg.textContent = '⚠ Enter a code to validate.';
+  } else {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = '✗ Invalid code. Try FLOVE2024.';
+  }
+}
+
+function tcLinkIdentity(id) {
+  linkIdentity(id);
+  const tog = document.getElementById('tc-tog-' + id);
+  if (tog) tog.classList.toggle('on', state.linkedIdentities.includes(id));
+  const msg = document.getElementById('tc-B-msg');
+  if (msg) {
+    const count = state.linkedIdentities.length;
+    if (state.linkedIdentities.includes('telegram')) {
+      msg.style.color = 'var(--signal)';
+      msg.textContent = '✓ Telegram linked — publish gate unlocked.';
+    } else {
+      msg.style.color = 'var(--muted)';
+      msg.textContent = count + ' identit' + (count === 1 ? 'y' : 'ies') + ' linked. Link Telegram to unlock publishing.';
+    }
+  }
+  renderTourCardState();
+}
+
+function tcContribute() {
+  shareHardware();
+  const msg = document.getElementById('tc-C-msg');
+  if (msg) { msg.style.color = 'var(--signal)'; msg.textContent = '✓ +8⭐ · +5 CU · hardware shared.'; }
+  renderTourCardState();
+}
+
+function tcPublishSample() {
+  const msg = document.getElementById('tc-C-msg');
+  if (!state.publishUnlocked) {
+    if (msg) { msg.style.color = 'var(--warn)'; msg.textContent = '⚠ Link Telegram first to unlock publishing.'; }
+    return;
+  }
+  state.queue.push({ id: queueCounter++, type: 'post', content: 'Sample tour post — contribute and publish to earn.', status: 'pending' });
+  if (msg) { msg.style.color = 'var(--accent-soft)'; msg.textContent = '✓ Post submitted — pending curator review.'; }
+  render();
+}
+
+function tcGoPublish() {
+  const inp = document.getElementById('tc-C-content');
+  const msg = document.getElementById('tc-C-msg');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) {
+    if (msg) { msg.style.color = 'var(--warn)'; msg.textContent = '⚠ Write something first.'; }
+    return;
+  }
+  state.queue.push({ id: queueCounter++, type: 'post', content: val, status: 'pending' });
+  state.sessionQueueCount++;
+  inp.value = '';
+  inp.focus();
+  if (msg) {
+    msg.innerHTML = 'Added to queue · <button onclick="switchTab(\'publish\')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:2px;padding:0">' + state.sessionQueueCount + '</button>';
+    msg.style.color = 'var(--muted)';
+  }
+  render();
+}
+
+// ============================================================
+// SOCIAL PROFILES (tour card B)
+// ============================================================
+function tcAddSocialProfile() {
+  const sel = document.getElementById('tc-B-social-platform');
+  const inp = document.getElementById('tc-B-social-handle');
+  if (!sel || !inp) return;
+  const platform = sel.value;
+  const handle = inp.value.trim();
+  if (!handle) {
+    inp.focus();
+    return;
+  }
+  state.socialProfiles.push({ platform, handle });
+  // Small personal-facet nudge (weighted below Telegram)
+  state.facets.personal = Math.min(100, state.facets.personal + 2);
+  inp.value = '';
+  inp.focus();
+  renderSocialProfiles();
+  render();
+}
+
+function tcRemoveSocialProfile(idx) {
+  if (idx < 0 || idx >= state.socialProfiles.length) return;
+  state.socialProfiles.splice(idx, 1);
+  renderSocialProfiles();
+  render();
+}
+
+function renderSocialProfiles() {
+  const list = document.getElementById('tc-B-social-list');
+  if (!list) return;
+  if (state.socialProfiles.length === 0) {
+    list.innerHTML = '';
+    return;
+  }
+  const platformLabels = {
+    instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X/Twitter',
+    github: 'GitHub', tiktok: 'TikTok', mastodon: 'Mastodon',
+  };
+  list.innerHTML = state.socialProfiles.map((p, i) =>
+    `<div style="display:flex;align-items:center;gap:.5rem;padding:.32rem .6rem;border-radius:7px;border:1px solid rgba(141,137,255,.18);background:rgba(141,137,255,.05);font-size:.63rem">
+      <span style="color:var(--accent-soft);min-width:60px">${platformLabels[p.platform] || p.platform}</span>
+      <span style="color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.handle}</span>
+      <button onclick="tcRemoveSocialProfile(${i})" aria-label="Remove ${p.handle}" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:.72rem;padding:.1rem .25rem;border-radius:4px;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">✕</button>
+    </div>`
+  ).join('');
+}
+
+function tcRequestCurator() {
+  const inp = document.getElementById('tc-D-msg-input');
+  const st  = document.getElementById('tc-D-status');
+  if (!inp || !st) return;
+  const txt = inp.value.trim();
+  if (!txt) {
+    st.style.color = 'var(--warn)';
+    st.textContent = '⚠ Add a brief message to your curator request.';
+    return;
+  }
+  st.style.color = 'var(--accent-soft)';
+  st.textContent = '✓ Request sent — a curator will review and may ask you to authenticate further. (mock)';
+  inp.value = '';
+}
+
+// ============================================================
+// TOUR ENGAGEMENT (step 3 live card)
+// ============================================================
+function tourLike() {
+  if (state.tourReported) return;
+  state.tourLiked = !state.tourLiked;
+  if (state.tourLiked) { state.tourLikeCount++; state.facets.social = Math.min(100, state.facets.social + 1); }
+  else { state.tourLikeCount = Math.max(0, state.tourLikeCount - 1); }
+  const btn = document.getElementById('tour-like-btn');
+  const cnt = document.getElementById('tour-like-count');
+  const credit = document.getElementById('tour-like-credit');
+  if (btn) btn.classList.toggle('liked', state.tourLiked);
+  if (cnt) cnt.textContent = state.tourLikeCount;
+  if (credit) credit.style.display = state.tourLiked ? 'block' : 'none';
+  updateRings();
+  document.getElementById('tr-s').textContent = state.facets.social;
+  document.getElementById('sb-s').textContent = state.facets.social;
+}
+
+function tourRepost() {
+  if (state.tourReported || state.tourReposted) return;
+  state.tourReposted = true;
+  state.tourRepostCount++;
+  const btn = document.getElementById('tour-repost-btn');
+  const cnt = document.getElementById('tour-repost-count');
+  if (btn) { btn.classList.add('reposted'); btn.title = 'Propagated through the mesh · attributed to @marcflove'; }
+  if (cnt) cnt.textContent = state.tourRepostCount;
+}
+
+function toggleTourComments() {
+  state.tourCommentsOpen = !state.tourCommentsOpen;
+  const sec = document.getElementById('tour-comments-section');
+  if (sec) sec.style.display = state.tourCommentsOpen ? 'block' : 'none';
+}
+
+function tourAddComment() {
+  const inp = document.getElementById('tour-comment-input');
+  if (!inp || !inp.value.trim()) return;
+  const text = inp.value.trim();
+  state.tourComments.push({ author: state.handle || 'you', text });
+  inp.value = '';
+  state.tourCommentCount++;
+  const cnt = document.getElementById('tour-comment-count');
+  if (cnt) cnt.textContent = state.tourCommentCount;
+  renderTourComments();
+}
+
+function renderTourComments() {
+  const thread = document.getElementById('tour-comment-thread');
+  if (!thread) return;
+  thread.innerHTML = state.tourComments.map(c =>
+    `<div class="comment-item"><span class="comment-author">${c.author}</span><span class="comment-text">${c.text}</span></div>`
+  ).join('');
+}
+
+function tourReport() {
+  if (state.tourReported) return;
+  state.tourReported = true;
+  const btn = document.getElementById('tour-report-btn');
+  if (btn) { btn.classList.add('reported'); btn.textContent = '⚑ flagged'; btn.setAttribute('aria-label','Flagged — sent back to curator queue'); }
+  const card = document.getElementById('tour-live-card');
+  if (card) {
+    const badge = card.querySelector('.pbadge');
+    if (badge) { badge.className = 'pbadge REACHABLE'; badge.textContent = 'PENDING REVIEW'; }
+  }
+}
+
+// ============================================================
+// PUBLISH TAB ENGAGEMENT
+// ============================================================
+function getOrInitEngagement(id) {
+  if (!state.engagement[id]) {
+    state.engagement[id] = { liked: false, likeCount: 0, reposted: false, repostCount: 0, reported: false, commentsOpen: false, comments: [] };
+  }
+  return state.engagement[id];
+}
+
+function buildEngagement(id) {
+  const e = getOrInitEngagement(id);
+  const likedClass = e.liked ? ' liked' : '';
+  const repostedClass = e.reposted ? ' reposted' : '';
+  const reportedClass = e.reported ? ' reported' : '';
+  const commentHtml = e.commentsOpen ? buildCommentThread(id) : '';
+  return `<div class="engagement-bar">
+    <button class="eng-btn${likedClass}" onclick="pubLike(${id})" aria-label="Like"${e.reported ? ' disabled' : ''}>♥ ${e.likeCount}</button>
+    <button class="eng-btn${repostedClass}" onclick="pubRepost(${id})" aria-label="Repost"${(e.reposted || e.reported) ? ' disabled' : ''}>↻ ${e.repostCount}</button>
+    <button class="eng-btn" onclick="pubToggleComments(${id})" aria-label="Comments">💬 ${e.comments.length}</button>
+    <button class="eng-btn${reportedClass}" onclick="pubReport(${id})" aria-label="Flag"${e.reported ? ' disabled style="cursor:not-allowed"' : ''}>⚑ ${e.reported ? 'flagged' : 'flag'}</button>
+  </div>${commentHtml}`;
+}
+
+function buildCommentThread(id) {
+  const e = getOrInitEngagement(id);
+  const items = e.comments.map(c =>
+    `<div class="comment-item"><span class="comment-author">${c.author}</span><span class="comment-text">${c.text}</span></div>`
+  ).join('');
+  return `<div class="comment-thread">${items}<div class="comment-add"><input type="text" placeholder="Reply…" aria-label="Add comment" onkeydown="if(event.key==='Enter')pubAddComment(${id},this)"><button class="btn ghost" style="font-size:.62rem;padding:.3rem .6rem" onclick="pubAddComment(${id},this.previousElementSibling)">Send</button></div></div>`;
+}
+
+function pubLike(id) {
+  const e = getOrInitEngagement(id);
+  if (e.reported) return;
+  e.liked = !e.liked;
+  e.likeCount += e.liked ? 1 : -1;
+  if (e.likeCount < 0) e.likeCount = 0;
+  if (e.liked) state.facets.social = Math.min(100, state.facets.social + 1);
+  render();
+}
+
+function pubRepost(id) {
+  const e = getOrInitEngagement(id);
+  if (e.reposted || e.reported) return;
+  e.reposted = true;
+  e.repostCount++;
+  render();
+}
+
+function pubToggleComments(id) {
+  const e = getOrInitEngagement(id);
+  e.commentsOpen = !e.commentsOpen;
+  render();
+}
+
+function pubReport(id) {
+  const e = getOrInitEngagement(id);
+  if (e.reported) return;
+  e.reported = true;
+  const item = state.queue.find(q => q.id === id);
+  if (item) { item.status = 'pending'; }
+  render();
+}
+
+function pubAddComment(id, inputEl) {
+  const text = inputEl ? inputEl.value.trim() : '';
+  if (!text) return;
+  const e = getOrInitEngagement(id);
+  e.comments.push({ author: state.handle || 'you', text });
+  inputEl.value = '';
+  render();
+}
+
+// ============================================================
+// MYNET — add friend / join group
+// ============================================================
+function renderMyNet() {
+  // f2f connections
+  const pl = document.getElementById('peers-list');
+  if (pl) {
+    pl.innerHTML = state.peers.map(p =>
+      `<div class="peer-row">
+        <span class="pbadge ${p.presence}">${p.presence}</span>
+        <span class="peer-handle">${p.handle}</span>
+        <span class="peer-circle">${p.circles}</span>
+      </div>`
+    ).join('') || '<div style="font-size:.66rem;color:var(--muted)">No connections yet.</div>';
+  }
+
+  // tribes / circles — joinedGroups first, then tag circles
+  const cl = document.getElementById('circles-list');
+  if (cl) {
+    const joined = state.joinedGroups.map(name => {
+      const members = state.circles[name] ? state.circles[name].length : 0;
+      return `<div class="peer-row">
+        <span class="sbadge" style="font-size:.5rem;padding:.18rem .55rem">${name}</span>
+        <span class="peer-handle">${members} member${members !== 1 ? 's' : ''}</span>
+        <span class="peer-circle" style="color:var(--signal)">joined ✓</span>
+      </div>`;
+    });
+    const tags = Object.keys(state.tags).map(name => {
+      const members = state.tags[name] ? state.tags[name].length : 0;
+      return `<div class="peer-row">
+        <span class="sbadge" style="font-size:.5rem;padding:.18rem .55rem">${name}</span>
+        <span class="peer-handle">${members} member${members !== 1 ? 's' : ''}</span>
+        <span class="peer-circle">tag circle</span>
+      </div>`;
+    });
+    cl.innerHTML = joined.concat(tags).join('') || '<div style="font-size:.66rem;color:var(--muted)">No circles yet.</div>';
+  }
+}
+
+function mynetAddFriend() {
+  const inp = document.getElementById('mynet-add-friend-input');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) { inp.focus(); return; }
+  // Strip leading @ for display, keep raw for peer-id
+  const handle = val.replace(/^@/, '');
+  // Avoid duplicate handles
+  if (!state.peers.find(p => p.handle === handle)) {
+    state.peers.push({ handle, presence: 'LIVE', circles: 'mynet' });
+    // Also add to mynet circle
+    if (state.circles.mynet) state.circles.mynet.push(handle);
+  }
+  inp.value = '';
+  inp.focus();
+  renderMyNet();
+}
+
+function mynetJoinGroup() {
+  const inp = document.getElementById('mynet-join-group-input');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) { inp.focus(); return; }
+  const name = val.toLowerCase().replace(/\s+/g, '-');
+  // Add to joinedGroups if not already there; create circle entry if needed
+  if (!state.joinedGroups.includes(name)) {
+    state.joinedGroups.push(name);
+    if (!state.circles[name]) state.circles[name] = [state.handle];
+  }
+  inp.value = '';
+  inp.focus();
+  renderMyNet();
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  // Status bar
+  document.getElementById('sb-stars-val').textContent = state.stars;
+  document.getElementById('sb-stage').textContent = state.stageName[state.stage];
+  document.getElementById('sb-ceiling').textContent = state.tierCeiling;
+  document.getElementById('sb-mode').textContent = state.currentMode;
+  document.getElementById('sb-p').textContent = state.facets.personal;
+  document.getElementById('sb-l').textContent = state.facets.local;
+  document.getElementById('sb-s').textContent = state.facets.social;
+  document.getElementById('sb-g').textContent = state.facets.global;
+
+  // Tour step 1 presence
+  const t1p = document.getElementById('t1-presence');
+  if (t1p) { t1p.className = 'pbadge ' + state.activity; t1p.textContent = state.activity; }
+  const t1hw = document.getElementById('t1-hw');
+  if (t1hw) t1hw.textContent = state.contributions + ' CU';
+
+  // Rebuild tier ladder + feature tiers
+  buildTierLadder();
+  buildFeatureTiers();
+
+  // Access tab
+  document.getElementById('acc-handle').textContent = state.handle;
+  document.getElementById('acc-hw').textContent = state.contributions + ' CU';
+  document.getElementById('acc-ids').textContent = state.linkedIdentities.join(', ') || 'none';
+  const accPres = document.getElementById('acc-presence');
+  accPres.className = 'pbadge ' + state.activity;
+  accPres.textContent = state.activity;
+  document.getElementById('acc-stage-badge').textContent = state.stageName[state.stage];
+
+  // Identity toggles (Access tab)
+  ['telegram','email','phone','biometrics'].forEach(id => {
+    const tog = document.getElementById('tog-' + id);
+    if (tog) tog.classList.toggle('on', state.linkedIdentities.includes(id));
+    const bid = id === 'biometrics' ? 'bio' : id;
+    const tog2 = document.getElementById('tog-' + bid);
+    if (tog2 && tog2 !== tog) tog2.classList.toggle('on', state.linkedIdentities.includes(id));
+  });
+
+  // Trust tab — rings
+  updateRings();
+  document.getElementById('tr-p').textContent = state.facets.personal;
+  document.getElementById('tr-l').textContent = state.facets.local;
+  document.getElementById('tr-s').textContent = state.facets.social;
+  document.getElementById('tr-g').textContent = state.facets.global;
+
+  // Identity ladder rungs
+  const rungs = [
+    { el: 'rung-telegram', id: 'telegram', status: 'rung-tel-status',   linked: 'linked ✓ · publish unlocked', unlinked: 'click to link · unlocks publish' },
+    { el: 'rung-phone',    id: 'phone',    status: 'rung-phone-status', linked: 'linked ✓', unlinked: 'click to link' },
+    { el: 'rung-bio',      id: 'biometrics', status: 'rung-bio-status', linked: 'linked ✓', unlinked: 'click to link' },
+  ];
+  rungs.forEach(r => {
+    const linked = state.linkedIdentities.includes(r.id);
+    const el = document.getElementById(r.el);
+    if (el) el.classList.toggle('linked', linked);
+    const sel = document.getElementById(r.status);
+    if (sel) sel.textContent = linked ? r.linked : r.unlinked;
+  });
+
+  // Invite budget
+  const rem = state.inviteBudget.total - state.inviteBudget.used;
+  const chip = document.getElementById('invite-budget-chip');
+  if (chip) chip.textContent = state.inviteBudget.total + '/month · ' + rem + ' remaining';
+
+  // Economy
+  document.getElementById('eco-stars').textContent = state.stars;
+  document.getElementById('eco-cu').textContent = state.contributions;
+  document.getElementById('eco-stage-name').textContent = state.stageName[state.stage];
+  document.getElementById('eco-ceiling').textContent = state.tierCeiling;
+  const nextIdx = Math.min(4, state.stage + 1);
+  document.getElementById('eco-next-stage').textContent = state.stageName[nextIdx];
+  document.getElementById('eco-threshold').textContent = state.stageThresholds[nextIdx];
+  document.getElementById('eco-current-stars').textContent = state.stars;
+
+  // Stage ladder pills
+  const pills = document.querySelectorAll('.stage-step');
+  pills.forEach((p, i) => {
+    p.classList.toggle('current', i === state.stage);
+    p.classList.toggle('reached', i < state.stage);
+  });
+
+  // MyNet
+  renderMyNet();
+
+  // Publish
+  const locked = document.getElementById('publish-locked-note');
+  if (locked) locked.style.display = state.publishUnlocked ? 'none' : 'block';
+  const psb = document.getElementById('pub-submit-btn');
+  if (psb) psb.disabled = !state.publishUnlocked;
+
+  // Queue (your posts list — no curator controls)
+  const ql = document.getElementById('queue-list');
+  if (ql) {
+    if (state.queue.length === 0) {
+      ql.innerHTML = '<div style="font-size:.66rem;color:var(--muted)">No posts yet.</div>';
+    } else {
+      ql.innerHTML = state.queue.map(q => {
+        const isLive = q.status === 'live';
+        const engagement = isLive ? buildEngagement(q.id) : '';
+        return `<div class="queue-item" style="flex-direction:column;align-items:stretch;gap:0;padding:0;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem">
+            <span class="qi-type">${q.type}</span>
+            <span class="qi-content">${q.content.substring(0, 60)}${q.content.length > 60 ? '…' : ''}</span>
+            <span class="qi-status ${q.status}">${q.status}</span>
+          </div>
+          ${engagement}
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Recovery
+  const pbw = document.getElementById('prob-badge-wrap');
+  if (pbw) {
+    pbw.innerHTML = state.inProbation
+      ? '<span class="prob-badge">⚠ rotated ✓ · in probation</span>'
+      : (state.recovered ? '<span class="sbadge">key rotated</span>' : '');
+  }
+  const pt = document.getElementById('prob-timer');
+  if (pt) pt.textContent = state.inProbation ? 'Probation: 30 days remaining (mock).' : '';
+
+  // Sync tour card state (stars/progress/toggles) if tour is on step 2
+  renderTourCardState();
+}
+
+function updateRings() {
+  // circumferences: personal r=35→220, local r=60→377, social r=85→534, global r=110→692
+  const rings = [
+    { id: 'ring-personal', score: state.facets.personal, circ: 220 },
+    { id: 'ring-local',    score: state.facets.local,    circ: 377 },
+    { id: 'ring-social',   score: state.facets.social,   circ: 534 },
+    { id: 'ring-global',   score: state.facets.global,   circ: 692 },
+  ];
+  rings.forEach(r => {
+    const el = document.getElementById(r.id);
+    if (!el) return;
+    const fill = (r.score / 100) * r.circ;
+    el.setAttribute('stroke-dasharray', fill + ' ' + r.circ);
+  });
+  // Pulse visibility
+  const pulse = document.getElementById('ring-pulse');
+  if (pulse) {
+    pulse.style.opacity = state.activity === 'LIVE' ? '1' : '0.2';
+  }
+}
+
+// ============================================================
+// TOP BAR MENU
+// ============================================================
+function toggleTopMenu() {
+  const wrap = document.getElementById('top-menu-wrap');
+  const btn  = document.getElementById('top-brand-btn');
+  const isOpen = wrap.classList.toggle('open');
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function closeTopMenu() {
+  const wrap = document.getElementById('top-menu-wrap');
+  const btn  = document.getElementById('top-brand-btn');
+  wrap.classList.remove('open');
+  btn.setAttribute('aria-expanded', 'false');
+}
+
+// Close on outside click
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('top-menu-wrap');
+  if (wrap && !wrap.contains(e.target)) closeTopMenu();
+});
+
+// Close on Esc
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeTopMenu();
+});
+
+// ============================================================
+// ABOUT REVEAL
+// ============================================================
+function toggleAbout() {
+  const panel = document.getElementById('about-reveal');
+  const menuBtn = document.getElementById('menu-about-btn');
+  const isOpen = panel.classList.toggle('open');
+  if (menuBtn) menuBtn.classList.toggle('active-item', isOpen);
+  closeTopMenu();
+}
+
+// ============================================================
+// STAGE DETAIL DATA + TOGGLE
+// ============================================================
+const STAGE_DETAIL = {
+  newbie: {
+    reach: 'nothing — just run nety (open to all)',
+    unlocks: [
+      'Share hardware with the mesh',
+      'Get a <strong>profily-mini</strong> presence',
+      'Browse public content',
+    ]
+  },
+  known: {
+    reach: 'an invite code, OR Telegram auth, OR ~3 approved posts, OR curator admission',
+    unlocks: [
+      'Play &amp; store apps',
+      'Full <strong>profily</strong>',
+      'MyNet circles &amp; permissions',
+      'Publish (requires ≥ Telegram linked)',
+    ]
+  },
+  homie: {
+    reach: '~10 approved posts + a curator\'s approval (mandatory for normal)',
+    unlocks: [
+      '<strong>sety</strong> — data management',
+      'Deeper Social trust',
+      'Larger resource draw',
+      'Earmark your donations',
+    ]
+  },
+  expert: {
+    reach: '~30 approved posts / sustained contribution + ≥ Telegram-verified',
+    unlocks: [
+      '<strong>MyWizy</strong> finetuner access',
+      'Donation pool directing &amp; stewardship',
+      'Complex trust configurations',
+    ]
+  },
+  legend: {
+    reach: 'top contribution + high Identity &amp; Social standing (+ biometrics)',
+    unlocks: [
+      'The full stack',
+      'Network-wide governance powers',
+      'Stewardship roles (still being defined)',
+    ]
+  },
+};
+
+function toggleStageDetail(stageName) {
+  state.openStageDetail = (state.openStageDetail === stageName) ? null : stageName;
+  buildTierLadder();
+}
+
+// ============================================================
+// FEATURE TIERS (ts-feat slide)
+// ============================================================
+const FEATURE_TIERS = [
+  {
+    name: 'mini',
+    label: 'nety',
+    features: ['share hardware', 'profily-mini', 'browse public content'],
+  },
+  {
+    name: 'basic',
+    label: 'profily + apps',
+    features: ['play & store apps', 'full profily', 'MyNet circles & permissions', 'publish'],
+  },
+  {
+    name: 'normal',
+    label: 'sety',
+    features: ['data management', 'deeper trust config', 'larger resource draw'],
+  },
+  {
+    name: 'advanced',
+    label: 'MyWizy',
+    features: ['finetuner agents', 'donation directing', 'complex trust'],
+  },
+  {
+    name: 'super',
+    label: 'full stack',
+    features: ['network-wide powers', 'stewardship roles', '(being defined)'],
+  },
+];
+
+function buildFeatureTiers() {
+  const wrap = document.getElementById('ts-feat-ladder');
+  if (!wrap) return;
+  const ceilings = state.tierCeilingMap; // ['mini','basic','normal','advanced','super']
+  const currentIdx = ceilings.indexOf(state.tierCeiling);
+  wrap.innerHTML = '';
+  FEATURE_TIERS.forEach((tier, i) => {
+    const isCurrent = (i === currentIdx);
+    const isReached = (i < currentIdx);
+    let cls = 'feat-rung';
+    if (isCurrent) cls += ' feat-current';
+    else if (isReached) cls += ' feat-reached';
+    const featsHtml = tier.features.map(f => `<li>${f}</li>`).join('');
+    wrap.innerHTML += `<div class="${cls}">
+      <span class="fr-name">${tier.name}</span>
+      <ul class="fr-feats">${featsHtml}</ul>
+    </div>`;
+  });
+}
+
+// ============================================================
+// TIER LADDER (step 2 graphic)
+// ============================================================
+function buildTierLadder() {
+  const wrap = document.getElementById('ts1-ladder');
+  if (!wrap) return;
+  const stages = state.stageName;           // ['newbie','known','homie','expert','legend']
+  const thresholds = state.stageThresholds; // [0,10,100,1000,10000]
+  const ceilings = state.tierCeilingMap;    // ['mini','basic','normal','advanced','super']
+  wrap.innerHTML = '';
+
+  // Build the 5 rung columns first
+  stages.forEach((s, i) => {
+    const isCurrent = (i === state.stage);
+    const isReached = (i < state.stage);
+    const isLockedCurator = (i === 2); // 'normal' requires curator note
+    let cls = 'tier-rung';
+    if (isCurrent) cls += ' current-tier';
+    else if (isReached) cls += ' reached';
+    if (!isCurrent && !isReached && isLockedCurator) cls += ' locked-curator';
+    const starsLabel = i === 0 ? 'open' : thresholds[i] + ' ⭐';
+    const curatTag = isLockedCurator && !isReached && !isCurrent
+      ? ' <span style="font-size:.44rem;color:var(--warn);display:block;margin-top:.18rem">curator</span>'
+      : '';
+    const thresholdColor = isCurrent ? 'var(--signal)' : isReached ? 'rgba(201,198,255,.6)' : 'rgba(163,167,180,.4)';
+    const isOpen = (state.openStageDetail === s);
+    wrap.innerHTML += `<div style="display:flex;flex-direction:column;align-items:center;gap:.3rem">
+      <div class="${cls}" style="width:100%">
+        <button class="tr-stage-btn" onclick="toggleStageDetail('${s}')" aria-expanded="${isOpen}" aria-label="Show requirements and privileges for ${s} stage">${s}</button>
+        <span class="tr-arrow">↓</span>
+        <span class="tr-tier">${ceilings[i]}${curatTag}</span>
+      </div>
+      <span style="font-size:.52rem;font-family:'Space Mono',monospace;color:${thresholdColor};text-align:center;letter-spacing:.04em">${starsLabel}</span>
+    </div>`;
+  });
+
+  // Append detail panel spanning full grid width
+  const openStage = state.openStageDetail;
+  const d = openStage ? STAGE_DETAIL[openStage] : null;
+  const isCurrDetail = openStage && openStage === state.stageName[state.stage];
+  const detailInnerCls = 'stage-detail-inner' + (isCurrDetail ? ' current-detail' : '');
+  const detailContent = d
+    ? `<div class="${detailInnerCls}">
+        <div class="sd-reach">to reach: <strong>${d.reach}</strong></div>
+        <span class="sd-unlocks-label">unlocks</span>
+        <ul class="sd-unlocks">${d.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>
+       </div>`
+    : `<div></div>`;
+  const rowCls = 'stage-detail-row' + (openStage ? ' open' : '');
+  wrap.innerHTML += `<div class="${rowCls}" id="stage-detail-panel">${detailContent}</div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+buildTierLadder();
+buildFeatureTiers();
+render();
+</script>
+</body>
+</html>

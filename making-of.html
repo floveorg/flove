@@ -65,6 +65,10 @@
   .entry .summary{ font-size:.82rem; color:var(--ink); margin:.7rem 0 .3rem; }
   .entry .links{ display:flex; flex-wrap:wrap; gap:.4rem 1rem; margin-top:.5rem; font-size:.7rem; }
   .entry .links a{ color:var(--accent-soft); }
+  .prov{ display:inline-flex; align-items:center; gap:.3rem; font-size:.6rem; letter-spacing:.06em; color:var(--signal);
+    border:1px solid rgba(0,247,167,.35); border-radius:999px; padding:.1rem .5rem; text-decoration:none; white-space:nowrap; }
+  .prov:hover{ background:rgba(0,247,167,.1); }
+  .prov.private{ color:var(--muted); border-color:var(--line); cursor:help; }
   .qa-toggle{ margin-top:.9rem; font-size:.68rem; color:var(--muted); cursor:pointer; border:1px solid var(--line);
     background:rgba(255,255,255,.02); border-radius:999px; padding:.35rem .8rem; }
   .qa-toggle:hover{ border-color:var(--accent); color:var(--accent-soft); }
@@ -161,6 +165,8 @@ const ENTRIES = [
    title:"Designing talk2web — interviews as web forms, + this making-of",
    date:"2026-06-18",
    cats:["Skills","Meta","Frontend"],
+   commit:{ repo:"flove", sha:"13f81621a6a234de430e7b467cba57ec66fa445b", public:true,
+            subject:"making-of: add talk2web interview archive + per-category RSS feeds" },
    summary:"Turned brainstorm/plan questioning into an opt-in, self-contained collapsible HTML questionnaire (the talk2web skill), then broadened it: an intent-tunable copy-prompt, an embedded + attachable context brief, per-question references — and made talk2web the creator/updater of this making-of, where every interview is recorded as a replayable, answerable form.",
    links:[
      {label:"skill SKILL.md", href:"file:///home/kdeneon/.claude/skills/gathering-questions-as-a-form/SKILL.md"},
@@ -223,6 +229,7 @@ const ENTRIES = [
 ];
 
 /* ---------- helpers ---------- */
+const GIT_BASE = "http://localhost:3000/marc";   // public wiki-git host; swap to flove.org/git etc. on deploy
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const period = d => d.slice(0,7);
 const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -286,8 +293,16 @@ ENTRIES.forEach(e=>{
   const tags=e.cats.map(c=>`<span class="tag">${esc(c)}</span>`).join('');
   const links=(e.links||[]).map(l=>`<a href="${l.href}">${esc(l.label)} ↗</a>`).join('');
   const qa=(e.qa||[]).map((x,i)=>renderQ(e.id,x,i)).join('');
+  let prov='';
+  const c=e.commit;
+  if(c){
+    const label=`⎇ ${esc(c.repo)}@${c.sha.slice(0,7)}`;
+    prov = (c.public!==false)
+      ? `<a class="prov" href="${GIT_BASE}/${esc(c.repo)}/commit/${esc(c.sha)}" title="${esc(c.subject||'')}" target="_blank" rel="noopener">${label} ↗</a>`
+      : `<span class="prov private" title="${esc(c.subject||'')}">${label} · referral</span>`;
+  }
   el.innerHTML =
-    `<div class="e-top"><h2>${esc(e.title)}</h2><span class="date">${e.date}</span></div>`+
+    `<div class="e-top"><h2>${esc(e.title)}</h2><span class="date">${e.date}</span>${prov}</div>`+
     `<div class="tags">${tags}</div>`+
     `<div class="summary">${esc(e.summary)}</div>`+
     (links?`<div class="links">${links}</div>`:'')+

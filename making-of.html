@@ -169,9 +169,9 @@ const ENTRIES = [
             subject:"making-of: add talk2web interview archive + per-category RSS feeds" },
    summary:"Turned brainstorm/plan questioning into an opt-in, self-contained collapsible HTML questionnaire (the talk2web skill), then broadened it: an intent-tunable copy-prompt, an embedded + attachable context brief, per-question references — and made talk2web the creator/updater of this making-of, where every interview is recorded as a replayable, answerable form.",
    links:[
-     {label:"skill SKILL.md", href:"file:///home/kdeneon/.claude/skills/gathering-questions-as-a-form/SKILL.md"},
+     {label:"skill SKILL.md", href:"file:///home/kdeneon/.claude/skills/talk2web/SKILL.md", local:true},
      {label:"reference form (nety-spec)", href:"./docs/nety-specs/nety-spec-questionnaire.html"},
-     {label:"design spec", href:"file:///home/kdeneon/.claude/skills/gathering-questions-as-a-form/DESIGN-talk2web.md"}
+     {label:"design spec", href:"file:///home/kdeneon/.claude/skills/talk2web/DESIGN-talk2web.md", local:true}
    ],
    qa:[
      {q:"What do you want to do with the writing-skills workflow?", cats:["Skills","Process"],
@@ -229,7 +229,12 @@ const ENTRIES = [
 ];
 
 /* ---------- helpers ---------- */
-const GIT_BASE = "http://localhost:3000/marc";   // public wiki-git host; swap to flove.org/git etc. on deploy
+/* Renders correctly both locally (file:// or localhost) and once uploaded public —
+   set GIT_PUBLIC once; everything else auto-switches. Local-only links are hidden when public. */
+const IS_LOCAL = location.protocol==='file:' || /^(localhost|127\.|0\.0\.0\.0)$/.test(location.hostname);
+const GIT_LOCAL  = "http://localhost:3000/marc";
+const GIT_PUBLIC = "https://git.flove.org/marc";   // ← set to your public Gitea / mirror before publishing
+const GIT_BASE   = IS_LOCAL ? GIT_LOCAL : GIT_PUBLIC;
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const period = d => d.slice(0,7);
 const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -291,7 +296,7 @@ function renderQ(entryId, x, i){
 ENTRIES.forEach(e=>{
   const el=document.createElement('article'); el.className='entry'; el.dataset.id=e.id;
   const tags=e.cats.map(c=>`<span class="tag">${esc(c)}</span>`).join('');
-  const links=(e.links||[]).map(l=>`<a href="${l.href}">${esc(l.label)} ↗</a>`).join('');
+  const links=(e.links||[]).filter(l=>!l.local||IS_LOCAL).map(l=>`<a href="${esc(l.href)}">${esc(l.label)} ↗</a>`).join('');
   const qa=(e.qa||[]).map((x,i)=>renderQ(e.id,x,i)).join('');
   let prov='';
   const c=e.commit;

@@ -143,6 +143,21 @@
   body.decided .opt.chosen .badge.ch{ display:inline; color:var(--teal); }
   body.decided .opt.rec .badge.rc{ display:inline; color:var(--accent-ink); }
 
+  /* per-question footer: your note + actions */
+  .qnote{ width:100%; font-family:var(--mono); font-size:.72rem; color:var(--ink); background:var(--paper);
+    border:1px solid var(--line); border-radius:5px; padding:.45rem .6rem; margin:.55rem 0 .4rem; resize:vertical; }
+  .qnote:focus{ outline:none; border-color:var(--accent); }
+  .qactions{ display:flex; align-items:center; gap:.5rem; }
+  .qactions .sp{ flex:1; }
+  .qactions a.more, .qactions button.share{ font-family:var(--mono); font-size:.62rem; cursor:pointer; text-decoration:none;
+    border:1px solid var(--line); background:var(--paper); color:var(--soft); border-radius:3px; padding:.25rem .55rem; }
+  .qactions a.more:hover, .qactions button.share:hover{ border-color:var(--ink); color:var(--ink); }
+  .subbtns{ display:none; gap:.4rem; margin:.5rem 0 .2rem; flex-wrap:wrap; justify-content:flex-end; }
+  .subbtns.open{ display:flex; animation:drop .18s ease; }
+  .subbtns button{ font-family:var(--mono); font-size:.62rem; cursor:pointer; border:1px solid var(--ink); background:var(--paper);
+    color:var(--ink); border-radius:3px; padding:.3rem .6rem; }
+  .subbtns button:hover{ background:var(--ink); color:var(--paper); }
+  .subbtns button .k{ color:var(--accent); } .subbtns button:hover .k{ color:#ffb; }
   .empty{ text-align:center; color:var(--faint); padding:3rem 0; font-family:var(--disp); font-style:italic; font-size:1.1rem; }
   footer.foot{ margin-top:2.6rem; padding-top:1.4rem; border-top:2px solid var(--ink); font-size:.64rem; color:var(--soft);
     display:flex; flex-wrap:wrap; gap:.6rem 1.2rem; align-items:center; }
@@ -2122,6 +2137,19 @@ feedList.addEventListener('click', e=>{
 });
 
 /* ---------- render entries ---------- */
+const QMAP = {};
+const FORUM_BASE = "https://forum.flove.org";   // ← set to your forum when live (debate target)
+function commitOf(e,q){ return (q&&q.commit)||e.commit||null; }
+function qfooter(qid){
+  const m=QMAP[qid]; const c=m?commitOf(m.e,m.q):null;
+  const note=esc(store[qid+'::note']||'');
+  const more=c?`<a class="more" href="${GIT_BASE}/${esc(c.repo)}/commit/${esc(c.sha)}" target="_blank" rel="noopener">see more →</a>`:'';
+  return `<textarea class="qnote" data-qid="${qid}" rows="2" placeholder="your note on this decision…">${note}</textarea>`+
+    `<div class="qactions"><span class="sp"></span>${more}<button class="share" data-share>share ▾</button></div>`+
+    `<div class="subbtns"><button data-act="push" data-qid="${qid}"><span class="k">␥</span> push</button>`+
+    `<button data-act="debate" data-qid="${qid}"><span class="k">⚑</span> debate</button>`+
+    `<button data-act="save" data-qid="${qid}"><span class="k">⧉</span> save</button></div>`;
+}
 function renderQ(entryId, x, i){
   const qid = entryId+'_q'+(i+1);
   const cats = (x.cats||[]).map(c=>`<span class="qcat">${esc(c)}</span>`).join('');
@@ -2142,7 +2170,7 @@ function renderQ(entryId, x, i){
       return `<div class="${cls}"><label class="row"><input type="${type}" name="${qid}" value="${esc(o.l)}"${mine?' checked':''}>`+
         `<span class="lab">${esc(o.l)}</span><span class="badge ch">★ decided</span><span class="badge rc">◇ recommended</span>`+
         `<span class="chev">›</span></label><div class="desc">${esc(o.d)}</div></div>`;
-    }).join('')+'</div>';
+    }).join('') + qfooter(qid) + '</div>';
   }
   return `<div class="qblock${x.o?'':' free'}" id="${qid}" data-cats="${(x.cats||[]).map(slug).join(' ')}">${sum}${full}</div>`;
 }
@@ -2155,6 +2183,7 @@ ENTRIES.forEach(e=>{
     prov = (c.public!==false)
       ? `<a class="prov" href="${GIT_BASE}/${esc(c.repo)}/commit/${esc(c.sha)}" title="${esc(c.subject||'')}" target="_blank" rel="noopener">${lb} →</a>`
       : `<span class="prov private" title="${esc(c.subject||'')}">${lb} · referral</span>`; }
+  e.qa.forEach((x,i)=>{ QMAP[e.id+'_q'+(i+1)]={e,q:x,i}; });
   const qa=(e.qa||[]).map((x,i)=>renderQ(e.id,x,i)).join('');
   el.innerHTML =
     `<div class="e-top"><h2>${esc(e.title)}</h2><span class="date">${e.date}</span>${prov}</div>`+
@@ -2171,6 +2200,8 @@ ENTRIES.forEach(e=>{
 /* ---------- interaction ---------- */
 list.addEventListener('click', ev=>{
   if(ev.target.tagName==='INPUT'||ev.target.tagName==='A') return;
+  const share=ev.target.closest('[data-share]'); if(share){ const sb=share.closest('.qactions').nextElementSibling; if(sb&&sb.classList.contains('subbtns')) sb.classList.toggle('open'); return; }
+  const act=ev.target.closest('[data-act]'); if(act){ doAct(act.dataset.act, act.dataset.qid); return; }
   const optRow=ev.target.closest('.opt .row'); if(optRow){ optRow.parentElement.classList.toggle('open'); return; }
   const qsum=ev.target.closest('.qsum'); if(qsum){ const qb=qsum.parentElement; if(qb.classList.contains('free'))return; qb.classList.toggle('open'); }
 });
@@ -2184,13 +2215,25 @@ list.addEventListener('change', ev=>{
   toast('saved your reply');
 });
 
+list.addEventListener('input', ev=>{
+  if(!ev.target.classList.contains('qnote')) return;
+  const k=ev.target.dataset.qid+'::note';
+  if(ev.target.value.trim()) store[k]=ev.target.value; else delete store[k];
+  localStorage.setItem(LS, JSON.stringify(store));
+});
+
 /* ---------- panels & overlay ---------- */
 const panel=document.getElementById('panel'), filtersBtn=document.getElementById('filtersBtn');
 filtersBtn.addEventListener('click', ()=>{ const on=panel.classList.toggle('open'); filtersBtn.classList.toggle('on',on); });
 const dBtn=document.getElementById('decided');
-dBtn.addEventListener('click', ()=>{ const on=document.body.classList.toggle('decided');
+dBtn.addEventListener('click', ()=>{
+  const on=document.body.classList.toggle('decided');
   dBtn.setAttribute('aria-pressed',on?'true':'false'); dBtn.classList.toggle('on',on);
-  toast(on?'decisions revealed — your replies untouched':'decisions hidden'); });
+  dBtn.innerHTML = on ? '★ hide decisions' : '★ reveal decisions';
+  list.querySelectorAll('.entry').forEach(el=>el.classList.toggle('open',on));
+  list.querySelectorAll('.qblock:not(.free)').forEach(qb=>qb.classList.toggle('open',on));
+  toast(on?'decisions revealed — every option shown, your replies untouched':'decisions hidden');
+});
 const scrim=document.getElementById('scrim'), drawer=document.getElementById('drawer');
 const openDrawer=()=>{ scrim.classList.add('open'); drawer.classList.add('open'); };
 const closeDrawer=()=>{ scrim.classList.remove('open'); drawer.classList.remove('open'); };
@@ -2198,6 +2241,36 @@ document.getElementById('subBtn').addEventListener('click', openDrawer);
 document.getElementById('drawerX').addEventListener('click', closeDrawer);
 scrim.addEventListener('click', closeDrawer);
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
+
+function qText(qid){
+  const m=QMAP[qid]; if(!m) return '';
+  const {e,q,i}=m;
+  const reply=(store[qid]||[]).join(' / ')||'(none)';
+  const note=(store[qid+'::note']||'').trim()||'(none)';
+  const opts=(q.o||[]).map(o=>`  - ${o.l}${(q.chosen||[]).includes(o.l)?'  [★ decided]':''}${(q.suggest||[]).includes(o.l)?'  [◇ recommended]':''} — ${o.d}`).join('\n');
+  const c=commitOf(e,q);
+  return [
+    'flove making-of — design decision',
+    'interview: '+e.title,
+    'Q'+(i+1)+': '+q.q,
+    'categories: '+(q.cats||[]).join(', '),
+    'options:\n'+opts,
+    'decided: '+((q.chosen||[]).join(' · ')||'—'),
+    'recommended: '+((q.suggest||[]).join(' · ')||'—'),
+    'my reply: '+reply,
+    'my note: '+note,
+    '--- metadata ---',
+    'entry='+e.id+' qid='+qid+' date='+e.date+(c?' commit='+c.repo+'@'+c.sha:''),
+    'url='+abs('#'+qid)
+  ].join('\n');
+}
+function copyTo(text,msg){ navigator.clipboard.writeText(text).then(()=>toast(msg)).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast(msg); }); }
+function doAct(act, qid){
+  const m=QMAP[qid]; if(!m) return; const c=commitOf(m.e,m.q); const text=qText(qid);
+  if(act==='save'){ copyTo(text,'question + your reply & note copied (AI-friendly)'); return; }
+  if(act==='push'){ copyTo(text, c?'copied — opening the commit wiki to paste':'copied — no commit linked to this interview yet'); if(c) window.open(GIT_BASE+'/'+c.repo+'/wiki?action=_new','_blank','noopener'); return; }
+  if(act==='debate'){ copyTo(text,'copied — opening the forum to paste'); window.open(FORUM_BASE,'_blank','noopener'); return; }
+}
 
 /* ---------- filtering (category=question-level · date=entry-level) ---------- */
 function apply(){

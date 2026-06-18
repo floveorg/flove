@@ -118,6 +118,12 @@
   .qsum .qn{ font-family:var(--mono); font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); }
   .qsum .qcats{ display:inline-flex; gap:.25rem; margin-left:.4rem; }
   .qsum .qcat{ font-size:.5rem; letter-spacing:.06em; text-transform:uppercase; color:var(--accent-ink); }
+  .qsum .qdel{ flex:none; border:none; background:none; cursor:pointer; color:var(--faint); font-size:.95rem; line-height:1;
+    margin-top:.05rem; padding:0 .2rem; border-radius:3px; transition:.12s; }
+  .qsum .qdel:hover{ color:var(--accent); background:rgba(216,69,42,.12); }
+  .qblock.deleted{ display:none !important; }
+  #restoreBtn{ color:var(--accent-ink); border:1px solid rgba(216,69,42,.45); }
+  #restoreBtn:hover{ background:rgba(216,69,42,.1); }
   .decid{ font-family:var(--mono); font-size:.7rem; color:var(--teal); margin-top:.2rem; }
   .decid b{ color:var(--accent-ink); font-weight:500; }
   .qfull{ display:none; margin:.6rem 0 .2rem; padding-left:1.3rem; }
@@ -253,6 +259,7 @@
       </div>
     </div>
     <span class="grow"></span>
+    <button class="topbar-logo" id="restoreBtn" title="restore deleted questions" hidden>↺ restore <span id="restoreN">(0)</span></button>
     <div class="topmenu-wrap" id="convWrap">
       <button class="topbar-logo" id="convLogo" aria-haspopup="true" aria-expanded="false" aria-controls="convMenu">conversations ▾</button>
       <div class="topmenu" id="convMenu" role="menu" style="left:auto; right:0"></div>
@@ -2689,6 +2696,7 @@ const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 const abs = href => { try{ return new URL(href, location.href).href; }catch(e){ return href; } };
 const list = document.getElementById('list');
 const LS = 'makingof-replies-v1';
+let deleted; try{ deleted=new Set(JSON.parse(localStorage.getItem('makingof-deleted-v1')||'[]')); }catch(e){ deleted=new Set(); }
 let store = {}; try{ store = JSON.parse(localStorage.getItem(LS)||'{}'); }catch(e){ store={}; }
 
 const catSel = new Set(), timeSel = new Set();
@@ -2768,7 +2776,7 @@ function renderQ(entryId, x, i){
   const qid=entryId+'_q'+(i+1);
   const cats=(x.cats||[]).map(c=>`<span class="qcat">${esc(c)}</span>`).join('');
   const decided = x.o ? ((x.chosen||[]).join(' · ')||'—') : (x.answer||'—');
-  const sum=`<div class="qsum"><span class="cv">${x.o?'›':' '}</span><div class="qmid">`+
+  const sum=`<div class="qsum"><button class="qdel" title="delete this question" data-qid="${qid}">×</button><span class="cv">${x.o?'›':' '}</span><div class="qmid">`+
     `<span class="qn">Q${i+1}${x.multi?' · multi':''}</span><span class="qcats">${cats}</span>`+
     `<div class="qq">${esc(x.q)}</div>`+
     `<div class="decid">${x.o?'★ decided: <b>'+esc(decided)+'</b>':'→ '+esc(decided)}</div></div></div>`;
@@ -2908,6 +2916,7 @@ list.addEventListener('click', ev=>{
     return;
   }
   const act=ev.target.closest('[data-act]'); if(act){ doAct(act.dataset.act, act.dataset.qid); return; }
+  const qdel=ev.target.closest('.qdel'); if(qdel){ deleteQuestion(qdel.dataset.qid, qdel.closest('.qblock')); return; }
   const optRow=ev.target.closest('.opt .row'); if(optRow){ optRow.parentElement.classList.toggle('open'); return; }
   const qsum=ev.target.closest('.qsum'); if(qsum){ const qb=qsum.parentElement; if(qb.classList.contains('free'))return; qb.classList.toggle('open'); }
 });
@@ -3026,6 +3035,14 @@ document.getElementById('reset').addEventListener('click', ()=>{
   list.querySelectorAll('.entry').forEach(el=>el.classList.remove('open'));
   apply();
 });
+
+/* ---------- per-question delete + restore ---------- */
+function saveDeleted(){ localStorage.setItem('makingof-deleted-v1', JSON.stringify([...deleted])); }
+function refreshRestore(){ const b=document.getElementById('restoreBtn'); if(!b) return; b.hidden=deleted.size===0; const c=document.getElementById('restoreN'); if(c) c.textContent='('+deleted.size+')'; }
+function deleteQuestion(qid, qb){ qb=qb||document.getElementById(qid); if(!qb) return; qb.classList.add('deleted'); deleted.add(qid); saveDeleted(); refreshRestore(); toast('question deleted — restore from the top bar'); }
+list.querySelectorAll('.qblock').forEach(qb=>{ if(deleted.has(qb.id)) qb.classList.add('deleted'); });
+refreshRestore();
+{ const rb=document.getElementById('restoreBtn'); if(rb) rb.addEventListener('click', ()=>{ list.querySelectorAll('.qblock.deleted').forEach(qb=>qb.classList.remove('deleted')); deleted.clear(); saveDeleted(); refreshRestore(); toast('deleted questions restored'); }); }
 
 let toastT; function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2000); }

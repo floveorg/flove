@@ -366,16 +366,21 @@
   };
 
   // a preset/blank deck block: order-select + word, plus a Why textarea
+  // one item row: order select + a word (free-text input, else preset span)
+  function collectItemRow(row){
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type="text"]');
+    const span = row.querySelector(':scope > span.' + curLang());
+    const word = inp ? inp.value.trim() : (span ? span.textContent.trim() : '');
+    const order = sel ? sel.value : '';
+    return (word || order) ? { order, word } : null;
+  }
   function collectDeck(deckEl){
     const title = vis(deckEl.querySelector('h3'));
     const items = []; let why = '';
     deckEl.querySelectorAll(':scope > .row').forEach(row => {
       const ta = row.querySelector('textarea'); if (ta){ why = ta.value.trim(); return; }
-      const sel = row.querySelector('select'); const inp = row.querySelector('input[type="text"]');
-      const span = row.querySelector(':scope > span.' + curLang());
-      const word = inp ? inp.value.trim() : (span ? span.textContent.trim() : '');
-      const order = sel ? sel.value : '';
-      if (word || order) items.push({ order, word });
+      const it = collectItemRow(row); if (it) items.push(it);
     });
     return { title, items, why };
   }
@@ -386,20 +391,19 @@
     const order = ordSel ? ordSel.value : '';
     const words = [];
     deckEl.querySelectorAll('select').forEach(sel => {
-      if (sel.name.endsWith('-ord')) return;
-      if (sel.value !== '' && sel.selectedOptions[0]) words.push(sel.selectedOptions[0].textContent.trim());
+      if (sel.name.endsWith('-ord') || sel.value === '') return;
+      const pair = POOL[+sel.value];            // value is the index into POOL ([en, es])
+      if (pair) words.push(curLang() === 'en' ? pair[0] : pair[1]);
     });
     const ta = deckEl.querySelector('textarea');
     return { title, order, words, why: ta ? ta.value.trim() : '' };
   }
   function collectCustom(){
     const wrap = document.getElementById('custom-deck'); if (!wrap) return null;
-    const title = (wrap.querySelector('input[name="custom-title"]') || {}).value || '';
+    const title = wrap.querySelector('input[name="custom-title"]')?.value || '';
     const items = [];
     wrap.querySelectorAll('#custom-items .row').forEach(row => {
-      const sel = row.querySelector('select'); const inp = row.querySelector('input[type="text"]');
-      const word = inp ? inp.value.trim() : ''; const order = sel ? sel.value : '';
-      if (word || order) items.push({ order, word });
+      const it = collectItemRow(row); if (it) items.push(it);
     });
     const ta = wrap.querySelector('textarea[name="custom-why"]');
     return { title: title.trim() || 'Your group', items, why: ta ? ta.value.trim() : '' };
@@ -425,7 +429,7 @@
       custom: (custom && (custom.items.length || custom.why)) ? custom : null,
       perspective: {
         decks: Array.from(document.querySelectorAll('#persp-decks .deck')).map(collectDeck).filter(nonEmptyDeck),
-        note: (document.querySelector('[name="persp-note"]') || {}).value ? document.querySelector('[name="persp-note"]').value.trim() : ''
+        note: (document.querySelector('[name="persp-note"]')?.value || '').trim()
       },
       favourites: collectFavourites()
     };
@@ -462,8 +466,11 @@
     d.favourites.forEach((f, i) => { add(`fav${i+1}_combo`, f.combo); add(`fav${i+1}_definition`, f.definition); });
     return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
   }
+  // shared escapers: HTML escapes < > & ; XML also escapes " for attribute safety
+  const escHTML = s => String(s).replace(/[<>&]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c]));
+  const escXML  = s => escHTML(s).replace(/"/g, '&quot;');
   function toXML(d){
-    const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+    const esc = escXML;
     const itemX = it => `<item order="${esc(it.order)}">${esc(it.word)}</item>`;
     const grpX  = g => `    <group order="${esc(g.order)}">${g.words.map(w => `<word>${esc(w)}</word>`).join('')}<why>${esc(g.why)}</why></group>`;
     const deckX = dk => `    <deck title="${esc(dk.title)}">${dk.items.map(itemX).join('')}<why>${esc(dk.why)}</why></deck>`;
@@ -477,7 +484,7 @@
     return x + '</keys>';
   }
   function toHTML(d){
-    const esc = s => String(s).replace(/[<>&]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c]));
+    const esc = escHTML;
     const itemsUL = items => '<ul>' + items.map(it => `<li>${it.order ? '<b>' + esc(it.order) + '.</b> ' : ''}${esc(it.word || '—')}</li>`).join('') + '</ul>';
     const why = w => w ? `<p class="why">${esc(w)}</p>` : '';
     const S = [];
@@ -495,14 +502,14 @@
       + `ul{margin:.2rem 0 .5rem 1.2rem}.why{color:#555;font-style:italic;margin:.2rem 0 .4rem}small{color:#666}</style></head>`
       + `<body><h1>Keys</h1><p><small>Mode: ${esc(d.mode)}</small></p>${S.join('')}</body></html>`;
   }
-  function serialize(fmt){
-    const d = collect();
+  function serializeData(d, fmt){
     if (fmt === 'json') return JSON.stringify(d, null, 2);
     if (fmt === 'csv')  return toCSV(d);
     if (fmt === 'xml')  return toXML(d);
     if (fmt === 'html') return toHTML(d);
     return toText(d, fmt === 'md');   // md or txt
   }
+  const serialize = (fmt) => serializeData(collect(), fmt);   // single-format paths
 
   // ---- delivery helpers ----
   const MIME = { txt:'text/plain', md:'text/markdown', html:'text/html', csv:'text/csv', xml:'application/xml', json:'application/json' };
@@ -539,8 +546,9 @@
     let fmts = checked.filter(f => MIME[f]);
     const skipped = checked.filter(f => !MIME[f]);   // jpg / app — not text exports
     if (!fmts.length) fmts = ['md'];
+    const d = collect();   // gather once; every format serialises the same snapshot
     // stagger: browsers throttle several programmatic downloads fired at once
-    fmts.forEach((f, i) => setTimeout(() => download(`keys-summary.${f}`, MIME[f], serialize(f)), i * 150));
+    fmts.forEach((f, i) => setTimeout(() => download(`keys-summary.${f}`, MIME[f], serializeData(d, f)), i * 150));
     flash(`saved ${fmts.map(f => '.' + f).join(' ')} ✓` + (skipped.length ? ` · ${skipped.join(', ')} not text — skipped` : ''));
   });
   on('btn-print', () => {

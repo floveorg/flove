@@ -1357,6 +1357,11 @@ body{
   box-shadow:0 0 12px -3px var(--glow-s);
 }
 .id5-bar:hover .id5-bar-col{ border-color:var(--accent); }
+/* actual status of the user — highlighted */
+.id5-bar.actual .id5-bar-col{ box-shadow:0 0 0 2px var(--signal), 0 0 14px -3px var(--glow-s); }
+.id5-bar.actual .id5-bar-label{ color:var(--signal); font-weight:700; }
+/* the step whose form is showing — bar at half colour intensity */
+.id5-bar.open .id5-bar-col{ opacity:.5; }
 .id5-bar-badge{ font-size:.85rem; filter:grayscale(1); opacity:.35; transition:.22s; }
 .id5-bar.reached .id5-bar-badge{ filter:none; opacity:1; }
 .id5-bar-pts{ font-size:.5rem; font-weight:700; color:var(--signal); }
@@ -1744,17 +1749,9 @@ body{
           </div>
           <div class="ec-body" id="tc-B-body" role="region">
             <div class="ec-inner">
-              <div class="extend-col-label">Identity scale</div>
+              <div class="extend-col-label">Authenticate</div>
               <div class="id5-scale" id="id5-scale"><!-- built by renderIdentityScale() --></div>
-
-              <div class="field" style="margin-top:.85rem">
-                <label>More about me</label>
-                <input type="text" id="ep-about" placeholder="Some words" aria-label="More about me">
-              </div>
-              <div class="field" style="margin-top:.5rem">
-                <input type="text" id="add-link-input" placeholder="add link" aria-label="Add link">
-              </div>
-              <button class="btn signal" id="about-save-btn" style="margin-top:.65rem;width:100%;justify-content:center" onclick="saveAbout()">Save</button>
+              <div class="id-form" id="id-form"><!-- built by renderIdentityForm() --></div>
             </div>
           </div>
         </div>
@@ -2378,6 +2375,7 @@ const state = {
   resourcePreset: 'balanced',
   shared: false,
   aboutEntries: [],
+  openIdentityStep: 'self',
   savedLinks: [],
   inviteRenewOpen: false,
 };
@@ -2540,28 +2538,67 @@ const IDENTITY_STEPS = [
   { key: 'biometrics', label: 'Bio',      badge: '👁', pts: 8,  h: 48 },
   { key: 'email',      label: 'Email',    badge: '✉',  pts: 4,  h: 56 },
 ];
+// The user's actual status = highest reached step in order
+function identityActualStatus() {
+  let actual = 'self';
+  IDENTITY_STEPS.forEach(s => {
+    if (s.key === 'self' || state.linkedIdentities.includes(s.key)) actual = s.key;
+  });
+  return actual;
+}
 function renderIdentityScale() {
   const wrap = document.getElementById('id5-scale');
   if (!wrap) return;
+  const actualKey = identityActualStatus();
   wrap.innerHTML = IDENTITY_STEPS.map(s => {
     const reached = s.key === 'self' || state.linkedIdentities.includes(s.key);
-    const click = s.key === 'self' ? 'goToProfile()' : `linkIdentity('${s.key}')`;
-    return `<div class="id5-bar${reached ? ' reached' : ''}" onclick="${click}" role="button" tabindex="0" aria-label="${s.label}${reached ? ' (reached)' : ''}">
+    const isActual = s.key === actualKey;
+    const isOpen = state.openIdentityStep === s.key;
+    let cls = 'id5-bar';
+    if (reached) cls += ' reached';
+    if (isActual) cls += ' actual';
+    if (isOpen) cls += ' open';
+    return `<div class="${cls}" onclick="selectIdentityStep('${s.key}')" role="button" tabindex="0" aria-expanded="${isOpen}" aria-label="${s.label}${isActual ? ' — your status' : ''}">
       <div class="id5-bar-col" style="height:${s.h}px"><span class="id5-bar-badge">${s.badge}</span></div>
       <span class="id5-bar-pts">+${s.pts}</span>
       <span class="id5-bar-label">${s.label}</span>
     </div>`;
   }).join('');
 }
-
-// Clicking the Self bar jumps to your profile card
-function goToProfile() {
-  switchTab('access');
-  const card = document.getElementById('pc-marcflove');
-  if (card) {
-    if (!state.profileCardOpen) toggleProfileCard();
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Open a step's form below (collapsing the previous)
+function selectIdentityStep(key) {
+  state.openIdentityStep = (state.openIdentityStep === key) ? null : key;
+  renderIdentityScale();
+  renderIdentityForm();
+}
+function renderIdentityForm() {
+  const wrap = document.getElementById('id-form');
+  if (!wrap) return;
+  // preserve any text already typed into the Self form across re-renders
+  const prevAbout = (document.getElementById('ep-about') || {}).value;
+  const prevLink  = (document.getElementById('add-link-input') || {}).value;
+  const key = state.openIdentityStep;
+  if (!key) { wrap.innerHTML = ''; return; }
+  if (key === 'self') {
+    wrap.innerHTML = `
+      <div class="field" style="margin-top:.6rem"><label>More about me</label>
+        <input type="text" id="ep-about" placeholder="Some words" aria-label="More about me"></div>
+      <div class="field" style="margin-top:.5rem">
+        <input type="text" id="add-link-input" placeholder="add link" aria-label="Add link"></div>
+      <button class="btn signal" style="margin-top:.65rem;width:100%;justify-content:center" onclick="saveAbout()">Save</button>`;
+    const a = document.getElementById('ep-about'); if (a && prevAbout !== undefined) a.value = prevAbout;
+    const l = document.getElementById('add-link-input'); if (l && prevLink !== undefined) l.value = prevLink;
+    return;
   }
+  const s = IDENTITY_STEPS.find(x => x.key === key);
+  if (state.linkedIdentities.includes(key)) {
+    wrap.innerHTML = `<div class="note" style="margin-top:.6rem">${s.label} linked ✓ — +${s.pts} to your Personal facet.</div>`;
+    return;
+  }
+  const ph = key === 'telegram' ? '@handle' : key === 'phone' ? '+34 600 …' : key === 'email' ? 'you@mail.org' : '';
+  const inputHtml = key === 'biometrics' ? '' :
+    `<div class="field" style="margin-top:.6rem"><input type="text" placeholder="${ph}" aria-label="${s.label}"></div>`;
+  wrap.innerHTML = `${inputHtml}<button class="btn signal" style="margin-top:.5rem;width:100%;justify-content:center" onclick="linkIdentity('${key}');renderIdentityForm()">${key === 'biometrics' ? 'Scan biometrics' : 'Link ' + s.label}</button>`;
 }
 
 // "More about me" — save adds an entry below the marcflove card; each is deletable
@@ -3287,8 +3324,9 @@ function render() {
   document.getElementById('tr-s').textContent = state.facets.social;
   document.getElementById('tr-g').textContent = state.facets.global;
 
-  // Extend profile — 5-bar identity scale + saved "more about me" entries
+  // Extend profile — 5-bar identity scale + open step's form + saved entries
   renderIdentityScale();
+  renderIdentityForm();
   renderAboutEntries();
 
   // Invite credits chip (N / 3 left)

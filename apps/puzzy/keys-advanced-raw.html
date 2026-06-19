@@ -436,20 +436,37 @@
   }
 
   // ---- serialisers (one per format) ----
+  // shared section walk — section order + normalisation live here once; each
+  // format supplies emit callbacks (h2 / entry / note). Groups (free, master)
+  // and favourites are normalised to the common entry shape
+  // {title, order?, items:[{order,word}], why}; decks/custom/perspective already
+  // have it. Add or reorder a section in one place and every format follows.
+  function walkSections(d, e){
+    const fromGroup = g => ({ title: g.title, order: g.order, items: g.words.map(w => ({ order:'', word:w })), why: g.why });
+    const fromFav   = f => ({ title:'', items:[{ order:'', word:f.combo }], why:f.definition });
+    if (d.free.length){   e.h2('Free grouping');      d.free.forEach(g => e.entry(fromGroup(g))); }
+    if (d.master.length){ e.h2('Objective grouping'); d.master.forEach(g => e.entry(fromGroup(g))); }
+    if (d.decks.length){  e.h2('Decks');              d.decks.forEach(dk => e.entry(dk)); }
+    if (d.custom){        e.h2('Your group');         e.entry(d.custom); }
+    if (d.perspective.decks.length || d.perspective.note){ e.h2('New perspective'); d.perspective.decks.forEach(dk => e.entry(dk)); if (d.perspective.note) e.note(d.perspective.note); }
+    if (d.favourites.length){ e.h2('Favourites');     d.favourites.forEach(f => e.entry(fromFav(f))); }
+  }
   function toText(d, md){
     const H2 = md ? s => `## ${s}` : s => `\n${s}\n${'─'.repeat(s.length)}`;
     const H3 = md ? s => `### ${s}` : s => `${s}:`;
     const b = md ? '- ' : '  • ';
     const L = [ md ? '# Keys' : 'KEYS', md ? `_Mode: ${d.mode}_` : `Mode: ${d.mode}`, '' ];
     const item = it => `${b}${it.order ? it.order + '. ' : ''}${it.word || '—'}`;
-    const deckOut = dk => { L.push(H3(dk.title)); dk.items.forEach(it => L.push(item(it))); if (dk.why) L.push(`${md ? '' : '  '}Why: ${dk.why}`); L.push(''); };
-    const grpOut  = g  => { L.push(H3(`${g.title}${g.order ? ' (order ' + g.order + ')' : ''}`)); g.words.forEach(w => L.push(`${b}${w}`)); if (g.why) L.push(`${md ? '' : '  '}Why: ${g.why}`); L.push(''); };
-    if (d.free.length){ L.push(H2('Free grouping')); d.free.forEach(grpOut); }
-    if (d.master.length){ L.push(H2('Objective grouping')); d.master.forEach(grpOut); }
-    if (d.decks.length){ L.push(H2('Decks')); d.decks.forEach(deckOut); }
-    if (d.custom){ L.push(H2('Your group')); deckOut(d.custom); }
-    if (d.perspective.decks.length || d.perspective.note){ L.push(H2('New perspective')); d.perspective.decks.forEach(deckOut); if (d.perspective.note){ L.push(`${md ? '' : '  '}Note: ${d.perspective.note}`, ''); } }
-    if (d.favourites.length){ L.push(H2('Favourites')); d.favourites.forEach(f => L.push(`${b}${f.combo}${f.definition ? ' — ' + f.definition : ''}`)); L.push(''); }
+    walkSections(d, {
+      h2: t => L.push(H2(t)),
+      entry: e => {
+        if (e.title) L.push(H3(`${e.title}${e.order ? ' (order ' + e.order + ')' : ''}`));
+        e.items.forEach(it => L.push(item(it)));
+        if (e.why) L.push(`${md ? '' : '  '}Why: ${e.why}`);
+        L.push('');
+      },
+      note: n => L.push(`${md ? '' : '  '}Note: ${n}`, '')
+    });
     return L.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
   }
   function toCSV(d){
@@ -488,14 +505,13 @@
     const itemsUL = items => '<ul>' + items.map(it => `<li>${it.order ? '<b>' + esc(it.order) + '.</b> ' : ''}${esc(it.word || '—')}</li>`).join('') + '</ul>';
     const why = w => w ? `<p class="why">${esc(w)}</p>` : '';
     const S = [];
-    const deckH = dk => { S.push(`<h3>${esc(dk.title)}</h3>${itemsUL(dk.items)}${why(dk.why)}`); };
-    const grpH  = g  => { S.push(`<h3>${esc(g.title)}${g.order ? ' <small>(order ' + esc(g.order) + ')</small>' : ''}</h3><ul>${g.words.map(w => `<li>${esc(w)}</li>`).join('')}</ul>${why(g.why)}`); };
-    if (d.free.length){ S.push('<h2>Free grouping</h2>'); d.free.forEach(grpH); }
-    if (d.master.length){ S.push('<h2>Objective grouping</h2>'); d.master.forEach(grpH); }
-    if (d.decks.length){ S.push('<h2>Decks</h2>'); d.decks.forEach(deckH); }
-    if (d.custom){ S.push('<h2>Your group</h2>'); deckH(d.custom); }
-    if (d.perspective.decks.length || d.perspective.note){ S.push('<h2>New perspective</h2>'); d.perspective.decks.forEach(deckH); if (d.perspective.note) S.push(why('Note: ' + d.perspective.note)); }
-    if (d.favourites.length){ S.push('<h2>Favourites</h2><ul>' + d.favourites.map(f => `<li><b>${esc(f.combo)}</b>${f.definition ? ' — ' + esc(f.definition) : ''}</li>`).join('') + '</ul>'); }
+    walkSections(d, {
+      h2: t => S.push(`<h2>${esc(t)}</h2>`),
+      entry: e => S.push(
+        (e.title ? `<h3>${esc(e.title)}${e.order ? ` <small>(order ${esc(e.order)})</small>` : ''}</h3>` : '')
+        + itemsUL(e.items) + why(e.why)),
+      note: n => S.push(why('Note: ' + n))
+    });
     return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>keys — summary</title>`
       + `<style>body{font-family:Georgia,serif;line-height:1.5;max-width:760px;margin:0 auto;padding:1.5rem;color:#222}`
       + `h1{margin:.2rem 0}h2{border-bottom:1px solid #999;padding-bottom:.2rem;margin:1.4rem 0 .4rem}h3{margin:.9rem 0 .2rem}`

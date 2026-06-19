@@ -1189,10 +1189,11 @@ body{
    ============================================================ */
 .access-card-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  grid-template-columns:repeat(2,1fr);
   gap:.75rem;
   margin-bottom:1.1rem;
 }
+@media (max-width:560px){ .access-card-grid{ grid-template-columns:1fr; } }
 
 /* Profile card — "it's you" highlighted variant */
 .profile-card{
@@ -1324,6 +1325,42 @@ body{
 }
 .share-card .ec-id{ color:var(--signal); text-shadow:0 0 12px rgba(0,247,167,.5); }
 .share-card .ec-chevron{ color:var(--signal); }
+
+/* Resource donation — preset buttons + CPU/GPU/RAM bars */
+.res-presets{ display:flex; gap:.4rem; margin-bottom:.75rem; }
+.res-preset-btn{
+  flex:1; font-family:"Space Mono",monospace; font-size:.56rem; letter-spacing:.08em;
+  text-transform:uppercase; padding:.42rem .3rem; border-radius:8px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03); color:var(--muted);
+  transition:border-color .18s, color .18s, background .18s, box-shadow .18s;
+}
+.res-preset-btn:hover{ border-color:rgba(0,247,167,.4); color:var(--ink); }
+.res-preset-btn.active{
+  border-color:var(--signal); color:var(--signal); background:rgba(0,247,167,.08);
+  box-shadow:0 0 12px -3px rgba(0,247,167,.4);
+}
+.res-bars{ display:flex; flex-direction:column; gap:.5rem; margin-bottom:.7rem; }
+.res-bar{ display:grid; grid-template-columns:38px 1fr 38px; align-items:center; gap:.6rem; }
+.res-bar-label{ font-size:.56rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.res-bar-track{
+  height:8px; border-radius:999px; background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.05); overflow:hidden;
+}
+.res-bar-fill{
+  height:100%; width:0%; border-radius:999px;
+  background:linear-gradient(90deg, rgba(141,137,255,.85), var(--signal));
+  box-shadow:0 0 10px -2px rgba(0,247,167,.5);
+  transition:width .5s cubic-bezier(.22,1,.36,1);
+}
+.res-bar-val{ font-size:.56rem; color:var(--accent-soft); font-weight:700; text-align:right; font-family:"Space Mono",monospace; }
+
+/* Extended layout — Economy tab */
+.res-bars-ext{ display:flex; flex-direction:column; gap:.85rem; margin:.2rem 0 .9rem; }
+.res-row-ext-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3rem; }
+.res-row-ext-top .res-bar-label{ font-size:.62rem; }
+.res-row-ext-top .res-bar-val{ font-size:.7rem; }
+.res-row-ext .res-bar-track{ height:11px; }
+.res-row-ext-desc{ font-size:.58rem; color:rgba(163,167,180,.7); margin-top:.32rem; line-height:1.5; }
 
 /* ============================================================
    UPGRADE TAB — invite credits flash + feat-tier expand
@@ -1701,7 +1738,17 @@ body{
             </div>
             <div class="ec-body" id="tc-D-body" role="region">
               <div class="ec-inner">
-                <p style="font-size:.66rem;color:var(--muted);margin-bottom:.65rem;line-height:1.6">Your node lends compute, storage and bandwidth to the network. This is the most important way to contribute — it keeps nety alive and is open to anyone, no invite needed.</p>
+                <p style="font-size:.66rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6">Lend compute to the mesh — the most important way to contribute. Pick a preset, then donate.</p>
+                <div class="res-presets" id="res-presets">
+                  <button class="res-preset-btn" data-preset="light" onclick="setResourcePreset('light')">Light</button>
+                  <button class="res-preset-btn" data-preset="balanced" onclick="setResourcePreset('balanced')">Balanced</button>
+                  <button class="res-preset-btn" data-preset="max" onclick="setResourcePreset('max')">Max</button>
+                </div>
+                <div class="res-bars">
+                  <div class="res-bar"><span class="res-bar-label">CPU</span><div class="res-bar-track"><div class="res-bar-fill" id="res-fill-cpu"></div></div><span class="res-bar-val" id="res-val-cpu">0%</span></div>
+                  <div class="res-bar"><span class="res-bar-label">GPU</span><div class="res-bar-track"><div class="res-bar-fill" id="res-fill-gpu"></div></div><span class="res-bar-val" id="res-val-gpu">0%</span></div>
+                  <div class="res-bar"><span class="res-bar-label">RAM</span><div class="res-bar-track"><div class="res-bar-fill" id="res-fill-ram"></div></div><span class="res-bar-val" id="res-val-ram">0%</span></div>
+                </div>
                 <div style="font-size:.66rem;color:var(--muted);margin-bottom:.6rem">Contributed: <strong style="color:var(--signal)" id="tc-D-cu">5</strong> CU</div>
                 <button class="btn signal" style="width:100%;justify-content:center" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
               </div>
@@ -1731,86 +1778,6 @@ body{
           </div>
 
         </div><!-- /.access-card-grid -->
-
-        <div class="profily-mini" style="margin-top:.4rem">
-          <div class="profily-handle">@<span id="acc-handle">marcflove</span></div>
-          <div class="profily-peer">peer: nety:p2p:7e3a9c…f12b4</div>
-          <div class="profily-hw">hardware: <span id="acc-hw">5 CU</span> · linked: <span id="acc-ids">none</span></div>
-          <div class="profily-badges">
-            <span id="acc-presence" class="pbadge LIVE">LIVE</span>
-            <span class="sbadge" id="acc-stage-badge">newbie</span>
-          </div>
-        </div>
-
-        <div class="path-grid" id="access-paths" style="margin-top:.6rem">
-          <div class="path-card" onclick="selectPath('invite')" id="path-invite">
-            <div class="path-id">A</div>
-            <div class="path-name">Add Basic code</div>
-            <div class="path-desc">Enter a token from a member.</div>
-          </div>
-          <div class="path-card" onclick="selectPath('auth')" id="path-auth">
-            <div class="path-id">B</div>
-            <div class="path-name">Authenticate</div>
-            <div class="path-desc">Link external identities.</div>
-          </div>
-          <div class="path-card" onclick="selectPath('earn')" id="path-earn">
-            <div class="path-id">C</div>
-            <div class="path-name">Add content</div>
-            <div class="path-desc">Publish approved content for points.</div>
-          </div>
-          <div class="path-card" onclick="selectPath('curator')" id="path-curator">
-            <div class="path-id">D</div>
-            <div class="path-name">Additional Info</div>
-            <div class="path-desc">Send extra info for a curator.</div>
-          </div>
-        </div>
-
-        <!-- Add Basic code sub-panel -->
-        <div id="sub-invite" style="display:none;margin-top:.5rem">
-          <div class="field">
-            <label>Add Basic code</label>
-            <input type="text" id="invite-input" placeholder="e.g. FLOVE2024" aria-label="Add Basic code">
-          </div>
-          <button class="btn signal" style="margin-top:.6rem" onclick="submitInvite()">Register with code</button>
-          <div id="invite-msg" style="margin-top:.5rem;font-size:.66rem;color:var(--muted)"></div>
-        </div>
-
-        <!-- Auth sub-panel -->
-        <div id="sub-auth" style="display:none;margin-top:.5rem">
-          <div class="sec">Link identities</div>
-          <div id="auth-toggles" style="display:flex;flex-direction:column;gap:.4rem">
-            <div class="toggle-row" id="tog-telegram" onclick="linkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram">
-              <span class="rung-icon">✈</span>
-              <span class="toggle-name">Telegram</span>
-              <div class="toggle-switch"></div>
-            </div>
-            <div class="toggle-row" id="tog-email" onclick="linkIdentity('email')" role="button" tabindex="0" aria-label="Link email">
-              <span class="rung-icon">✉</span>
-              <span class="toggle-name">Email</span>
-              <div class="toggle-switch"></div>
-            </div>
-            <div class="toggle-row" id="tog-phone" onclick="linkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone">
-              <span class="rung-icon">📱</span>
-              <span class="toggle-name">Phone</span>
-              <div class="toggle-switch"></div>
-            </div>
-            <div class="toggle-row" id="tog-bio" onclick="linkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics">
-              <span class="rung-icon">👁</span>
-              <span class="toggle-name">Biometrics</span>
-              <div class="toggle-switch"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Earn sub-panel -->
-        <div id="sub-earn" style="display:none;margin-top:.5rem">
-          <div class="note">Share hardware to accumulate contribution units. Use the Economy tab to trigger sharing.</div>
-        </div>
-
-        <!-- Curator sub-panel -->
-        <div id="sub-curator" style="display:none;margin-top:.5rem">
-          <div class="note">A curator must approve your admission. Contact a known curator through your network.</div>
-        </div>
 
       </div>
     </div>
@@ -2193,6 +2160,29 @@ body{
         <div style="font-size:.72rem">Stage <strong id="eco-stage-name">newbie</strong> → ceiling <strong id="eco-ceiling" style="color:var(--signal)">mini</strong></div>
 
         <div class="sec">Hardware sharing</div>
+        <p style="font-size:.66rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6">Choose how much of each resource your node lends to the mesh. Presets set all three at once; donate to convert the allocation into contribution units.</p>
+        <div class="res-presets" id="eco-res-presets">
+          <button class="res-preset-btn" data-preset="light" onclick="setResourcePreset('light')">Light</button>
+          <button class="res-preset-btn" data-preset="balanced" onclick="setResourcePreset('balanced')">Balanced</button>
+          <button class="res-preset-btn" data-preset="max" onclick="setResourcePreset('max')">Max</button>
+        </div>
+        <div class="res-bars-ext">
+          <div class="res-row-ext">
+            <div class="res-row-ext-top"><span class="res-bar-label">CPU</span><span class="res-bar-val" id="eco-res-val-cpu">0%</span></div>
+            <div class="res-bar-track"><div class="res-bar-fill" id="eco-res-fill-cpu"></div></div>
+            <div class="res-row-ext-desc">Compute cycles lent to mesh tasks and relays.</div>
+          </div>
+          <div class="res-row-ext">
+            <div class="res-row-ext-top"><span class="res-bar-label">GPU</span><span class="res-bar-val" id="eco-res-val-gpu">0%</span></div>
+            <div class="res-bar-track"><div class="res-bar-fill" id="eco-res-fill-gpu"></div></div>
+            <div class="res-row-ext-desc">Parallel work — inference, transcoding, rendering.</div>
+          </div>
+          <div class="res-row-ext">
+            <div class="res-row-ext-top"><span class="res-bar-label">RAM</span><span class="res-bar-val" id="eco-res-val-ram">0%</span></div>
+            <div class="res-bar-track"><div class="res-bar-fill" id="eco-res-fill-ram"></div></div>
+            <div class="res-row-ext-desc">Memory held for caching and in-flight peer data.</div>
+          </div>
+        </div>
         <button class="btn signal" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
         <div style="font-size:.64rem;color:var(--muted);margin-top:.3rem">Contributions: <span id="eco-cu">5</span> CU</div>
 
@@ -2360,6 +2350,8 @@ const state = {
   sessionQueueCount: 0,
   profileCardOpen: false,
   upgradeBarOpen: false,
+  resources: { cpu: 55, gpu: 45, ram: 55 },
+  resourcePreset: 'balanced',
   savedLinks: [],
   inviteRenewOpen: false,
 };
@@ -2490,6 +2482,36 @@ function disownInvite() {
 // ============================================================
 // ECONOMY
 // ============================================================
+const RESOURCE_PRESETS = {
+  light:    { cpu: 20, gpu: 10, ram: 25 },
+  balanced: { cpu: 55, gpu: 45, ram: 55 },
+  max:      { cpu: 90, gpu: 85, ram: 80 },
+};
+function setResourcePreset(name) {
+  if (!RESOURCE_PRESETS[name]) return;
+  state.resources = { ...RESOURCE_PRESETS[name] };
+  state.resourcePreset = name;
+  renderResources();
+}
+function renderResources() {
+  const r = state.resources;
+  ['cpu','gpu','ram'].forEach(k => {
+    ['res','eco-res'].forEach(pfx => {
+      const f = document.getElementById(pfx + '-fill-' + k);
+      if (f) f.style.width = r[k] + '%';
+      const v = document.getElementById(pfx + '-val-' + k);
+      if (v) v.textContent = r[k] + '%';
+    });
+  });
+  ['res-presets','eco-res-presets'].forEach(gid => {
+    const g = document.getElementById(gid);
+    if (!g) return;
+    g.querySelectorAll('.res-preset-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.preset === state.resourcePreset);
+    });
+  });
+}
+
 function shareHardware() {
   state.contributions += 5;
   state.stars += 8;
@@ -3071,6 +3093,7 @@ function render() {
   setTxt('acc-handle', state.handle);
   setTxt('acc-hw', state.contributions + ' CU');
   setTxt('tc-D-cu', state.contributions);
+  renderResources();
   setTxt('acc-ids', state.linkedIdentities.join(', ') || 'none');
   const accPres = document.getElementById('acc-presence');
   if (accPres) { accPres.className = 'pbadge ' + state.activity; accPres.textContent = state.activity; }

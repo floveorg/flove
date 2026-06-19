@@ -697,14 +697,13 @@
 
     /* ============ CATEGORY CHIPS + QUESTION PANELS (redesign) ============ */
     .cat-row { display:flex; flex-wrap:wrap; justify-content:center; gap:0.6rem; margin:0.5rem 0 1.4rem; }
-    body.scatter .cat-row { position:relative; z-index:40; }
     .cat-chip {
       display:inline-flex; align-items:center; gap:0.5rem;
       padding:0.7rem 1.2rem; border-radius:60px;
       border:2px solid var(--app-accent-soft); background:rgba(255,255,255,0.85);
       color:#3b5646; font:inherit; font-weight:600; font-size:1rem; cursor:pointer;
       box-shadow:0 4px 12px -6px rgba(80,95,70,0.3);
-      transition:transform 0.6s var(--flove-ease, cubic-bezier(.2,.8,.2,1)),
+      transition:transform 0.2s var(--flove-ease, cubic-bezier(.2,.8,.2,1)),
                  background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
     }
     .cat-chip i { font-size:1.05rem; color:var(--app-accent); transition:color 0.2s; }
@@ -748,10 +747,12 @@
     }
     .bar-ctrl:hover { border-color:var(--app-accent); transform:translateY(-1px); }
     .bar-ctrl[aria-pressed="true"] { background:var(--app-accent); border-color:var(--app-accent); color:#fff; }
-    #bubblesBtn { font-size:1.2rem; padding:0.4rem 0.6rem; }
 
     .order-line { margin-top:1rem; font-weight:600; color:#3b5646; letter-spacing:0.3px; }
     .order-line:empty { display:none; }
+    /* summary + points counter stay hidden until every category has a reply */
+    .invitation-card.is-collapsed,
+    .floating-points.is-collapsed { display:none; }
 
     @media (prefers-reduced-motion: reduce) {
       .cat-chip { transition:background 0.2s, border-color 0.2s, color 0.2s; }
@@ -773,7 +774,6 @@
   </a>
   <button type="button" class="flove-app-name app-name-toggle" id="aboutBtn" aria-expanded="false" aria-controls="infoPanel" title="About MyFamily">MyFamily</button>
   <span class="flove-spacer"></span>
-  <button type="button" class="bar-ctrl" id="bubblesBtn" aria-pressed="false" title="Scatter the categories" aria-label="Scatter the categories">🫧</button>
   <button type="button" class="bar-ctrl bar-ctrl--all" id="allBtn" aria-pressed="false" title="Open all questions">All</button>
 </div>
 
@@ -955,7 +955,7 @@
     </div>
   </section>
   <!-- DYNAMIC INVITATION CARD (moved to bottom, phrase summarizes selections) -->
-  <div class="invitation-card">
+  <div class="invitation-card is-collapsed" id="invitationCard">
     <div class="invitation-phrase" id="invitationText">
       <span class="phrase-selections" id="phraseSelections">✦ Reflecting on what I expect from a close friend… ✦</span>
       <span class="phrase-summary" id="phraseSummary"></span>
@@ -971,7 +971,7 @@
 </div> <!-- end wrap -->
 
 <!-- FLOATING POINTS (fixed bottom left) -->
-<div class="floating-points" id="floatingPoints">0 pts</div>
+<div class="floating-points is-collapsed" id="floatingPoints">0 pts</div>
 
 <script>
   (function() {
@@ -987,6 +987,7 @@
     const totalsTitle = document.getElementById('totalsTitle');
     const friendNameInput = document.getElementById('friend');
     const orderLine = document.getElementById('orderLine');
+    const invitationCard = document.getElementById('invitationCard');
     const answerOrder = [];
     const GROUPS = ['attention','contact','influence','feedback','gifting','sharing','money'];
     const CAT_NUM = { attention:1, contact:2, influence:3, feedback:4, gifting:5, sharing:6, money:7 };
@@ -1130,6 +1131,11 @@
       if (orderLine) orderLine.textContent = answerOrder.length
         ? 'Answered in order: ' + answerOrder.map(g => CAT_NUM[g]).join(', ')
         : '';
+
+      // reveal the summary + points counter only once every category has a reply
+      const allReplied = answerOrder.length === GROUPS.length;
+      if (invitationCard) invitationCard.classList.toggle('is-collapsed', !allReplied);
+      if (floatingPoints) floatingPoints.classList.toggle('is-collapsed', !allReplied);
     }
 
     // Combined phrase text (with paragraph break) for copy / share / publish
@@ -1428,25 +1434,6 @@
         if (panel) panel.hidden = !open;
       });
     });
-
-    // ----- BUBBLES - persistent random scatter, flowing the chips downward -----
-    const bubblesBtn = document.getElementById('bubblesBtn');
-    function scatterChips() {
-      chips.forEach(chip => {
-        const dx  = ((Math.random() * 2) - 1) * 130;
-        const dy  = 24 + Math.random() * 230;
-        const rot = ((Math.random() * 2) - 1) * 18;
-        chip.style.transform = `translate(${dx.toFixed(0)}px, ${dy.toFixed(0)}px) rotate(${rot.toFixed(1)}deg)`;
-      });
-    }
-    function settleChips() { chips.forEach(chip => { chip.style.transform = ''; }); }
-    if (bubblesBtn) {
-      bubblesBtn.addEventListener('click', () => {
-        const on = document.body.classList.toggle('scatter');
-        bubblesBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        if (on) scatterChips(); else settleChips();
-      });
-    }
 
     // ----- ALL - toggle every question panel open / collapsed -----
     const allBtn = document.getElementById('allBtn');

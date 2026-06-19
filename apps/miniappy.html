@@ -841,10 +841,25 @@ body{
 .peer-row:hover{ border-color:rgba(141,137,255,.22); }
 .peer-handle{ font-size:.7rem; flex:1; letter-spacing:.02em; }
 .peer-circle{ font-size:.56rem; color:var(--muted); }
-/* People — stage icon tinted by presence status (icon + colour only) */
-.peer-stage-ic{ font-size:1.05rem; flex:none; line-height:1; filter:drop-shadow(0 0 5px currentColor); }
-/* Groups — demo logo */
-.group-logo{ font-size:1.05rem; flex:none; line-height:1; }
+/* People & Groups — clickable expandable items */
+.net-item{ border-radius:11px; border:1px solid var(--line); background:var(--card); overflow:hidden; transition:border-color .2s, box-shadow .2s; }
+.net-item.open{ border-color:rgba(108,92,231,.4); box-shadow:0 0 16px -6px var(--glow-a); }
+.net-head{ display:flex; align-items:center; gap:.6rem; padding:.55rem .8rem; cursor:pointer; user-select:none; }
+.net-head:hover{ background:rgba(108,92,231,.04); }
+.net-ic{ width:20px; height:20px; flex:none; display:inline-flex; }
+.net-ic svg{ width:100%; height:100%; }
+.net-name{ flex:1; font-size:.7rem; letter-spacing:.02em; }
+.net-chevron{ font-size:.6rem; color:var(--accent); opacity:.6; transition:transform .25s; flex:none; }
+.net-item.open .net-chevron{ transform:rotate(90deg); opacity:1; }
+.net-info{ max-height:0; overflow:hidden; opacity:0; transition:max-height .3s cubic-bezier(.4,0,.2,1), opacity .22s ease; }
+.net-item.open .net-info{ max-height:160px; opacity:1; }
+.net-info-inner{ padding:.1rem .8rem .7rem; border-top:1px solid var(--line); }
+.net-info-row{ font-size:.6rem; color:var(--muted); margin-top:.4rem; line-height:1.5; }
+.net-info-row strong{ color:var(--ink); }
+.net-actions{ display:flex; gap:.5rem; margin-top:.55rem; }
+.net-btn{ font-family:"Space Mono",monospace; font-size:.58rem; letter-spacing:.03em; padding:.32rem .75rem; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--muted); cursor:pointer; transition:border-color .16s, color .16s, background .16s; }
+.net-btn:hover{ border-color:var(--accent); color:var(--ink); }
+.net-btn.active{ border-color:var(--signal); color:var(--signal); background:rgba(2,133,92,.08); }
 
 /* Permission picker */
 .perm-grid{
@@ -1740,11 +1755,10 @@ body{
   <div class="tabs-wrap" style="margin-top:.6rem">
     <nav class="tab-bar" role="tablist" aria-label="App sections">
       <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('access')"   id="tab-access">Profile</button>
-      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Resources</button>
-      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('trust')"    id="tab-trust">Scores</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"    id="tab-mynet">MyNet</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('pending')"  id="tab-pending">Activity</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('recovery')" id="tab-recovery">Account</button>
     </nav>
 
@@ -1982,27 +1996,6 @@ body{
       </div>
     </div>
 
-    <!-- TRUST TAB -->
-    <div class="tab-panel" id="panel-trust" role="tabpanel">
-      <div class="vcard">
-
-        <div class="sec">Stars balance</div>
-        <div class="stars-big"><span class="star-icon">⭐</span><span class="js-stars">42</span></div>
-
-        <div class="sec">Stage ladder</div>
-        <div class="stage-ladder">
-          <div class="stage-step current" data-idx="0">newbie</div>
-          <div class="stage-step"         data-idx="1">known</div>
-          <div class="stage-step"         data-idx="2">homie</div>
-          <div class="stage-step"         data-idx="3">expert</div>
-          <div class="stage-step"         data-idx="4">legend</div>
-        </div>
-        <div style="font-size:.64rem;color:var(--muted);margin-top:.4rem">
-          Next: <span class="js-next-stage">known</span> at <span class="js-threshold">10</span> ⭐ · current: <span class="js-current-stars">42</span>
-        </div>
-
-      </div>
-    </div>
 
     <!-- MYNET TAB -->
     <div class="tab-panel" id="panel-mynet" role="tabpanel">
@@ -2103,18 +2096,18 @@ body{
             <input type="text" id="mynet-add-friend-input" placeholder="peer handle or @id…" aria-label="Add a friend"
               style="font-family:'Space Mono',monospace;font-size:.67rem;color:var(--ink);background:rgba(255,255,255,.85);border:1px solid rgba(28,25,42,.07);border-radius:9px;padding:.48rem .75rem;flex:1;outline:none;transition:border-color .18s,box-shadow .18s"
               onkeydown="if(event.key==='Enter')mynetAddFriend()">
-            <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetAddFriend()">Go</button>
+            <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetAddFriend()">Search</button>
           </div>
           <!-- Under right column: join a group -->
           <div style="display:flex;gap:.4rem;align-items:center">
             <input type="text" id="mynet-join-group-input" placeholder="circle / group name…" aria-label="Join a group"
               style="font-family:'Space Mono',monospace;font-size:.67rem;color:var(--ink);background:rgba(255,255,255,.85);border:1px solid rgba(28,25,42,.07);border-radius:9px;padding:.48rem .75rem;flex:1;outline:none;transition:border-color .18s,box-shadow .18s"
               onkeydown="if(event.key==='Enter')mynetJoinGroup()">
-            <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetJoinGroup()">Go</button>
+            <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetJoinGroup()">Search</button>
           </div>
         </div>
 
-        <div class="sec">Permissions</div>
+        <div class="sec">Visibility</div>
         <div class="perm-grid">
           <span class="perm-label">Content</span>
           <select class="perm-select" onchange="updatePerm('content',this.value)" id="perm-content">
@@ -2128,21 +2121,6 @@ body{
           <select class="perm-select" onchange="updatePerm('profile',this.value)" id="perm-profile">
             <option value="private">Private</option><option value="mynet">MyNet</option><option value="circle">Circle</option><option value="public">Public</option>
           </select>
-          <span class="perm-label">Scores</span>
-          <select class="perm-select" onchange="updatePerm('scores',this.value)" id="perm-scores">
-            <option value="private">Private</option><option value="mynet">MyNet</option><option value="circle">Circle</option><option value="public">Public</option>
-          </select>
-        </div>
-        <div class="sec" style="margin-top:.6rem">Score visibility (per facet)</div>
-        <div class="perm-grid">
-          <span class="perm-label">Personal</span>
-          <select class="perm-select" onchange="updateVis('personal',this.value)"><option>private</option><option>mynet</option><option>public</option></select>
-          <span class="perm-label">Local</span>
-          <select class="perm-select" onchange="updateVis('local',this.value)"><option>mynet</option><option>private</option><option>public</option></select>
-          <span class="perm-label">Social</span>
-          <select class="perm-select" onchange="updateVis('social',this.value)"><option>mynet</option><option>private</option><option>public</option></select>
-          <span class="perm-label">Global</span>
-          <select class="perm-select" onchange="updateVis('global',this.value)"><option>public</option><option>mynet</option><option>private</option></select>
         </div>
       </div>
     </div>
@@ -2379,6 +2357,9 @@ const state = {
   circles: { close: ['alice'], friends: ['alice','bob'], mynet: ['alice','bob','carol'] },
   tags: { collaborators: ['alice','carol'], bookclub: ['bob'] },
   joinedGroups: ['close','friends'],
+  openPeer: null,
+  openGroup: null,
+  groupActions: {},
   permissions: { content: 'mynet', resources: 'mynet', profile: 'private', scores: 'private' },
   inviteBudget: { total: 3, used: 1 },
   recovered: false,
@@ -2712,7 +2693,7 @@ function toggleRscOnly() {
   const t  = document.getElementById('rsc-only-text');
   if (!cb || !t) return;
   if (cb.checked) {
-    t.innerHTML = '<a href="#" onclick="switchTab(\'trust\');return false;" style="color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)">Only</a>';
+    t.innerHTML = '<a href="#" onclick="switchTab(\'pending\');return false;" style="color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)">Only</a>';
   } else {
     t.textContent = 'Only';
   }
@@ -3282,36 +3263,82 @@ function pubAddComment(id, inputEl) {
 // ============================================================
 // MYNET — add friend / join group
 // ============================================================
-// Stage icons, group logos, and a differentiated presence colour code
-const STAGE_ICON = { newbie: '🐣', known: '🌱', homie: '🤝', expert: '⭐', legend: '👑' };
+// Modern line-icon set (currentColor, 20×20) for stages, groups + presence colours
+const ICO = inner => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const STAGE_SVG = {
+  newbie: ICO('<circle cx="10" cy="11.5" r="3.2"/><path d="M10 8.3V4"/>'),
+  known:  ICO('<circle cx="6.8" cy="10" r="2.7"/><circle cx="13.2" cy="10" r="2.7"/>'),
+  homie:  ICO('<path d="M10 3l6 3.5v7L10 17l-6-3.5v-7z"/>'),
+  expert: ICO('<path d="M10 3.2l2.1 4.4 4.8.5-3.6 3.2 1 4.7L10 14.5 5.7 16l1-4.6L3.1 8.1l4.8-.5z"/>'),
+  legend: ICO('<path d="M3.5 7l3 2.7L10 4.2l3.5 5.5L17 7l-1.1 8.3H4.6z"/>'),
+};
+const GROUP_SVG = {
+  close:         ICO('<circle cx="7.8" cy="10" r="4.2"/><circle cx="12.2" cy="10" r="4.2"/>'),
+  friends:       ICO('<circle cx="6" cy="12" r="2.3"/><circle cx="10" cy="6.8" r="2.3"/><circle cx="14" cy="12" r="2.3"/>'),
+  mynet:         ICO('<circle cx="10" cy="4.6" r="1.8"/><circle cx="4.6" cy="14" r="1.8"/><circle cx="15.4" cy="14" r="1.8"/><path d="M9 6L5.5 12.4M11 6l3.5 6.4M6.2 14h7.6"/>'),
+  collaborators: ICO('<rect x="3.4" y="6.2" width="7.6" height="7.6" rx="2"/><rect x="9" y="6.2" width="7.6" height="7.6" rx="2"/>'),
+  bookclub:      ICO('<path d="M10 6.2v9"/><path d="M10 6.2C8.4 5.2 6 5.2 4 5.7v9C6 14.2 8.4 14.2 10 15.2c1.6-1 4-1 6-.5v-9C14 5.2 11.6 5.2 10 6.2z"/>'),
+  family:        ICO('<circle cx="10" cy="5" r="1.7"/><path d="M10 6.7v6M10 12.7l-3.6 3.5M10 12.7l3.6 3.5"/>'),
+  work:          ICO('<rect x="3.8" y="7.2" width="12.4" height="8.6" rx="1.6"/><path d="M7.8 7.2V5.8A1.6 1.6 0 019.4 4.2h1.2A1.6 1.6 0 0112.2 5.8v1.4"/>'),
+};
 const PRESENCE_COLOR = { LIVE: '#02a85f', RECENT: '#3a86ff', REACHABLE: '#e08a00', DARK: '#8a8e99' };
-const GROUP_LOGO = { close: '💞', friends: '👥', mynet: '🕸️', collaborators: '🛠️', bookclub: '📚', family: '🏡', work: '💼' };
-const groupLogo = name => GROUP_LOGO[name] || '🟣';
+const groupSvg = name => GROUP_SVG[name] || ICO('<rect x="4" y="4" width="12" height="12" rx="3.5"/>');
+
+function togglePeer(h) { state.openPeer = (state.openPeer === h) ? null : h; renderMyNet(); }
+function toggleGroup(n) { state.openGroup = (state.openGroup === n) ? null : n; renderMyNet(); }
+function followPeer(h) { const p = state.peers.find(x => x.handle === h); if (p) { p.followed = !p.followed; renderMyNet(); } }
+function supportPeer(h) { const p = state.peers.find(x => x.handle === h); if (p) { p.supported = !p.supported; renderMyNet(); } }
+function groupAct(n, k) { (state.groupActions[n] = state.groupActions[n] || {})[k] = !state.groupActions[n][k]; renderMyNet(); }
+
+function netActions(followed, supported, followCb, supportCb) {
+  return `<div class="net-actions">
+    <button class="net-btn${followed ? ' active' : ''}" onclick="${followCb}">${followed ? 'Following' : 'Follow'}</button>
+    <button class="net-btn${supported ? ' active' : ''}" onclick="${supportCb}">${supported ? 'Supported' : 'Support'}</button>
+  </div>`;
+}
 
 function renderMyNet() {
-  // People — only a stage icon coloured by presence + the handle
+  // People — modern stage icon tinted by presence; click to expand details
   const pl = document.getElementById('peers-list');
   if (pl) {
     pl.innerHTML = state.peers.map(p => {
-      const icon  = STAGE_ICON[p.stage] || STAGE_ICON.newbie;
+      const open = state.openPeer === p.handle;
       const color = PRESENCE_COLOR[p.presence] || PRESENCE_COLOR.DARK;
-      return `<div class="peer-row">
-        <span class="peer-stage-ic" style="color:${color}" title="${p.stage} · ${p.presence.toLowerCase()}">${icon}</span>
-        <span class="peer-handle">${p.handle}</span>
+      return `<div class="net-item${open ? ' open' : ''}">
+        <div class="net-head" onclick="togglePeer('${p.handle}')" role="button" tabindex="0" aria-expanded="${open}">
+          <span class="net-ic" style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>
+          <span class="net-name">${p.handle}</span>
+          <span class="net-chevron" aria-hidden="true">▸</span>
+        </div>
+        <div class="net-info"><div class="net-info-inner">
+          <div class="net-info-row">Stage <strong>${p.stage}</strong> · <span style="color:${color}">${p.presence.toLowerCase()}</span></div>
+          <div class="net-info-row">In ${p.circles}</div>
+          ${netActions(p.followed, p.supported, `followPeer('${p.handle}')`, `supportPeer('${p.handle}')`)}
+        </div></div>
       </div>`;
     }).join('') || '<div style="font-size:.66rem;color:var(--muted)">No people yet.</div>';
   }
 
-  // Groups — logo demo + name, no descriptive text/chips
+  // Groups — logo demo; click to expand details
   const cl = document.getElementById('circles-list');
   if (cl) {
     const names = state.joinedGroups.concat(Object.keys(state.tags));
-    cl.innerHTML = names.map(name =>
-      `<div class="peer-row">
-        <span class="group-logo">${groupLogo(name)}</span>
-        <span class="peer-handle">${name}</span>
-      </div>`
-    ).join('') || '<div style="font-size:.66rem;color:var(--muted)">No groups yet.</div>';
+    cl.innerHTML = names.map(name => {
+      const open = state.openGroup === name;
+      const members = (state.circles[name] || state.tags[name] || []).length;
+      const act = state.groupActions[name] || {};
+      return `<div class="net-item${open ? ' open' : ''}">
+        <div class="net-head" onclick="toggleGroup('${name}')" role="button" tabindex="0" aria-expanded="${open}">
+          <span class="net-ic" style="color:var(--accent)">${groupSvg(name)}</span>
+          <span class="net-name">${name}</span>
+          <span class="net-chevron" aria-hidden="true">▸</span>
+        </div>
+        <div class="net-info"><div class="net-info-inner">
+          <div class="net-info-row"><strong>${members}</strong> member${members !== 1 ? 's' : ''}${state.joinedGroups.includes(name) ? ' · joined' : ''}</div>
+          ${netActions(act.followed, act.supported, `groupAct('${name}','followed')`, `groupAct('${name}','supported')`)}
+        </div></div>
+      </div>`;
+    }).join('') || '<div style="font-size:.66rem;color:var(--muted)">No groups yet.</div>';
   }
 }
 

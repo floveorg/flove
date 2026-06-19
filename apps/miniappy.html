@@ -1286,23 +1286,29 @@ body{
 .id5-bar{ flex:1; display:flex; flex-direction:column; align-items:center; gap:.3rem; cursor:pointer; }
 .id5-bar-col{
   width:100%; border-radius:6px 6px 4px 4px; display:flex; align-items:flex-start; justify-content:center;
-  padding-top:.22rem; background:rgba(28,25,42,.07); border:1px solid var(--line); transition:background .22s, box-shadow .22s, border-color .22s;
+  padding-top:.22rem; border:1px solid transparent; transition:opacity .22s, box-shadow .22s, transform .14s;
+  /* incremental colour + opacity set inline (kept full when checked) */
 }
-.id5-bar.reached .id5-bar-col{
-  background:linear-gradient(180deg,var(--signal),var(--accent)); border-color:transparent;
-  box-shadow:0 0 12px -3px var(--glow-s);
-}
-.id5-bar:hover .id5-bar-col{ border-color:var(--accent); }
-/* actual status of the user — highlighted */
+.id5-bar:hover .id5-bar-col{ transform:translateY(-1px); }
+/* the step whose form is showing — dark ring (colour stays) */
+.id5-bar.open .id5-bar-col{ box-shadow:0 0 0 2px var(--ink); }
+/* actual status of the user — signal ring */
 .id5-bar.actual .id5-bar-col{ box-shadow:0 0 0 2px var(--signal), 0 0 14px -3px var(--glow-s); }
-.id5-bar.actual .id5-bar-label{ color:var(--signal); font-weight:700; }
-/* the step whose form is showing — bar at half colour intensity */
-.id5-bar.open .id5-bar-col{ opacity:.5; }
-.id5-bar-badge{ font-size:.85rem; filter:grayscale(1); opacity:.35; transition:.22s; }
-.id5-bar.reached .id5-bar-badge{ filter:none; opacity:1; }
-.id5-bar-pts{ font-size:.5rem; font-weight:700; color:var(--signal); }
-.id5-bar:not(.reached) .id5-bar-pts{ color:var(--muted); opacity:.5; }
+.id5-bar.actual.open .id5-bar-col{ box-shadow:0 0 0 2px var(--ink), 0 0 14px -3px var(--glow-s); }
+.id5-bar.actual .id5-bar-label{ color:var(--ink); font-weight:700; }
+.id5-bar-badge{ font-size:.85rem; }
+.id5-bar-pts{ font-size:.5rem; font-weight:700; }
 .id5-bar-label{ font-size:.48rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); text-align:center; }
+/* centred modern icon introducing the step's form */
+.id-form-icon{ width:46px; height:46px; margin:.35rem auto .6rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; border:1.6px solid currentColor; box-shadow:0 0 18px -6px currentColor; }
+/* form action button — rounded, dark border, marginless; colour set inline to match the bar */
+.id-action{ width:100%; margin:.7rem 0 0; display:flex; align-items:center; justify-content:center; gap:.4rem;
+  padding:.58rem 1rem; border-radius:14px; border:1.6px solid rgba(16,14,24,.55);
+  color:#fff; font-family:"Space Mono",monospace; font-size:.68rem; letter-spacing:.03em; cursor:pointer;
+  transition:filter .16s, transform .12s; }
+.id-action:hover{ filter:brightness(1.07); }
+.id-action:active{ transform:translateY(1px); }
+.id-action:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
 /* Publish — right column of the profile grid (borderless) */
 .pub-col{ display:flex; flex-direction:column; }
 /* Submitted posts (pending review) below marcflove */
@@ -1353,6 +1359,9 @@ body{
   transition:border-color .18s, color .18s, background .18s, box-shadow .18s;
 }
 .res-preset-btn:hover{ border-color:rgba(0,247,167,.4); color:var(--ink); }
+/* the three donate options stand out: dark border + text (vs the default "I can't") */
+.res-preset-btn:not([data-preset="none"]){ border-color:rgba(16,14,24,.5); color:var(--ink); font-weight:700; }
+.res-preset-btn:not([data-preset="none"]):hover{ border-color:var(--ink); }
 .res-preset-btn.active{
   border-color:var(--signal); color:var(--signal); background:rgba(0,247,167,.08);
   box-shadow:0 0 12px -3px rgba(0,247,167,.4);
@@ -2353,8 +2362,8 @@ const state = {
   sessionQueueCount: 0,
   profileCardOpen: false,
   upgradeBarOpen: true,
-  resources: { cpu: 55, gpu: 45, ram: 55 },
-  resourcePreset: 'balanced',
+  resources: { cpu: 0, gpu: 0, ram: 0 },
+  resourcePreset: 'none',
   shared: false,
   aboutEntries: [],
   openIdentityStep: 'self',
@@ -2534,11 +2543,11 @@ function setResourcePreset(name) {
 }
 // 5-bar identity scale — Self always reached; each step grants points + a badge
 const IDENTITY_STEPS = [
-  { key: 'self',       label: 'Self',     badge: '🪪', pts: 5,  h: 24 },
-  { key: 'email',      label: 'Email',    badge: '✉',  pts: 4,  h: 32 },
-  { key: 'telegram',   label: 'Telegram', badge: '✈',  pts: 12, h: 40 },
-  { key: 'phone',      label: 'Phone',    badge: '📱', pts: 6,  h: 48 },
-  { key: 'biometrics', label: 'Bio',      badge: '👁', pts: 8,  h: 56 },
+  { key: 'self',       label: 'Self',     badge: '🪪', pts: 5,  h: 24, color: '#02a85f' },
+  { key: 'email',      label: 'Email',    badge: '✉',  pts: 4,  h: 32, color: '#0bb5c9' },
+  { key: 'telegram',   label: 'Telegram', badge: '✈',  pts: 12, h: 40, color: '#3a86ff' },
+  { key: 'phone',      label: 'Phone',    badge: '📱', pts: 6,  h: 48, color: '#6c5ce7' },
+  { key: 'biometrics', label: 'Bio',      badge: '👁', pts: 8,  h: 56, color: '#c44ad0' },
 ];
 // The user's actual status = highest reached step in order
 function identityActualStatus() {
@@ -2560,9 +2569,10 @@ function renderIdentityScale() {
     if (reached) cls += ' reached';
     if (isActual) cls += ' actual';
     if (isOpen) cls += ' open';
+    const op = (reached || isOpen) ? 1 : 0.4;   // incremental colour kept when checked
     return `<div class="${cls}" onclick="selectIdentityStep('${s.key}')" role="button" tabindex="0" aria-expanded="${isOpen}" aria-label="${s.label}${isActual ? ' — your status' : ''}">
-      <div class="id5-bar-col" style="height:${s.h}px"><span class="id5-bar-badge">${s.badge}</span></div>
-      <span class="id5-bar-pts">+${s.pts}</span>
+      <div class="id5-bar-col" style="height:${s.h}px;background:${s.color};opacity:${op}"><span class="id5-bar-badge">${s.badge}</span></div>
+      <span class="id5-bar-pts" style="color:${s.color}">+${s.pts}</span>
       <span class="id5-bar-label">${s.label}</span>
     </div>`;
   }).join('');
@@ -2582,9 +2592,11 @@ function renderIdentityForm() {
   const prevSocial = (document.getElementById('ep-social-handle') || {}).value;
   const key = state.openIdentityStep;
   if (!key) { wrap.innerHTML = ''; return; }
+  const s = IDENTITY_STEPS.find(x => x.key === key);
+  const icon = `<div class="id-form-icon" style="color:${s.color}" aria-hidden="true">${s.badge}</div>`;
   if (key === 'self') {
-    wrap.innerHTML = `
-      <div class="field" style="margin-top:.6rem"><label>More about me</label>
+    wrap.innerHTML = `${icon}
+      <div class="field"><label>More about me</label>
         <input type="text" id="ep-about" placeholder="Some words" aria-label="More about me"></div>
       <div class="field" style="margin-top:.5rem">
         <input type="text" id="add-link-input" placeholder="add link" aria-label="Add link"></div>
@@ -2599,21 +2611,20 @@ function renderIdentityForm() {
         </select>
         <input type="text" id="ep-social-handle" placeholder="social handle or link" aria-label="Social link" style="flex:1;min-width:90px;font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(255,255,255,.85);border:1px solid rgba(28,25,42,.07);border-radius:7px;padding:.38rem .7rem;outline:none">
       </div>
-      <button class="btn signal" style="margin-top:.65rem;width:100%;justify-content:center" onclick="saveAbout()">Save</button>`;
+      <button class="id-action" style="background:${s.color}" onclick="saveAbout()">Save</button>`;
     const a = document.getElementById('ep-about'); if (a && prevAbout !== undefined) a.value = prevAbout;
     const l = document.getElementById('add-link-input'); if (l && prevLink !== undefined) l.value = prevLink;
     const sh = document.getElementById('ep-social-handle'); if (sh && prevSocial !== undefined) sh.value = prevSocial;
     return;
   }
-  const s = IDENTITY_STEPS.find(x => x.key === key);
   if (state.linkedIdentities.includes(key)) {
-    wrap.innerHTML = `<div class="note" style="margin-top:.6rem">${s.label} linked ✓ — +${s.pts} to your Personal facet.</div>`;
+    wrap.innerHTML = `${icon}<div class="note">${s.label} linked ✓ — +${s.pts} to your Personal facet.</div>`;
     return;
   }
   const ph = key === 'telegram' ? '@handle' : key === 'phone' ? '+34 600 …' : key === 'email' ? 'you@mail.org' : '';
   const inputHtml = key === 'biometrics' ? '' :
-    `<div class="field" style="margin-top:.6rem"><input type="text" placeholder="${ph}" aria-label="${s.label}"></div>`;
-  wrap.innerHTML = `${inputHtml}<button class="btn signal" style="margin-top:.5rem;width:100%;justify-content:center" onclick="linkIdentity('${key}');renderIdentityForm()">${key === 'biometrics' ? 'Scan biometrics' : 'Link ' + s.label}</button>`;
+    `<div class="field"><input type="text" placeholder="${ph}" aria-label="${s.label}"></div>`;
+  wrap.innerHTML = `${icon}${inputHtml}<button class="id-action" style="background:${s.color}" onclick="linkIdentity('${key}');renderIdentityForm()">${key === 'biometrics' ? 'Scan biometrics' : 'Link ' + s.label}</button>`;
 }
 
 // Save — pushes typed entries (about / link / social) shown in the marcflove card

@@ -436,20 +436,25 @@
   }
 
   // ---- serialisers (one per format) ----
-  // shared section walk — section order + normalisation live here once; each
-  // format supplies emit callbacks (h2 / entry / note). Groups (free, master)
-  // and favourites are normalised to the common entry shape
-  // {title, order?, items:[{order,word}], why}; decks/custom/perspective already
-  // have it. Add or reorder a section in one place and every format follows.
-  function walkSections(d, e){
-    const fromGroup = g => ({ title: g.title, order: g.order, items: g.words.map(w => ({ order:'', word:w })), why: g.why });
-    const fromFav   = f => ({ title:'', items:[{ order:'', word:f.combo }], why:f.definition });
-    if (d.free.length){   e.h2('Free grouping');      d.free.forEach(g => e.entry(fromGroup(g))); }
-    if (d.master.length){ e.h2('Objective grouping'); d.master.forEach(g => e.entry(fromGroup(g))); }
-    if (d.decks.length){  e.h2('Decks');              d.decks.forEach(dk => e.entry(dk)); }
-    if (d.custom){        e.h2('Your group');         e.entry(d.custom); }
-    if (d.perspective.decks.length || d.perspective.note){ e.h2('New perspective'); d.perspective.decks.forEach(dk => e.entry(dk)); if (d.perspective.note) e.note(d.perspective.note); }
-    if (d.favourites.length){ e.h2('Favourites');     d.favourites.forEach(f => e.entry(fromFav(f))); }
+  // The export model: every section normalised to one shape so all four formats
+  // iterate the same structure. A section is { key, title, entries[], note? };
+  // an entry is { title, order, items:[{order,word}], why }. Groups (free,
+  // master) fold their group-order into entry.order and their words into items;
+  // favourites fold combo->word and definition->why; decks/custom/perspective
+  // are already entries. Add or reorder a section here and every format follows.
+  function sections(d){
+    const grp  = g  => ({ title:g.title, order:g.order, items:g.words.map(w => ({ order:'', word:w })), why:g.why });
+    const deck = dk => ({ title:dk.title, order:'', items:dk.items, why:dk.why });
+    const fav  = f  => ({ title:'', order:'', items:[{ order:'', word:f.combo }], why:f.definition });
+    const out = [];
+    if (d.free.length)   out.push({ key:'free',   title:'Free grouping',      entries:d.free.map(grp) });
+    if (d.master.length) out.push({ key:'master', title:'Objective grouping', entries:d.master.map(grp) });
+    if (d.decks.length)  out.push({ key:'deck',   title:'Decks',              entries:d.decks.map(deck) });
+    if (d.custom)        out.push({ key:'custom', title:'Your group',         entries:[deck(d.custom)] });
+    if (d.perspective.decks.length || d.perspective.note)
+                         out.push({ key:'perspective', title:'New perspective', entries:d.perspective.decks.map(deck), note:d.perspective.note });
+    if (d.favourites.length) out.push({ key:'fav', title:'Favourites', entries:d.favourites.map(fav) });
+    return out;
   }
   function toText(d, md){
     const H2 = md ? s => `## ${s}` : s => `\n${s}\n${'─'.repeat(s.length)}`;
@@ -457,15 +462,15 @@
     const b = md ? '- ' : '  • ';
     const L = [ md ? '# Keys' : 'KEYS', md ? `_Mode: ${d.mode}_` : `Mode: ${d.mode}`, '' ];
     const item = it => `${b}${it.order ? it.order + '. ' : ''}${it.word || '—'}`;
-    walkSections(d, {
-      h2: t => L.push(H2(t)),
-      entry: e => {
+    sections(d).forEach(sec => {
+      L.push(H2(sec.title));
+      sec.entries.forEach(e => {
         if (e.title) L.push(H3(`${e.title}${e.order ? ' (order ' + e.order + ')' : ''}`));
         e.items.forEach(it => L.push(item(it)));
         if (e.why) L.push(`${md ? '' : '  '}Why: ${e.why}`);
         L.push('');
-      },
-      note: n => L.push(`${md ? '' : '  '}Note: ${n}`, '')
+      });
+      if (sec.note) L.push(`${md ? '' : '  '}Note: ${sec.note}`, '');
     });
     return L.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
   }
@@ -474,13 +479,16 @@
     const cell = v => (v == null || String(v).trim() === '' || v === '—') ? '---' : String(v);
     const add = (k, v) => rows.push([k, cell(v)]);
     add('mode', d.mode);
-    d.free.forEach((g, i) => { add(`free${i+1}_order`, g.order); g.words.forEach((w, wi) => add(`free${i+1}_word${wi+1}`, w)); add(`free${i+1}_why`, g.why); });
-    d.master.forEach((g, i) => { add(`master${i+1}_order`, g.order); g.words.forEach((w, wi) => add(`master${i+1}_word${wi+1}`, w)); add(`master${i+1}_why`, g.why); });
-    d.decks.forEach((dk, i) => { add(`deck${i+1}_title`, dk.title); dk.items.forEach((it, ii) => { add(`deck${i+1}_item${ii+1}_order`, it.order); add(`deck${i+1}_item${ii+1}_word`, it.word); }); add(`deck${i+1}_why`, dk.why); });
-    if (d.custom){ add('custom_title', d.custom.title); d.custom.items.forEach((it, ii) => { add(`custom_item${ii+1}_order`, it.order); add(`custom_item${ii+1}_word`, it.word); }); add('custom_why', d.custom.why); }
-    d.perspective.decks.forEach((dk, i) => { add(`perspective${i+1}_title`, dk.title); dk.items.forEach((it, ii) => { add(`perspective${i+1}_item${ii+1}_order`, it.order); add(`perspective${i+1}_item${ii+1}_word`, it.word); }); add(`perspective${i+1}_why`, dk.why); });
-    add('perspective_note', d.perspective.note);
-    d.favourites.forEach((f, i) => { add(`fav${i+1}_combo`, f.combo); add(`fav${i+1}_definition`, f.definition); });
+    sections(d).forEach(sec => {
+      sec.entries.forEach((e, i) => {
+        const p = `${sec.key}${i+1}`;
+        add(`${p}_title`, e.title);
+        add(`${p}_order`, e.order);
+        e.items.forEach((it, j) => { add(`${p}_item${j+1}_order`, it.order); add(`${p}_item${j+1}_word`, it.word); });
+        add(`${p}_why`, e.why);
+      });
+      if ('note' in sec) add(`${sec.key}_note`, sec.note);
+    });
     return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
   }
   // shared escapers: HTML escapes < > & ; XML also escapes " for attribute safety
@@ -488,16 +496,15 @@
   const escXML  = s => escHTML(s).replace(/"/g, '&quot;');
   function toXML(d){
     const esc = escXML;
-    const itemX = it => `<item order="${esc(it.order)}">${esc(it.word)}</item>`;
-    const grpX  = g => `    <group order="${esc(g.order)}">${g.words.map(w => `<word>${esc(w)}</word>`).join('')}<why>${esc(g.why)}</why></group>`;
-    const deckX = dk => `    <deck title="${esc(dk.title)}">${dk.items.map(itemX).join('')}<why>${esc(dk.why)}</why></deck>`;
+    const itemX  = it => `<item order="${esc(it.order)}">${esc(it.word)}</item>`;
+    const entryX = e => `    <entry title="${esc(e.title)}" order="${esc(e.order)}">${e.items.map(itemX).join('')}<why>${esc(e.why)}</why></entry>`;
     let x = `<?xml version="1.0" encoding="UTF-8"?>\n<keys mode="${esc(d.mode)}">\n`;
-    x += '  <free>\n'   + d.free.map(grpX).join('\n')   + '\n  </free>\n';
-    x += '  <master>\n' + d.master.map(grpX).join('\n') + '\n  </master>\n';
-    x += '  <decks>\n'  + d.decks.map(deckX).join('\n') + '\n  </decks>\n';
-    if (d.custom) x += `  <custom title="${esc(d.custom.title)}">${d.custom.items.map(itemX).join('')}<why>${esc(d.custom.why)}</why></custom>\n`;
-    x += `  <perspective note="${esc(d.perspective.note)}">\n` + d.perspective.decks.map(deckX).join('\n') + '\n  </perspective>\n';
-    x += '  <favourites>' + d.favourites.map(f => `<combo def="${esc(f.definition)}">${esc(f.combo)}</combo>`).join('') + '</favourites>\n';
+    sections(d).forEach(sec => {
+      x += `  <section name="${esc(sec.key)}" title="${esc(sec.title)}">\n`;
+      if (sec.entries.length) x += sec.entries.map(entryX).join('\n') + '\n';
+      if ('note' in sec) x += `    <note>${esc(sec.note)}</note>\n`;
+      x += '  </section>\n';
+    });
     return x + '</keys>';
   }
   function toHTML(d){
@@ -505,12 +512,12 @@
     const itemsUL = items => '<ul>' + items.map(it => `<li>${it.order ? '<b>' + esc(it.order) + '.</b> ' : ''}${esc(it.word || '—')}</li>`).join('') + '</ul>';
     const why = w => w ? `<p class="why">${esc(w)}</p>` : '';
     const S = [];
-    walkSections(d, {
-      h2: t => S.push(`<h2>${esc(t)}</h2>`),
-      entry: e => S.push(
+    sections(d).forEach(sec => {
+      S.push(`<h2>${esc(sec.title)}</h2>`);
+      sec.entries.forEach(e => S.push(
         (e.title ? `<h3>${esc(e.title)}${e.order ? ` <small>(order ${esc(e.order)})</small>` : ''}</h3>` : '')
-        + itemsUL(e.items) + why(e.why)),
-      note: n => S.push(why('Note: ' + n))
+        + itemsUL(e.items) + why(e.why)));
+      if (sec.note) S.push(why('Note: ' + sec.note));
     });
     return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>keys — summary</title>`
       + `<style>body{font-family:Georgia,serif;line-height:1.5;max-width:760px;margin:0 auto;padding:1.5rem;color:#222}`

@@ -775,6 +775,49 @@ body{
 .qi-status.live     { color:var(--signal);      border-color:rgba(0,247,167,.4);   background:rgba(0,247,167,.07); }
 .qi-status.rejected { color:var(--danger);      border-color:rgba(255,107,107,.4); background:rgba(255,107,107,.06); }
 .qi-status.reviewing{ color:var(--accent-soft); border-color:rgba(141,137,255,.4); background:rgba(141,137,255,.06); }
+.qi-status-link{ cursor:pointer; font-family:"Space Mono",monospace; transition:box-shadow .16s; }
+.qi-status-link:hover{ box-shadow:0 0 10px -3px var(--glow-a); }
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+.chat-cols{ display:grid; grid-template-columns:.85fr 1.4fr; gap:1rem; align-items:start; }
+@media (max-width:560px){ .chat-cols{ grid-template-columns:1fr; } }
+.chat-side{ display:flex; flex-direction:column; }
+.chat-search-input{
+  width:100%; font-family:"Space Mono",monospace; font-size:.64rem; color:var(--ink);
+  background:rgba(255,255,255,.85); border:1px solid var(--line); border-radius:9px;
+  padding:.45rem .7rem; outline:none; margin-bottom:.4rem; transition:border-color .18s;
+}
+.chat-search-input:focus{ border-color:rgba(108,92,231,.5); }
+.chat-search-results{ display:flex; flex-direction:column; gap:.25rem; }
+.chat-search-item{
+  display:flex; align-items:center; justify-content:space-between; gap:.5rem;
+  padding:.4rem .6rem; border-radius:8px; border:1px solid var(--line); background:var(--card);
+  font-size:.64rem; cursor:pointer; transition:border-color .16s;
+}
+.chat-search-item:hover{ border-color:var(--accent); }
+.chat-invite-tag{ font-size:.5rem; letter-spacing:.08em; text-transform:uppercase; color:var(--signal); border:1px solid rgba(2,133,92,.4); border-radius:999px; padding:.08rem .4rem; }
+.chat-inbox{ display:flex; flex-direction:column; gap:.3rem; margin-top:.5rem; }
+.chat-inbox-item{ display:flex; flex-direction:column; gap:.15rem; padding:.5rem .7rem; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; transition:border-color .16s, background .16s; }
+.chat-inbox-item:hover{ border-color:rgba(108,92,231,.35); }
+.chat-inbox-item.active{ border-color:var(--accent); background:rgba(108,92,231,.07); }
+.chat-inbox-name{ font-size:.68rem; font-weight:700; }
+.chat-inbox-last{ font-size:.55rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-main{ display:flex; flex-direction:column; border:1px solid var(--line); border-radius:13px; background:var(--card); overflow:hidden; }
+.chat-header{ display:flex; align-items:center; justify-content:space-between; padding:.6rem .85rem; border-bottom:1px solid var(--line); font-size:.72rem; font-weight:700; }
+.chat-ephemeral{ font-weight:400; font-size:.56rem; color:var(--muted); display:inline-flex; align-items:center; gap:.3rem; cursor:pointer; }
+.chat-messages{ display:flex; flex-direction:column; gap:.4rem; padding:.8rem .85rem; min-height:150px; max-height:280px; overflow-y:auto; }
+.chat-msg{ max-width:80%; padding:.45rem .7rem; border-radius:13px; font-size:.66rem; line-height:1.5; }
+.chat-msg.me{ align-self:flex-end; background:rgba(108,92,231,.12); border:1px solid rgba(108,92,231,.25); border-bottom-right-radius:4px; }
+.chat-msg.them{ align-self:flex-start; background:rgba(28,25,42,.04); border:1px solid var(--line); border-bottom-left-radius:4px; }
+.chat-compose{ display:flex; gap:.5rem; padding:.6rem .7rem; border-top:1px solid var(--line); align-items:flex-end; }
+.chat-compose textarea{ flex:1; resize:none; font-family:"Space Mono",monospace; font-size:.68rem; color:var(--ink); background:rgba(255,255,255,.85); border:1px solid var(--line); border-radius:10px; padding:.5rem .7rem; outline:none; min-height:38px; max-height:120px; transition:border-color .18s; }
+.chat-compose textarea:focus{ border-color:rgba(108,92,231,.5); }
+.chat-av{ display:flex; align-items:center; gap:.6rem; padding:.55rem .7rem; border-top:1px solid var(--line); }
+.chat-av-btn{ opacity:.2; font-family:"Space Mono",monospace; font-size:.6rem; padding:.34rem .75rem; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; transition:opacity .18s; }
+.chat-av-btn:hover{ opacity:.32; }
+.chat-av-msg{ font-size:.58rem; }
 
 /* ============================================================
    FORM ELEMENTS
@@ -1743,6 +1786,7 @@ body{
       <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('access')"   id="tab-access">Profile</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Nety</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"    id="tab-mynet">MyNet</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('chat')"    id="tab-chat">Chat</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('pending')"  id="tab-pending">Activity</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('recovery')" id="tab-recovery">Account</button>
@@ -1792,10 +1836,11 @@ body{
           <!-- Publish — right column of the profile -->
           <div class="pub-col">
             <div class="field">
-              <select id="pub-type" aria-label="Type of post">
-                <option value="post">post</option>
-                <option value="page">page</option>
-                <option value="file">file</option>
+              <select id="pub-visibility" aria-label="Visibility">
+                <option value="mynet">MyNet</option>
+                <option value="circle">Group</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
               </select>
             </div>
             <div class="field" style="margin-top:.5rem">
@@ -2151,6 +2196,38 @@ body{
       </div>
     </div>
 
+    <!-- CHAT TAB -->
+    <div class="tab-panel" id="panel-chat" role="tabpanel">
+      <div class="vcard">
+        <div class="chat-cols">
+          <!-- Inbox + search -->
+          <div class="chat-side">
+            <div class="extend-col-label">Inbox</div>
+            <input type="text" id="chat-search-input" class="chat-search-input" placeholder="search users to invite…" aria-label="Search users to invite" oninput="renderChatSearch(this.value)">
+            <div id="chat-search-results" class="chat-search-results"></div>
+            <div class="chat-inbox" id="chat-inbox"><!-- renderChat() --></div>
+          </div>
+          <!-- Active conversation -->
+          <div class="chat-main">
+            <div class="chat-header">
+              <span id="chat-with">—</span>
+              <label class="chat-ephemeral"><input type="checkbox" id="chat-ephemeral" onchange="state.chatEphemeral=this.checked"> ephemeral</label>
+            </div>
+            <div class="chat-messages" id="chat-messages"><!-- renderChat() --></div>
+            <div class="chat-compose">
+              <textarea id="chat-input" rows="1" placeholder="Message…" aria-label="Message" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"></textarea>
+              <button class="btn signal" style="flex-none" onclick="chatSend()">Send</button>
+            </div>
+            <div class="chat-av">
+              <button class="chat-av-btn" onclick="chatUpgrade()">🎙 Audio</button>
+              <button class="chat-av-btn" onclick="chatUpgrade()">🎥 Video</button>
+              <span id="chat-av-msg" class="chat-av-msg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- PENDING TAB -->
     <div class="tab-panel" id="panel-pending" role="tabpanel">
@@ -2379,6 +2456,12 @@ const state = {
   moreGroups: ['designers', 'runners', 'makers'],
   follows: [],
   supports: [],
+  chats: [
+    { user: 'alice', messages: [{ from: 'them', text: 'hey marc!' }, { from: 'me', text: 'hi alice 👋' }] },
+    { user: 'bob',   messages: [{ from: 'them', text: 'did you see the mesh update?' }] },
+  ],
+  chatActive: 'alice',
+  chatEphemeral: false,
   permissions: { content: 'mynet', resources: 'mynet', profile: 'private', scores: 'private' },
   inviteBudget: { total: 3, used: 1 },
   recovered: false,
@@ -2701,7 +2784,7 @@ function renderProfilePosts() {
   wrap.innerHTML = state.queue.map(q => `<div class="ppost">
     <span class="qi-type">${q.type}</span>
     <span class="ppost-content">${q.content}</span>
-    <span class="qi-status ${q.status}">${label[q.status] || q.status}</span>
+    <button class="qi-status qi-status-link ${q.status}" onclick="switchTab('pending')" title="See it in Activity">${label[q.status] || q.status}</button>
   </div>`).join('');
 }
 // Saved content — last section of the marcflove card, designed per type
@@ -3393,6 +3476,60 @@ function renderMyNet() {
   renderMoreSocial();
 }
 
+// ============================================================
+// CHAT
+// ============================================================
+function renderChat() {
+  const inbox = document.getElementById('chat-inbox');
+  if (inbox) {
+    inbox.innerHTML = state.chats.map(c => {
+      const last = c.messages.length ? c.messages[c.messages.length - 1].text : '';
+      return `<div class="chat-inbox-item${c.user === state.chatActive ? ' active' : ''}" onclick="chatOpen('${c.user}')">
+        <span class="chat-inbox-name">${c.user}</span>
+        <span class="chat-inbox-last">${last}</span>
+      </div>`;
+    }).join('') || '<div style="font-size:.6rem;color:var(--muted);padding:.3rem">No chats yet.</div>';
+  }
+  const active = state.chats.find(c => c.user === state.chatActive);
+  const msgs = document.getElementById('chat-messages');
+  if (msgs) msgs.innerHTML = (active ? active.messages : []).map(m => `<div class="chat-msg ${m.from}">${m.text}</div>`).join('');
+  const wth = document.getElementById('chat-with');
+  if (wth) wth.textContent = state.chatActive || '—';
+}
+function chatOpen(u) { state.chatActive = u; renderChat(); }
+function chatSend() {
+  const inp = document.getElementById('chat-input');
+  const active = state.chats.find(c => c.user === state.chatActive);
+  if (!inp || !active) return;
+  const t = inp.value.trim();
+  if (!t) return;
+  active.messages.push({ from: 'me', text: t });
+  inp.value = '';
+  renderChat();
+}
+function renderChatSearch(q) {
+  const res = document.getElementById('chat-search-results');
+  if (!res) return;
+  q = (q || '').trim().toLowerCase();
+  if (!q) { res.innerHTML = ''; return; }
+  const pool = state.peers.map(p => p.handle).concat(state.morePeople.map(p => p.handle));
+  const matches = pool.filter(h => h.toLowerCase().includes(q) && !state.chats.find(c => c.user === h));
+  res.innerHTML = matches.map(h => `<div class="chat-search-item" onclick="chatInvite('${h}')">${h}<span class="chat-invite-tag">invite</span></div>`).join('')
+    || '<div style="font-size:.58rem;color:var(--muted);padding:.3rem">no users found</div>';
+}
+function chatInvite(h) {
+  if (!state.chats.find(c => c.user === h)) state.chats.push({ user: h, messages: [] });
+  state.chatActive = h;
+  const si = document.getElementById('chat-search-input');
+  if (si) si.value = '';
+  renderChatSearch('');
+  renderChat();
+}
+function chatUpgrade() {
+  const m = document.getElementById('chat-av-msg');
+  if (m) m.innerHTML = '<a href="#" onclick="switchTab(\'extensions\');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade your navigation</a>';
+}
+
 // More Social — demo people & groups to follow / support
 function renderMoreSocial() {
   const mp = document.getElementById('more-people-list');
@@ -3498,6 +3635,7 @@ function render() {
   renderIdentityForm();
   renderProfileExtras();
   renderProfilePosts();
+  renderChat();
 
   // Invite credits chip (N / 3 left)
   const rem = state.inviteBudget.total - state.inviteBudget.used;

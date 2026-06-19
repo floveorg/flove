@@ -1080,6 +1080,16 @@ body{
 .invite-map-region{ max-height:0; overflow:hidden; opacity:0; transition:max-height .42s cubic-bezier(.4,0,.2,1), opacity .26s ease; }
 .invite-map-region.open{ max-height:520px; opacity:1; }
 
+/* More appy flove — three columns to help */
+.moreflove-region{ max-height:0; overflow:hidden; opacity:0; transition:max-height .42s cubic-bezier(.4,0,.2,1), opacity .26s ease; }
+.moreflove-region.open{ max-height:420px; opacity:1; }
+.moreflove-cols{ display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; margin-top:.9rem; }
+@media (max-width:560px){ .moreflove-cols{ grid-template-columns:1fr; } }
+.moreflove-col{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:.85rem .8rem; text-align:center; display:flex; flex-direction:column; gap:.35rem; }
+.moreflove-col-ic{ font-size:1.3rem; line-height:1; }
+.moreflove-col-title{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.8rem; color:var(--ink); }
+.moreflove-col-desc{ font-size:.58rem; color:var(--muted); line-height:1.5; }
+
 .invite-web-wrap{
   background:rgba(255,255,255,.6); border-radius:13px;
   border:1px solid rgba(28,25,42,.06); overflow:hidden;
@@ -1731,7 +1741,7 @@ body{
   <div class="tabs-wrap" style="margin-top:.6rem">
     <nav class="tab-bar" role="tablist" aria-label="App sections">
       <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('access')"   id="tab-access">Profile</button>
-      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Resources</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Nety</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"    id="tab-mynet">MyNet</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('pending')"  id="tab-pending">Activity</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
@@ -1885,6 +1895,9 @@ body{
             </div>
           </div>
 
+          <!-- spacer row before the invite / trust cards -->
+          <div style="grid-column:1/-1;height:1.1rem"></div>
+
           <!-- E: Add invite code -->
           <div class="expandable-card" id="tc-E">
             <div class="ec-header" onclick="toggleTourCard('E')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-E-body">
@@ -1969,6 +1982,30 @@ body{
         </div>
 
         <button class="btn signal js-share-btn" style="width:100%;justify-content:center;margin-top:.2rem" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
+
+        <!-- More appy flove — three ways to help -->
+        <button class="upgrade-bar" id="moreflove-btn" onclick="toggleMoreFlove()" aria-expanded="false" aria-controls="moreflove-region" style="margin-top:1.2rem">
+          <span class="ub-text">More appy flove</span>
+        </button>
+        <div class="moreflove-region" id="moreflove-region">
+          <div class="moreflove-cols">
+            <div class="moreflove-col">
+              <div class="moreflove-col-ic">🧩</div>
+              <div class="moreflove-col-title">Easy jobs</div>
+              <div class="moreflove-col-desc">Small mesh tasks anyone can pick up — moderation, relays, tagging.</div>
+            </div>
+            <div class="moreflove-col">
+              <div class="moreflove-col-ic">✦</div>
+              <div class="moreflove-col-title">Your talent</div>
+              <div class="moreflove-col-desc">Offer a skill — design, code, music, translation — to the network.</div>
+            </div>
+            <div class="moreflove-col">
+              <div class="moreflove-col-ic">♥</div>
+              <div class="moreflove-col-title">Donations</div>
+              <div class="moreflove-col-desc">Back the commons directly — send stars or funds to people &amp; groups.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2080,6 +2117,19 @@ body{
               style="font-family:'Space Mono',monospace;font-size:.67rem;color:var(--ink);background:rgba(255,255,255,.85);border:1px solid rgba(28,25,42,.07);border-radius:9px;padding:.48rem .75rem;flex:1;outline:none;transition:border-color .18s,box-shadow .18s"
               onkeydown="if(event.key==='Enter')mynetJoinGroup()">
             <button class="btn ghost" style="font-size:.63rem;padding:.44rem .8rem;flex-none" onclick="mynetJoinGroup()">Search</button>
+          </div>
+        </div>
+
+        <!-- ── More Social — demo people & groups to follow / support ── -->
+        <div class="sec" style="margin-top:1.2rem">More Social</div>
+        <div class="mynet-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start">
+          <div>
+            <div class="extend-col-label">People to follow</div>
+            <div class="peer-list" id="more-people-list"><!-- renderMoreSocial() --></div>
+          </div>
+          <div>
+            <div class="extend-col-label">Groups to support</div>
+            <div class="peer-list" id="more-groups-list"><!-- renderMoreSocial() --></div>
           </div>
         </div>
 
@@ -2321,6 +2371,14 @@ const state = {
   openPeer: null,
   openGroup: null,
   groupActions: {},
+  morePeople: [
+    { handle: 'dave', stage: 'expert', presence: 'REACHABLE' },
+    { handle: 'erin', stage: 'homie',  presence: 'LIVE' },
+    { handle: 'finn', stage: 'known',  presence: 'DARK' },
+  ],
+  moreGroups: ['designers', 'runners', 'makers'],
+  follows: [],
+  supports: [],
   permissions: { content: 'mynet', resources: 'mynet', profile: 'private', scores: 'private' },
   inviteBudget: { total: 3, used: 1 },
   recovered: false,
@@ -2430,6 +2488,14 @@ function linkIdentity(id) {
 // ============================================================
 // INVITES
 // ============================================================
+function toggleMoreFlove() {
+  const r = document.getElementById('moreflove-region');
+  const b = document.getElementById('moreflove-btn');
+  if (!r) return;
+  const open = r.classList.toggle('open');
+  if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 function toggleInviteRenew() {
   state.inviteRenewOpen = !state.inviteRenewOpen;
   const hint = document.getElementById('invite-renew-hint');
@@ -2446,6 +2512,14 @@ function toggleInviteMap() {
 }
 
 function generateInvite() {
+  // Inviting is gated behind Basic in this prototype
+  const warn = document.getElementById('invite-action-msg');
+  if (warn) {
+    warn.style.color = 'var(--warn)';
+    warn.innerHTML = '<a href="#" onclick="switchTab(\'extensions\');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade to Basic</a> to make it work.';
+  }
+  return;
+  /* eslint-disable no-unreachable */
   if (state.inviteBudget.used >= state.inviteBudget.total) {
     const msg = document.getElementById('invite-action-msg');
     if (msg) msg.textContent = 'Monthly budget exhausted.';
@@ -3240,15 +3314,27 @@ const GROUP_SVG = {
   bookclub:      ICO('<path d="M10 6.2v9"/><path d="M10 6.2C8.4 5.2 6 5.2 4 5.7v9C6 14.2 8.4 14.2 10 15.2c1.6-1 4-1 6-.5v-9C14 5.2 11.6 5.2 10 6.2z"/>'),
   family:        ICO('<circle cx="10" cy="5" r="1.7"/><path d="M10 6.7v6M10 12.7l-3.6 3.5M10 12.7l3.6 3.5"/>'),
   work:          ICO('<rect x="3.8" y="7.2" width="12.4" height="8.6" rx="1.6"/><path d="M7.8 7.2V5.8A1.6 1.6 0 019.4 4.2h1.2A1.6 1.6 0 0112.2 5.8v1.4"/>'),
+  follows:       ICO('<circle cx="8" cy="7.5" r="2.4"/><path d="M4 15c0-2.3 1.8-3.8 4-3.8s4 1.5 4 3.8"/><path d="M14.6 7v3.4M12.9 8.7h3.4"/>'),
+  supports:      ICO('<path d="M10 15.4C6.2 12.6 3.8 10.7 3.8 8A2.7 2.7 0 0110 6.3 2.7 2.7 0 0116.2 8c0 2.7-2.4 4.6-6.2 7.4z"/>'),
+  designers:     ICO('<path d="M4 16l1.8-4.6 7.4-7.4 2.8 2.8-7.4 7.4z"/><path d="M11.8 5.4l2.8 2.8"/>'),
+  runners:       ICO('<circle cx="13" cy="5.2" r="1.6"/><path d="M5 16l3-3 2.4 1.4 1.4-2.8-3-1.6 3-2.2 2.6 2"/>'),
+  makers:        ICO('<path d="M13.6 6.4a3 3 0 01-4 4l-4.6 4.6 1.4 1.4 4.6-4.6a3 3 0 004-4l-1.9 1.9-1.5-1.5z"/>'),
 };
 const PRESENCE_COLOR = { LIVE: '#02a85f', RECENT: '#3a86ff', REACHABLE: '#e08a00', DARK: '#8a8e99' };
 const groupSvg = name => GROUP_SVG[name] || ICO('<rect x="4" y="4" width="12" height="12" rx="3.5"/>');
 
 function togglePeer(h) { state.openPeer = (state.openPeer === h) ? null : h; renderMyNet(); }
 function toggleGroup(n) { state.openGroup = (state.openGroup === n) ? null : n; renderMyNet(); }
-function followPeer(h) { const p = state.peers.find(x => x.handle === h); if (p) { p.followed = !p.followed; renderMyNet(); } }
-function supportPeer(h) { const p = state.peers.find(x => x.handle === h); if (p) { p.supported = !p.supported; renderMyNet(); } }
-function groupAct(n, k) { (state.groupActions[n] = state.groupActions[n] || {})[k] = !state.groupActions[n][k]; renderMyNet(); }
+// More Social — follow/support adds the entity to the Follows / Supports lists above
+function followMore(n)  { state.follows  = state.follows.includes(n)  ? state.follows.filter(x => x !== n)  : state.follows.concat(n);  renderMyNet(); }
+function supportMore(n) { state.supports = state.supports.includes(n) ? state.supports.filter(x => x !== n) : state.supports.concat(n); renderMyNet(); }
+// Unfollow / Unsupport removes the group from the list it was in
+function removeGroup(name) {
+  delete state.tags[name];
+  state.joinedGroups = state.joinedGroups.filter(g => g !== name);
+  if (state.openGroup === name) state.openGroup = null;
+  renderMyNet();
+}
 
 function netActions(followed, supported, followCb, supportCb) {
   return `<div class="net-actions">
@@ -3256,49 +3342,76 @@ function netActions(followed, supported, followCb, supportCb) {
     <button class="net-btn${supported ? ' active' : ''}" onclick="${supportCb}">${supported ? 'Supported' : 'Support'}</button>
   </div>`;
 }
+function netItem(id, icon, name, infoRows, toggleCb) {
+  const open = (state.openPeer === id || state.openGroup === id);
+  return `<div class="net-item${open ? ' open' : ''}">
+    <div class="net-head" onclick="${toggleCb}" role="button" tabindex="0" aria-expanded="${open}">
+      <span class="net-ic">${icon}</span>
+      <span class="net-name">${name}</span>
+      <span class="net-chevron" aria-hidden="true">▸</span>
+    </div>
+    <div class="net-info"><div class="net-info-inner">${infoRows}</div></div>
+  </div>`;
+}
 
 function renderMyNet() {
-  // People — modern stage icon tinted by presence; click to expand details
+  // People — stage icon tinted by presence; info only (no follow/support here)
   const pl = document.getElementById('peers-list');
   if (pl) {
     pl.innerHTML = state.peers.map(p => {
-      const open = state.openPeer === p.handle;
       const color = PRESENCE_COLOR[p.presence] || PRESENCE_COLOR.DARK;
-      return `<div class="net-item${open ? ' open' : ''}">
-        <div class="net-head" onclick="togglePeer('${p.handle}')" role="button" tabindex="0" aria-expanded="${open}">
-          <span class="net-ic" style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>
-          <span class="net-name">${p.handle}</span>
-          <span class="net-chevron" aria-hidden="true">▸</span>
-        </div>
-        <div class="net-info"><div class="net-info-inner">
-          <div class="net-info-row">Stage <strong>${p.stage}</strong> · <span style="color:${color}">${p.presence.toLowerCase()}</span></div>
-          <div class="net-info-row">In ${p.circles}</div>
-          ${netActions(p.followed, p.supported, `followPeer('${p.handle}')`, `supportPeer('${p.handle}')`)}
-        </div></div>
-      </div>`;
+      const icon = `<span style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>`;
+      const info = `<div class="net-info-row">Stage <strong>${p.stage}</strong> · <span style="color:${color}">${p.presence.toLowerCase()}</span></div>
+        <div class="net-info-row">In ${p.circles}</div>`;
+      return netItem(p.handle, icon, p.handle, info, `togglePeer('${p.handle}')`);
     }).join('') || '<div style="font-size:.66rem;color:var(--muted)">No people yet.</div>';
   }
 
-  // Groups — logo demo; click to expand details
+  // Groups — Follows / Supports lists first, then the actual groups
   const cl = document.getElementById('circles-list');
   if (cl) {
-    const names = state.joinedGroups.concat(Object.keys(state.tags));
-    cl.innerHTML = names.map(name => {
-      const open = state.openGroup === name;
+    const accentIc = key => `<span style="color:var(--accent)">${groupSvg(key)}</span>`;
+    const special = [
+      { name: 'Follows',  key: 'follows',  members: state.follows },
+      { name: 'Supports', key: 'supports', members: state.supports },
+    ].map(g => {
+      const info = `<div class="net-info-row"><strong>${g.members.length}</strong> ${g.name.toLowerCase()}${g.members.length ? ': ' + g.members.join(', ') : ''}</div>`;
+      return netItem(g.name, accentIc(g.key), g.name, info, `toggleGroup('${g.name}')`);
+    }).join('');
+    const existing = state.joinedGroups.concat(Object.keys(state.tags)).map(name => {
       const members = (state.circles[name] || state.tags[name] || []).length;
-      const act = state.groupActions[name] || {};
-      return `<div class="net-item${open ? ' open' : ''}">
-        <div class="net-head" onclick="toggleGroup('${name}')" role="button" tabindex="0" aria-expanded="${open}">
-          <span class="net-ic" style="color:var(--accent)">${groupSvg(name)}</span>
-          <span class="net-name">${name}</span>
-          <span class="net-chevron" aria-hidden="true">▸</span>
-        </div>
-        <div class="net-info"><div class="net-info-inner">
-          <div class="net-info-row"><strong>${members}</strong> member${members !== 1 ? 's' : ''}${state.joinedGroups.includes(name) ? ' · joined' : ''}</div>
-          ${netActions(act.followed, act.supported, `groupAct('${name}','followed')`, `groupAct('${name}','supported')`)}
-        </div></div>
-      </div>`;
-    }).join('') || '<div style="font-size:.66rem;color:var(--muted)">No groups yet.</div>';
+      // Unfollow / Unsupport only on the bookclub group
+      const actions = name === 'bookclub'
+        ? `<div class="net-actions"><button class="net-btn" onclick="removeGroup('${name}')">Unfollow</button><button class="net-btn" onclick="removeGroup('${name}')">Unsupport</button></div>`
+        : '';
+      const info = `<div class="net-info-row"><strong>${members}</strong> member${members !== 1 ? 's' : ''}${state.joinedGroups.includes(name) ? ' · joined' : ''}</div>${actions}`;
+      return netItem(name, accentIc(name), name, info, `toggleGroup('${name}')`);
+    }).join('');
+    cl.innerHTML = special + existing;
+  }
+
+  renderMoreSocial();
+}
+
+// More Social — demo people & groups to follow / support
+function renderMoreSocial() {
+  const mp = document.getElementById('more-people-list');
+  if (mp) {
+    mp.innerHTML = state.morePeople.map(p => {
+      const color = PRESENCE_COLOR[p.presence] || PRESENCE_COLOR.DARK;
+      const icon = `<span style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>`;
+      const info = `<div class="net-info-row">Stage <strong>${p.stage}</strong> · <span style="color:${color}">${p.presence.toLowerCase()}</span></div>
+        ${netActions(state.follows.includes(p.handle), state.supports.includes(p.handle), `followMore('${p.handle}')`, `supportMore('${p.handle}')`)}`;
+      return netItem('more:' + p.handle, icon, p.handle, info, `togglePeer('more:${p.handle}')`);
+    }).join('');
+  }
+  const mg = document.getElementById('more-groups-list');
+  if (mg) {
+    mg.innerHTML = state.moreGroups.map(name => {
+      const icon = `<span style="color:var(--accent)">${groupSvg(name)}</span>`;
+      const info = netActions(state.follows.includes(name), state.supports.includes(name), `followMore('${name}')`, `supportMore('${name}')`);
+      return netItem('more:' + name, icon, name, info, `toggleGroup('more:${name}')`);
+    }).join('');
   }
 }
 

@@ -11,19 +11,19 @@
 <style>
 *{ margin:0; padding:0; box-sizing:border-box; }
 :root{
-  --bg:#f3f4fb; --ink:#16141f; --muted:#6b6f80;
+  --bg:#f3f4fb; --ink:#16141f; --muted:#4a4e5a;
   --line:#e3e5f0; --card:#ffffff; --panel:#edeef7;
-  --accent:#6c5ce7; --accent-soft:#5347c4; --signal:#03a877;
+  --accent:#6c5ce7; --accent-soft:#5347c4; --signal:#02855c;
   --warn:#b9820a; --danger:#dd3b3b;
   --glow-a:rgba(108,92,231,.20); --glow-s:rgba(3,168,119,.16);
   --glass:rgba(255,255,255,.82); --glass-border:rgba(108,92,231,.16);
 }
-html{ scroll-behavior:smooth; }
+html{ scroll-behavior:smooth; font-size:120%; }  /* +20% global type scale */
 body{
   font-family:"Space Mono",ui-monospace,monospace; color:var(--ink);
   background:var(--bg); min-height:100svh;
   -webkit-font-smoothing:antialiased; line-height:1.65; overflow-x:hidden;
-  font-size:14px;
+  font-size:16.8px;
 }
 
 /* ============================================================
@@ -673,11 +673,35 @@ body{
   display:flex; gap:1rem; flex-wrap:wrap; font-size:.63rem;
   justify-content:center; margin-bottom:.9rem;
 }
-.fl-item{ display:flex; align-items:center; gap:.4rem; }
+.fl-item{ display:flex; flex-direction:column; align-items:center; gap:.34rem; }
+.fl-row{ display:flex; align-items:center; gap:.4rem; }
 .fl-dot{
   width:8px; height:8px; border-radius:50%; flex-none;
   box-shadow:0 0 6px 1px currentColor;
 }
+/* per-scope "+" (50% of the 44px global +) */
+.facet-plus{
+  width:22px; height:22px; border-radius:50%; line-height:1;
+  border:1.5px solid var(--accent); background:rgba(108,92,231,.1);
+  color:var(--accent); font-size:.8rem; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .16s, box-shadow .16s, transform .22s;
+}
+.facet-plus:hover{ background:rgba(108,92,231,.2); box-shadow:0 0 12px -4px var(--glow-a); }
+.facet-plus[aria-expanded="true"]{ background:var(--accent); color:#fff; transform:rotate(45deg); }
+.facet-plus:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.facet-info{
+  max-height:0; overflow:hidden; opacity:0;
+  transition:max-height .34s cubic-bezier(.4,0,.2,1), opacity .24s ease;
+}
+.facet-info.open{ max-height:340px; opacity:1; margin-top:.55rem; }
+.facet-info-inner{
+  padding:.8rem 1rem; border-radius:12px;
+  border:1px solid var(--glass-border); background:var(--panel);
+}
+.facet-info-title{ font-size:.72rem; font-weight:700; margin-bottom:.3rem; }
+.facet-info-desc{ font-size:.64rem; color:var(--muted); line-height:1.6; margin-bottom:.6rem; }
+.facet-info-actions{ display:flex; gap:.5rem; flex-wrap:wrap; }
 
 /* ============================================================
    IDENTITY LADDER
@@ -1369,7 +1393,17 @@ body{
 .res-row-ext-top .res-bar-label{ font-size:.62rem; }
 .res-row-ext-top .res-bar-val{ font-size:.7rem; }
 .res-row-ext .res-bar-track{ height:11px; }
-.res-row-ext-desc{ font-size:.58rem; color:rgba(163,167,180,.7); margin-top:.32rem; line-height:1.5; }
+.res-row-ext-desc{ font-size:.58rem; color:var(--muted); margin-top:.32rem; line-height:1.5; }
+
+/* Resources tab — node stats grid */
+.rsc-stats{ display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin:.2rem 0 .3rem; }
+.rsc-stat{
+  display:flex; flex-direction:column; gap:.18rem; padding:.65rem .8rem;
+  border-radius:11px; border:1px solid var(--line); background:var(--card);
+}
+.rsc-stat-label{ font-size:.54rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.rsc-stat-val{ font-size:.85rem; color:var(--ink); font-family:"Fredoka",sans-serif; font-weight:700; }
+.rsc-stat-val strong{ color:var(--signal); }
 
 /* ============================================================
    UPGRADE TAB — invite credits flash + feat-tier expand
@@ -1613,6 +1647,7 @@ body{
       <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('access')"   id="tab-access">Profile</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('invites')"  id="tab-invites">Invites</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Resources</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('trust')"    id="tab-trust">Trust</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"    id="tab-mynet">MyNet</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('economy')"  id="tab-economy">Economy</button>
@@ -1660,6 +1695,120 @@ body{
             </div>
           </div>
 
+        </div><!-- /.access-card-grid -->
+
+      </div>
+    </div>
+
+
+    <!-- INVITES TAB -->
+    <div class="tab-panel" id="panel-invites" role="tabpanel">
+      <div class="vcard">
+
+        <!-- Add invite code (you were invited) — shown expanded -->
+        <button class="upgrade-bar open" id="upgrade-bar-btn" onclick="toggleUpgradeBar()" aria-expanded="true" aria-controls="upgrade-bar-region">
+          <span class="ub-text">Add invite code</span>
+        </button>
+        <div class="upgrade-bar-region open" id="upgrade-bar-region" role="region">
+          <div class="upgrade-bar-inner">
+            <div class="field" style="margin-bottom:.5rem">
+              <label>Enter your invite code</label>
+              <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Invite code">
+            </div>
+            <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem" onclick="tourValidateInvite()">Validate code</button>
+            <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+          </div>
+        </div>
+        <div class="note" style="margin:.25rem 0 1.3rem">Once you are invited by someone you could use this section below for inviting others.</div>
+
+        <!-- ── Invite credits ── -->
+        <div class="sec" style="margin-top:0">Invites</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.7rem;margin-bottom:.5rem">
+          <!-- Credit counter — clicking toggles the renew hint above it -->
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.2rem">
+            <div id="invite-renew-hint" style="display:none;font-size:.6rem;color:var(--muted);padding:.22rem .65rem;border-radius:7px;background:rgba(141,137,255,.07);border:1px solid rgba(141,137,255,.18);line-height:1.4">Renews 3 more the first day of the next month.</div>
+            <button id="invite-credits-btn" onclick="toggleInviteRenew()" aria-label="Toggle invite-renewal info"
+              style="background:none;border:none;cursor:pointer;padding:0;font:inherit;text-align:left">
+              <span class="sbadge" id="invite-credits-chip" style="cursor:pointer">2 / 3 left</span>
+            </button>
+          </div>
+          <!-- Generate button + code, below the credits counter -->
+          <div style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap">
+            <button class="btn ghost" onclick="generateInvite()">Generate</button>
+            <span id="invite-generated-code" style="display:none;font-family:'Space Mono',monospace;font-size:.82rem;color:var(--signal);letter-spacing:.12em;text-shadow:0 0 12px rgba(0,247,167,.5);padding:.3rem .7rem;border-radius:8px;border:1px solid rgba(0,247,167,.3);background:rgba(0,247,167,.06)"></span>
+          </div>
+        </div>
+        <div id="invite-action-msg" style="font-size:.64rem;color:var(--muted);margin-bottom:.6rem"></div>
+
+        <!-- ── Invite web ── -->
+        <div class="invite-web-wrap">
+        <svg viewBox="0 0 400 260" width="100%" height="auto" aria-label="Invite lineage tree" style="max-height:240px;padding:1rem;display:block">
+          <defs>
+            <!-- Glow filter for "you" node -->
+            <filter id="glow-you" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <!-- Subtle glow for invitee nodes -->
+            <filter id="glow-node" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Parent connector -->
+          <line x1="200" y1="52" x2="200" y2="95" stroke="#8d89ff" stroke-width="1.5" opacity=".55"/>
+
+          <!-- Parent node -->
+          <circle cx="200" cy="36" r="15" fill="rgba(141,137,255,.08)" stroke="#8d89ff" stroke-width="1.5" opacity=".7"/>
+          <text x="200" y="40" text-anchor="middle" fill="#a3a7b4" font-size="7.5" font-family="Space Mono">parent</text>
+
+          <!-- Solid lineage lines (you → invitees) -->
+          <line x1="200" y1="112" x2="100" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+          <line x1="200" y1="112" x2="200" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+          <line x1="200" y1="112" x2="300" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+
+          <!-- You (marcflove) — glowing hero node -->
+          <circle cx="200" cy="98" r="20" fill="rgba(0,247,167,.18)" stroke="#00f7a7" stroke-width="2.5" filter="url(#glow-you)"/>
+          <circle cx="200" cy="98" r="14" fill="rgba(0,247,167,.1)"/>
+          <text x="200" y="94" text-anchor="middle" fill="#00f7a7" font-size="7" font-family="Space Mono" font-weight="700">marc</text>
+          <text x="200" y="104" text-anchor="middle" fill="#00f7a7" font-size="6.5" font-family="Space Mono">flove</text>
+
+          <!-- Invitee nodes -->
+          <circle cx="100" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+          <text x="100" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">alice</text>
+
+          <circle cx="200" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+          <text x="200" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">bob</text>
+
+          <circle cx="300" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+          <text x="300" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">carol</text>
+
+          <!-- Vouch threads (faint dashed) -->
+          <line x1="113" y1="180" x2="187" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
+          <line x1="213" y1="180" x2="287" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
+          <line x1="113" y1="176" x2="287" y2="176" stroke="#00f7a7" stroke-width="1" stroke-dasharray="3 6" opacity=".18"/>
+
+          <!-- Co-signed label -->
+          <text x="200" y="212" text-anchor="middle" fill="rgba(90,94,114,.7)" font-size="6.5" font-family="Space Mono" letter-spacing=".5">co-signed vouch threads</text>
+        </svg>
+        </div>
+
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem">
+          <button class="btn ghost" onclick="revokeInvite()">Revoke</button>
+          <button class="btn danger" onclick="disownInvite()">Disown (−10 local)</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- EXTENSIONS TAB -->
+    <div class="tab-panel" id="panel-extensions" role="tabpanel">
+      <div class="vcard">        <div id="upgrade-feat-ladder" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;position:relative">
+          <!-- Populated by buildFeatureTiers() -->
+        </div>
+
+        <div class="access-card-grid" style="margin-top:1.4rem">
           <!-- B: Extend profile (was Authenticate) -->
           <div class="expandable-card" id="tc-B">
             <div class="ec-header" onclick="toggleTourCard('B')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-B-body">
@@ -1787,124 +1936,59 @@ body{
                 <span id="tc-C-progress" style="display:none">known (10⭐)</span>
               </div>
             </div>
-          </div>
-
-        </div><!-- /.access-card-grid -->
-
+          </div>        </div><!-- /.access-card-grid -->
       </div>
     </div>
 
-
-    <!-- INVITES TAB -->
-    <div class="tab-panel" id="panel-invites" role="tabpanel">
+    <!-- RESOURCES TAB -->
+    <div class="tab-panel" id="panel-resources" role="tabpanel">
       <div class="vcard">
+        <div class="sec" style="margin-top:0">Share resources</div>
+        <p style="font-size:.7rem;color:var(--muted);margin-bottom:.85rem;line-height:1.6">Your node lends compute, storage and bandwidth to the mesh — the most important way to keep nety alive. Open to anyone, no invite needed. Pick a preset, direct your share, then donate.</p>
 
-        <!-- Add invite code (you were invited) — shown expanded -->
-        <button class="upgrade-bar open" id="upgrade-bar-btn" onclick="toggleUpgradeBar()" aria-expanded="true" aria-controls="upgrade-bar-region">
-          <span class="ub-text">Add invite code</span>
-        </button>
-        <div class="upgrade-bar-region open" id="upgrade-bar-region" role="region">
-          <div class="upgrade-bar-inner">
-            <div class="field" style="margin-bottom:.5rem">
-              <label>Enter your invite code</label>
-              <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Invite code">
-            </div>
-            <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem" onclick="tourValidateInvite()">Validate code</button>
-            <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+        <div class="res-presets" id="rsc-res-presets">
+          <button class="res-preset-btn" data-preset="light" onclick="setResourcePreset('light')">Light</button>
+          <button class="res-preset-btn" data-preset="balanced" onclick="setResourcePreset('balanced')">Balanced</button>
+          <button class="res-preset-btn" data-preset="max" onclick="setResourcePreset('max')">Max</button>
+        </div>
+        <div class="res-bars-ext">
+          <div class="res-row-ext">
+            <div class="res-row-ext-top"><span class="res-bar-label">CPU</span><span class="res-bar-val" id="rsc-res-val-cpu">0%</span></div>
+            <div class="res-bar-track"><div class="res-bar-fill" id="rsc-res-fill-cpu"></div></div>
+            <div class="res-row-ext-desc">Compute cycles lent to mesh tasks and relays.</div>
+          </div>
+          <div class="res-row-ext">
+            <div class="res-row-ext-top"><span class="res-bar-label">GPU</span><span class="res-bar-val" id="rsc-res-val-gpu">0%</span></div>
+            <div class="res-bar-track"><div class="res-bar-fill" id="rsc-res-fill-gpu"></div></div>
+            <div class="res-row-ext-desc">Parallel work — inference, transcoding, rendering.</div>
+          </div>
+          <div class="res-row-ext">
+            <div class="res-row-ext-top"><span class="res-bar-label">RAM</span><span class="res-bar-val" id="rsc-res-val-ram">0%</span></div>
+            <div class="res-bar-track"><div class="res-bar-fill" id="rsc-res-fill-ram"></div></div>
+            <div class="res-row-ext-desc">Memory held for caching and in-flight peer data.</div>
           </div>
         </div>
-        <div class="note" style="margin:.25rem 0 1.3rem">Once you are invited by someone you could use this section below for inviting others.</div>
 
-        <!-- ── Invite credits ── -->
-        <div class="sec" style="margin-top:0">Invites</div>
-        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.7rem;margin-bottom:.5rem">
-          <!-- Credit counter — clicking toggles the renew hint above it -->
-          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.2rem">
-            <div id="invite-renew-hint" style="display:none;font-size:.6rem;color:var(--muted);padding:.22rem .65rem;border-radius:7px;background:rgba(141,137,255,.07);border:1px solid rgba(141,137,255,.18);line-height:1.4">Renews 3 more the first day of the next month.</div>
-            <button id="invite-credits-btn" onclick="toggleInviteRenew()" aria-label="Toggle invite-renewal info"
-              style="background:none;border:none;cursor:pointer;padding:0;font:inherit;text-align:left">
-              <span class="sbadge" id="invite-credits-chip" style="cursor:pointer">2 / 3 left</span>
-            </button>
-          </div>
-          <!-- Generate button + code, below the credits counter -->
-          <div style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap">
-            <button class="btn ghost" onclick="generateInvite()">Generate</button>
-            <span id="invite-generated-code" style="display:none;font-family:'Space Mono',monospace;font-size:.82rem;color:var(--signal);letter-spacing:.12em;text-shadow:0 0 12px rgba(0,247,167,.5);padding:.3rem .7rem;border-radius:8px;border:1px solid rgba(0,247,167,.3);background:rgba(0,247,167,.06)"></span>
-          </div>
-        </div>
-        <div id="invite-action-msg" style="font-size:.64rem;color:var(--muted);margin-bottom:.6rem"></div>
-
-        <!-- ── Invite web ── -->
-        <div class="invite-web-wrap">
-        <svg viewBox="0 0 400 260" width="100%" height="auto" aria-label="Invite lineage tree" style="max-height:240px;padding:1rem;display:block">
-          <defs>
-            <!-- Glow filter for "you" node -->
-            <filter id="glow-you" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <!-- Subtle glow for invitee nodes -->
-            <filter id="glow-node" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          <!-- Parent connector -->
-          <line x1="200" y1="52" x2="200" y2="95" stroke="#8d89ff" stroke-width="1.5" opacity=".55"/>
-
-          <!-- Parent node -->
-          <circle cx="200" cy="36" r="15" fill="rgba(141,137,255,.08)" stroke="#8d89ff" stroke-width="1.5" opacity=".7"/>
-          <text x="200" y="40" text-anchor="middle" fill="#a3a7b4" font-size="7.5" font-family="Space Mono">parent</text>
-
-          <!-- Solid lineage lines (you → invitees) -->
-          <line x1="200" y1="112" x2="100" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
-          <line x1="200" y1="112" x2="200" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
-          <line x1="200" y1="112" x2="300" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
-
-          <!-- You (marcflove) — glowing hero node -->
-          <circle cx="200" cy="98" r="20" fill="rgba(0,247,167,.18)" stroke="#00f7a7" stroke-width="2.5" filter="url(#glow-you)"/>
-          <circle cx="200" cy="98" r="14" fill="rgba(0,247,167,.1)"/>
-          <text x="200" y="94" text-anchor="middle" fill="#00f7a7" font-size="7" font-family="Space Mono" font-weight="700">marc</text>
-          <text x="200" y="104" text-anchor="middle" fill="#00f7a7" font-size="6.5" font-family="Space Mono">flove</text>
-
-          <!-- Invitee nodes -->
-          <circle cx="100" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
-          <text x="100" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">alice</text>
-
-          <circle cx="200" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
-          <text x="200" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">bob</text>
-
-          <circle cx="300" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
-          <text x="300" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">carol</text>
-
-          <!-- Vouch threads (faint dashed) -->
-          <line x1="113" y1="180" x2="187" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
-          <line x1="213" y1="180" x2="287" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
-          <line x1="113" y1="176" x2="287" y2="176" stroke="#00f7a7" stroke-width="1" stroke-dasharray="3 6" opacity=".18"/>
-
-          <!-- Co-signed label -->
-          <text x="200" y="212" text-anchor="middle" fill="rgba(90,94,114,.7)" font-size="6.5" font-family="Space Mono" letter-spacing=".5">co-signed vouch threads</text>
-        </svg>
+        <div class="sec">This node</div>
+        <div class="rsc-stats">
+          <div class="rsc-stat"><span class="rsc-stat-label">Contributed</span><span class="rsc-stat-val"><strong id="rsc-cu">5</strong> CU</span></div>
+          <div class="rsc-stat"><span class="rsc-stat-label">Uptime</span><span class="rsc-stat-val">99.2%</span></div>
+          <div class="rsc-stat"><span class="rsc-stat-label">Peers served</span><span class="rsc-stat-val">12</span></div>
+          <div class="rsc-stat"><span class="rsc-stat-label">Est. monthly</span><span class="rsc-stat-val">~40 ⭐</span></div>
         </div>
 
-        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem">
-          <button class="btn ghost" onclick="revokeInvite()">Revoke</button>
-          <button class="btn danger" onclick="disownInvite()">Disown (−10 local)</button>
+        <div class="sec">Direct your share</div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;font-size:.68rem;margin-bottom:.3rem">
+          <span style="color:var(--muted)">Priority:</span>
+          <select class="perm-select" id="rsc-target" aria-label="Share priority">
+            <option value="mesh">Whole mesh</option>
+            <option value="mynet">MyNet first</option>
+            <option value="close">Close circle</option>
+          </select>
         </div>
+        <div class="note">Idle resources are reclaimed instantly when you need them — your apps always take priority over mesh tasks.</div>
 
-      </div>
-    </div>
-
-    <!-- EXTENSIONS TAB -->
-    <div class="tab-panel" id="panel-extensions" role="tabpanel">
-      <div class="vcard">
-        <!-- ── Feature tiers ── -->
-        <div class="sec" style="margin-top:0">Feature tiers</div>
-        <p style="font-size:.64rem;color:var(--muted);margin-bottom:.75rem;line-height:1.65">Tiers unlock features — independent of your activity stage. Your stage sets the ceiling; within it you can use everything below. Click a tier to expand its feature list.</p>
-        <div id="upgrade-feat-ladder" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;position:relative">
-          <!-- Populated by buildFeatureTiers() -->
-        </div>
+        <button class="btn signal" style="width:100%;justify-content:center;margin-top:.9rem" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
       </div>
     </div>
 
@@ -1960,21 +2044,63 @@ body{
 
         <div class="facet-legend">
           <span class="fl-item">
-            <span class="fl-dot" style="background:#00f7a7;color:#00f7a7"></span>
-            <span style="color:var(--signal)">Personal: <strong id="tr-p">0</strong></span>
+            <span class="fl-row"><span class="fl-dot" style="background:#00f7a7;color:#00f7a7"></span><span style="color:var(--signal)">Personal: <strong id="tr-p">0</strong></span></span>
+            <button class="facet-plus" onclick="toggleFacetInfo('personal')" aria-expanded="false" aria-controls="facet-info-personal" aria-label="How to raise Personal trust">+</button>
           </span>
           <span class="fl-item">
-            <span class="fl-dot" style="background:#c9c6ff;color:#c9c6ff"></span>
-            <span style="color:var(--accent-soft)">Local: <strong id="tr-l">30</strong></span>
+            <span class="fl-row"><span class="fl-dot" style="background:#c9c6ff;color:#c9c6ff"></span><span style="color:var(--accent-soft)">Local: <strong id="tr-l">30</strong></span></span>
+            <button class="facet-plus" onclick="toggleFacetInfo('local')" aria-expanded="false" aria-controls="facet-info-local" aria-label="How to raise Local trust">+</button>
           </span>
           <span class="fl-item">
-            <span class="fl-dot" style="background:#8d89ff;color:#8d89ff"></span>
-            <span style="color:var(--accent)">Social: <strong id="tr-s">20</strong></span>
+            <span class="fl-row"><span class="fl-dot" style="background:#8d89ff;color:#8d89ff"></span><span style="color:var(--accent)">Social: <strong id="tr-s">20</strong></span></span>
+            <button class="facet-plus" onclick="toggleFacetInfo('social')" aria-expanded="false" aria-controls="facet-info-social" aria-label="How to raise Social trust">+</button>
           </span>
           <span class="fl-item">
-            <span class="fl-dot" style="background:#6e6adb;color:#6e6adb;opacity:.75"></span>
-            <span style="color:#8d89ff;opacity:.8">Global: <strong id="tr-g">15</strong></span>
+            <span class="fl-row"><span class="fl-dot" style="background:#6e6adb;color:#6e6adb;opacity:.75"></span><span style="color:#8d89ff;opacity:.8">Global: <strong id="tr-g">15</strong></span></span>
+            <button class="facet-plus" onclick="toggleFacetInfo('global')" aria-expanded="false" aria-controls="facet-info-global" aria-label="How to raise Global trust">+</button>
           </span>
+        </div>
+
+        <!-- per-scope info + suggested actions -->
+        <div id="facet-info-personal" class="facet-info" role="region" aria-label="Raise Personal trust">
+          <div class="facet-info-inner">
+            <div class="facet-info-title" style="color:var(--signal)">Personal — prove you're a real, unique human</div>
+            <div class="facet-info-desc">The innermost ring. Verified identity links and social profiles raise it. Telegram is the minimum to unlock publishing.</div>
+            <div class="facet-info-actions">
+              <button class="btn signal" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('extensions')">Link identity →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('extensions')">Add social profiles →</button>
+            </div>
+          </div>
+        </div>
+        <div id="facet-info-local" class="facet-info" role="region" aria-label="Raise Local trust">
+          <div class="facet-info-inner">
+            <div class="facet-info-title" style="color:var(--accent-soft)">Local — trust from people close to you</div>
+            <div class="facet-info-desc">Grows when nearby peers vouch for you face-to-face and the people you invite stay active in your circles.</div>
+            <div class="facet-info-actions">
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('mynet')">Meet peers f2f →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('invites')">Invite well →</button>
+            </div>
+          </div>
+        </div>
+        <div id="facet-info-social" class="facet-info" role="region" aria-label="Raise Social trust">
+          <div class="facet-info-inner">
+            <div class="facet-info-title" style="color:var(--accent)">Social — reach across the wider network</div>
+            <div class="facet-info-desc">Builds as you receive vouches across circles and publish content other members engage with.</div>
+            <div class="facet-info-actions">
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('mynet')">Grow your net →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('publish')">Publish content →</button>
+            </div>
+          </div>
+        </div>
+        <div id="facet-info-global" class="facet-info" role="region" aria-label="Raise Global trust">
+          <div class="facet-info-inner">
+            <div class="facet-info-title" style="color:#8d89ff">Global — contribution to the whole mesh</div>
+            <div class="facet-info-desc">The outermost ring. Share hardware (CPU/GPU/RAM) and publish approved content to raise it.</div>
+            <div class="facet-info-actions">
+              <button class="btn signal" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('resources')">Share resources →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('publish')">Publish content →</button>
+            </div>
+          </div>
         </div>
 
         <!-- "+" button: 3 ways to increase stats -->
@@ -2473,14 +2599,14 @@ function renderResources() {
   ['cpu','gpu','ram'].forEach(k => {
     const meta = RESOURCE_META[k];
     const amount = Math.round(r[k] / 100 * meta.max);
-    ['res','eco-res'].forEach(pfx => {
+    ['res','eco-res','rsc-res'].forEach(pfx => {
       const f = document.getElementById(pfx + '-fill-' + k);
       if (f) f.style.width = r[k] + '%';
       const v = document.getElementById(pfx + '-val-' + k);
       if (v) v.textContent = amount + ' ' + meta.unit;
     });
   });
-  ['res-presets','eco-res-presets'].forEach(gid => {
+  ['res-presets','eco-res-presets','rsc-res-presets'].forEach(gid => {
     const g = document.getElementById(gid);
     if (!g) return;
     g.querySelectorAll('.res-preset-btn').forEach(b => {
@@ -2533,6 +2659,24 @@ function toggleStatWays() {
     panel.style.opacity   = '1';
     panel.setAttribute('aria-hidden', 'false');
     btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+// Per-scope trust info — one open at a time
+function toggleFacetInfo(facet) {
+  const facets = ['personal','local','social','global'];
+  const target = document.getElementById('facet-info-' + facet);
+  const wasOpen = target && target.classList.contains('open');
+  facets.forEach(f => {
+    const p = document.getElementById('facet-info-' + f);
+    const b = document.querySelector('[aria-controls="facet-info-' + f + '"]');
+    if (p) p.classList.remove('open');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  });
+  if (target && !wasOpen) {
+    target.classList.add('open');
+    const btn = document.querySelector('[aria-controls="facet-info-' + facet + '"]');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
   }
 }
 
@@ -3071,6 +3215,7 @@ function render() {
   setTxt('acc-handle', state.handle);
   setTxt('acc-hw', state.contributions + ' CU');
   setTxt('tc-D-cu', state.contributions);
+  setTxt('rsc-cu', state.contributions);
   renderResources();
   setTxt('acc-ids', state.linkedIdentities.join(', ') || 'none');
   const accPres = document.getElementById('acc-presence');

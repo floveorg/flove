@@ -1220,7 +1220,7 @@ body{
   max-height:0; overflow:hidden; opacity:0;
   transition:max-height .36s cubic-bezier(.4,0,.2,1), opacity .26s ease;
 }
-.profile-card.open .profile-card-expand{ max-height:240px; opacity:1; }
+.profile-card.open .profile-card-expand{ max-height:460px; opacity:1; }
 .profile-card-expand-inner{
   padding:.1rem 1rem .9rem;
   border-top:1px solid rgba(0,247,167,.12);
@@ -1271,6 +1271,46 @@ body{
   white-space:nowrap;
 }
 .saved-link-item .sl-pub-btn:hover{ background:rgba(141,137,255,.16); border-color:var(--accent); }
+
+/* Upgrade bar — short, full-width button above the cards */
+.upgrade-bar{
+  width:100%; display:flex; align-items:center; gap:.6rem;
+  padding:.55rem 1rem; margin-bottom:.85rem;
+  border-radius:11px; cursor:pointer;
+  border:1px solid rgba(141,137,255,.4);
+  background:linear-gradient(100deg, rgba(141,137,255,.14) 0%, rgba(0,247,167,.08) 100%);
+  color:var(--ink); font-family:"Space Mono",monospace; font-size:.68rem; letter-spacing:.03em;
+  transition:border-color .2s, box-shadow .2s, background .2s;
+  position:relative; overflow:hidden;
+}
+.upgrade-bar:hover{
+  border-color:var(--accent);
+  box-shadow:0 0 18px -5px var(--glow-a);
+  background:linear-gradient(100deg, rgba(141,137,255,.2) 0%, rgba(0,247,167,.12) 100%);
+}
+.upgrade-bar:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.upgrade-bar .ub-icon{ font-size:.85rem; color:var(--accent-soft); flex-none; }
+.upgrade-bar .ub-text{ flex:1; text-align:left; font-weight:700; }
+.upgrade-bar .ub-chevron{ font-size:.65rem; color:var(--accent); opacity:.75; transition:transform .26s cubic-bezier(.4,0,.2,1); flex-none; }
+.upgrade-bar.open .ub-chevron{ transform:rotate(90deg); opacity:1; }
+.upgrade-bar-region{
+  max-height:0; overflow:hidden; opacity:0;
+  transition:max-height .36s cubic-bezier(.4,0,.2,1), opacity .26s ease;
+}
+.upgrade-bar-region.open{ max-height:300px; opacity:1; }
+.upgrade-bar-inner{
+  padding:.2rem .2rem 1rem;
+}
+
+/* Extend-profile card body — chips/new-field left, social right */
+.extend-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:1rem;
+}
+@media (max-width:560px){ .extend-grid{ grid-template-columns:1fr; } }
+.extend-col-label{
+  font-size:.56rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:.5rem; font-family:"Space Mono",monospace;
+}
 
 /* ============================================================
    UPGRADE TAB — invite credits flash + feat-tier expand
@@ -1342,7 +1382,7 @@ body{
   #stat-ways-panel{ transition:none !important; }
   .profile-card-expand{ transition:none !important; }
   .profile-card:not(.open) .profile-card-expand{ max-height:0; opacity:0; }
-  .profile-card.open .profile-card-expand{ max-height:240px; opacity:1; }
+  .profile-card.open .profile-card-expand{ max-height:460px; opacity:1; }
 }
 </style>
 </head>
@@ -1518,11 +1558,28 @@ body{
     <div class="tab-panel active" id="panel-access" role="tabpanel">
       <div class="vcard">
 
+        <!-- Upgrade: short, full-width button above the cards -->
+        <button class="upgrade-bar" id="upgrade-bar-btn" onclick="toggleUpgradeBar()" aria-expanded="false" aria-controls="upgrade-bar-region">
+          <span class="ub-icon" aria-hidden="true">⤴</span>
+          <span class="ub-text">Upgrade — enter an invite code for a faster start</span>
+          <span class="ub-chevron" aria-hidden="true">▸</span>
+        </button>
+        <div class="upgrade-bar-region" id="upgrade-bar-region" role="region">
+          <div class="upgrade-bar-inner">
+            <div class="field" style="margin-bottom:.5rem">
+              <label>Enter your invite code</label>
+              <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Invite code">
+            </div>
+            <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem" onclick="tourValidateInvite()">Validate code</button>
+            <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+            <div class="note" style="margin-top:.6rem">Fast entry — your inviter's standing lightly transfers to you, giving you a warmer start.</div>
+          </div>
+        </div>
+
         <!-- ── Access card set ── -->
-        <div class="sec" style="margin-top:0">Your access</div>
         <div class="access-card-grid">
 
-          <!-- marcflove profile card — highlighted (it's you) -->
+          <!-- marcflove profile card — top-left, it's you -->
           <div class="profile-card" id="pc-marcflove">
             <div class="profile-card-header" onclick="toggleProfileCard()" role="button" tabindex="0" aria-expanded="false" aria-controls="pc-marcflove-expand" aria-label="Your profile card — expand for details">
               <div class="profily-handle" style="font-size:1rem">@<span id="pc-handle">marcflove</span></div>
@@ -1541,77 +1598,84 @@ body{
                 <div class="pc-row">Circles: <strong>close · friends · mynet</strong></div>
                 <div class="pc-row">Joined: <strong>2026-01</strong></div>
                 <div class="pc-row">Stars: <strong id="pc-stars">42</strong> ⭐</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- A: Upgrade (was "Add Basic code") -->
-          <div class="expandable-card" id="tc-A">
-            <div class="ec-header" onclick="toggleTourCard('A')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-A-body">
-              <span class="ec-id">A</span>
-              <span class="ec-title">Upgrade</span>
-              <span class="ec-summary">A member shares a token. Fast, lineage-tracked.</span>
-              <span class="ec-chevron" aria-hidden="true">▸</span>
-            </div>
-            <div class="ec-body" id="tc-A-body" role="region">
-              <div class="ec-inner">
-                <div class="field" style="margin-bottom:.5rem">
-                  <label>Enter your invite code</label>
-                  <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Tour invite code">
+                <!-- moved here from Registration -->
+                <div class="field" style="margin-top:.55rem">
+                  <label>Handle</label>
+                  <input type="text" id="reg-handle" value="marcflove" aria-label="Handle" oninput="updateHandle(this.value)">
                 </div>
-                <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem" onclick="tourValidateInvite()">Validate code</button>
-                <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
-                <div class="note" style="margin-top:.6rem">Fast entry — your inviter's standing lightly transfers to you, giving you a warmer start.</div>
+                <div class="field" style="margin-top:.45rem">
+                  <label>Keypair (mock)</label>
+                  <input type="text" readonly value="pub:Ed25519·8f3c…a92d / priv:••••••••" style="color:var(--muted)" aria-label="Mock keypair">
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- B: Authenticate -->
+          <!-- B: Extend profile (was Authenticate) -->
           <div class="expandable-card" id="tc-B">
             <div class="ec-header" onclick="toggleTourCard('B')" role="button" tabindex="0" aria-expanded="false" aria-controls="tc-B-body">
               <span class="ec-id">B</span>
-              <span class="ec-title">Authenticate</span>
-              <span class="ec-summary">Link Telegram, email, phone, or biometrics. Builds personal facet.</span>
+              <span class="ec-title">Extend profile</span>
+              <span class="ec-summary">Link identities and social profiles — each raises your Personal facet.</span>
               <span class="ec-chevron" aria-hidden="true">▸</span>
             </div>
             <div class="ec-body" id="tc-B-body" role="region">
               <div class="ec-inner">
-                <p style="font-size:.66rem;color:var(--muted);margin-bottom:.6rem">Toggle identity links — each raises your Personal facet. Telegram is the verified minimum for publishing.</p>
-                <div style="display:flex;flex-direction:column;gap:.35rem" id="tc-B-toggles">
-                  <div class="toggle-row" id="tc-tog-telegram" onclick="tcLinkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram">
-                    <span class="rung-icon">✈</span><span class="toggle-name">Telegram <span style="font-size:.58rem;color:var(--signal)">✦ publish gate</span></span>
-                    <div class="toggle-switch"></div>
+                <div class="extend-grid">
+                  <!-- LEFT: identity ladder chips + new field + links -->
+                  <div class="extend-col">
+                    <div class="extend-col-label">Identity ladder</div>
+                    <div class="id-ladder">
+                      <div class="id-rung" id="rung-social-link">
+                        <span class="rung-icon">🔗</span>
+                        <span class="rung-name">Social link</span>
+                        <span class="rung-status">base level</span>
+                      </div>
+                      <div class="id-rung" id="rung-telegram" onclick="linkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram" style="cursor:pointer">
+                        <span class="rung-icon">✈</span>
+                        <span class="rung-name">Telegram ✦</span>
+                        <span class="rung-status" id="rung-tel-status">click to link · unlocks publish</span>
+                      </div>
+                      <div class="id-rung" id="rung-phone" onclick="linkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone" style="cursor:pointer">
+                        <span class="rung-icon">📱</span>
+                        <span class="rung-name">Phone</span>
+                        <span class="rung-status" id="rung-phone-status">click to link</span>
+                      </div>
+                      <div class="id-rung" id="rung-bio" onclick="linkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics" style="cursor:pointer">
+                        <span class="rung-icon">👁</span>
+                        <span class="rung-name">Biometrics</span>
+                        <span class="rung-status" id="rung-bio-status">click to link</span>
+                      </div>
+                    </div>
+                    <!-- new field -->
+                    <div class="field" style="margin-top:.7rem">
+                      <label>Display name</label>
+                      <input type="text" id="ep-display-name" placeholder="how you appear to others" aria-label="Display name">
+                    </div>
+                    <!-- add-a-link control (moved here) -->
+                    <div class="add-link-row" id="add-link-row">
+                      <input type="text" id="add-link-input" placeholder="add a link (e.g. https://…)" aria-label="Add a link">
+                      <button class="btn ghost" style="font-size:.64rem;padding:.44rem .9rem;flex-none" onclick="saveLink()">Save</button>
+                    </div>
+                    <div class="saved-links-list" id="saved-links-list" aria-live="polite"></div>
                   </div>
-                  <div class="toggle-row" id="tc-tog-email" onclick="tcLinkIdentity('email')" role="button" tabindex="0" aria-label="Link email">
-                    <span class="rung-icon">✉</span><span class="toggle-name">Email</span>
-                    <div class="toggle-switch"></div>
+                  <!-- RIGHT: social profiles -->
+                  <div class="extend-col">
+                    <div class="extend-col-label">Social profiles</div>
+                    <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap" id="tc-B-social-row">
+                      <select id="tc-B-social-platform" aria-label="Social platform" style="font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:.38rem .6rem;outline:none;cursor:pointer;transition:border-color .18s">
+                        <option value="instagram">Instagram</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="x">X / Twitter</option>
+                        <option value="github">GitHub</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="mastodon">Mastodon</option>
+                      </select>
+                      <input type="text" id="tc-B-social-handle" placeholder="handle or link" aria-label="Social handle or link" style="font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:.38rem .7rem;outline:none;flex:1;min-width:90px;transition:border-color .18s" onkeydown="if(event.key==='Enter')tcAddSocialProfile()">
+                      <button class="btn ghost" style="font-size:.62rem;padding:.38rem .75rem;flex-none" onclick="tcAddSocialProfile()">Add</button>
+                    </div>
+                    <div id="tc-B-social-list" style="margin-top:.45rem;display:flex;flex-direction:column;gap:.28rem"></div>
                   </div>
-                  <div class="toggle-row" id="tc-tog-phone" onclick="tcLinkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone">
-                    <span class="rung-icon">📱</span><span class="toggle-name">Phone</span>
-                    <div class="toggle-switch"></div>
-                  </div>
-                  <div class="toggle-row" id="tc-tog-biometrics" onclick="tcLinkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics">
-                    <span class="rung-icon">👁</span><span class="toggle-name">Biometrics</span>
-                    <div class="toggle-switch"></div>
-                  </div>
-                </div>
-                <div id="tc-B-msg" style="margin-top:.5rem;font-size:.64rem;color:var(--muted)"></div>
-                <!-- Social profile linker -->
-                <div style="margin-top:.85rem;border-top:1px solid rgba(255,255,255,.05);padding-top:.75rem">
-                  <div style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Social profiles</div>
-                  <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap" id="tc-B-social-row">
-                    <select id="tc-B-social-platform" aria-label="Social platform" style="font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:.38rem .6rem;outline:none;cursor:pointer;transition:border-color .18s">
-                      <option value="instagram">Instagram</option>
-                      <option value="linkedin">LinkedIn</option>
-                      <option value="x">X / Twitter</option>
-                      <option value="github">GitHub</option>
-                      <option value="tiktok">TikTok</option>
-                      <option value="mastodon">Mastodon</option>
-                    </select>
-                    <input type="text" id="tc-B-social-handle" placeholder="handle or link" aria-label="Social handle or link" style="font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(10,10,14,.85);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:.38rem .7rem;outline:none;flex:1;min-width:90px;transition:border-color .18s" onkeydown="if(event.key==='Enter')tcAddSocialProfile()">
-                    <button class="btn ghost" style="font-size:.62rem;padding:.38rem .75rem;flex-none" onclick="tcAddSocialProfile()">Add</button>
-                  </div>
-                  <div id="tc-B-social-list" style="margin-top:.45rem;display:flex;flex-direction:column;gap:.28rem"></div>
                 </div>
               </div>
             </div>
@@ -1641,8 +1705,7 @@ body{
 
         </div><!-- /.access-card-grid -->
 
-        <div class="sec">Passport</div>
-        <div class="profily-mini">
+        <div class="profily-mini" style="margin-top:.4rem">
           <div class="profily-handle">@<span id="acc-handle">marcflove</span></div>
           <div class="profily-peer">peer: nety:p2p:7e3a9c…f12b4</div>
           <div class="profily-hw">hardware: <span id="acc-hw">5 CU</span> · linked: <span id="acc-ids">none</span></div>
@@ -1652,8 +1715,7 @@ body{
           </div>
         </div>
 
-        <div class="sec">Entry path</div>
-        <div class="path-grid" id="access-paths">
+        <div class="path-grid" id="access-paths" style="margin-top:.6rem">
           <div class="path-card" onclick="selectPath('invite')" id="path-invite">
             <div class="path-id">A</div>
             <div class="path-name">Add Basic code</div>
@@ -1723,47 +1785,6 @@ body{
           <div class="note">A curator must approve your admission. Contact a known curator through your network.</div>
         </div>
 
-        <div class="sec">Identity ladder</div>
-        <p style="font-size:.64rem;color:var(--muted);margin-bottom:.6rem;line-height:1.6">Link identities to raise your Personal facet score and unlock gated features like publishing.</p>
-        <div class="id-ladder">
-          <div class="id-rung" id="rung-social-link">
-            <span class="rung-icon">🔗</span>
-            <span class="rung-name">Social link</span>
-            <span class="rung-status">base level</span>
-          </div>
-          <div class="id-rung" id="rung-telegram" onclick="linkIdentity('telegram')" role="button" tabindex="0" aria-label="Link Telegram" style="cursor:pointer">
-            <span class="rung-icon">✈</span>
-            <span class="rung-name">Telegram ✦</span>
-            <span class="rung-status" id="rung-tel-status">click to link · unlocks publish</span>
-          </div>
-          <div class="id-rung" id="rung-phone" onclick="linkIdentity('phone')" role="button" tabindex="0" aria-label="Link phone" style="cursor:pointer">
-            <span class="rung-icon">📱</span>
-            <span class="rung-name">Phone</span>
-            <span class="rung-status" id="rung-phone-status">click to link</span>
-          </div>
-          <div class="id-rung" id="rung-bio" onclick="linkIdentity('biometrics')" role="button" tabindex="0" aria-label="Link biometrics" style="cursor:pointer">
-            <span class="rung-icon">👁</span>
-            <span class="rung-name">Biometrics</span>
-            <span class="rung-status" id="rung-bio-status">click to link</span>
-          </div>
-        </div>
-
-        <!-- Add a link control -->
-        <div class="add-link-row" id="add-link-row">
-          <input type="text" id="add-link-input" placeholder="add a link (e.g. https://…)" aria-label="Add a link">
-          <button class="btn ghost" style="font-size:.64rem;padding:.44rem .9rem;flex-none" onclick="saveLink()">Save</button>
-        </div>
-        <div class="saved-links-list" id="saved-links-list" aria-live="polite"></div>
-
-        <div class="sec">Registration</div>
-        <div class="field">
-          <label>Handle</label>
-          <input type="text" id="reg-handle" value="marcflove" aria-label="Handle" oninput="updateHandle(this.value)">
-        </div>
-        <div class="field" style="margin-top:.5rem">
-          <label>Keypair (mock)</label>
-          <input type="text" readonly value="pub:Ed25519·8f3c…a92d / priv:••••••••" style="color:var(--muted)" aria-label="Mock keypair">
-        </div>
       </div>
     </div>
 
@@ -2171,9 +2192,7 @@ body{
       <div class="vcard">
         <div id="publish-locked-note" class="note warn" style="margin-bottom:.7rem">Publish is locked. Link Telegram in Trust tab to unlock.</div>
 
-        <div class="sec">Submit content</div>
         <div class="field">
-          <label>Type</label>
           <select id="pub-type" aria-label="Content type">
             <option value="post">post</option>
             <option value="page">page</option>
@@ -2181,23 +2200,9 @@ body{
           </select>
         </div>
         <div class="field" style="margin-top:.5rem">
-          <label>Content</label>
-          <textarea id="pub-content" placeholder="Write something…" aria-label="Content body"></textarea>
+          <textarea id="pub-content" placeholder="What's in your love" aria-label="What's in your love"></textarea>
         </div>
-        <button class="btn signal" style="margin-top:.6rem" id="pub-submit-btn" onclick="submitContent()" disabled>Submit to queue</button>
-
-        <div class="sec" style="margin-top:.9rem">Moderation flow</div>
-        <div style="display:flex;align-items:center;gap:.7rem;font-size:.7rem;flex-wrap:wrap;margin-bottom:.7rem">
-          <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(255,206,107,.08);border:1px solid rgba(255,206,107,.3);color:var(--warn)">pending</span>
-          <span style="color:var(--muted)">→</span>
-          <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(141,137,255,.08);border:1px solid rgba(141,137,255,.3);color:var(--accent-soft)">curator review</span>
-          <span style="color:var(--muted)">→</span>
-          <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(0,247,167,.08);border:1px solid rgba(0,247,167,.3);color:var(--signal)">live ✓</span>
-        </div>
-        <div class="note">Approval credits the author with ⭐ stars and increments their contribution score. Rejection is silent-by-default.</div>
-        <div style="margin-top:.8rem">
-          <button class="btn ghost" style="font-size:.64rem;padding:.42rem .9rem" onclick="switchTab('pending')">View your posts →</button>
-        </div>
+        <button class="btn" style="margin-top:.6rem" id="pub-submit-btn" onclick="submitContent()" disabled>Submit to queue</button>
       </div>
     </div>
 
@@ -2208,6 +2213,16 @@ body{
         <div id="queue-list" class="queue-list">
           <div style="font-size:.66rem;color:var(--muted)">No posts yet.</div>
         </div>
+
+        <div class="sec" style="margin-top:.9rem">Moderation flow</div>
+        <div style="display:flex;align-items:center;gap:.7rem;font-size:.7rem;flex-wrap:wrap;margin-bottom:.7rem">
+          <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(255,206,107,.08);border:1px solid rgba(255,206,107,.3);color:var(--warn)">pending</span>
+          <span style="color:var(--muted)">→</span>
+          <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(141,137,255,.08);border:1px solid rgba(141,137,255,.3);color:var(--accent-soft)">curator review</span>
+          <span style="color:var(--muted)">→</span>
+          <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(0,247,167,.08);border:1px solid rgba(0,247,167,.3);color:var(--signal)">live ✓</span>
+        </div>
+        <div class="note">Approval credits the author with ⭐ stars and increments their contribution score. Rejection is silent-by-default.</div>
       </div>
     </div>
 
@@ -2317,6 +2332,7 @@ const state = {
   openFeatureTier: null,
   sessionQueueCount: 0,
   profileCardOpen: false,
+  upgradeBarOpen: false,
   savedLinks: [],
   inviteRenewOpen: false,
 };
@@ -2497,6 +2513,14 @@ function toggleStatWays() {
 // ============================================================
 // PROFILE CARD (Access tab — marcflove card)
 // ============================================================
+function toggleUpgradeBar() {
+  state.upgradeBarOpen = !state.upgradeBarOpen;
+  const btn = document.getElementById('upgrade-bar-btn');
+  const reg = document.getElementById('upgrade-bar-region');
+  if (btn) { btn.classList.toggle('open', state.upgradeBarOpen); btn.setAttribute('aria-expanded', state.upgradeBarOpen ? 'true' : 'false'); }
+  if (reg) reg.classList.toggle('open', state.upgradeBarOpen);
+}
+
 function toggleProfileCard() {
   state.profileCardOpen = !state.profileCardOpen;
   const card = document.getElementById('pc-marcflove');
@@ -3015,14 +3039,16 @@ function render() {
   buildTierLadder();
   buildFeatureTiers();
 
-  // Access tab
-  document.getElementById('acc-handle').textContent = state.handle;
-  document.getElementById('acc-hw').textContent = state.contributions + ' CU';
-  document.getElementById('acc-ids').textContent = state.linkedIdentities.join(', ') || 'none';
+  // Access tab — passport mini (null-guarded)
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setTxt('acc-handle', state.handle);
+  setTxt('acc-hw', state.contributions + ' CU');
+  setTxt('acc-ids', state.linkedIdentities.join(', ') || 'none');
   const accPres = document.getElementById('acc-presence');
-  accPres.className = 'pbadge ' + state.activity;
-  accPres.textContent = state.activity;
-  document.getElementById('acc-stage-badge').textContent = state.stageName[state.stage];
+  if (accPres) { accPres.className = 'pbadge ' + state.activity; accPres.textContent = state.activity; }
+  setTxt('acc-stage-badge', state.stageName[state.stage]);
+  // marcflove card mirror (handle edit + keypair live here now)
+  renderProfileCard();
 
   // Identity toggles (Access tab)
   ['telegram','email','phone','biometrics'].forEach(id => {

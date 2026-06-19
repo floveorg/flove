@@ -1225,6 +1225,7 @@ body{
   display:grid;
   grid-template-columns:repeat(2,1fr);
   gap:.75rem;
+  align-items:start;
   margin-bottom:1.1rem;
 }
 @media (max-width:560px){ .access-card-grid{ grid-template-columns:1fr; } }
@@ -1367,6 +1368,18 @@ body{
 .id5-bar-pts{ font-size:.5rem; font-weight:700; color:var(--signal); }
 .id5-bar:not(.reached) .id5-bar-pts{ color:var(--muted); opacity:.5; }
 .id5-bar-label{ font-size:.48rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); text-align:center; }
+/* Publish — right column of the profile grid */
+.pub-col{
+  border-radius:13px; border:1px solid var(--line); background:var(--card);
+  padding:1rem; display:flex; flex-direction:column;
+}
+/* Submitted posts (pending review) below marcflove */
+.profile-posts{ display:flex; flex-direction:column; gap:.4rem; margin-top:.6rem; }
+.ppost{
+  display:flex; align-items:center; gap:.7rem; padding:.55rem .85rem;
+  border-radius:11px; border:1px solid var(--line); background:var(--card); font-size:.66rem;
+}
+.ppost-content{ flex:1; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* Saved "more about me" entries below marcflove */
 .about-entries{ display:flex; flex-direction:column; gap:.4rem; margin-top:.6rem; }
 .about-entry{
@@ -1692,7 +1705,6 @@ body{
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Resources</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('trust')"    id="tab-trust">Scores</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"    id="tab-mynet">MyNet</button>
-      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('publish')"  id="tab-publish">Publish</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('pending')"  id="tab-pending">Activity</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('recovery')" id="tab-recovery">Recovery</button>
     </nav>
@@ -1736,10 +1748,31 @@ body{
             </div>
           </div>
 
+          <!-- Publish — right column of the profile -->
+          <div class="pub-col">
+            <div class="extend-col-label">Publish</div>
+            <div id="publish-locked-note" class="note" style="margin-bottom:.6rem">Your post will go to a moderators queue before going live.</div>
+            <div class="field">
+              <label>Type</label>
+              <select id="pub-type" aria-label="Content type">
+                <option value="post">post</option>
+                <option value="page">page</option>
+                <option value="file">file</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top:.5rem">
+              <textarea id="pub-content" placeholder="What's in your love" aria-label="What's in your love"></textarea>
+            </div>
+            <button class="btn" style="margin-top:.6rem;width:100%;justify-content:center" id="pub-submit-btn" onclick="submitContent()">Submit to queue</button>
+          </div>
+
         </div><!-- /.access-card-grid -->
 
         <!-- saved "more about me" entries — sit directly below the marcflove card -->
         <div class="about-entries" id="about-entries" aria-live="polite"></div>
+
+        <!-- submitted posts — pending review, above the extend profile section -->
+        <div class="profile-posts" id="profile-posts" aria-live="polite"></div>
 
         <!-- Extend profile — moved here, below marcflove -->
         <div class="expandable-card" id="tc-B" style="margin-top:.9rem">
@@ -2094,7 +2127,7 @@ body{
             <div class="facet-info-desc">Builds as you receive vouches across circles and publish content other members engage with.</div>
             <div class="facet-info-actions">
               <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('mynet')">Grow your net →</button>
-              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('publish')">Publish content →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('access')">Publish content →</button>
             </div>
           </div>
         </div>
@@ -2104,7 +2137,7 @@ body{
             <div class="facet-info-desc">The outermost ring. Share hardware (CPU/GPU/RAM) and publish approved content to raise it.</div>
             <div class="facet-info-actions">
               <button class="btn signal" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('resources')">Share resources →</button>
-              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('publish')">Publish content →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('access')">Publish content →</button>
             </div>
           </div>
         </div>
@@ -2211,24 +2244,6 @@ body{
       </div>
     </div>
 
-    <!-- PUBLISH TAB -->
-    <div class="tab-panel" id="panel-publish" role="tabpanel">
-      <div class="vcard">
-        <div id="publish-locked-note" class="note" style="margin-bottom:.7rem">Your post will go to a moderators queue before going live.</div>
-
-        <div class="field">
-          <select id="pub-type" aria-label="Content type">
-            <option value="post">post</option>
-            <option value="page">page</option>
-            <option value="file">file</option>
-          </select>
-        </div>
-        <div class="field" style="margin-top:.5rem">
-          <textarea id="pub-content" placeholder="What's in your love" aria-label="What's in your love"></textarea>
-        </div>
-        <button class="btn" style="margin-top:.6rem" id="pub-submit-btn" onclick="submitContent()">Submit to queue</button>
-      </div>
-    </div>
 
     <!-- PENDING TAB -->
     <div class="tab-panel" id="panel-pending" role="tabpanel">
@@ -2533,10 +2548,10 @@ function setResourcePreset(name) {
 // 5-bar identity scale — Self always reached; each step grants points + a badge
 const IDENTITY_STEPS = [
   { key: 'self',       label: 'Self',     badge: '🪪', pts: 5,  h: 24 },
-  { key: 'telegram',   label: 'Telegram', badge: '✈',  pts: 12, h: 32 },
-  { key: 'phone',      label: 'Phone',    badge: '📱', pts: 6,  h: 40 },
-  { key: 'biometrics', label: 'Bio',      badge: '👁', pts: 8,  h: 48 },
-  { key: 'email',      label: 'Email',    badge: '✉',  pts: 4,  h: 56 },
+  { key: 'email',      label: 'Email',    badge: '✉',  pts: 4,  h: 32 },
+  { key: 'telegram',   label: 'Telegram', badge: '✈',  pts: 12, h: 40 },
+  { key: 'phone',      label: 'Phone',    badge: '📱', pts: 6,  h: 48 },
+  { key: 'biometrics', label: 'Bio',      badge: '👁', pts: 8,  h: 56 },
 ];
 // The user's actual status = highest reached step in order
 function identityActualStatus() {
@@ -2617,6 +2632,17 @@ function deleteAbout(i) {
   if (i < 0 || i >= state.aboutEntries.length) return;
   state.aboutEntries.splice(i, 1);
   renderAboutEntries();
+}
+// Submitted posts shown on the profile, labelled pending review
+function renderProfilePosts() {
+  const wrap = document.getElementById('profile-posts');
+  if (!wrap) return;
+  const label = { pending: 'pending review', live: 'live ✓', rejected: 'rejected', reviewing: 'in review' };
+  wrap.innerHTML = state.queue.map(q => `<div class="ppost">
+    <span class="qi-type">${q.type}</span>
+    <span class="ppost-content">${q.content}</span>
+    <span class="qi-status ${q.status}">${label[q.status] || q.status}</span>
+  </div>`).join('');
 }
 function renderAboutEntries() {
   const wrap = document.getElementById('about-entries');
@@ -3328,6 +3354,7 @@ function render() {
   renderIdentityScale();
   renderIdentityForm();
   renderAboutEntries();
+  renderProfilePosts();
 
   // Invite credits chip (N / 3 left)
   const rem = state.inviteBudget.total - state.inviteBudget.used;

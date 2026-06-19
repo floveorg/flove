@@ -1042,6 +1042,23 @@ body{
 /* ============================================================
    INVITE WEB SVG helpers
    ============================================================ */
+/* Invites — 2 columns + centred map toggle on the border */
+.invites-2col{ display:grid; grid-template-columns:1fr 1fr; gap:1.3rem; align-items:start; }
+@media (max-width:560px){ .invites-2col{ grid-template-columns:1fr; } }
+.invites-col{ display:flex; flex-direction:column; }
+.map-toggle-wrap{ position:relative; border-top:1px solid var(--line); margin-top:1.3rem; display:flex; justify-content:center; }
+.map-toggle-btn{
+  transform:translateY(-50%); cursor:pointer;
+  font-family:"Space Mono",monospace; font-size:.62rem; letter-spacing:.06em;
+  padding:.4rem 1.1rem; border-radius:999px;
+  border:1px solid var(--line); background:var(--card); color:var(--muted);
+  display:inline-flex; align-items:center; gap:.4rem; transition:border-color .18s,color .18s,box-shadow .18s;
+}
+.map-toggle-btn:hover{ border-color:var(--accent); color:var(--ink); box-shadow:0 0 14px -4px var(--glow-a); }
+.map-toggle-btn[aria-expanded="true"]{ border-color:var(--accent); color:var(--accent); }
+.invite-map-region{ max-height:0; overflow:hidden; opacity:0; transition:max-height .42s cubic-bezier(.4,0,.2,1), opacity .26s ease; }
+.invite-map-region.open{ max-height:520px; opacity:1; }
+
 .invite-web-wrap{
   background:rgba(255,255,255,.6); border-radius:13px;
   border:1px solid rgba(28,25,42,.06); overflow:hidden;
@@ -1368,11 +1385,8 @@ body{
 .id5-bar-pts{ font-size:.5rem; font-weight:700; color:var(--signal); }
 .id5-bar:not(.reached) .id5-bar-pts{ color:var(--muted); opacity:.5; }
 .id5-bar-label{ font-size:.48rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); text-align:center; }
-/* Publish — right column of the profile grid */
-.pub-col{
-  border-radius:13px; border:1px solid var(--line); background:var(--card);
-  padding:1rem; display:flex; flex-direction:column;
-}
+/* Publish — right column of the profile grid (borderless) */
+.pub-col{ display:flex; flex-direction:column; }
 /* Submitted posts (pending review) below marcflove */
 .profile-posts{ display:flex; flex-direction:column; gap:.4rem; margin-top:.6rem; }
 .ppost{
@@ -1700,7 +1714,6 @@ body{
   <div class="tabs-wrap" style="margin-top:.6rem">
     <nav class="tab-bar" role="tablist" aria-label="App sections">
       <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('access')"   id="tab-access">Profile</button>
-      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('invites')"  id="tab-invites">Invites</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('resources')" id="tab-resources">Resources</button>
       <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('trust')"    id="tab-trust">Scores</button>
@@ -1750,17 +1763,7 @@ body{
 
           <!-- Publish — right column of the profile -->
           <div class="pub-col">
-            <div class="extend-col-label">Publish</div>
-            <div id="publish-locked-note" class="note" style="margin-bottom:.6rem">Your post will go to a moderators queue before going live.</div>
             <div class="field">
-              <label>Type</label>
-              <select id="pub-type" aria-label="Content type">
-                <option value="post">post</option>
-                <option value="page">page</option>
-                <option value="file">file</option>
-              </select>
-            </div>
-            <div class="field" style="margin-top:.5rem">
               <textarea id="pub-content" placeholder="What's in your love" aria-label="What's in your love"></textarea>
             </div>
             <button class="btn" style="margin-top:.6rem;width:100%;justify-content:center" id="pub-submit-btn" onclick="submitContent()">Submit to queue</button>
@@ -1792,107 +1795,6 @@ body{
       </div>
     </div>
 
-
-    <!-- INVITES TAB -->
-    <div class="tab-panel" id="panel-invites" role="tabpanel">
-      <div class="vcard">
-
-        <!-- Add invite code (you were invited) — shown expanded -->
-        <button class="upgrade-bar open" id="upgrade-bar-btn" onclick="toggleUpgradeBar()" aria-expanded="true" aria-controls="upgrade-bar-region">
-          <span class="ub-text">Add invite code</span>
-        </button>
-        <div class="upgrade-bar-region open" id="upgrade-bar-region" role="region">
-          <div class="upgrade-bar-inner">
-            <div class="field" style="margin-bottom:.5rem">
-              <label>Enter your invite code</label>
-              <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Invite code">
-            </div>
-            <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem" onclick="tourValidateInvite()">Validate code</button>
-            <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
-          </div>
-        </div>
-        <div class="note" style="margin:.25rem 0 1.3rem">Once you are invited by someone you could use this section below for inviting others.</div>
-
-        <!-- ── Invite credits ── -->
-        <div class="sec" style="margin-top:0">Invites</div>
-        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.7rem;margin-bottom:.5rem">
-          <!-- Credit counter — clicking toggles the renew hint above it -->
-          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.2rem">
-            <div id="invite-renew-hint" style="display:none;font-size:.6rem;color:var(--muted);padding:.22rem .65rem;border-radius:7px;background:rgba(141,137,255,.07);border:1px solid rgba(141,137,255,.18);line-height:1.4">Renews 3 more the first day of the next month.</div>
-            <button id="invite-credits-btn" onclick="toggleInviteRenew()" aria-label="Toggle invite-renewal info"
-              style="background:none;border:none;cursor:pointer;padding:0;font:inherit;text-align:left">
-              <span class="sbadge" id="invite-credits-chip" style="cursor:pointer">2 / 3 left</span>
-            </button>
-          </div>
-          <!-- Generate button + code, below the credits counter -->
-          <div style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap">
-            <button class="btn ghost" onclick="generateInvite()">Generate</button>
-            <span id="invite-generated-code" style="display:none;font-family:'Space Mono',monospace;font-size:.82rem;color:var(--signal);letter-spacing:.12em;text-shadow:0 0 12px rgba(0,247,167,.5);padding:.3rem .7rem;border-radius:8px;border:1px solid rgba(0,247,167,.3);background:rgba(0,247,167,.06)"></span>
-          </div>
-        </div>
-        <div id="invite-action-msg" style="font-size:.64rem;color:var(--muted);margin-bottom:.6rem"></div>
-
-        <!-- ── Invite web ── -->
-        <div class="invite-web-wrap">
-        <svg viewBox="0 0 400 260" width="100%" height="auto" aria-label="Invite lineage tree" style="max-height:240px;padding:1rem;display:block">
-          <defs>
-            <!-- Glow filter for "you" node -->
-            <filter id="glow-you" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <!-- Subtle glow for invitee nodes -->
-            <filter id="glow-node" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          <!-- Parent connector -->
-          <line x1="200" y1="52" x2="200" y2="95" stroke="#8d89ff" stroke-width="1.5" opacity=".55"/>
-
-          <!-- Parent node -->
-          <circle cx="200" cy="36" r="15" fill="rgba(141,137,255,.08)" stroke="#8d89ff" stroke-width="1.5" opacity=".7"/>
-          <text x="200" y="40" text-anchor="middle" fill="#4a4e5a" font-size="7.5" font-family="Space Mono">parent</text>
-
-          <!-- Solid lineage lines (you → invitees) -->
-          <line x1="200" y1="112" x2="100" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
-          <line x1="200" y1="112" x2="200" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
-          <line x1="200" y1="112" x2="300" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
-
-          <!-- You (marcflove) — glowing hero node -->
-          <circle cx="200" cy="98" r="20" fill="rgba(0,247,167,.18)" stroke="#00f7a7" stroke-width="2.5" filter="url(#glow-you)"/>
-          <circle cx="200" cy="98" r="14" fill="rgba(0,247,167,.1)"/>
-          <text x="200" y="94" text-anchor="middle" fill="#00f7a7" font-size="7" font-family="Space Mono" font-weight="700">marc</text>
-          <text x="200" y="104" text-anchor="middle" fill="#00f7a7" font-size="6.5" font-family="Space Mono">flove</text>
-
-          <!-- Invitee nodes -->
-          <circle cx="100" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
-          <text x="100" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">alice</text>
-
-          <circle cx="200" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
-          <text x="200" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">bob</text>
-
-          <circle cx="300" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
-          <text x="300" y="184" text-anchor="middle" fill="#c9c6ff" font-size="7.5" font-family="Space Mono">carol</text>
-
-          <!-- Vouch threads (faint dashed) -->
-          <line x1="113" y1="180" x2="187" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
-          <line x1="213" y1="180" x2="287" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
-          <line x1="113" y1="176" x2="287" y2="176" stroke="#00f7a7" stroke-width="1" stroke-dasharray="3 6" opacity=".18"/>
-
-          <!-- Co-signed label -->
-          <text x="200" y="212" text-anchor="middle" fill="rgba(58,60,72,.7)" font-size="6.5" font-family="Space Mono" letter-spacing=".5">co-signed vouch threads</text>
-        </svg>
-        </div>
-
-        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem">
-          <button class="btn ghost" onclick="revokeInvite()">Revoke</button>
-          <button class="btn danger" onclick="disownInvite()">Disown (−10 local)</button>
-        </div>
-
-      </div>
-    </div>
 
     <!-- EXTENSIONS TAB -->
     <div class="tab-panel" id="panel-extensions" role="tabpanel">
@@ -1976,7 +1878,7 @@ body{
                 </div>
                 <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                   <button class="btn signal" style="font-size:.64rem;padding:.42rem .85rem" onclick="extValidateInvite()">Validate</button>
-                  <button class="btn ghost" style="font-size:.64rem;padding:.42rem .85rem" onclick="switchTab('invites')">See more →</button>
+                  <button class="btn ghost" style="font-size:.64rem;padding:.42rem .85rem" onclick="switchTab('mynet')">See more →</button>
                 </div>
                 <div id="ext-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
               </div>
@@ -2117,7 +2019,7 @@ body{
             <div class="facet-info-desc">Grows when nearby peers vouch for you face-to-face and the people you invite stay active in your circles.</div>
             <div class="facet-info-actions">
               <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('mynet')">Meet peers f2f →</button>
-              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('invites')">Invite well →</button>
+              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('mynet')">Invite well →</button>
             </div>
           </div>
         </div>
@@ -2171,6 +2073,75 @@ body{
     <!-- MYNET TAB -->
     <div class="tab-panel" id="panel-mynet" role="tabpanel">
       <div class="vcard">
+
+        <!-- ── Invites (moved from the Invites tab) ── -->
+        <div class="invites-2col">
+          <!-- LEFT: enter invite code -->
+          <div class="invites-col">
+            <div class="extend-col-label">Enter invite code</div>
+            <div class="field" style="margin-bottom:.5rem">
+              <input type="text" id="tc-invite-input" placeholder="e.g. FLOVE2024" aria-label="Invite code">
+            </div>
+            <button class="btn signal" style="font-size:.64rem;padding:.4rem .85rem;align-self:flex-start" onclick="tourValidateInvite()">Validate code</button>
+            <div id="tc-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+          </div>
+          <!-- RIGHT: your invites -->
+          <div class="invites-col">
+            <div class="extend-col-label">Invites</div>
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.2rem;margin-bottom:.55rem">
+              <div id="invite-renew-hint" style="display:none;font-size:.6rem;color:var(--muted);padding:.22rem .65rem;border-radius:7px;background:rgba(141,137,255,.07);border:1px solid rgba(141,137,255,.18);line-height:1.4">Renews 3 more the first day of the next month.</div>
+              <button id="invite-credits-btn" onclick="toggleInviteRenew()" aria-label="Toggle invite-renewal info" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;text-align:left">
+                <span class="sbadge" id="invite-credits-chip" style="cursor:pointer">2 / 3 left</span>
+              </button>
+            </div>
+            <div style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap">
+              <button class="btn ghost" onclick="generateInvite()">Generate</button>
+              <span id="invite-generated-code" style="display:none;font-family:'Space Mono',monospace;font-size:.82rem;color:var(--signal);letter-spacing:.12em;text-shadow:0 0 12px rgba(0,247,167,.5);padding:.3rem .7rem;border-radius:8px;border:1px solid rgba(0,247,167,.3);background:rgba(0,247,167,.06)"></span>
+            </div>
+            <div id="invite-action-msg" style="font-size:.64rem;color:var(--muted);margin-top:.5rem"></div>
+          </div>
+        </div>
+
+        <!-- map button on the border, centred below both columns -->
+        <div class="map-toggle-wrap">
+          <button class="map-toggle-btn" id="map-toggle-btn" onclick="toggleInviteMap()" aria-expanded="false" aria-controls="invite-map-region">🗺 Map</button>
+        </div>
+        <div class="invite-map-region" id="invite-map-region">
+          <div class="invite-web-wrap" style="margin-top:.9rem">
+            <svg viewBox="0 0 400 260" width="100%" height="auto" aria-label="Invite lineage tree" style="max-height:240px;padding:1rem;display:block">
+              <defs>
+                <filter id="glow-you" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <filter id="glow-node" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <line x1="200" y1="52" x2="200" y2="95" stroke="#8d89ff" stroke-width="1.5" opacity=".55"/>
+              <circle cx="200" cy="36" r="15" fill="rgba(141,137,255,.08)" stroke="#8d89ff" stroke-width="1.5" opacity=".7"/>
+              <text x="200" y="40" text-anchor="middle" fill="#4a4e5a" font-size="7.5" font-family="Space Mono">parent</text>
+              <line x1="200" y1="112" x2="100" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+              <line x1="200" y1="112" x2="200" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+              <line x1="200" y1="112" x2="300" y2="168" stroke="#8d89ff" stroke-width="1.5" opacity=".6"/>
+              <circle cx="200" cy="98" r="20" fill="rgba(0,247,167,.18)" stroke="#00f7a7" stroke-width="2.5" filter="url(#glow-you)"/>
+              <circle cx="200" cy="98" r="14" fill="rgba(0,247,167,.1)"/>
+              <text x="200" y="94" text-anchor="middle" fill="#00f7a7" font-size="7" font-family="Space Mono" font-weight="700">marc</text>
+              <text x="200" y="104" text-anchor="middle" fill="#00f7a7" font-size="6.5" font-family="Space Mono">flove</text>
+              <circle cx="100" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+              <text x="100" y="184" text-anchor="middle" fill="#5347c4" font-size="7.5" font-family="Space Mono">alice</text>
+              <circle cx="200" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+              <text x="200" y="184" text-anchor="middle" fill="#5347c4" font-size="7.5" font-family="Space Mono">bob</text>
+              <circle cx="300" cy="180" r="13" fill="rgba(141,137,255,.14)" stroke="#8d89ff" stroke-width="1.5" filter="url(#glow-node)" opacity=".9"/>
+              <text x="300" y="184" text-anchor="middle" fill="#5347c4" font-size="7.5" font-family="Space Mono">carol</text>
+              <line x1="113" y1="180" x2="187" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
+              <line x1="213" y1="180" x2="287" y2="180" stroke="#8d89ff" stroke-width="1" stroke-dasharray="5 4" opacity=".3"/>
+              <line x1="113" y1="176" x2="287" y2="176" stroke="#00f7a7" stroke-width="1" stroke-dasharray="3 6" opacity=".18"/>
+              <text x="200" y="212" text-anchor="middle" fill="rgba(58,60,72,.7)" font-size="6.5" font-family="Space Mono" letter-spacing=".5">co-signed vouch threads</text>
+            </svg>
+          </div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem">
+            <button class="btn ghost" onclick="revokeInvite()">Revoke</button>
+            <button class="btn danger" onclick="disownInvite()">Disown (−10 local)</button>
+          </div>
+        </div>
+
+        <div class="sec" style="margin-top:1.5rem">MyNet</div>
 
         <!-- Two-column layout: f2f connections (left) + tribes/circles (right) -->
         <div class="mynet-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start">
@@ -2476,6 +2447,15 @@ function toggleInviteRenew() {
   state.inviteRenewOpen = !state.inviteRenewOpen;
   const hint = document.getElementById('invite-renew-hint');
   if (hint) hint.style.display = state.inviteRenewOpen ? 'block' : 'none';
+}
+
+// Invite map — expand the lineage view + its buttons
+function toggleInviteMap() {
+  const r = document.getElementById('invite-map-region');
+  const b = document.getElementById('map-toggle-btn');
+  if (!r) return;
+  const open = r.classList.toggle('open');
+  if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function generateInvite() {
@@ -2848,7 +2828,8 @@ function renderSavedLinks() {
 // PUBLISH
 // ============================================================
 function submitContent() {
-  const type = document.getElementById('pub-type').value;
+  const typeEl = document.getElementById('pub-type');
+  const type = typeEl ? typeEl.value : 'post';
   const content = document.getElementById('pub-content').value.trim();
   if (!content) return;
   state.queue.push({ id: queueCounter++, type, content, status: 'pending' });

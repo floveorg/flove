@@ -905,6 +905,14 @@ body{
 .net-btn{ font-family:"Space Mono",monospace; font-size:.58rem; letter-spacing:.03em; padding:.32rem .75rem; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--muted); cursor:pointer; transition:border-color .16s, color .16s, background .16s; }
 .net-btn:hover{ border-color:var(--accent); color:var(--ink); }
 .net-btn.active{ border-color:var(--signal); color:var(--signal); background:rgba(2,133,92,.08); }
+.net-addmore{
+  width:100%; margin-top:.3rem; font-family:"Space Mono",monospace; font-size:.6rem; letter-spacing:.04em;
+  padding:.42rem .7rem; border-radius:10px; border:1px dashed rgba(108,92,231,.4);
+  background:rgba(108,92,231,.04); color:var(--accent); cursor:pointer; transition:background .16s, border-color .16s;
+}
+.net-addmore:hover{ background:rgba(108,92,231,.1); border-color:var(--accent); }
+.net-empty{ font-size:.66rem; color:var(--muted); padding:.3rem; }
+.net-empty a{ color:var(--accent); font-weight:700; text-decoration:none; border-bottom:1px dotted var(--accent); }
 
 /* Permission picker */
 .perm-grid{
@@ -2120,12 +2128,12 @@ body{
         <button class="btn signal js-share-btn" style="width:100%;justify-content:center;margin-top:.2rem" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
 
         <div class="netstats" style="margin-top:1.3rem;margin-bottom:0">
-          <div class="netstat"><span class="netstat-val" id="ns-nodes">1,284</span></div>
-          <div class="netstat"><span class="netstat-val" id="ns-peers">5,902</span></div>
-          <div class="netstat"><span class="netstat-val" id="ns-compute">8.4 TF</span></div>
-          <div class="netstat"><span class="netstat-val" id="ns-posts">23.1k</span></div>
-          <div class="netstat"><span class="netstat-val">412</span></div>
-          <div class="netstat"><span class="netstat-val">37</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-nodes">1,284</span><span class="netstat-label">nodes online</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-peers">5,902</span><span class="netstat-label">active peers</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-compute">8.4 TF</span><span class="netstat-label">compute shared</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-posts">23.1k</span><span class="netstat-label">posts live</span></div>
+          <div class="netstat"><span class="netstat-val">412</span><span class="netstat-label">groups</span></div>
+          <div class="netstat"><span class="netstat-val">37</span><span class="netstat-label">regions</span></div>
         </div>
 
       </div>
@@ -2203,7 +2211,8 @@ body{
           </div>
         </div>
 
-        <!-- Two-column layout: f2f connections (left) + tribes/circles (right) -->
+        <div style="text-align:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:1.05rem;margin:.3rem 0 1.1rem">Social Network</div>
+        <!-- Two-column layout: People (left) + Groups (right) -->
         <div class="mynet-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start">
 
           <!-- Left column: f2f connections -->
@@ -2243,7 +2252,7 @@ body{
         </div>
 
         <!-- ── More Social — demo people & groups to follow / support ── -->
-        <div class="sec" style="margin-top:1.2rem">More Social</div>
+        <div class="sec" style="margin-top:1.2rem">Be more social</div>
         <div class="mynet-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start">
           <div>
             <div class="extend-col-label">People to follow</div>
@@ -2514,13 +2523,9 @@ const state = {
   facets: { personal: 0, local: 30, social: 20, global: 15 },
   activity: 'LIVE',
   queue: [],
-  peers: [
-    { handle: 'alice', presence: 'LIVE',      stage: 'homie',  circles: 'close · friends · collaborators' },
-    { handle: 'bob',   presence: 'RECENT',    stage: 'known',  circles: 'friends · bookclub' },
-    { handle: 'carol', presence: 'REACHABLE', stage: 'newbie', circles: 'mynet · collaborators' },
-  ],
+  peers: [],
   circles: { close: ['alice'], friends: ['alice','bob'], mynet: ['alice','bob','carol'] },
-  tags: { collaborators: ['alice','carol'], bookclub: ['bob'] },
+  tags: { collaborators: ['alice','carol'] },
   joinedGroups: ['close','friends'],
   openPeer: null,
   openGroup: null,
@@ -2531,6 +2536,15 @@ const state = {
     { handle: 'finn', stage: 'known',  presence: 'DARK' },
   ],
   moreGroups: ['designers', 'runners', 'makers'],
+  extraPeople: [
+    { handle: 'gus',  stage: 'newbie', presence: 'RECENT' },
+    { handle: 'hana', stage: 'legend', presence: 'LIVE' },
+    { handle: 'ivo',  stage: 'expert', presence: 'DARK' },
+    { handle: 'juno', stage: 'homie',  presence: 'REACHABLE' },
+    { handle: 'kai',  stage: 'known',  presence: 'LIVE' },
+    { handle: 'lia',  stage: 'newbie', presence: 'RECENT' },
+  ],
+  extraGroups: ['gardeners', 'cooks', 'poets', 'cyclists', 'hackers', 'singers'],
   follows: [],
   supports: [],
   chats: [
@@ -2950,10 +2964,10 @@ function updateShareButtons() {
   const r = RESOURCE_REWARD[state.resourcePreset] || RESOURCE_REWARD.balanced;
   document.querySelectorAll('.js-share-btn').forEach(b => {
     if (state.shared) {
-      b.textContent = 'Hardware shared ✓';
+      b.textContent = 'Shared ✓';
       b.disabled = true;
     } else {
-      b.textContent = `Share hardware (+${r.cu} CU · +${r.stars}⭐ · +${r.global} global)`;
+      b.textContent = 'Share';
       b.disabled = false;
     }
   });
@@ -3574,10 +3588,10 @@ function renderMyNet() {
     pl.innerHTML = state.peers.map(p => {
       const color = PRESENCE_COLOR[p.presence] || PRESENCE_COLOR.DARK;
       const icon = `<span style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>`;
-      const info = `<div class="net-info-row">Stage <strong>${p.stage}</strong> · <span style="color:${color}">${p.presence.toLowerCase()}</span></div>
+      const info = `<div class="net-info-row"><span style="color:${color}">${p.presence.toLowerCase()}</span></div>
         <div class="net-info-row">In ${p.circles}</div>`;
       return netItem(p.handle, icon, p.handle, info, `togglePeer('${p.handle}')`);
-    }).join('') || '<div style="font-size:.66rem;color:var(--muted)">No people yet.</div>';
+    }).join('') || '<div class="net-empty"><a href="#" onclick="goBeSocial();return false">Add people here</a></div>';
   }
 
   // Groups — Follows / Supports lists first, then the actual groups
@@ -3661,16 +3675,30 @@ function chatUpgrade() {
 }
 
 // More Social — demo people & groups to follow / support
+function goBeSocial() {
+  const el = document.getElementById('more-people-list');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function addMorePeople() {
+  if (!state.extraPeople.length) return;
+  state.morePeople = state.morePeople.concat(state.extraPeople.splice(0, 3));
+  renderMoreSocial();
+}
+function addMoreGroups() {
+  if (!state.extraGroups.length) return;
+  state.moreGroups = state.moreGroups.concat(state.extraGroups.splice(0, 3));
+  renderMoreSocial();
+}
 function renderMoreSocial() {
   const mp = document.getElementById('more-people-list');
   if (mp) {
     mp.innerHTML = state.morePeople.map(p => {
       const color = PRESENCE_COLOR[p.presence] || PRESENCE_COLOR.DARK;
       const icon = `<span style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>`;
-      const info = `<div class="net-info-row">Stage <strong>${p.stage}</strong> · <span style="color:${color}">${p.presence.toLowerCase()}</span></div>
+      const info = `<div class="net-info-row"><span style="color:${color}">${p.presence.toLowerCase()}</span></div>
         ${netActions(state.follows.includes(p.handle), state.supports.includes(p.handle), `followMore('${p.handle}')`, `supportMore('${p.handle}')`)}`;
       return netItem('more:' + p.handle, icon, p.handle, info, `togglePeer('more:${p.handle}')`);
-    }).join('');
+    }).join('') + (state.extraPeople.length ? `<button class="net-addmore" onclick="addMorePeople()">+ Add more</button>` : '');
   }
   const mg = document.getElementById('more-groups-list');
   if (mg) {
@@ -3678,7 +3706,7 @@ function renderMoreSocial() {
       const icon = `<span style="color:var(--accent)">${groupSvg(name)}</span>`;
       const info = netActions(state.follows.includes(name), state.supports.includes(name), `followMore('${name}')`, `supportMore('${name}')`);
       return netItem('more:' + name, icon, name, info, `toggleGroup('more:${name}')`);
-    }).join('');
+    }).join('') + (state.extraGroups.length ? `<button class="net-addmore" onclick="addMoreGroups()">+ Add more</button>` : '');
   }
 }
 

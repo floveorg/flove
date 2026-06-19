@@ -911,8 +911,8 @@ body{
   background:rgba(108,92,231,.04); color:var(--accent); cursor:pointer; transition:background .16s, border-color .16s;
 }
 .net-addmore:hover{ background:rgba(108,92,231,.1); border-color:var(--accent); }
-.net-empty{ font-size:.66rem; color:var(--muted); padding:.3rem; }
-.net-empty a{ color:var(--accent); font-weight:700; text-decoration:none; border-bottom:1px dotted var(--accent); }
+.net-del{ margin-left:auto; background:none; border:none; cursor:pointer; color:var(--danger); font-size:.72rem; opacity:.65; flex:none; padding:.1rem .3rem; transition:opacity .15s; }
+.net-del:hover{ opacity:1; }
 
 /* Permission picker */
 .perm-grid{
@@ -2264,21 +2264,6 @@ body{
           </div>
         </div>
 
-        <div class="sec">Visibility</div>
-        <div class="perm-grid">
-          <span class="perm-label">Content</span>
-          <select class="perm-select" onchange="updatePerm('content',this.value)" id="perm-content">
-            <option value="mynet">MyNet</option><option value="circle">Group</option><option value="public">Public</option><option value="private">Private</option>
-          </select>
-          <span class="perm-label">Resources</span>
-          <select class="perm-select" onchange="updatePerm('resources',this.value)" id="perm-resources">
-            <option value="mynet">MyNet</option><option value="circle">Group</option><option value="public">Public</option><option value="private">Private</option>
-          </select>
-          <span class="perm-label">Profile</span>
-          <select class="perm-select" onchange="updatePerm('profile',this.value)" id="perm-profile">
-            <option value="private">Private</option><option value="mynet">MyNet</option><option value="circle">Group</option><option value="public">Public</option>
-          </select>
-        </div>
       </div>
     </div>
 
@@ -2423,7 +2408,7 @@ body{
           </div>
         </div>
 
-        <div class="sec">This node</div>
+        <div class="sec">Donated Computing</div>
         <div class="rsc-stats">
           <div class="rsc-stat"><span class="rsc-stat-label">Contributed</span><span class="rsc-stat-val"><strong id="rsc-cu">5</strong> CU</span></div>
           <div class="rsc-stat"><span class="rsc-stat-label">Uptime</span><span class="rsc-stat-val">99.2%</span></div>
@@ -2443,6 +2428,22 @@ body{
           <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(141,137,255,.08);border:1px solid rgba(141,137,255,.3);color:var(--accent-soft)">curator review</span>
           <span style="color:var(--muted)">→</span>
           <span style="padding:.3rem .7rem;border-radius:6px;background:rgba(0,247,167,.08);border:1px solid rgba(0,247,167,.3);color:var(--signal)">live ✓</span>
+        </div>
+
+        <div class="sec" style="margin-top:1.1rem">Visibility</div>
+        <div class="perm-grid">
+          <span class="perm-label">Content</span>
+          <select class="perm-select" onchange="updatePerm('content',this.value)" id="perm-content">
+            <option value="mynet">MyNet</option><option value="circle">Group</option><option value="public">Public</option><option value="private">Private</option>
+          </select>
+          <span class="perm-label">Resources</span>
+          <select class="perm-select" onchange="updatePerm('resources',this.value)" id="perm-resources">
+            <option value="mynet">MyNet</option><option value="circle">Group</option><option value="public">Public</option><option value="private">Private</option>
+          </select>
+          <span class="perm-label">Profile</span>
+          <select class="perm-select" onchange="updatePerm('profile',this.value)" id="perm-profile">
+            <option value="private">Private</option><option value="mynet">MyNet</option><option value="circle">Group</option><option value="public">Public</option>
+          </select>
         </div>
       </div>
     </div>
@@ -2547,6 +2548,7 @@ const state = {
   extraGroups: ['gardeners', 'cooks', 'poets', 'cyclists', 'hackers', 'singers'],
   follows: [],
   supports: [],
+  peopleShown: 3,
   chats: [
     { user: 'alice', messages: [{ from: 'them', text: 'hey marc!' }, { from: 'me', text: 'hi alice 👋' }] },
     { user: 'bob',   messages: [{ from: 'them', text: 'did you see the mesh update?' }] },
@@ -3581,30 +3583,38 @@ function netItem(id, icon, name, infoRows, toggleCb) {
   </div>`;
 }
 
+// Lookup a person object by handle (from the discovery pools)
+function findPerson(h) { return state.morePeople.find(p => p.handle === h) || state.peers.find(p => p.handle === h) || null; }
+function showMorePeopleCol() { state.peopleShown = (state.peopleShown || 3) + 3; renderMyNet(); }
+
 function renderMyNet() {
-  // People — stage icon tinted by presence; info only (no follow/support here)
+  // People — the people you follow; each with a ✕ to delete, 3 at a time
   const pl = document.getElementById('peers-list');
   if (pl) {
-    pl.innerHTML = state.peers.map(p => {
+    const followedPeople = state.follows.map(findPerson).filter(Boolean);
+    const shown = state.peopleShown || 3;
+    pl.innerHTML = followedPeople.slice(0, shown).map(p => {
       const color = PRESENCE_COLOR[p.presence] || PRESENCE_COLOR.DARK;
-      const icon = `<span style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>`;
-      const info = `<div class="net-info-row"><span style="color:${color}">${p.presence.toLowerCase()}</span></div>
-        <div class="net-info-row">In ${p.circles}</div>`;
-      return netItem(p.handle, icon, p.handle, info, `togglePeer('${p.handle}')`);
-    }).join('') || '<div class="net-empty"><a href="#" onclick="goBeSocial();return false">Add people here</a></div>';
+      return `<div class="net-item"><div class="net-head" style="cursor:default">
+        <span class="net-ic" style="color:${color}">${STAGE_SVG[p.stage] || STAGE_SVG.newbie}</span>
+        <span class="net-name">${p.handle}</span>
+        <button class="net-del" onclick="followMore('${p.handle}')" aria-label="Remove ${p.handle}">✕</button>
+      </div></div>`;
+    }).join('');
+    if (followedPeople.length > shown) pl.innerHTML += `<button class="net-addmore" onclick="showMorePeopleCol()">show 3 more</button>`;
   }
 
   // Groups — Follows / Supports lists first, then the actual groups
   const cl = document.getElementById('circles-list');
   if (cl) {
     const accentIc = key => `<span style="color:var(--accent)">${groupSvg(key)}</span>`;
-    const special = [
-      { name: 'Follows',  key: 'follows',  members: state.follows },
-      { name: 'Supports', key: 'supports', members: state.supports },
-    ].map(g => {
-      const info = `<div class="net-info-row"><strong>${g.members.length}</strong> ${g.name.toLowerCase()}${g.members.length ? ': ' + g.members.join(', ') : ''}</div>`;
-      return netItem(g.name, accentIc(g.key), g.name, info, `toggleGroup('${g.name}')`);
-    }).join('');
+    const followInfo = state.follows.length
+      ? state.follows.map(n => `<div class="net-info-row">★ ${n}</div>`).join('')
+      : '<div class="net-info-row" style="color:var(--muted)">none yet</div>';
+    const supportInfo = `<div class="net-info-row"><strong>${state.supports.length}</strong> supports${state.supports.length ? ': ' + state.supports.join(', ') : ''}</div>`;
+    const special =
+      netItem('Follows', accentIc('follows'), 'Follows', followInfo, `toggleGroup('Follows')`) +
+      netItem('Supports', accentIc('supports'), 'Supports', supportInfo, `toggleGroup('Supports')`);
     const existing = state.joinedGroups.concat(Object.keys(state.tags)).map(name => {
       const members = (state.circles[name] || state.tags[name] || []).length;
       // Unfollow / Unsupport only on the bookclub group

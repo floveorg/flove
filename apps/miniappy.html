@@ -1125,13 +1125,40 @@ body{
 
 /* More appy flove — three columns to help */
 .moreflove-region{ max-height:0; overflow:hidden; opacity:0; transition:max-height .42s cubic-bezier(.4,0,.2,1), opacity .26s ease; }
-.moreflove-region.open{ max-height:420px; opacity:1; }
+.moreflove-region.open{ max-height:760px; opacity:1; }
 .moreflove-cols{ display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; margin-top:.9rem; }
 @media (max-width:560px){ .moreflove-cols{ grid-template-columns:1fr; } }
-.moreflove-col{ border:1px solid var(--line); border-radius:12px; background:var(--card); padding:.85rem .8rem; text-align:center; display:flex; flex-direction:column; gap:.35rem; }
+.moreflove-col{ font:inherit; cursor:pointer; border:1px solid var(--line); border-radius:12px; background:var(--card); padding:.85rem .8rem; text-align:center; display:flex; flex-direction:column; gap:.35rem; transition:border-color .18s, background .18s, box-shadow .18s; }
+.moreflove-col:hover{ border-color:var(--accent); }
+.moreflove-col.active{ border-color:var(--accent); background:rgba(108,92,231,.07); box-shadow:0 0 16px -5px var(--glow-a); }
 .moreflove-col-ic{ font-size:1.3rem; line-height:1; }
 .moreflove-col-title{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.8rem; color:var(--ink); }
 .moreflove-col-desc{ font-size:.58rem; color:var(--muted); line-height:1.5; }
+/* per-scope interactive panel */
+.flove-scope{ max-height:0; overflow:hidden; opacity:0; transition:max-height .32s cubic-bezier(.4,0,.2,1), opacity .22s ease; }
+.flove-scope.open{ max-height:300px; opacity:1; margin-top:.85rem; }
+.flove-scope-inner{ border:1px solid var(--glass-border); border-radius:12px; background:var(--panel); padding:.85rem .9rem; }
+.flove-scope-title{ font-size:.72rem; font-weight:700; margin-bottom:.55rem; }
+.flove-chips{ display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.65rem; }
+.flove-chip{ display:inline-flex; align-items:center; gap:.35rem; font-size:.6rem; padding:.26rem .55rem; border-radius:999px; border:1px solid var(--line); background:var(--card); }
+.flove-chip button{ background:none; border:none; cursor:pointer; color:var(--danger); font-size:.62rem; padding:0; opacity:.7; }
+.flove-chip button:hover{ opacity:1; }
+.flove-add{ display:flex; gap:.5rem; }
+.flove-add input{ flex:1; font-family:"Space Mono",monospace; font-size:.64rem; color:var(--ink); background:rgba(255,255,255,.85); border:1px solid var(--line); border-radius:9px; padding:.45rem .7rem; outline:none; transition:border-color .18s; }
+.flove-add input:focus{ border-color:rgba(108,92,231,.5); }
+
+/* Nety — live network stats + welcome banner */
+.netstats{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-bottom:1.1rem; }
+@media (max-width:560px){ .netstats{ grid-template-columns:repeat(2,1fr); } }
+.netstat{ display:flex; flex-direction:column; gap:.15rem; padding:.7rem .8rem; border-radius:12px; border:1px solid var(--line); background:var(--card); }
+.netstat-val{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.05rem; color:var(--accent); line-height:1; }
+.netstat-label{ font-size:.52rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.nety-banner{ border-radius:14px; padding:1.1rem 1.2rem; margin-bottom:1.3rem; position:relative; overflow:hidden;
+  border:1px solid var(--glass-border);
+  background:linear-gradient(115deg, rgba(108,92,231,.1), rgba(2,133,92,.08)); }
+.nety-banner-title{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.2rem; margin-bottom:.35rem; }
+.nety-banner-desc{ font-size:.66rem; color:var(--muted); line-height:1.6; margin-bottom:.75rem; max-width:46ch; }
+.nety-banner-actions{ display:flex; gap:.6rem; flex-wrap:wrap; }
 
 .invite-web-wrap{
   background:rgba(255,255,255,.6); border-radius:13px;
@@ -1894,7 +1921,8 @@ body{
               <div class="ec-inner">
                 <p style="font-size:.66rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6">Lend compute to the mesh — the most important way to contribute. Pick a preset, then donate.</p>
                 <div class="res-presets" id="res-presets">
-                  <button class="res-preset-btn" data-preset="light" onclick="setResourcePreset('light')">Light</button>
+                  <button class="res-preset-btn" data-preset="none" onclick="setResourcePreset('none')">I can't</button>
+          <button class="res-preset-btn" data-preset="light" onclick="setResourcePreset('light')">Light</button>
                   <button class="res-preset-btn" data-preset="balanced" onclick="setResourcePreset('balanced')">Balanced</button>
                   <button class="res-preset-btn" data-preset="max" onclick="setResourcePreset('max')">Max</button>
                 </div>
@@ -1981,16 +2009,62 @@ body{
             </div>
           </div>
         </div><!-- /.access-card-grid -->
+
+        <!-- More appy flove — three ways to help (moved here) -->
+        <button class="upgrade-bar" id="moreflove-btn" onclick="toggleMoreFlove()" aria-expanded="false" aria-controls="moreflove-region" style="margin-top:1.6rem">
+          <span class="ub-text">More appy flove</span>
+        </button>
+        <div class="moreflove-region" id="moreflove-region">
+          <div class="moreflove-cols">
+            <button class="moreflove-col" id="flove-col-jobs" onclick="toggleFloveScope('jobs')">
+              <div class="moreflove-col-ic">🧩</div>
+              <div class="moreflove-col-title">Easy jobs</div>
+              <div class="moreflove-col-desc">Small mesh tasks anyone can pick up — moderation, relays, tagging.</div>
+            </button>
+            <button class="moreflove-col" id="flove-col-talent" onclick="toggleFloveScope('talent')">
+              <div class="moreflove-col-ic">✦</div>
+              <div class="moreflove-col-title">Your talent</div>
+              <div class="moreflove-col-desc">Offer a skill — design, code, music, translation — to the network.</div>
+            </button>
+            <button class="moreflove-col" id="flove-col-donations" onclick="toggleFloveScope('donations')">
+              <div class="moreflove-col-ic">♥</div>
+              <div class="moreflove-col-title">Donations</div>
+              <div class="moreflove-col-desc">Back the commons directly — send stars or funds to people &amp; groups.</div>
+            </button>
+          </div>
+          <div class="flove-scope" id="flove-scope"><!-- renderFloveScope() --></div>
+        </div>
       </div>
     </div>
 
     <!-- RESOURCES TAB -->
     <div class="tab-panel" id="panel-resources" role="tabpanel">
       <div class="vcard">
-        <div class="sec" style="margin-top:0">Donate Computing</div>
+
+        <div class="sec" style="margin-top:0">Network <span class="pbadge LIVE" style="font-size:.5rem;margin-left:.4rem">LIVE</span></div>
+        <div class="netstats">
+          <div class="netstat"><span class="netstat-val" id="ns-nodes">1,284</span><span class="netstat-label">nodes online</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-peers">5,902</span><span class="netstat-label">active peers</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-compute">8.4 TF</span><span class="netstat-label">compute shared</span></div>
+          <div class="netstat"><span class="netstat-val" id="ns-posts">23.1k</span><span class="netstat-label">posts live</span></div>
+          <div class="netstat"><span class="netstat-val">412</span><span class="netstat-label">groups</span></div>
+          <div class="netstat"><span class="netstat-val">37</span><span class="netstat-label">regions</span></div>
+        </div>
+
+        <div class="nety-banner">
+          <div class="nety-banner-title">Welcome to <span class="rainbow-text">nety</span></div>
+          <div class="nety-banner-desc">A p2p mesh owned by the people who run it. Learn how the technology works and help grow this subcommunity.</div>
+          <div class="nety-banner-actions">
+            <button class="btn signal" style="font-size:.64rem;padding:.42rem .9rem" onclick="toggleAbout()">Learn the tech →</button>
+            <button class="btn ghost" style="font-size:.64rem;padding:.42rem .9rem" onclick="switchTab('mynet')">Join the community →</button>
+          </div>
+        </div>
+
+        <div class="sec">Donate Computing</div>
         <p style="font-size:.7rem;color:var(--muted);margin-bottom:.85rem;line-height:1.6">Your node lends compute, storage and bandwidth to the mesh — the most important way to keep nety alive. Open to anyone, no invite needed. Pick a preset, direct your share, then donate.</p>
 
         <div class="res-presets" id="rsc-res-presets">
+          <button class="res-preset-btn" data-preset="none" onclick="setResourcePreset('none')">I can't</button>
           <button class="res-preset-btn" data-preset="light" onclick="setResourcePreset('light')">Light</button>
           <button class="res-preset-btn" data-preset="balanced" onclick="setResourcePreset('balanced')">Balanced</button>
           <button class="res-preset-btn" data-preset="max" onclick="setResourcePreset('max')">Max</button>
@@ -2028,29 +2102,6 @@ body{
 
         <button class="btn signal js-share-btn" style="width:100%;justify-content:center;margin-top:.2rem" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
 
-        <!-- More appy flove — three ways to help -->
-        <button class="upgrade-bar" id="moreflove-btn" onclick="toggleMoreFlove()" aria-expanded="false" aria-controls="moreflove-region" style="margin-top:1.2rem">
-          <span class="ub-text">More appy flove</span>
-        </button>
-        <div class="moreflove-region" id="moreflove-region">
-          <div class="moreflove-cols">
-            <div class="moreflove-col">
-              <div class="moreflove-col-ic">🧩</div>
-              <div class="moreflove-col-title">Easy jobs</div>
-              <div class="moreflove-col-desc">Small mesh tasks anyone can pick up — moderation, relays, tagging.</div>
-            </div>
-            <div class="moreflove-col">
-              <div class="moreflove-col-ic">✦</div>
-              <div class="moreflove-col-title">Your talent</div>
-              <div class="moreflove-col-desc">Offer a skill — design, code, music, translation — to the network.</div>
-            </div>
-            <div class="moreflove-col">
-              <div class="moreflove-col-ic">♥</div>
-              <div class="moreflove-col-title">Donations</div>
-              <div class="moreflove-col-desc">Back the commons directly — send stars or funds to people &amp; groups.</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -2462,6 +2513,8 @@ const state = {
   ],
   chatActive: 'alice',
   chatEphemeral: false,
+  floveScope: null,
+  floveItems: { jobs: ['Moderate #intro', 'Relay for eu-west'], talent: ['Illustration'], donations: [] },
   permissions: { content: 'mynet', resources: 'mynet', profile: 'private', scores: 'private' },
   inviteBudget: { total: 3, used: 1 },
   recovered: false,
@@ -2578,6 +2631,55 @@ function toggleMoreFlove() {
   const open = r.classList.toggle('open');
   if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
+const FLOVE_SCOPE = {
+  jobs:      { title: 'Easy jobs',  ph: 'a task you can pick up…' },
+  talent:    { title: 'Your talent', ph: 'a skill you offer…' },
+  donations: { title: 'Donations',  ph: 'amount in ⭐ to pledge…' },
+};
+function toggleFloveScope(s) { state.floveScope = (state.floveScope === s) ? null : s; renderFloveScope(); }
+function addFloveItem(s) {
+  const inp = document.getElementById('flove-input');
+  if (!inp) return;
+  const v = inp.value.trim();
+  if (!v) { inp.focus(); return; }
+  state.floveItems[s].push(v);
+  inp.value = '';
+  renderFloveScope();
+}
+function delFloveItem(s, i) { state.floveItems[s].splice(i, 1); renderFloveScope(); }
+function renderFloveScope() {
+  ['jobs', 'talent', 'donations'].forEach(k => {
+    const c = document.getElementById('flove-col-' + k);
+    if (c) c.classList.toggle('active', state.floveScope === k);
+  });
+  const wrap = document.getElementById('flove-scope');
+  if (!wrap) return;
+  const s = state.floveScope;
+  if (!s) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
+  const meta = FLOVE_SCOPE[s];
+  const items = state.floveItems[s] || [];
+  const chips = items.map((it, i) => `<span class="flove-chip">${it}<button onclick="delFloveItem('${s}',${i})" aria-label="remove">✕</button></span>`).join('')
+    || '<span style="font-size:.58rem;color:var(--muted)">nothing yet — add one below.</span>';
+  wrap.classList.add('open');
+  wrap.innerHTML = `<div class="flove-scope-inner">
+    <div class="flove-scope-title">${meta.title}</div>
+    <div class="flove-chips">${chips}</div>
+    <div class="flove-add">
+      <input type="text" id="flove-input" placeholder="${meta.ph}" aria-label="Add to ${meta.title}" onkeydown="if(event.key==='Enter')addFloveItem('${s}')">
+      <button class="btn signal" style="flex-none" onclick="addFloveItem('${s}')">Add</button>
+    </div>
+  </div>`;
+}
+
+// Demonstrative live network stats — small jitter for a "live" feel
+function tickNetStats() {
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('ns-nodes', (1284 + Math.floor(Math.random() * 41 - 20)).toLocaleString());
+  set('ns-peers', (5902 + Math.floor(Math.random() * 61 - 30)).toLocaleString());
+  set('ns-compute', (8.0 + Math.random() * 0.9).toFixed(1) + ' TF');
+  set('ns-posts', (23.0 + Math.random() * 0.4).toFixed(1) + 'k');
+}
+setInterval(tickNetStats, 2600);
 
 function toggleInviteRenew() {
   state.inviteRenewOpen = !state.inviteRenewOpen;
@@ -2646,6 +2748,7 @@ function disownInvite() {
 // ECONOMY
 // ============================================================
 const RESOURCE_PRESETS = {
+  none:     { cpu: 0,  gpu: 0,  ram: 0 },
   light:    { cpu: 20, gpu: 10, ram: 25 },
   balanced: { cpu: 55, gpu: 45, ram: 55 },
   max:      { cpu: 90, gpu: 85, ram: 80 },
@@ -2658,6 +2761,7 @@ const RESOURCE_META = {
 };
 // Reward scales with the chosen preset
 const RESOURCE_REWARD = {
+  none:     { cu: 0, stars: 0,  global: 0 },
   light:    { cu: 2, stars: 3,  global: 2 },
   balanced: { cu: 5, stars: 8,  global: 5 },
   max:      { cu: 9, stars: 14, global: 9 },

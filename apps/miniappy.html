@@ -678,6 +678,13 @@ body{
 .rstage.reached{ color:var(--accent-soft); border-color:rgba(108,92,231,.28); }
 .rstage.current{ border-color:var(--signal); color:var(--signal); background:rgba(2,133,92,.08); font-weight:700; }
 .rings-facets{ display:flex; flex-direction:column; gap:.55rem; }
+/* stage detail (opens from the stage tabs) */
+.stage-detail{ max-height:0; overflow:hidden; opacity:0; transition:max-height .34s cubic-bezier(.4,0,.2,1), opacity .24s ease; }
+.stage-detail.open{ max-height:360px; opacity:1; margin-bottom:1.1rem; }
+.stage-detail-inner2{ border:1px solid var(--glass-border); border-radius:13px; background:var(--panel); padding:.85rem 1rem; }
+.sd-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:.5rem; }
+.sd-stage{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.95rem; text-transform:capitalize; }
+.sd-stars{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.1rem; color:var(--signal); }
 .rfacet{ display:flex; align-items:center; gap:.5rem; font-size:.66rem; }
 .rfacet-dot{ width:11px; height:11px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 7px 1px currentColor; }
 .rfacet-name{ flex:1; font-weight:700; }
@@ -2379,6 +2386,9 @@ body{
           </div>
         </div>
 
+        <!-- stage detail (opens when a stage tab is clicked) -->
+        <div class="stage-detail" id="stage-detail"><!-- renderStageDetail() --></div>
+
         <!-- Personal / Local / Social are gated behind Basic -->
         <div id="facet-info-personal" class="facet-info" role="region" aria-label="Personal — locked">
           <div class="facet-info-inner">
@@ -2403,19 +2413,6 @@ body{
               <button class="btn signal" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('resources')">Donate Computing →</button>
               <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('access')">Publish content →</button>
             </div>
-          </div>
-        </div>
-
-        <!-- ── Global-activity ── -->
-        <div class="sec" style="margin-top:0">Global-activity</div>
-        <p style="font-size:.64rem;color:var(--muted);margin-bottom:.75rem;line-height:1.65">Stages measure how much you've contributed to the mesh — stars, approved content, hardware sharing.</p>
-        <div id="upgrade-stage-ladder-wrap" style="position:relative;margin-bottom:1.1rem">
-          <!-- Glow bar behind the ladder -->
-          <div style="position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
-            background:linear-gradient(90deg,rgba(141,137,255,.04),rgba(141,137,255,.22),rgba(0,247,167,.18),rgba(0,247,167,.04));
-            pointer-events:none;border-radius:2px"></div>
-          <div id="upgrade-stage-ladder" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;position:relative">
-            <!-- Populated by buildTierLadder() -->
           </div>
         </div>
 
@@ -3856,6 +3853,7 @@ function render() {
 
   // Rebuild tier ladder + feature tiers
   buildRingStages();
+  renderStageDetail();
   buildTierLadder();
   buildFeatureTiers();
 
@@ -4030,6 +4028,11 @@ const STAGE_DETAIL = {
     ]
   },
   known: {
+    unlocks: [
+      'Play &amp; store apps',
+      'Full <strong>profily</strong>',
+      'MyNet circles &amp; permissions',
+    ],
     activities: [
       { label: 'Extend Profile',   tab: 'access' },
       { label: 'Be more Nety',     tab: 'resources' },
@@ -4066,7 +4069,32 @@ const STAGE_DETAIL = {
 
 function toggleStageDetail(stageName) {
   state.openStageDetail = (state.openStageDetail === stageName) ? null : stageName;
-  buildTierLadder();
+  buildRingStages();
+  renderStageDetail();
+}
+// Stage detail panel — stars number + Unlocks + (for known) the activity banner
+function renderStageDetail() {
+  const wrap = document.getElementById('stage-detail');
+  if (!wrap) return;
+  const s = state.openStageDetail;
+  const d = s ? STAGE_DETAIL[s] : null;
+  if (!d) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
+  const idx = state.stageName.indexOf(s);
+  const stars = state.stageThresholds[idx];
+  let html = `<div class="stage-detail-inner2">
+    <div class="sd-head"><span class="sd-stage">${s}</span><span class="sd-stars">${stars === 0 ? 'open' : stars + ' ⭐'}</span></div>`;
+  if (d.unlocks) {
+    html += `<div class="sd-unlocks-label">Unlocks</div><ul class="sd-unlocks">${d.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>`;
+  } else if (d.reach) {
+    html += `<div class="sd-reach">to reach: <strong>${d.reach}</strong></div>`;
+  }
+  if (d.activities) {
+    html += `<div class="sd-unlocks-label" style="margin-top:.7rem">ways to generate more activity</div>
+      <div class="sd-activities">${d.activities.map(a => `<button class="btn ghost" style="font-size:.62rem;padding:.38rem .8rem" onclick="switchTab('${a.tab}')">${a.label} →</button>`).join('')}</div>`;
+  }
+  html += '</div>';
+  wrap.classList.add('open');
+  wrap.innerHTML = html;
 }
 
 // Stage tabs to the left of the rings (newbie → legend)

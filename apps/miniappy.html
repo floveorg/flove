@@ -1181,6 +1181,26 @@ body{
 .moreflove-col-ic{ font-size:1.3rem; line-height:1; }
 .moreflove-col-title{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.8rem; color:var(--ink); }
 .moreflove-col-desc{ font-size:.58rem; color:var(--muted); line-height:1.5; }
+/* "see more" chip centred on the card's bottom edge + full-width feature panel */
+.see-more-wrap{ display:flex; justify-content:center; margin-top:.9rem; padding-top:.7rem; border-top:1px solid var(--line); }
+.see-more-chip{
+  cursor:pointer;
+  font-family:"Space Mono",monospace; font-size:.56rem; letter-spacing:.08em; text-transform:uppercase;
+  padding:.32rem .85rem; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--accent);
+  transition:border-color .16s, box-shadow .16s, color .16s;
+}
+.see-more-chip:hover{ border-color:var(--accent); box-shadow:0 0 12px -4px var(--glow-a); }
+.card-more{ max-height:0; overflow:hidden; opacity:0; transition:max-height .36s cubic-bezier(.4,0,.2,1), opacity .24s ease; }
+.card-more.open{ max-height:320px; opacity:1; margin-top:.9rem; }
+.card-more-inner{ border:1px solid var(--glass-border); border-radius:13px; background:var(--panel); padding:.9rem 1rem; }
+.card-more-head{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-bottom:.55rem; }
+.card-more-title{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.85rem; }
+.card-more-collapse{ font-family:"Space Mono",monospace; font-size:.58rem; padding:.3rem .7rem; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--muted); cursor:pointer; transition:border-color .16s,color .16s; }
+.card-more-collapse:hover{ border-color:var(--danger); color:var(--danger); }
+.card-more-feats{ list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:.4rem .9rem; }
+@media (max-width:560px){ .card-more-feats{ grid-template-columns:1fr; } }
+.card-more-feats li{ font-size:.64rem; color:var(--ink); padding-left:.9rem; position:relative; line-height:1.5; }
+.card-more-feats li::before{ content:"›"; position:absolute; left:0; color:var(--accent); }
 /* per-scope interactive panel */
 .flove-scope{ max-height:0; overflow:hidden; opacity:0; transition:max-height .32s cubic-bezier(.4,0,.2,1), opacity .22s ease; }
 .flove-scope.open{ max-height:300px; opacity:1; margin-top:.85rem; }
@@ -1992,6 +2012,7 @@ body{
                 </div>
                 <div style="font-size:.66rem;color:var(--muted);margin-bottom:.6rem">Contributed: <strong style="color:var(--signal)" id="tc-D-cu">5</strong> CU</div>
                 <button class="btn signal js-share-btn" style="width:100%;justify-content:center" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
+                <div class="see-more-wrap"><button class="see-more-chip" id="see-more-D" onclick="toggleCardMore('D')">see more</button></div>
               </div>
             </div>
           </div>
@@ -2023,6 +2044,7 @@ body{
                 <!-- kept hidden for render() null-guard compatibility -->
                 <span id="tc-C-stars" style="display:none">42</span>
                 <span id="tc-C-progress" style="display:none">known (10⭐)</span>
+                <div class="see-more-wrap"><button class="see-more-chip" id="see-more-C" onclick="toggleCardMore('C')">see more</button></div>
               </div>
             </div>
           </div>
@@ -2045,6 +2067,7 @@ body{
                 </div>
                 <button class="btn signal" style="font-size:.64rem;padding:.42rem .85rem" onclick="extValidateInvite()">Validate</button>
                 <div id="ext-invite-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+                <div class="see-more-wrap"><button class="see-more-chip" id="see-more-E" onclick="toggleCardMore('E')">see more</button></div>
               </div>
             </div>
           </div>
@@ -2064,10 +2087,14 @@ body{
                   <button class="btn ghost" style="font-size:.64rem;padding:.42rem .85rem" onclick="switchTab('mynet')">See more →</button>
                 </div>
                 <div id="tc-F-msg" style="margin-top:.45rem;font-size:.64rem;color:var(--muted)"></div>
+                <div class="see-more-wrap"><button class="see-more-chip" id="see-more-F" onclick="toggleCardMore('F')">see more</button></div>
               </div>
             </div>
           </div>
         </div><!-- /.access-card-grid -->
+
+        <!-- full-width "see more" feature panel for the card above -->
+        <div class="card-more" id="card-more"><!-- renderCardMore() --></div>
 
         <!-- More appy flove — three ways to help (moved here) -->
         <button class="upgrade-bar" id="moreflove-btn" onclick="toggleMoreFlove()" aria-expanded="false" aria-controls="moreflove-region" style="margin-top:1.6rem">
@@ -2584,6 +2611,7 @@ const state = {
   entryPath: null,
   contributions: 5,
   tourCardOpen: null,
+  cardMoreOpen: null,
   tourLiked: false,
   tourReposted: false,
   tourReported: false,
@@ -3225,6 +3253,7 @@ function rotateKey() {
 // ============================================================
 function toggleTourCard(id) {
   state.tourCardOpen = (state.tourCardOpen === id) ? null : id;
+  state.cardMoreOpen = null; renderCardMore();   // collapse the see-more panel when cards toggle
   ['A','B','C','D','E','F'].forEach(k => {
     const card = document.getElementById('tc-' + k);
     if (!card) return;
@@ -3254,6 +3283,28 @@ function renderTourCardState() {
 function askForTrust() {
   const m = document.getElementById('tc-F-msg');
   if (m) { m.style.color = 'var(--signal)'; m.textContent = '✓ Vouch request sent to your circles. (mock)'; }
+}
+
+// "see more" — full-width feature panel below the Extensions card grid
+const CARD_MORE = {
+  D: { title: 'Donate Computing', feats: ['Bandwidth &amp; power caps', 'Schedule donation windows', 'Pick which projects your compute backs', 'Contribution history &amp; rewards'] },
+  C: { title: 'Add content',      feats: ['Drafts &amp; scheduling', 'Media attachments', 'Cross-post to your circles', 'License &amp; visibility per post'] },
+  E: { title: 'Add invite code',  feats: ['See who invited you', 'View your lineage tree', 'Transfer standing to invitees', 'Bulk codes (basic+)'] },
+  F: { title: 'Ask for trusts',   feats: ['Request vouches from chosen circles', 'Track pending vouch requests', 'Reciprocal vouching', 'Curator escalation'] },
+};
+function toggleCardMore(id) { state.cardMoreOpen = (state.cardMoreOpen === id) ? null : id; renderCardMore(); }
+function renderCardMore() {
+  ['D', 'C', 'E', 'F'].forEach(k => { const c = document.getElementById('see-more-' + k); if (c) c.textContent = (state.cardMoreOpen === k) ? 'see less' : 'see more'; });
+  const wrap = document.getElementById('card-more');
+  if (!wrap) return;
+  const id = state.cardMoreOpen;
+  const d = id ? CARD_MORE[id] : null;
+  if (!d) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
+  wrap.classList.add('open');
+  wrap.innerHTML = `<div class="card-more-inner">
+    <div class="card-more-head"><span class="card-more-title">${d.title} — more features</span><button class="card-more-collapse" onclick="toggleCardMore('${id}')">Collapse ✕</button></div>
+    <ul class="card-more-feats">${d.feats.map(f => `<li>${f}</li>`).join('')}</ul>
+  </div>`;
 }
 
 function extValidateInvite() {

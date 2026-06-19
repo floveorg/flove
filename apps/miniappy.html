@@ -1273,7 +1273,7 @@ body{
   max-height:0; overflow:hidden; opacity:0;
   transition:max-height .36s cubic-bezier(.4,0,.2,1), opacity .26s ease;
 }
-.profile-card.open .profile-card-expand{ max-height:460px; opacity:1; }
+.profile-card.open .profile-card-expand{ max-height:900px; opacity:1; }
 .profile-card-expand-inner{
   padding:.1rem 1rem .9rem;
   border-top:1px solid rgba(0,247,167,.12);
@@ -1394,17 +1394,24 @@ body{
   border-radius:11px; border:1px solid var(--line); background:var(--card); font-size:.66rem;
 }
 .ppost-content{ flex:1; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-/* Saved "more about me" entries below marcflove */
-.about-entries{ display:flex; flex-direction:column; gap:.4rem; margin-top:.6rem; }
-.about-entry{
-  display:flex; align-items:center; gap:.6rem; padding:.5rem .8rem;
-  border-radius:11px; border:1px solid var(--line); background:var(--card); font-size:.66rem;
-}
-.about-entry-body{ flex:1; display:flex; flex-direction:column; gap:.15rem; overflow:hidden; }
-.about-entry-text{ color:var(--ink); }
-.about-entry-link{ color:var(--accent); font-size:.6rem; text-decoration:none; border-bottom:1px dotted var(--accent); word-break:break-all; }
+/* Saved content — last section of the marcflove card, designed per type */
+.pc-extras{ display:flex; flex-direction:column; gap:.4rem; margin-top:.7rem; padding-top:.7rem; border-top:1px solid rgba(0,247,167,.18); }
+.pc-extras:empty{ display:none; }
+.pc-extras-label{ font-size:.5rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+.px-item{ display:flex; align-items:center; gap:.55rem; padding:.42rem .7rem; border-radius:10px; font-size:.64rem; }
+.px-body{ flex:1; overflow:hidden; text-overflow:ellipsis; }
 .about-entry-del{ background:none; border:none; cursor:pointer; color:var(--danger); font-size:.72rem; opacity:.7; flex-none; padding:.1rem .3rem; }
 .about-entry-del:hover{ opacity:1; }
+/* type: about — quote style */
+.px-about{ border-left:none; }
+.px-item.px-about{ background:rgba(28,25,42,.04); border:1px solid var(--line); font-style:italic; color:var(--ink); }
+/* type: link — accent chip */
+.px-item.px-link{ background:rgba(108,92,231,.07); border:1px solid rgba(108,92,231,.25); }
+.px-link{ color:var(--accent); text-decoration:none; word-break:break-all; }
+/* type: social — signal badge with platform tag */
+.px-item.px-social{ background:rgba(2,133,92,.07); border:1px solid rgba(2,133,92,.28); }
+.px-social{ display:flex; align-items:center; gap:.45rem; color:var(--ink); }
+.px-social-pf{ font-size:.5rem; letter-spacing:.06em; text-transform:uppercase; color:var(--signal); border:1px solid rgba(2,133,92,.4); border-radius:999px; padding:.1rem .45rem; }
 
 /* Share resources — flagged as the core contribution */
 .share-card{
@@ -1507,6 +1514,21 @@ body{
 .feat-thresh-txt{ font-size:.46rem; font-family:"Space Mono",monospace; color:var(--muted); letter-spacing:.04em; white-space:nowrap; }
 .feat-thresh-track{ width:100%; height:5px; border-radius:999px; background:rgba(28,25,42,.1); overflow:hidden; }
 .feat-thresh-fill{ height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent),var(--signal)); transition:width .5s cubic-bezier(.22,1,.36,1); }
+/* mini nav — very highlighted border + wavy colour within */
+.feat-rung.feat-mini{
+  opacity:1 !important; position:relative; overflow:hidden;
+  border:2px solid var(--accent);
+  box-shadow:0 0 0 1px var(--signal), 0 0 20px -4px var(--glow-a);
+}
+.feat-rung.feat-mini::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:linear-gradient(120deg, rgba(108,92,231,.22) 0%, rgba(2,133,92,.22) 35%, rgba(108,92,231,.22) 70%, rgba(2,133,92,.22) 100%);
+  background-size:300% 300%;
+  animation:mini-wave 5s ease-in-out infinite;
+}
+.feat-rung.feat-mini > *{ position:relative; z-index:1; }
+@keyframes mini-wave{ 0%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } 100%{ background-position:0% 50%; } }
+@media (prefers-reduced-motion:reduce){ .feat-rung.feat-mini::before{ animation:none !important; } }
 /* Chevron hint inside feat-name-btn */
 .feat-name-btn{ pointer-events:none; }
 
@@ -1544,7 +1566,7 @@ body{
   #stat-ways-panel{ transition:none !important; }
   .profile-card-expand{ transition:none !important; }
   .profile-card:not(.open) .profile-card-expand{ max-height:0; opacity:0; }
-  .profile-card.open .profile-card-expand{ max-height:460px; opacity:1; }
+  .profile-card.open .profile-card-expand{ max-height:900px; opacity:1; }
 }
 </style>
 </head>
@@ -1757,6 +1779,8 @@ body{
                   <label>Keypair (mock)</label>
                   <input type="text" readonly value="pub:Ed25519·8f3c…a92d / priv:••••••••" style="color:var(--muted)" aria-label="Mock keypair">
                 </div>
+                <!-- saved content — last section, designed per type -->
+                <div class="pc-extras" id="pc-extras" aria-live="polite"></div>
               </div>
             </div>
           </div>
@@ -1764,15 +1788,19 @@ body{
           <!-- Publish — right column of the profile -->
           <div class="pub-col">
             <div class="field">
+              <select id="pub-type" aria-label="Type of post">
+                <option value="post">post</option>
+                <option value="page">page</option>
+                <option value="file">file</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top:.5rem">
               <textarea id="pub-content" placeholder="What's in your love" aria-label="What's in your love"></textarea>
             </div>
             <button class="btn" style="margin-top:.6rem;width:100%;justify-content:center" id="pub-submit-btn" onclick="submitContent()">Submit to queue</button>
           </div>
 
         </div><!-- /.access-card-grid -->
-
-        <!-- saved "more about me" entries — sit directly below the marcflove card -->
-        <div class="about-entries" id="about-entries" aria-live="polite"></div>
 
         <!-- submitted posts — pending review, above the extend profile section -->
         <div class="profile-posts" id="profile-posts" aria-live="polite"></div>
@@ -2353,7 +2381,7 @@ const state = {
   tourCommentsOpen: false,
   engagement: {},
   openStageDetail: null,
-  openFeatureTier: null,
+  openFeatureTier: 0,
   sessionQueueCount: 0,
   profileCardOpen: false,
   upgradeBarOpen: true,
@@ -2570,8 +2598,9 @@ function renderIdentityForm() {
   const wrap = document.getElementById('id-form');
   if (!wrap) return;
   // preserve any text already typed into the Self form across re-renders
-  const prevAbout = (document.getElementById('ep-about') || {}).value;
-  const prevLink  = (document.getElementById('add-link-input') || {}).value;
+  const prevAbout  = (document.getElementById('ep-about') || {}).value;
+  const prevLink   = (document.getElementById('add-link-input') || {}).value;
+  const prevSocial = (document.getElementById('ep-social-handle') || {}).value;
   const key = state.openIdentityStep;
   if (!key) { wrap.innerHTML = ''; return; }
   if (key === 'self') {
@@ -2580,9 +2609,21 @@ function renderIdentityForm() {
         <input type="text" id="ep-about" placeholder="Some words" aria-label="More about me"></div>
       <div class="field" style="margin-top:.5rem">
         <input type="text" id="add-link-input" placeholder="add link" aria-label="Add link"></div>
+      <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+        <select id="ep-social-platform" class="perm-select" aria-label="Social platform">
+          <option value="instagram">Instagram</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="x">X / Twitter</option>
+          <option value="github">GitHub</option>
+          <option value="tiktok">TikTok</option>
+          <option value="mastodon">Mastodon</option>
+        </select>
+        <input type="text" id="ep-social-handle" placeholder="social handle or link" aria-label="Social link" style="flex:1;min-width:90px;font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(255,255,255,.85);border:1px solid rgba(28,25,42,.07);border-radius:7px;padding:.38rem .7rem;outline:none">
+      </div>
       <button class="btn signal" style="margin-top:.65rem;width:100%;justify-content:center" onclick="saveAbout()">Save</button>`;
     const a = document.getElementById('ep-about'); if (a && prevAbout !== undefined) a.value = prevAbout;
     const l = document.getElementById('add-link-input'); if (l && prevLink !== undefined) l.value = prevLink;
+    const sh = document.getElementById('ep-social-handle'); if (sh && prevSocial !== undefined) sh.value = prevSocial;
     return;
   }
   const s = IDENTITY_STEPS.find(x => x.key === key);
@@ -2596,22 +2637,28 @@ function renderIdentityForm() {
   wrap.innerHTML = `${inputHtml}<button class="btn signal" style="margin-top:.5rem;width:100%;justify-content:center" onclick="linkIdentity('${key}');renderIdentityForm()">${key === 'biometrics' ? 'Scan biometrics' : 'Link ' + s.label}</button>`;
 }
 
-// "More about me" — save adds an entry below the marcflove card; each is deletable
+// Save — pushes typed entries (about / link / social) shown in the marcflove card
 function saveAbout() {
-  const a = document.getElementById('ep-about');
-  const l = document.getElementById('add-link-input');
-  const text = a ? a.value.trim() : '';
-  const link = l ? l.value.trim() : '';
-  if (!text && !link) { if (a) a.focus(); return; }
-  state.aboutEntries.push({ text, link });
+  const a  = document.getElementById('ep-about');
+  const l  = document.getElementById('add-link-input');
+  const sp = document.getElementById('ep-social-platform');
+  const sh = document.getElementById('ep-social-handle');
+  const about  = a  ? a.value.trim()  : '';
+  const link   = l  ? l.value.trim()  : '';
+  const social = sh ? sh.value.trim() : '';
+  if (!about && !link && !social) { if (a) a.focus(); return; }
+  if (about)  state.aboutEntries.push({ type: 'about',  text: about });
+  if (link)   state.aboutEntries.push({ type: 'link',   text: link });
+  if (social) state.aboutEntries.push({ type: 'social', platform: sp ? sp.value : '', text: social });
   if (a) a.value = '';
   if (l) l.value = '';
-  renderAboutEntries();
+  if (sh) sh.value = '';
+  renderProfileExtras();
 }
 function deleteAbout(i) {
   if (i < 0 || i >= state.aboutEntries.length) return;
   state.aboutEntries.splice(i, 1);
-  renderAboutEntries();
+  renderProfileExtras();
 }
 // Submitted posts shown on the profile, labelled pending review
 function renderProfilePosts() {
@@ -2624,16 +2671,22 @@ function renderProfilePosts() {
     <span class="qi-status ${q.status}">${label[q.status] || q.status}</span>
   </div>`).join('');
 }
-function renderAboutEntries() {
-  const wrap = document.getElementById('about-entries');
+// Saved content — last section of the marcflove card, designed per type
+function renderProfileExtras() {
+  const wrap = document.getElementById('pc-extras');
   if (!wrap) return;
-  wrap.innerHTML = state.aboutEntries.map((e, i) => `<div class="about-entry">
-    <div class="about-entry-body">
-      ${e.text ? `<span class="about-entry-text">${e.text}</span>` : ''}
-      ${e.link ? `<a class="about-entry-link" href="#" onclick="return false">${e.link}</a>` : ''}
-    </div>
-    <button class="about-entry-del" onclick="deleteAbout(${i})" aria-label="Delete entry">✕</button>
-  </div>`).join('');
+  if (state.aboutEntries.length === 0) { wrap.innerHTML = ''; return; }
+  const pf = { instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', github: 'GitHub', tiktok: 'TikTok', mastodon: 'Mastodon' };
+  wrap.innerHTML = `<div class="pc-extras-label">Added</div>` + state.aboutEntries.map((e, i) => {
+    let inner;
+    if (e.type === 'about')      inner = `<span class="px-about">“${e.text}”</span>`;
+    else if (e.type === 'link')  inner = `<a class="px-link" href="#" onclick="return false">🔗 ${e.text}</a>`;
+    else                         inner = `<span class="px-social"><span class="px-social-pf">${pf[e.platform] || e.platform}</span>${e.text}</span>`;
+    return `<div class="px-item px-${e.type}">
+      <div class="px-body">${inner}</div>
+      <button class="about-entry-del" onclick="deleteAbout(${i})" aria-label="Delete">✕</button>
+    </div>`;
+  }).join('');
 }
 
 // "Only" preference — when ticked, the word becomes a link to your Scores
@@ -3334,7 +3387,7 @@ function render() {
   // Extend profile — 5-bar identity scale + open step's form + saved entries
   renderIdentityScale();
   renderIdentityForm();
-  renderAboutEntries();
+  renderProfileExtras();
   renderProfilePosts();
 
   // Invite credits chip (N / 3 left)
@@ -3552,17 +3605,24 @@ function buildFeatureTiers() {
   if (!wrap) return;
   // Opacity scheme: mini full (current), basic lightly dimmed, the rest half
   const TIER_OPACITY = { mini: 1, basic: 0.8, normal: 0.5, advanced: 0.5, super: 0.5 };
+  const cap = f => f.charAt(0).toUpperCase() + f.slice(1);   // capitalize each attribute
   wrap.innerHTML = '';
   FEATURE_TIERS.forEach((tier, i) => {
     const isOpen = (state.openFeatureTier === i);
     let cls = 'feat-rung feat-rung-clickable';
+    if (tier.name === 'mini') cls += ' feat-mini';            // very highlighted + wavy
     if (isOpen) cls += ' feat-expanded';
     const op = isOpen ? 1 : (TIER_OPACITY[tier.name] ?? 0.5);
-    const featsHtml = tier.features.map(f => `<li>${f}</li>`).join('');
+    const featsHtml = tier.features.map(f => `<li>${cap(f)}</li>`).join('');
 
-    // Threshold below the nav — progress bar for basic, plain label otherwise
+    // Threshold below the nav — full bar for mini, progress for basic, label otherwise
     let threshHtml;
-    if (tier.name === 'basic') {
+    if (tier.name === 'mini') {
+      threshHtml = `<div class="feat-thresh">
+        <div class="feat-thresh-track"><div class="feat-thresh-fill" style="width:100%"></div></div>
+        <span class="feat-thresh-txt">100%</span>
+      </div>`;
+    } else if (tier.name === 'basic') {
       const pct = Math.max(0, Math.min(100, Math.round(state.stars / tier.threshold * 100)));
       threshHtml = `<div class="feat-thresh">
         <div class="feat-thresh-track"><div class="feat-thresh-fill" style="width:${pct}%"></div></div>

@@ -1030,6 +1030,20 @@ body{
 @media (max-width:560px){ .card-more-feats{ grid-template-columns:1fr; } }
 .card-more-feats li{ font-size:.64rem; color:var(--ink); padding-left:.9rem; position:relative; line-height:1.5; }
 .card-more-feats li::before{ content:"›"; position:absolute; left:0; color:var(--accent); }
+/* Donate Computing "see more" rendered inside the card */
+.card-more-incard{ margin-top:0; }
+.card-more-incard.open{ margin-top:.6rem; }
+/* navs "see more" chip + full-width detail row */
+.nav-see-more{ margin-top:.4rem; cursor:pointer; font-family:"Space Mono",monospace; font-size:.5rem; letter-spacing:.06em; text-transform:uppercase;
+  padding:.26rem .55rem; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--accent); transition:border-color .16s, box-shadow .16s; }
+.nav-see-more:hover{ border-color:var(--accent); box-shadow:0 0 10px -4px var(--glow-a); }
+.nav-more{ max-height:0; overflow:hidden; opacity:0; transition:max-height .36s cubic-bezier(.4,0,.2,1), opacity .24s ease; }
+.nav-more.open{ max-height:360px; opacity:1; margin-top:1rem; }
+.nav-more-inner{ position:relative; border:1px solid var(--glass-border); border-radius:13px; background:var(--panel); padding:.9rem 1rem 2.4rem; }
+.nav-more-x{ position:absolute; bottom:.7rem; right:.85rem; width:30px; height:30px; border-radius:50%; line-height:1;
+  border:1px solid var(--line); background:var(--card); color:var(--muted); cursor:pointer; font-size:.85rem;
+  display:flex; align-items:center; justify-content:center; transition:border-color .16s, color .16s; }
+.nav-more-x:hover{ border-color:var(--danger); color:var(--danger); }
 /* per-scope interactive panel */
 .flove-scope{ max-height:0; overflow:hidden; opacity:0; transition:max-height .32s cubic-bezier(.4,0,.2,1), opacity .22s ease; }
 .flove-scope.open{ max-height:300px; opacity:1; margin-top:.85rem; }
@@ -1720,6 +1734,7 @@ body{
         <div id="upgrade-feat-ladder" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;align-items:start;position:relative">
           <!-- Populated by buildFeatureTiers() -->
         </div>
+        <div class="nav-more" id="nav-more"><!-- renderNavMore() --></div>
 
         <div style="text-align:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:1.05rem;margin:3.2rem 0 1.1rem">Be more <span class="rainbow-text">appy</span></div>
         <div class="access-card-grid" style="margin-top:0">          <!-- D: Share resources — the core contribution -->
@@ -1747,6 +1762,7 @@ body{
                 <div style="font-size:.66rem;color:var(--muted);margin-bottom:.6rem">Contributed: <strong style="color:var(--signal)" id="tc-donate-cu">5</strong> CU</div>
                 <button class="btn signal js-share-btn" style="width:100%;justify-content:center" onclick="shareHardware()">Share hardware (+5 CU · +8⭐ · +5 global)</button>
                 <div class="see-more-wrap"><button class="see-more-chip" id="see-more-donate" onclick="toggleCardMore('donate')">see more</button></div>
+                <div class="card-more card-more-incard" id="card-more-donate"><!-- renderCardMore() (inside the card) --></div>
               </div>
             </div>
           </div>
@@ -2346,6 +2362,7 @@ const state = {
   contributions: 5,
   tourCardOpen: null,
   cardMoreOpen: null,
+  navMoreOpen: null,
   tourLiked: false,
   tourReposted: false,
   tourReported: false,
@@ -2901,16 +2918,20 @@ const CARD_MORE = {
 function toggleCardMore(id) { state.cardMoreOpen = (state.cardMoreOpen === id) ? null : id; renderCardMore(); }
 function renderCardMore() {
   ['donate', 'add', 'invite', 'trust'].forEach(k => { const c = document.getElementById('see-more-' + k); if (c) c.textContent = (state.cardMoreOpen === k) ? 'see less' : 'see more'; });
-  const wrap = document.getElementById('card-more');
-  if (!wrap) return;
+  const ext = document.getElementById('card-more');          // external panel (add/invite/trust)
+  const inc = document.getElementById('card-more-donate');   // in-card panel (Donate Computing)
   const id = state.cardMoreOpen;
   const d = id ? CARD_MORE[id] : null;
-  if (!d) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
-  wrap.classList.add('open');
-  wrap.innerHTML = `<div class="card-more-inner">
+  const close = el => { if (el) { el.classList.remove('open'); el.innerHTML = ''; } };
+  if (!d) { close(ext); close(inc); return; }
+  const html = `<div class="card-more-inner">
     <div class="card-more-head"><span class="card-more-title">${d.title} — more features</span><button class="card-more-collapse" onclick="toggleCardMore('${id}')">Collapse ✕</button></div>
     <ul class="card-more-feats">${d.feats.map(f => `<li>${f}</li>`).join('')}</ul>
   </div>`;
+  const target = (id === 'donate') ? inc : ext;
+  const other  = (id === 'donate') ? ext : inc;
+  close(other);
+  if (target) { target.classList.add('open'); target.innerHTML = html; }
 }
 
 function extValidateInvite() {
@@ -3684,18 +3705,44 @@ function buildFeatureTiers() {
       threshHtml = `<div class="feat-thresh"><span class="feat-thresh-txt">${tier.threshold === 0 ? 'open' : tier.threshold + ' ⭐'}</span></div>`;
     }
 
+    const moreLabel = state.navMoreOpen === tier.name ? 'see less' : 'see more';
     wrap.innerHTML += `<div class="${cls}" style="opacity:${op}" onclick="toggleFeatureTier(${i})" role="button" tabindex="0" aria-expanded="${isOpen}" aria-label="Toggle ${tier.name} feature list">
       <button class="feat-name-btn tr-stage-btn" style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:.85rem;line-height:1;letter-spacing:.01em">${tier.name}</button>
       <span style="font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.06rem 0 .14rem;font-family:'Space Mono',monospace">${tier.label}</span>
       <ul class="fr-feats feat-feats-collapse">${featsHtml}</ul>
       ${threshHtml}
+      <button class="nav-see-more" id="nav-see-more-${tier.name}" onclick="event.stopPropagation();toggleNavMore('${tier.name}')">${moreLabel}</button>
     </div>`;
   });
+  renderNavMore();
 }
 
 function toggleFeatureTier(idx) {
   state.openFeatureTier = (state.openFeatureTier === idx) ? null : idx;
   buildFeatureTiers();
+}
+
+// "see more" on each nav → full-width detail row below the ladder
+const NAV_MORE = {
+  mini:     { feats: ['Run a node and share spare CPU/GPU/RAM with the mesh', 'Get a profily-mini — your public presence', 'Browse public content, no identity required', 'Open to anyone, no invite needed'] },
+  basic:    { feats: ['Play &amp; store apps from the network', 'A full profily with social links &amp; groups', 'MyNet groups, permissions &amp; visibility', 'Publish to the moderated queue'] },
+  normal:   { feats: ['sety — manage your own data', 'Deeper trust configuration per group', 'Larger resource-draw quotas', 'Earmark where your donations go'] },
+  advanced: { feats: ['MyWizy finetuner agents', 'Direct the donation pool &amp; stewardship', 'Complex, conditional trust rules', 'Priority relays &amp; scheduling'] },
+  super:    { feats: ['Network-wide governance powers', 'Stewardship &amp; curator roles', 'Full-stack access', '(still being defined)'] },
+};
+function toggleNavMore(name) { state.navMoreOpen = (state.navMoreOpen === name) ? null : name; renderNavMore(); }
+function renderNavMore() {
+  Object.keys(NAV_MORE).forEach(n => { const c = document.getElementById('nav-see-more-' + n); if (c) c.textContent = (state.navMoreOpen === n) ? 'see less' : 'see more'; });
+  const wrap = document.getElementById('nav-more');
+  if (!wrap) return;
+  const n = state.navMoreOpen, d = n ? NAV_MORE[n] : null;
+  if (!d) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
+  wrap.classList.add('open');
+  wrap.innerHTML = `<div class="nav-more-inner">
+    <div class="card-more-title" style="text-transform:capitalize;margin-bottom:.55rem">${n} — features in detail</div>
+    <ul class="card-more-feats">${d.feats.map(f => `<li>${f}</li>`).join('')}</ul>
+    <button class="nav-more-x" onclick="toggleNavMore('${n}')" aria-label="Collapse">✕</button>
+  </div>`;
 }
 
 // ============================================================

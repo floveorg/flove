@@ -687,7 +687,8 @@ body{
 .sd-stars{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.1rem; color:var(--signal); }
 .rfacet{ display:flex; align-items:center; gap:.5rem; font-size:.66rem; }
 .rfacet-dot{ width:11px; height:11px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 7px 1px currentColor; }
-.rfacet-name{ flex:1; font-weight:700; }
+.rfacet-name{ flex:1; font-weight:700; font:inherit; color:inherit; background:none; border:none; padding:0; text-align:left; cursor:pointer; font-weight:700; }
+.rfacet-name:hover{ text-decoration:underline; }
 .rfacet strong{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.85rem; min-width:1.6em; text-align:right; }
 .rfacet-active{ position:relative; }
 .rfacet-active .rfacet-name::after{ content:" ✦"; }
@@ -2379,42 +2380,18 @@ body{
           </div>
 
           <div class="rings-facets">
-            <div class="rfacet" style="color:#02a85f"><span class="rfacet-dot"></span><span class="rfacet-name">Personal</span><strong id="tr-p">0</strong><button class="facet-plus" onclick="toggleFacetInfo('personal')" aria-controls="facet-info-personal" aria-label="How to raise Personal">+</button></div>
-            <div class="rfacet" style="color:#0bb5c9"><span class="rfacet-dot"></span><span class="rfacet-name">Local</span><strong id="tr-l">30</strong><button class="facet-plus" onclick="toggleFacetInfo('local')" aria-controls="facet-info-local" aria-label="How to raise Local">+</button></div>
-            <div class="rfacet" style="color:#6c5ce7"><span class="rfacet-dot"></span><span class="rfacet-name">Social</span><strong id="tr-s">20</strong><button class="facet-plus" onclick="toggleFacetInfo('social')" aria-controls="facet-info-social" aria-label="How to raise Social">+</button></div>
-            <div class="rfacet rfacet-active" style="color:#3a86ff"><span class="rfacet-dot"></span><span class="rfacet-name">Global</span><strong id="tr-g">15</strong><button class="facet-plus" onclick="toggleFacetInfo('global')" aria-controls="facet-info-global" aria-label="How to raise Global">+</button></div>
+            <div class="rfacet" style="color:#02a85f"><span class="rfacet-dot"></span><button class="rfacet-name" onclick="openFacetTitle('personal')">Personal</button><strong id="tr-p">0</strong><button class="facet-plus" onclick="openFacetPlus('personal')" aria-label="Suggestions for Personal">+</button></div>
+            <div class="rfacet" style="color:#0bb5c9"><span class="rfacet-dot"></span><button class="rfacet-name" onclick="openFacetTitle('local')">Local</button><strong id="tr-l">30</strong><button class="facet-plus" onclick="openFacetPlus('local')" aria-label="Suggestions for Local">+</button></div>
+            <div class="rfacet" style="color:#6c5ce7"><span class="rfacet-dot"></span><button class="rfacet-name" onclick="openFacetTitle('social')">Social</button><strong id="tr-s">20</strong><button class="facet-plus" onclick="openFacetPlus('social')" aria-label="Suggestions for Social">+</button></div>
+            <div class="rfacet rfacet-active" style="color:#3a86ff"><span class="rfacet-dot"></span><button class="rfacet-name" onclick="openFacetTitle('global')">Global</button><strong id="tr-g">15</strong><button class="facet-plus" onclick="openFacetPlus('global')" aria-label="Suggestions for Global">+</button></div>
           </div>
         </div>
 
         <!-- stage detail (opens when a stage tab is clicked) -->
         <div class="stage-detail" id="stage-detail"><!-- renderStageDetail() --></div>
 
-        <!-- Personal / Local / Social are gated behind Basic -->
-        <div id="facet-info-personal" class="facet-info" role="region" aria-label="Personal — locked">
-          <div class="facet-info-inner">
-            <div class="facet-info-desc"><a href="#" onclick="switchTab('extensions');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade to Basic</a> to see more custom Local and Social Activities and scores.</div>
-          </div>
-        </div>
-        <div id="facet-info-local" class="facet-info" role="region" aria-label="Local — locked">
-          <div class="facet-info-inner">
-            <div class="facet-info-desc"><a href="#" onclick="switchTab('extensions');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade to Basic</a> to see more custom Local and Social Activities and scores.</div>
-          </div>
-        </div>
-        <div id="facet-info-social" class="facet-info" role="region" aria-label="Social — locked">
-          <div class="facet-info-inner">
-            <div class="facet-info-desc"><a href="#" onclick="switchTab('extensions');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade to Basic</a> to see more custom Local and Social Activities and scores.</div>
-          </div>
-        </div>
-        <div id="facet-info-global" class="facet-info" role="region" aria-label="Raise Global trust">
-          <div class="facet-info-inner">
-            <div class="facet-info-title" style="color:#8d89ff">Global — contribution to the whole mesh</div>
-            <div class="facet-info-desc">The outermost ring. Share hardware (CPU/GPU/RAM) and publish approved content to raise it.</div>
-            <div class="facet-info-actions">
-              <button class="btn signal" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('resources')">Donate Computing →</button>
-              <button class="btn ghost" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('access')">Publish content →</button>
-            </div>
-          </div>
-        </div>
+        <!-- facet detail: + = suggestions · title = upgrade message -->
+        <div class="facet-info" id="facet-detail"><!-- renderFacetDetail() --></div>
 
         <div class="sec">Donated Computing</div>
         <div class="rsc-stats">
@@ -2617,6 +2594,8 @@ const state = {
   tourCommentsOpen: false,
   engagement: {},
   openStageDetail: null,
+  openFacet: null,
+  facetMode: null,
   openFeatureTier: 0,
   sessionQueueCount: 0,
   profileCardOpen: false,
@@ -3089,21 +3068,35 @@ function toggleStatWays() {
 }
 
 // Per-scope trust info — one open at a time
-function toggleFacetInfo(facet) {
-  const facets = ['personal','local','social','global'];
-  const target = document.getElementById('facet-info-' + facet);
-  const wasOpen = target && target.classList.contains('open');
-  facets.forEach(f => {
-    const p = document.getElementById('facet-info-' + f);
-    const b = document.querySelector('[aria-controls="facet-info-' + f + '"]');
-    if (p) p.classList.remove('open');
-    if (b) b.setAttribute('aria-expanded', 'false');
-  });
-  if (target && !wasOpen) {
-    target.classList.add('open');
-    const btn = document.querySelector('[aria-controls="facet-info-' + facet + '"]');
-    if (btn) btn.setAttribute('aria-expanded', 'true');
+// Specific suggestions per facet (recovered) — shown from the + button
+const FACET_SUGGEST = {
+  personal: { color: '#02a85f', title: 'Personal — prove you\'re a real, unique human', desc: 'Verified identity links and social profiles raise it. Telegram is the minimum to unlock publishing.',
+    actions: [['Link identity →', 'extensions'], ['Add social profiles →', 'extensions']] },
+  local:    { color: '#0bb5c9', title: 'Local — trust from people close to you', desc: 'Grows when nearby peers vouch for you face-to-face and the people you invite stay active.',
+    actions: [['Meet peers f2f →', 'mynet'], ['Invite well →', 'mynet']] },
+  social:   { color: '#6c5ce7', title: 'Social — reach across the wider network', desc: 'Builds as you receive vouches across circles and publish content others engage with.',
+    actions: [['Grow your net →', 'mynet'], ['Publish content →', 'access']] },
+  global:   { color: '#3a86ff', title: 'Global — contribution to the whole mesh', desc: 'Share hardware (CPU/GPU/RAM) and publish approved content to raise it.',
+    actions: [['Donate Computing →', 'resources'], ['Publish content →', 'access']] },
+};
+function openFacetPlus(f)  { const same = state.openFacet === f && state.facetMode === 'suggest'; state.openFacet = same ? null : f; state.facetMode = 'suggest'; renderFacetDetail(); }
+function openFacetTitle(f) { const same = state.openFacet === f && state.facetMode === 'upgrade'; state.openFacet = same ? null : f; state.facetMode = 'upgrade'; renderFacetDetail(); }
+function renderFacetDetail() {
+  const wrap = document.getElementById('facet-detail');
+  if (!wrap) return;
+  const f = state.openFacet;
+  if (!f) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
+  const s = FACET_SUGGEST[f];
+  let inner;
+  if (state.facetMode === 'upgrade') {
+    inner = `<div class="facet-info-desc"><a href="#" onclick="switchTab('extensions');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade to Basic</a> to see more custom Local and Social Activities and scores.</div>`;
+  } else {
+    inner = `<div class="facet-info-title" style="color:${s.color}">${s.title}</div>
+      <div class="facet-info-desc">${s.desc}</div>
+      <div class="facet-info-actions">${s.actions.map((a, i) => `<button class="btn ${i === 0 ? 'signal' : 'ghost'}" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('${a[1]}')">${a[0]}</button>`).join('')}</div>`;
   }
+  wrap.classList.add('open');
+  wrap.innerHTML = `<div class="facet-info-inner">${inner}</div>`;
 }
 
 // ============================================================
@@ -3854,6 +3847,7 @@ function render() {
   // Rebuild tier ladder + feature tiers
   buildRingStages();
   renderStageDetail();
+  renderFacetDetail();
   buildTierLadder();
   buildFeatureTiers();
 

@@ -694,6 +694,69 @@
       color: #5c6e5c;
     }
     .visually-hidden { display: none; }
+
+    /* ============ CATEGORY CHIPS + QUESTION PANELS (redesign) ============ */
+    .cat-row { display:flex; flex-wrap:wrap; justify-content:center; gap:0.6rem; margin:0.5rem 0 1.4rem; }
+    body.scatter .cat-row { position:relative; z-index:40; }
+    .cat-chip {
+      display:inline-flex; align-items:center; gap:0.5rem;
+      padding:0.7rem 1.2rem; border-radius:60px;
+      border:2px solid var(--app-accent-soft); background:rgba(255,255,255,0.85);
+      color:#3b5646; font:inherit; font-weight:600; font-size:1rem; cursor:pointer;
+      box-shadow:0 4px 12px -6px rgba(80,95,70,0.3);
+      transition:transform 0.6s var(--flove-ease, cubic-bezier(.2,.8,.2,1)),
+                 background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    .cat-chip i { font-size:1.05rem; color:var(--app-accent); transition:color 0.2s; }
+    .cat-chip:hover { border-color:var(--app-accent); background:#fff; transform:translateY(-2px); }
+    .cat-chip.open, body.all-open .cat-chip {
+      background:var(--app-accent); border-color:var(--app-accent); color:#fff;
+    }
+    .cat-chip.open i, body.all-open .cat-chip i { color:#fff; }
+
+    .questions { display:flex; flex-direction:column; gap:0.8rem; margin:0 0 2rem; }
+    .qpanel {
+      background:rgba(255,255,255,0.55); border:1px solid #e1d9cf; border-radius:20px;
+      padding:1.2rem 1.3rem 1.3rem;
+      animation:info-panel-pop 0.28s var(--flove-ease, cubic-bezier(.2,.8,.2,1));
+    }
+    body.all-open .qpanel { display:block !important; }
+    .qpanel-title { display:flex; align-items:center; gap:0.6rem; font-family:'Inter',sans-serif;
+      font-size:1.2rem; font-weight:600; color:#3b5646; margin-bottom:0.8rem; }
+    .qpanel-title i { color:var(--app-accent); }
+    .qpanel .row-extra { padding-left:0; padding-right:0.5rem; margin-top:0.4rem; }
+    .q-options { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+      gap:0.2rem 1rem; margin-bottom:0.6rem; }
+
+    .cell input[type="checkbox"] {
+      appearance:none; -webkit-appearance:none; width:1.3rem; height:1.3rem;
+      border:2px solid #b7aa99; border-radius:7px; margin:0; cursor:pointer;
+      background:white; flex-shrink:0; position:relative; transition:0.1s;
+    }
+    .cell input[type="checkbox"]:checked { border-color:var(--app-accent); background-color:var(--app-accent); }
+    .cell input[type="checkbox"]:checked::after {
+      content:''; position:absolute; left:6px; top:2px; width:5px; height:10px;
+      border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg);
+    }
+
+    .bar-ctrl {
+      font:inherit; font-size:0.95rem; font-weight:600; line-height:1;
+      padding:0.5rem 0.85rem; border-radius:60px;
+      border:2px solid var(--app-accent-soft); background:rgba(255,255,255,0.85);
+      color:#3b5646; cursor:pointer;
+      transition:background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .bar-ctrl:hover { border-color:var(--app-accent); transform:translateY(-1px); }
+    .bar-ctrl[aria-pressed="true"] { background:var(--app-accent); border-color:var(--app-accent); color:#fff; }
+    #bubblesBtn { font-size:1.2rem; padding:0.4rem 0.6rem; }
+
+    .order-line { margin-top:1rem; font-weight:600; color:#3b5646; letter-spacing:0.3px; }
+    .order-line:empty { display:none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cat-chip { transition:background 0.2s, border-color 0.2s, color 0.2s; }
+      .qpanel { animation:none; }
+    }
   </style>
 </head>
 <body>
@@ -710,6 +773,8 @@
   </a>
   <button type="button" class="flove-app-name app-name-toggle" id="aboutBtn" aria-expanded="false" aria-controls="infoPanel" title="About MyFamily">MyFamily</button>
   <span class="flove-spacer"></span>
+  <button type="button" class="bar-ctrl" id="bubblesBtn" aria-pressed="false" title="Scatter the categories" aria-label="Scatter the categories">🫧</button>
+  <button type="button" class="bar-ctrl bar-ctrl--all" id="allBtn" aria-pressed="false" title="Open all questions">All</button>
 </div>
 
 <aside class="info-panel" id="infoPanel" role="dialog" aria-label="About MyFamily" aria-hidden="true">
@@ -742,122 +807,117 @@
     </form>
   </div>
 
-  <!-- MAIN QUIZ — all rows from original -->
-  <main>
-    <div class="quiz-grid">
-      
-      <!-- Attention -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Attention</h2></div>
-          <label class="cell col1"><input type="radio" name="attention" data-col="col1" /> Friendship & colaborativity</label>
-          <label class="cell col2"><input type="radio" name="attention" data-col="col2" /> Regular cheers & help</label>
-          <label class="cell col3"><input type="radio" name="attention" data-col="col3" /> Strong emotional companionship</label>
-          <label class="cell col4"><input type="radio" name="attention" data-col="col4" /> Intimate friendship & complicity</label>
-          <label class="cell col5"><input type="radio" name="attention" data-col="col5" /> Regular care & affection</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="attention" rows="1" placeholder="Add a nuance about attention…" aria-label="Additional info for attention"></textarea>
-          <button type="button" class="mic-btn" data-group="attention" aria-label="Record voice for attention" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
-      </div>
+  <!-- Category chips (collapsed by default) in one main row -->
+  <div class="cat-row" id="catRow">
+    <button type="button" class="cat-chip" data-cat="attention" aria-expanded="false"><i class="fas fa-eye" aria-hidden="true"></i><span>Attention</span></button>
+    <button type="button" class="cat-chip" data-cat="contact" aria-expanded="false"><i class="fas fa-comments" aria-hidden="true"></i><span>Contact</span></button>
+    <button type="button" class="cat-chip" data-cat="influence" aria-expanded="false"><i class="fas fa-bolt" aria-hidden="true"></i><span>Influence</span></button>
+    <button type="button" class="cat-chip" data-cat="feedback" aria-expanded="false"><i class="fas fa-comment-dots" aria-hidden="true"></i><span>Feedback</span></button>
+    <button type="button" class="cat-chip" data-cat="gifting" aria-expanded="false"><i class="fas fa-gift" aria-hidden="true"></i><span>Gifting</span></button>
+    <button type="button" class="cat-chip" data-cat="sharing" aria-expanded="false"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i><span>Sharing</span></button>
+    <button type="button" class="cat-chip" data-cat="money" aria-expanded="false"><i class="fas fa-coins" aria-hidden="true"></i><span>Money</span></button>
+  </div>
 
-      <!-- Contact -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Contact</h2></div>
-          <label class="cell col1"><input type="radio" name="contact" data-col="col1" /> Attend me sometimes</label>
-          <label class="cell col2"><input type="radio" name="contact" data-col="col2" /> Pass free time together</label>
-          <label class="cell col3"><input type="radio" name="contact" data-col="col3" /> See or hear me</label>
-          <label class="cell col4"><input type="radio" name="contact" data-col="col4" /> Call me anytime</label>
-          <label class="cell col5"><input type="radio" name="contact" data-col="col5" /> Give me attention preference</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="contact" rows="1" placeholder="Add a nuance about contact…" aria-label="Additional info for contact"></textarea>
-          <button type="button" class="mic-btn" data-group="contact" aria-label="Record voice for contact" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
+  <!-- Question panels — revealed below the row when a chip is opened -->
+  <main class="questions" id="questions">
+    <section class="qpanel" data-cat="attention" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-eye" aria-hidden="true"></i> Attention</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="attention" data-col="col1" /> Friendship & colaborativity</label>
+        <label class="cell col2"><input type="checkbox" name="attention" data-col="col2" /> Regular cheers & help</label>
+        <label class="cell col3"><input type="checkbox" name="attention" data-col="col3" /> Strong emotional companionship</label>
+        <label class="cell col4"><input type="checkbox" name="attention" data-col="col4" /> Intimate friendship & complicity</label>
+        <label class="cell col5"><input type="checkbox" name="attention" data-col="col5" /> Regular care & affection</label>
       </div>
-
-      <!-- Influence -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Influence</h2></div>
-          <label class="cell col1"><input type="radio" name="influence" data-col="col1" /> Reply & send me messages</label>
-          <label class="cell col2"><input type="radio" name="influence" data-col="col2" /> Counsel me about anything</label>
-          <label class="cell col3"><input type="radio" name="influence" data-col="col3" /> Tell me what purposes to have</label>
-          <label class="cell col4"><input type="radio" name="influence" data-col="col4" /> Prescribe me attitudes</label>
-          <label class="cell col5"><input type="radio" name="influence" data-col="col5" /> Limit me from doing things</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="influence" rows="1" placeholder="Add a nuance about influence…" aria-label="Additional info for influence"></textarea>
-          <button type="button" class="mic-btn" data-group="influence" aria-label="Record voice for influence" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="attention" rows="1" placeholder="Add a nuance about attention…" aria-label="Additional info for attention"></textarea>
+        <button type="button" class="mic-btn" data-group="attention" aria-label="Record voice for attention" title="Record voice"><i class="fas fa-microphone"></i></button>
       </div>
-
-      <!-- Feedback -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Feedback</h2></div>
-          <label class="cell col1"><input type="radio" name="feedback" data-col="col1" /> Criticize me constructively</label>
-          <label class="cell col2"><input type="radio" name="feedback" data-col="col2" /> Show being upset with me</label>
-          <label class="cell col3"><input type="radio" name="feedback" data-col="col3" /> Show me disapproval</label>
-          <label class="cell col4"><input type="radio" name="feedback" data-col="col4" /> Comment on me negatively</label>
-          <label class="cell col5"><input type="radio" name="feedback" data-col="col5" /> Criticize me hard</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="feedback" rows="1" placeholder="Add a nuance about feedback…" aria-label="Additional info for feedback"></textarea>
-          <button type="button" class="mic-btn" data-group="feedback" aria-label="Record voice for feedback" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
+    </section>
+    <section class="qpanel" data-cat="contact" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-comments" aria-hidden="true"></i> Contact</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="contact" data-col="col1" /> Attend me sometimes</label>
+        <label class="cell col2"><input type="checkbox" name="contact" data-col="col2" /> Pass free time together</label>
+        <label class="cell col3"><input type="checkbox" name="contact" data-col="col3" /> See or hear me</label>
+        <label class="cell col4"><input type="checkbox" name="contact" data-col="col4" /> Call me anytime</label>
+        <label class="cell col5"><input type="checkbox" name="contact" data-col="col5" /> Give me attention preference</label>
       </div>
-
-      <!-- Gifting -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Gifting</h2></div>
-          <label class="cell col1"><input type="radio" name="gifting" data-col="col1" /> Invite me sometimes</label>
-          <label class="cell col2"><input type="radio" name="gifting" data-col="col2" /> Give me some regular presents</label>
-          <label class="cell col3"><input type="radio" name="gifting" data-col="col3" /> Surprise me with regular gifts</label>
-          <label class="cell col4"><input type="radio" name="gifting" data-col="col4" /> Gift me much if I behave well</label>
-          <label class="cell col5"><input type="radio" name="gifting" data-col="col5" /> Gift me as much as possible</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="gifting" rows="1" placeholder="Add a nuance about gifting…" aria-label="Additional info for gifting"></textarea>
-          <button type="button" class="mic-btn" data-group="gifting" aria-label="Record voice for gifting" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="contact" rows="1" placeholder="Add a nuance about contact…" aria-label="Additional info for contact"></textarea>
+        <button type="button" class="mic-btn" data-group="contact" aria-label="Record voice for contact" title="Record voice"><i class="fas fa-microphone"></i></button>
       </div>
-
-      <!-- Sharing -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Sharing</h2></div>
-          <label class="cell col1"><input type="radio" name="sharing" data-col="col1" /> Share some things with me</label>
-          <label class="cell col2"><input type="radio" name="sharing" data-col="col2" /> Grant me something</label>
-          <label class="cell col3"><input type="radio" name="sharing" data-col="col3" /> Share much with me</label>
-          <label class="cell col4"><input type="radio" name="sharing" data-col="col4" /> Grant me much</label>
-          <label class="cell col5"><input type="radio" name="sharing" data-col="col5" /> Share all with me</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="sharing" rows="1" placeholder="Add a nuance about sharing…" aria-label="Additional info for sharing"></textarea>
-          <button type="button" class="mic-btn" data-group="sharing" aria-label="Record voice for sharing" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
+    </section>
+    <section class="qpanel" data-cat="influence" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-bolt" aria-hidden="true"></i> Influence</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="influence" data-col="col1" /> Reply & send me messages</label>
+        <label class="cell col2"><input type="checkbox" name="influence" data-col="col2" /> Counsel me about anything</label>
+        <label class="cell col3"><input type="checkbox" name="influence" data-col="col3" /> Tell me what purposes to have</label>
+        <label class="cell col4"><input type="checkbox" name="influence" data-col="col4" /> Prescribe me attitudes</label>
+        <label class="cell col5"><input type="checkbox" name="influence" data-col="col5" /> Limit me from doing things</label>
       </div>
-
-      <!-- Money -->
-      <div class="row">
-        <div class="row-options">
-          <div class="cell row-label"><h2>Money</h2></div>
-          <label class="cell col1"><input type="radio" name="money" data-col="col1" /> Lend me money if urgent</label>
-          <label class="cell col2"><input type="radio" name="money" data-col="col2" /> Lend me money sometimes</label>
-          <label class="cell col3"><input type="radio" name="money" data-col="col3" /> Give me some if I need it</label>
-          <label class="cell col4"><input type="radio" name="money" data-col="col4" /> Give me sometimes, always lend</label>
-          <label class="cell col5"><input type="radio" name="money" data-col="col5" /> All money is shared with me</label>
-        </div>
-        <div class="row-extra">
-          <textarea class="extra-info" data-group="money" rows="1" placeholder="Add a nuance about money…" aria-label="Additional info for money"></textarea>
-          <button type="button" class="mic-btn" data-group="money" aria-label="Record voice for money" title="Record voice"><i class="fas fa-microphone"></i></button>
-        </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="influence" rows="1" placeholder="Add a nuance about influence…" aria-label="Additional info for influence"></textarea>
+        <button type="button" class="mic-btn" data-group="influence" aria-label="Record voice for influence" title="Record voice"><i class="fas fa-microphone"></i></button>
       </div>
-    </div>
+    </section>
+    <section class="qpanel" data-cat="feedback" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-comment-dots" aria-hidden="true"></i> Feedback</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="feedback" data-col="col1" /> Criticize me constructively</label>
+        <label class="cell col2"><input type="checkbox" name="feedback" data-col="col2" /> Show being upset with me</label>
+        <label class="cell col3"><input type="checkbox" name="feedback" data-col="col3" /> Show me disapproval</label>
+        <label class="cell col4"><input type="checkbox" name="feedback" data-col="col4" /> Comment on me negatively</label>
+        <label class="cell col5"><input type="checkbox" name="feedback" data-col="col5" /> Criticize me hard</label>
+      </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="feedback" rows="1" placeholder="Add a nuance about feedback…" aria-label="Additional info for feedback"></textarea>
+        <button type="button" class="mic-btn" data-group="feedback" aria-label="Record voice for feedback" title="Record voice"><i class="fas fa-microphone"></i></button>
+      </div>
+    </section>
+    <section class="qpanel" data-cat="gifting" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-gift" aria-hidden="true"></i> Gifting</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="gifting" data-col="col1" /> Invite me sometimes</label>
+        <label class="cell col2"><input type="checkbox" name="gifting" data-col="col2" /> Give me some regular presents</label>
+        <label class="cell col3"><input type="checkbox" name="gifting" data-col="col3" /> Surprise me with regular gifts</label>
+        <label class="cell col4"><input type="checkbox" name="gifting" data-col="col4" /> Gift me much if I behave well</label>
+        <label class="cell col5"><input type="checkbox" name="gifting" data-col="col5" /> Gift me as much as possible</label>
+      </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="gifting" rows="1" placeholder="Add a nuance about gifting…" aria-label="Additional info for gifting"></textarea>
+        <button type="button" class="mic-btn" data-group="gifting" aria-label="Record voice for gifting" title="Record voice"><i class="fas fa-microphone"></i></button>
+      </div>
+    </section>
+    <section class="qpanel" data-cat="sharing" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i> Sharing</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="sharing" data-col="col1" /> Share some things with me</label>
+        <label class="cell col2"><input type="checkbox" name="sharing" data-col="col2" /> Grant me something</label>
+        <label class="cell col3"><input type="checkbox" name="sharing" data-col="col3" /> Share much with me</label>
+        <label class="cell col4"><input type="checkbox" name="sharing" data-col="col4" /> Grant me much</label>
+        <label class="cell col5"><input type="checkbox" name="sharing" data-col="col5" /> Share all with me</label>
+      </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="sharing" rows="1" placeholder="Add a nuance about sharing…" aria-label="Additional info for sharing"></textarea>
+        <button type="button" class="mic-btn" data-group="sharing" aria-label="Record voice for sharing" title="Record voice"><i class="fas fa-microphone"></i></button>
+      </div>
+    </section>
+    <section class="qpanel" data-cat="money" hidden>
+      <h2 class="qpanel-title"><i class="fas fa-coins" aria-hidden="true"></i> Money</h2>
+      <div class="q-options">
+        <label class="cell col1"><input type="checkbox" name="money" data-col="col1" /> Lend me money if urgent</label>
+        <label class="cell col2"><input type="checkbox" name="money" data-col="col2" /> Lend me money sometimes</label>
+        <label class="cell col3"><input type="checkbox" name="money" data-col="col3" /> Give me some if I need it</label>
+        <label class="cell col4"><input type="checkbox" name="money" data-col="col4" /> Give me sometimes, always lend</label>
+        <label class="cell col5"><input type="checkbox" name="money" data-col="col5" /> All money is shared with me</label>
+      </div>
+      <div class="row-extra">
+        <textarea class="extra-info" data-group="money" rows="1" placeholder="Add a nuance about money…" aria-label="Additional info for money"></textarea>
+        <button type="button" class="mic-btn" data-group="money" aria-label="Record voice for money" title="Record voice"><i class="fas fa-microphone"></i></button>
+      </div>
+    </section>
   </main>
 
   <!-- TOTALS / RESULTS (Your friend is…) — collapsed by default; reveals at 3+ selections -->
@@ -900,6 +960,7 @@
       <span class="phrase-selections" id="phraseSelections">✦ Reflecting on what I expect from a close friend… ✦</span>
       <span class="phrase-summary" id="phraseSummary"></span>
     </div>
+    <p class="order-line" id="orderLine"></p>
     <div class="action-buttons">
       <button class="btn" id="copyInviteBtn"><i class="fas fa-copy"></i> Copy summary</button>
       <button class="btn" id="shareCardBtn"><i class="fas fa-share-alt"></i> Share card</button>
@@ -915,7 +976,7 @@
 <script>
   (function() {
     // ----- DOM references -----
-    const allRadios = Array.from(document.querySelectorAll('input[type="radio"][data-col]'));
+    const allChecks = Array.from(document.querySelectorAll('input[type="checkbox"][data-col]'));
     const totalsBox = document.getElementById('totals');
     const totalsWrap = document.getElementById('totalsWrap');
     const rows = Array.from(totalsBox.querySelectorAll('.totals-row'));
@@ -925,6 +986,10 @@
     const phraseSummaryEl = document.getElementById('phraseSummary');
     const totalsTitle = document.getElementById('totalsTitle');
     const friendNameInput = document.getElementById('friend');
+    const orderLine = document.getElementById('orderLine');
+    const answerOrder = [];
+    const GROUPS = ['attention','contact','influence','feedback','gifting','sharing','money'];
+    const CAT_NUM = { attention:1, contact:2, influence:3, feedback:4, gifting:5, sharing:6, money:7 };
 
     // mapping of col -> label
     const colToRole = {
@@ -936,8 +1001,8 @@
     };
 
     // get selected radio for a given name
-    function getSelectedRadioByGroup(name) {
-      return document.querySelector(`input[name="${name}"]:checked`);
+    function getSelectedByGroup(name) {
+      return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`));
     }
 
     // get the text of the label (excluding the radio button)
@@ -966,17 +1031,17 @@
 
       const parts = [];
       groups.forEach(group => {
-        const radio = getSelectedRadioByGroup(group);
-        if (!radio) return;
-        const text = getLabelText(radio);
+        const checked = getSelectedByGroup(group);
+        if (!checked.length) return;
+        const text = checked.map(getLabelText).join(" / ");
         const extra = getExtraInfo(group);
-        // join radio item and the user's voice/typed nuance with "and"
+        // join the ticked items and the user's voice/typed nuance with "and"
         parts.push(extra ? `${text} and ${extra}` : text);
       });
 
       // Dominant role (for the closing remark)
       const counts = { col1:0, col2:0, col3:0, col4:0, col5:0 };
-      allRadios.forEach(radio => {
+      allChecks.forEach(radio => {
         if (radio.checked) counts[radio.dataset.col] += 1;
       });
       let dominantCol = 'col1';
@@ -1014,7 +1079,7 @@
       const counts = { col1:0, col2:0, col3:0, col4:0, col5:0 };
       let totalChecked = 0;
       
-      allRadios.forEach(radio => {
+      allChecks.forEach(radio => {
         if (radio.checked) {
           const col = radio.dataset.col;
           if (counts.hasOwnProperty(col)) {
@@ -1048,12 +1113,23 @@
       totalsTitle.textContent = `✨ ${friendNameRaw || 'Your friend'} is…`;
 
       // Progressive jungle: each radio click grows a new pair of leaves
-      document.body.dataset.jungle = String(totalChecked);
+      document.body.dataset.jungle = String(Math.min(7, totalChecked));
 
       // Update the dynamic invitation phrase (two separate blocks)
       const { selections, summary } = generateSummaryPhrase();
       phraseSelectionsEl.textContent = selections;
       phraseSummaryEl.textContent = summary;
+
+      // order counter — categories in the order first answered (e.g. 3, 2, 5, 1)
+      GROUPS.forEach(g => {
+        const has = !!document.querySelector(`input[name="${g}"]:checked`);
+        const at = answerOrder.indexOf(g);
+        if (has && at === -1) answerOrder.push(g);
+        else if (!has && at !== -1) answerOrder.splice(at, 1);
+      });
+      if (orderLine) orderLine.textContent = answerOrder.length
+        ? 'Answered in order: ' + answerOrder.map(g => CAT_NUM[g]).join(', ')
+        : '';
     }
 
     // Combined phrase text (with paragraph break) for copy / share / publish
@@ -1064,7 +1140,7 @@
     }
 
     // Attach listeners
-    allRadios.forEach(r => r.addEventListener('change', recalcAll));
+    allChecks.forEach(r => r.addEventListener('change', recalcAll));
     friendNameInput.addEventListener('input', recalcAll);
 
     // textarea listeners — re-render phrase as the user types nuances
@@ -1340,6 +1416,47 @@
       publishBtn.innerHTML = '<i class="fas fa-check-circle"></i> Published';
       setTimeout(() => { publishBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publish'; }, 1800);
     });
+
+    // ----- CATEGORY CHIPS - click a chip to open/close its question below -----
+    const chips = Array.from(document.querySelectorAll('.cat-chip'));
+    const panelFor = (cat) => document.querySelector(`.qpanel[data-cat="${cat}"]`);
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const panel = panelFor(chip.dataset.cat);
+        const open = chip.classList.toggle('open');
+        chip.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (panel) panel.hidden = !open;
+      });
+    });
+
+    // ----- BUBBLES - persistent random scatter, flowing the chips downward -----
+    const bubblesBtn = document.getElementById('bubblesBtn');
+    function scatterChips() {
+      chips.forEach(chip => {
+        const dx  = ((Math.random() * 2) - 1) * 130;
+        const dy  = 24 + Math.random() * 230;
+        const rot = ((Math.random() * 2) - 1) * 18;
+        chip.style.transform = `translate(${dx.toFixed(0)}px, ${dy.toFixed(0)}px) rotate(${rot.toFixed(1)}deg)`;
+      });
+    }
+    function settleChips() { chips.forEach(chip => { chip.style.transform = ''; }); }
+    if (bubblesBtn) {
+      bubblesBtn.addEventListener('click', () => {
+        const on = document.body.classList.toggle('scatter');
+        bubblesBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on) scatterChips(); else settleChips();
+      });
+    }
+
+    // ----- ALL - toggle every question panel open / collapsed -----
+    const allBtn = document.getElementById('allBtn');
+    if (allBtn) {
+      allBtn.addEventListener('click', () => {
+        const on = document.body.classList.toggle('all-open');
+        allBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        allBtn.textContent = on ? 'Hide' : 'All';
+      });
+    }
 
   })();
 </script>

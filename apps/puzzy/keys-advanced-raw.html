@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#333333">
 <title>KEYS · raw (all fields)</title>
 <link rel="icon" type="image/svg+xml" href="favicon-keys.svg">
 <style>
@@ -36,7 +38,8 @@
   .tier-step--current .tier-node{background:#333;border-color:#333;transform:scale(1.25);
     box-shadow:0 0 0 3px rgba(51,51,51,.18)}
   .tier-step--current .tier-label{color:#333;font-weight:700;text-decoration:underline}
-  body{max-width:760px;margin:0 auto;padding:1rem 1.1rem 4rem;font-family:Georgia,serif;line-height:1.5}
+  html{overflow-x:hidden}
+  body{max-width:760px;margin:0 auto;padding:1rem 1.1rem 4rem;font-family:Georgia,serif;line-height:1.5;overflow-x:hidden;overflow-wrap:break-word}
   h1{margin:.2rem 0}
   h2{margin:1.6rem 0 .4rem;border-bottom:1px solid #999;padding-bottom:.2rem;font-size:1.7rem}
   h3{margin:1rem 0 .3rem;font-size:1.1rem}
@@ -216,6 +219,7 @@
   const curLang = () => document.getElementById('lang-es').checked ? 'es' : 'en';
   function applyLang(){
     const li = curLang();
+    document.documentElement.lang = li;   // keep <html lang> in sync (valid + a11y)
     document.querySelectorAll('option[data-en]').forEach(o => { o.textContent = o.dataset[li]; });
     document.querySelectorAll('[data-ph-en]').forEach(el => { el.placeholder = (li === 'es' ? el.dataset.phEs : el.dataset.phEn); });
   }
@@ -364,6 +368,8 @@
     c.querySelectorAll('.' + other).forEach(n => n.remove());
     return c.textContent.trim().replace(/\s+/g, ' ');
   };
+  // active-language string for export labels/toasts (the app is EN/ES bilingual)
+  const T = (en, es) => curLang() === 'es' ? es : en;
 
   // a preset/blank deck block: order-select + word, plus a Why textarea
   // one item row: order select + a word (free-text input, else preset span)
@@ -406,7 +412,7 @@
       const it = collectItemRow(row); if (it) items.push(it);
     });
     const ta = wrap.querySelector('textarea[name="custom-why"]');
-    return { title: title.trim() || 'Your group', items, why: ta ? ta.value.trim() : '' };
+    return { title: title.trim() || T('Your group', 'Tu grupo'), items, why: ta ? ta.value.trim() : '' };
   }
   function collectFavourites(){
     const out = [];
@@ -447,30 +453,31 @@
     const deck = dk => ({ title:dk.title, order:'', items:dk.items, why:dk.why });
     const fav  = f  => ({ title:'', order:'', items:[{ order:'', word:f.combo }], why:f.definition });
     const out = [];
-    if (d.free.length)   out.push({ key:'free',   title:'Free grouping',      entries:d.free.map(grp) });
-    if (d.master.length) out.push({ key:'master', title:'Objective grouping', entries:d.master.map(grp) });
-    if (d.decks.length)  out.push({ key:'deck',   title:'Decks',              entries:d.decks.map(deck) });
-    if (d.custom)        out.push({ key:'custom', title:'Your group',         entries:[deck(d.custom)] });
+    if (d.free.length)   out.push({ key:'free',   title:T('Free grouping','Agrupación libre'),         entries:d.free.map(grp) });
+    if (d.master.length) out.push({ key:'master', title:T('Objective grouping','Agrupación objetiva'), entries:d.master.map(grp) });
+    if (d.decks.length)  out.push({ key:'deck',   title:T('Decks','Mazos'),                            entries:d.decks.map(deck) });
+    if (d.custom)        out.push({ key:'custom', title:T('Your group','Tu grupo'),                    entries:[deck(d.custom)] });
     if (d.perspective.decks.length || d.perspective.note)
-                         out.push({ key:'perspective', title:'New perspective', entries:d.perspective.decks.map(deck), note:d.perspective.note });
-    if (d.favourites.length) out.push({ key:'fav', title:'Favourites', entries:d.favourites.map(fav) });
+                         out.push({ key:'perspective', title:T('New perspective','Nueva perspectiva'), entries:d.perspective.decks.map(deck), note:d.perspective.note });
+    if (d.favourites.length) out.push({ key:'fav', title:T('Favourites','Favoritas'), entries:d.favourites.map(fav) });
     return out;
   }
   function toText(d, md){
     const H2 = md ? s => `## ${s}` : s => `\n${s}\n${'─'.repeat(s.length)}`;
     const H3 = md ? s => `### ${s}` : s => `${s}:`;
     const b = md ? '- ' : '  • ';
-    const L = [ md ? '# Keys' : 'KEYS', md ? `_Mode: ${d.mode}_` : `Mode: ${d.mode}`, '' ];
+    const kw = T('Keys', 'Claves'), modeL = T('Mode', 'Modo');
+    const L = [ md ? `# ${kw}` : kw.toUpperCase(), md ? `_${modeL}: ${d.mode}_` : `${modeL}: ${d.mode}`, '' ];
     const item = it => `${b}${it.order ? it.order + '. ' : ''}${it.word || '—'}`;
     sections(d).forEach(sec => {
       L.push(H2(sec.title));
       sec.entries.forEach(e => {
         if (e.title) L.push(H3(`${e.title}${e.order ? ' (order ' + e.order + ')' : ''}`));
         e.items.forEach(it => L.push(item(it)));
-        if (e.why) L.push(`${md ? '' : '  '}Why: ${e.why}`);
+        if (e.why) L.push(`${md ? '' : '  '}${T('Why', 'Por qué')}: ${e.why}`);
         L.push('');
       });
-      if (sec.note) L.push(`${md ? '' : '  '}Note: ${sec.note}`, '');
+      if (sec.note) L.push(`${md ? '' : '  '}${T('Note', 'Nota')}: ${sec.note}`, '');
     });
     return L.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
   }
@@ -517,13 +524,13 @@
       sec.entries.forEach(e => S.push(
         (e.title ? `<h3>${esc(e.title)}${e.order ? ` <small>(order ${esc(e.order)})</small>` : ''}</h3>` : '')
         + itemsUL(e.items) + why(e.why)));
-      if (sec.note) S.push(why('Note: ' + sec.note));
+      if (sec.note) S.push(why(T('Note', 'Nota') + ': ' + sec.note));
     });
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>keys — summary</title>`
+    return `<!doctype html><html lang="${curLang()}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(T('keys — summary', 'claves — resumen'))}</title>`
       + `<style>body{font-family:Georgia,serif;line-height:1.5;max-width:760px;margin:0 auto;padding:1.5rem;color:#222}`
       + `h1{margin:.2rem 0}h2{border-bottom:1px solid #999;padding-bottom:.2rem;margin:1.4rem 0 .4rem}h3{margin:.9rem 0 .2rem}`
       + `ul{margin:.2rem 0 .5rem 1.2rem}.why{color:#555;font-style:italic;margin:.2rem 0 .4rem}small{color:#666}</style></head>`
-      + `<body><h1>Keys</h1><p><small>Mode: ${esc(d.mode)}</small></p>${S.join('')}</body></html>`;
+      + `<body><h1>${esc(T('Keys', 'Claves'))}</h1><p><small>${esc(T('Mode', 'Modo'))}: ${esc(d.mode)}</small></p>${S.join('')}</body></html>`;
   }
   function serializeData(d, fmt){
     if (fmt === 'json') return JSON.stringify(d, null, 2);
@@ -563,7 +570,7 @@
 
   // ---- wire the buttons ----
   const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
-  on('btn-copy', async () => flash(await copyText(serialize('md')) ? 'copied ✓' : 'copy failed'));
+  on('btn-copy', async () => flash(await copyText(serialize('md')) ? T('copied ✓', 'copiado ✓') : T('copy failed', 'fallo al copiar')));
   on('btn-download', () => {
     const checked = Array.from(document.querySelectorAll('input[name="fmt"]:checked')).map(c => c.value);
     let fmts = checked.filter(f => MIME[f]);
@@ -572,23 +579,23 @@
     const d = collect();   // gather once; every format serialises the same snapshot
     // stagger: browsers throttle several programmatic downloads fired at once
     fmts.forEach((f, i) => setTimeout(() => download(`keys-summary.${f}`, MIME[f], serializeData(d, f)), i * 150));
-    flash(`saved ${fmts.map(f => '.' + f).join(' ')} ✓` + (skipped.length ? ` · ${skipped.join(', ')} not text — skipped` : ''));
+    flash(`${T('saved', 'guardado')} ${fmts.map(f => '.' + f).join(' ')} ✓` + (skipped.length ? ` · ${skipped.join(', ')} ${T('not text — skipped', 'no es texto — omitido')}` : ''));
   });
   on('btn-print', () => {
-    const w = window.open('', '_blank'); if (!w){ flash('pop-up blocked'); return; }
+    const w = window.open('', '_blank'); if (!w){ flash(T('pop-up blocked', 'ventana bloqueada')); return; }
     w.document.write(serialize('html')); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
   });
   const shareText = async () => {
     const text = serialize('md');
     if (navigator.share){ try { await navigator.share({ title: 'flove · keys', text }); return; } catch(_){} }
-    flash(await copyText(text) ? 'copied (share n/a) ✓' : 'share not available');
+    flash(await copyText(text) ? T('copied (share n/a) ✓', 'copiado (sin compartir) ✓') : T('share not available', 'compartir no disponible'));
   };
   on('btn-mobile', shareText);
   on('btn-apps', shareText);
   on('btn-email', () => { location.href = `mailto:?subject=${encodeURIComponent('flove · keys')}&body=${encodeURIComponent(serialize('md'))}`; });
   on('btn-publish', () => {
     const plat = (document.querySelector('input[name="plat"]:checked') || {}).value;
-    if (!plat){ flash('pick a platform first'); return; }
+    if (!plat){ flash(T('pick a platform first', 'elige una plataforma')); return; }
     shareText();
   });
 })();

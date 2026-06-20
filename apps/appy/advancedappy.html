@@ -243,8 +243,10 @@
   .card.teaser .ct{color:var(--cream-dim)}
   .viz-stage{display:block;width:100%;height:130px;border:1px solid var(--line);border-radius:13px;
     background:radial-gradient(circle at 50% 50%,rgba(224,91,192,.1),transparent 70%)}
+  #viz-svg{transition:transform .6s cubic-bezier(.2,.9,.25,1)}
   #viz-svg.spin #viz-g{transform-origin:160px 60px;animation:vspin 11s linear infinite}
   @keyframes vspin{to{transform:rotate(360deg)}}
+  #viz-svg.xr{transform:perspective(540px) rotateX(46deg) rotateZ(-7deg)}
 </style>
 </head>
 <body data-mode="advanced">
@@ -374,11 +376,13 @@
     <div class="card">
       <div class="row" style="justify-content:space-between"><span class="ct">MyNet circles</span><span class="since-tag normal">normal</span></div>
       <p class="muted">Named circles with per-circle permissions.</p>
-      <div class="tg"><span>🟡 close <span class="muted">· 4 people</span></span>
-        <select class="fld" style="max-width:130px"><option>private</option><option>all MyNet</option><option>public</option></select></div>
-      <div class="tg"><span>🔵 designers <span class="muted">· 21 people</span></span>
-        <select class="fld" style="max-width:130px"><option>all MyNet</option><option>private</option><option>public</option></select></div>
-      <button class="btn ghost sm" onclick="flash(this,'Circle added ✓')">＋ New circle</button>
+      <div id="circle-list">
+        <div class="tg"><span>🟡 close <span class="muted">· 4 people</span></span>
+          <select class="fld" style="max-width:130px"><option>private</option><option>all MyNet</option><option>public</option></select></div>
+        <div class="tg"><span>🔵 designers <span class="muted">· 21 people</span></span>
+          <select class="fld" style="max-width:130px"><option>all MyNet</option><option>private</option><option>public</option></select></div>
+      </div>
+      <button class="btn ghost sm" onclick="addCircle()">＋ New circle</button>
       <div class="grid3" style="margin-top:.4rem">
         <div class="stat"><div class="n">128</div><div class="k">souls live</div></div>
         <div class="stat"><div class="n">1,940</div><div class="k">all-time reach</div></div>
@@ -406,7 +410,9 @@
   <div class="card" data-since="super">
     <div class="row" style="justify-content:space-between"><span class="ct">Stewardship surface</span><span class="since-tag super">super</span></div>
     <p class="muted">At super your identity is integrated across the stack — you vouch &amp; host others and direct support.</p>
-    <div class="row"><span class="sbadge on">governance badge ✓</span><span class="sbadge">vouch others</span><span class="sbadge">host nodes</span></div>
+    <div class="row"><span class="sbadge on">governance badge ✓</span><span class="sbadge">host nodes</span></div>
+    <div class="row"><input class="fld" id="vouch-in" placeholder="@handle to vouch for…"><button class="btn ghost sm" onclick="addVouch()">Vouch ✓</button></div>
+    <div id="vouch-list"></div>
     <label class="tg"><span>Donation directing on profile <span class="muted">· route support to a cause</span></span><span class="sw"><input type="checkbox"><span class="track"></span></span></label>
   </div>
   </section>
@@ -467,7 +473,9 @@
   <div class="card" data-since="super">
     <div class="row" style="justify-content:space-between"><span class="ct">Community stewardship</span><span class="since-tag super">super</span></div>
     <p class="muted">Run &amp; host groups, curator powers, network-wide governance, federation with other meshes.</p>
-    <div class="row"><span class="sbadge on">host groups</span><span class="sbadge">curator</span><span class="sbadge">federate ↗</span></div>
+    <div class="row"><span class="sbadge on">host groups</span><span class="sbadge">curator</span></div>
+    <div class="row"><input class="fld" id="fed-in" placeholder="mesh address to federate…"><button class="btn ghost sm" onclick="addFed()">Federate ↗</button></div>
+    <div id="fed-list"></div>
   </div>
   </section>
 
@@ -543,6 +551,40 @@
         <label class="tg"><span>Polarities</span><span class="sw"><input type="checkbox" class="seed" data-agent="Polarities" onchange="syncSeed()"><span class="track"></span></span></label>
         <label class="tg"><span>Reminders</span><span class="sw"><input type="checkbox" class="seed" data-agent="Reminders" checked onchange="syncSeed()"><span class="track"></span></span></label>
       </div>
+    </div>
+  </div>
+
+  <!-- sety · normal: Explains + Contents -->
+  <div class="grid2" data-since="normal">
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><span class="ct">Explains</span><span class="since-tag normal">normal</span></div>
+      <p class="muted">Which medias &amp; labels frame your content.</p>
+      <div class="row" style="gap:1.1rem">
+        <label class="row" style="font-size:.82rem"><span class="sw"><input type="checkbox" checked><span class="track"></span></span> emojis</label>
+        <label class="row" style="font-size:.82rem"><span class="sw"><input type="checkbox" checked><span class="track"></span></span> images</label>
+        <label class="row" style="font-size:.82rem"><span class="sw"><input type="checkbox"><span class="track"></span></span> audio</label>
+        <label class="row" style="font-size:.82rem"><span class="sw"><input type="checkbox"><span class="track"></span></span> video</label>
+      </div>
+      <div class="muted" style="font-size:.74rem">Label style</div>
+      <div class="chipset" data-target="label-out">
+        <span class="chip sel" data-append="WISE">WISE</span><span class="chip" data-append="Journalist">Journalist</span><span class="chip" data-append="Tight">Tight</span>
+      </div>
+      <input type="hidden" id="label-out">
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><span class="ct">Contents</span><span class="since-tag normal">normal</span></div>
+      <p class="muted">Which platforms &amp; fields feed your data.</p>
+      <div class="chipset" data-target="plat-out">
+        <span class="chip sel" data-append="Wikipedia">Wikipedia</span><span class="chip" data-append="Wiktionary">Wiktionary</span>
+        <span class="chip" data-append="WordNet">WordNet</span><span class="chip" data-append="Web">Web</span>
+      </div>
+      <input type="hidden" id="plat-out">
+      <div class="muted" style="font-size:.74rem;margin-top:.3rem">Fields</div>
+      <div class="chipset" data-target="field-out">
+        <span class="chip" data-append="Science">Science</span><span class="chip" data-append="Biology">Biology</span>
+        <span class="chip" data-append="Linguistics">Linguistics</span><span class="chip" data-append="Economy">Economy</span><span class="chip" data-append="Psychology">Psychology</span>
+      </div>
+      <input type="hidden" id="field-out">
     </div>
   </div>
 
@@ -641,6 +683,7 @@
     <div class="row" style="justify-content:space-between"><span class="ct">Agent-driven viz</span><span class="row" style="gap:.4rem"><span class="agent-pill">🦉 layout on</span><span class="since-tag advanced">advanced</span></span></div>
     <p class="muted">MyWizy lays out &amp; animates your graph — interactive 3D/4D, XR-ready scenes.</p>
     <label class="tg"><span>Animate my relations graph</span><span class="sw"><input type="checkbox" checked onchange="toggleVizSpin(this)"><span class="track"></span></span></label>
+    <button class="btn ghost sm" onclick="toggleXR(this)">⛶ Preview XR scene</button>
   </div>
 
   <!-- vizy · super (home) -->
@@ -796,6 +839,22 @@ function acceptMatch(btn,h){const fl=document.getElementById('follow-list');
   if(fl){const el=document.createElement('div');el.className='item';
     el.innerHTML='<span class="dot"></span><div>'+esc(h)+' <span class="muted">· following ★ (match)</span></div>';fl.appendChild(el);}
   flash(btn,'Followed ✓');}
+
+/* ---- profily circles & vouch · social federation · vizy XR ---- */
+function addCircle(){const n=prompt('Circle name?');if(!n||!n.trim())return;
+  const el=document.createElement('div');el.className='tg';
+  el.innerHTML='<span>🟢 '+esc(n.trim())+' <span class="muted">· new</span></span>'+
+    '<select class="fld" style="max-width:130px"><option>private</option><option>all MyNet</option><option>public</option></select>';
+  document.getElementById('circle-list').appendChild(el);}
+function addVouch(){const i=document.getElementById('vouch-in');let h=i.value.trim();if(!h)return;if(!h.startsWith('@'))h='@'+h;
+  const el=document.createElement('div');el.className='item';
+  el.innerHTML='<span class="dot"></span><div>you vouch for '+esc(h)+' <span class="muted">· +trust</span></div><button class="x" aria-label="remove">✕</button>';
+  el.querySelector('.x').onclick=()=>el.remove();document.getElementById('vouch-list').appendChild(el);i.value='';}
+function addFed(){const i=document.getElementById('fed-in'),v=i.value.trim();if(!v)return;
+  const el=document.createElement('div');el.className='item';
+  el.innerHTML='<span class="dot"></span><div>federated with <b>'+esc(v)+'</b> <span class="muted">· peering</span></div><button class="x" aria-label="remove">✕</button>';
+  el.querySelector('.x').onclick=()=>el.remove();document.getElementById('fed-list').appendChild(el);i.value='';}
+function toggleXR(btn){const s=document.getElementById('viz-svg');if(!s)return;const on=s.classList.toggle('xr');btn.textContent=on?'⛶ Exit XR':'⛶ Preview XR scene';}
 
 /* ---- boot vizy stage ---- */
 drawViz(store.vizShape||'List');

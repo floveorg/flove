@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>basicappy — the hive (basic tier)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#160f07; --void2:#1d1409; --comb:#221809; --comb2:#2b1f0e;
+    --honey:#f6a609; --honey-hi:#ffc64d; --amber:#e8830a;
+    --cream:#f4ead5; --cream-dim:#a99a7c;
+    --nectar:#ff5b39; --jade:#37c98a;
+    --rose:#ff7e9d; --joy:#ffd36b; --wis:#8fb2d9;
+    --line:rgba(244,234,213,.13); --line-2:rgba(244,234,213,.07);
+    --glow-honey:rgba(246,166,9,.22); --glow-nectar:rgba(255,91,57,.18);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; min-height:100svh; color:var(--cream); overflow-x:hidden;
+    font-family:"Instrument Sans",system-ui,sans-serif; font-size:16px; line-height:1.6;
+    background:
+      radial-gradient(900px 520px at 8% -6%, rgba(246,166,9,.16) 0%, transparent 60%),
+      radial-gradient(820px 600px at 104% 4%, rgba(255,91,57,.12) 0%, transparent 55%),
+      linear-gradient(160deg, var(--void) 0%, var(--void2) 60%, #120c05 100%);
+    -webkit-font-smoothing:antialiased;
+  }
+  /* atmosphere: floating hexagons + grain */
+  .hive{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .hex{position:absolute;opacity:.16;animation:drift 26s ease-in-out infinite}
+  .hex svg{display:block}
+  .hex.a{top:-4%;left:-3%;width:300px;animation-delay:-2s}
+  .hex.b{top:46%;right:-6%;width:380px;opacity:.1;animation-delay:-9s;animation-duration:34s}
+  .hex.c{bottom:-8%;left:18%;width:260px;opacity:.12;animation-delay:-14s;animation-duration:30s}
+  @keyframes drift{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-26px) rotate(8deg)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .shell{position:relative;z-index:2;max-width:1040px;margin:0 auto;padding:clamp(1.1rem,3.4vw,2.4rem)}
+  .fade{opacity:0;animation:up .7s cubic-bezier(.2,.9,.25,1) forwards}
+  @keyframes up{to{opacity:1;transform:none}}
+  .fade{transform:translateY(14px)}
+  .d1{animation-delay:.05s}.d2{animation-delay:.16s}.d3{animation-delay:.28s}.d4{animation-delay:.4s}
+
+  /* header */
+  .top-bar{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;position:relative}
+  .top-bar-menu-wrap{position:relative}
+  .top-bar-brand{display:inline-flex;align-items:center;gap:.7rem;background:none;border:none;cursor:pointer;padding:.2rem;color:var(--cream)}
+  .bee-mark-sm{width:52px;height:52px;filter:drop-shadow(0 4px 14px rgba(246,166,9,.35))}
+  .wing{transform-origin:center;animation:flutter 2.6s ease-in-out infinite}
+  .wing.r{animation-delay:.18s}
+  @keyframes flutter{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-7deg)}}
+  .brand-text{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:2rem;letter-spacing:-.025em;line-height:1}
+  .brand-text .t-tier{color:var(--honey)}
+  .brand-text .t-appy{color:var(--cream)}
+  .top-bar-dropdown{position:absolute;top:3.4rem;left:0;background:var(--comb2);border:1px solid var(--line);
+    border-radius:14px;padding:.45rem;box-shadow:0 20px 50px -12px rgba(0,0,0,.7);display:none;z-index:30;min-width:200px}
+  .top-bar-menu-wrap.open .top-bar-dropdown{display:block;animation:up .25s both}
+  .top-menu-item{display:block;width:100%;text-align:left;background:none;border:none;padding:.55rem .9rem;border-radius:9px;
+    font-family:"Space Mono",monospace;font-size:.72rem;color:var(--cream);cursor:pointer;text-decoration:none}
+  .top-menu-item:hover{background:rgba(246,166,9,.14);color:var(--honey-hi)}
+  .tier-flag{margin-left:auto;display:inline-flex;align-items:center;gap:.5rem;font-family:"Space Mono",monospace;
+    font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--void);font-weight:700;
+    background:linear-gradient(120deg,var(--honey),var(--honey-hi));border-radius:999px;padding:.4rem .85rem;
+    box-shadow:0 6px 20px -6px var(--glow-honey)}
+  .help-pill{background:none;border:1px solid var(--line);color:var(--cream-dim);border-radius:999px;
+    width:30px;height:30px;cursor:pointer;font-size:.8rem;font-family:"Space Mono",monospace}
+  .help-pill:hover{border-color:var(--honey);color:var(--honey-hi)}
+
+  .about-panel{display:none;margin:.9rem 0 0;padding:1.1rem 1.3rem;background:var(--comb);border:1px solid var(--line);
+    border-radius:16px;font-size:.86rem;color:var(--cream-dim)}
+  .about-panel.open{display:block;animation:up .3s both}
+  .about-panel b{color:var(--honey-hi)}
+
+  .ribbon{margin:1.4rem 0 1.4rem;padding:.85rem 1.15rem;border-radius:14px;position:relative;overflow:hidden;
+    border:1px solid rgba(246,166,9,.4);background:linear-gradient(100deg,rgba(246,166,9,.14),rgba(255,91,57,.08));
+    font-size:.82rem;color:var(--honey-hi);display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}
+  .ribbon b{color:var(--cream)}
+  .ribbon::before{content:"";position:absolute;inset:0;background:
+    repeating-linear-gradient(135deg,transparent,transparent 18px,rgba(246,166,9,.05) 18px,rgba(246,166,9,.05) 20px)}
+
+  /* tabs */
+  .tab-bar{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:.4rem;border-radius:16px;
+    background:rgba(43,31,14,.6);border:1px solid var(--line);backdrop-filter:blur(10px)}
+  .tab-btn{font-family:"Space Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
+    padding:.5rem .9rem;border-radius:10px;border:none;background:transparent;color:var(--cream-dim);cursor:pointer;
+    transition:color .2s,background .2s,box-shadow .2s;white-space:nowrap}
+  .tab-btn:hover{color:var(--cream);background:rgba(246,166,9,.08)}
+  .tab-btn.active{color:var(--void);font-weight:700;background:linear-gradient(120deg,var(--honey),var(--honey-hi));
+    box-shadow:0 6px 22px -6px var(--glow-honey)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block;animation:up .45s cubic-bezier(.2,.9,.25,1) both}
+
+  /* honeycomb cards */
+  .comb-card{position:relative;background:linear-gradient(180deg,var(--comb2),var(--comb));border:1px solid var(--line);
+    border-radius:18px;padding:1.3rem 1.35rem;margin-bottom:1rem;display:flex;flex-direction:column;gap:.7rem;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 34px -18px rgba(0,0,0,.7);
+    transition:border-color .3s,box-shadow .3s,transform .2s}
+  .comb-card::after{content:"";position:absolute;top:0;right:0;width:34px;height:30px;pointer-events:none;
+    background:linear-gradient(225deg,rgba(246,166,9,.5),transparent 70%);
+    clip-path:polygon(100% 0,100% 100%,0 0);border-top-right-radius:18px;opacity:.5}
+  .comb-card:hover{border-color:rgba(246,166,9,.42);transform:translateY(-2px);
+    box-shadow:0 0 0 1px rgba(246,166,9,.18),0 22px 44px -20px rgba(0,0,0,.8),0 0 40px -12px var(--glow-honey)}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem}
+
+  .ct{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:1.12rem;letter-spacing:-.01em}
+  .sec{font-family:"Space Mono",monospace;font-size:.56rem;letter-spacing:.3em;text-transform:uppercase;
+    color:var(--honey);display:flex;align-items:center;gap:.7rem;margin:1.5rem 0 .7rem}
+  .sec::before{content:"⬡";color:var(--honey);font-size:.85rem;letter-spacing:0}
+  .sec::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(246,166,9,.45),transparent)}
+  .muted{color:var(--cream-dim);font-size:.82rem}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer;font-family:"Space Mono",monospace;font-size:.66rem;
+    letter-spacing:.06em;text-transform:uppercase;padding:.56rem 1.1rem;border-radius:11px;border:1px solid transparent;
+    background:linear-gradient(120deg,var(--honey),var(--honey-hi));color:var(--void);font-weight:700;
+    transition:transform .14s,box-shadow .2s,filter .2s}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px -8px var(--glow-honey);filter:brightness(1.06)}
+  .btn:active{transform:translateY(0)}
+  .btn.signal{background:linear-gradient(120deg,var(--jade),#5fe3a8);color:#05281a}
+  .btn.signal:hover{box-shadow:0 10px 26px -8px rgba(55,201,138,.4)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--cream-dim);font-weight:400}
+  .btn.ghost:hover{border-color:rgba(246,166,9,.5);color:var(--honey-hi);box-shadow:none}
+  .btn.sm{padding:.36rem .7rem;font-size:.58rem}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;filter:none}
+  .iconbtn{background:rgba(22,15,7,.5);border:1px solid var(--line);color:var(--cream-dim);cursor:pointer;
+    width:34px;height:34px;border-radius:10px;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center;
+    transition:all .16s}
+  .iconbtn:hover{border-color:var(--honey);color:var(--honey-hi)}
+  .iconbtn.on{border-color:var(--honey);color:var(--honey-hi);background:rgba(246,166,9,.12)}
+
+  /* badges */
+  .sbadge{font-family:"Space Mono",monospace;font-size:.54rem;letter-spacing:.12em;text-transform:uppercase;
+    padding:.26rem .62rem;border-radius:999px;color:var(--cream-dim);border:1px solid var(--line);background:rgba(244,234,213,.03)}
+  .sbadge.on{color:var(--jade);border-color:rgba(55,201,138,.45);background:rgba(55,201,138,.1)}
+  .pbadge{font-family:"Space Mono",monospace;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;
+    padding:.26rem .66rem;border-radius:999px;color:var(--jade);border:1px solid rgba(55,201,138,.45);
+    background:rgba(55,201,138,.1);display:inline-flex;align-items:center;gap:.35rem}
+  .lock-badge{font-family:"Space Mono",monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--nectar);border:1px solid rgba(255,91,57,.45);background:rgba(255,91,57,.1);border-radius:999px;
+    padding:.26rem .62rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+  .cap-hint{font-family:"Space Mono",monospace;font-size:.56rem;letter-spacing:.08em;color:var(--cream-dim);
+    display:inline-flex;align-items:center;gap:.4rem}
+  .cap-hint b{color:var(--honey-hi)}
+  .cap-hint .up{color:var(--nectar)}
+
+  input.fld,select.fld,textarea.fld{font-family:"Instrument Sans",sans-serif;font-size:.85rem;color:var(--cream);
+    background:rgba(22,15,7,.7);border:1px solid var(--line);border-radius:11px;padding:.55rem .75rem;width:100%}
+  input.fld:focus,select.fld:focus,textarea.fld:focus{outline:none;border-color:var(--honey);box-shadow:0 0 0 3px rgba(246,166,9,.15)}
+  textarea.fld{resize:vertical;min-height:64px}
+  select.fld option{background:var(--comb2)}
+
+  /* chips */
+  .chip{font-family:"Space Mono",monospace;font-size:.6rem;letter-spacing:.04em;cursor:pointer;
+    padding:.34rem .72rem;border-radius:999px;border:1px solid var(--line);background:rgba(22,15,7,.5);
+    color:var(--cream-dim);transition:all .16s;user-select:none}
+  .chip:hover{border-color:rgba(246,166,9,.5);color:var(--honey-hi)}
+  .chip.sel{border-color:var(--jade);color:var(--jade);background:rgba(55,201,138,.12);font-weight:700}
+  /* selection-dim: unselected fall to 50% when a sibling is selected */
+  .chipset.has-sel .chip:not(.sel){opacity:.5}
+
+  /* wizard (magic ✨ suggestion bot) */
+  .wiz-bar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.4rem}
+  .wiz-counter{font-family:"Space Mono",monospace;font-size:.56rem;color:var(--cream-dim);margin-left:auto}
+  .wiz-counter.warn{color:var(--nectar)}
+  .wiz-tray{display:none;margin-top:.5rem;padding:.7rem;border:1px solid var(--line);border-radius:13px;
+    background:rgba(22,15,7,.55);flex-direction:column;gap:.55rem}
+  .wiz-tray.open{display:flex;animation:up .22s both}
+  .wiz-tones{display:flex;gap:.4rem;flex-wrap:wrap}
+  .tone-tab{font-family:"Space Mono",monospace;font-size:.56rem;text-transform:uppercase;letter-spacing:.08em;
+    padding:.3rem .7rem;border-radius:999px;border:1px solid var(--line);background:none;cursor:pointer;color:var(--cream-dim)}
+  .tone-tab[data-tone="lovely"].on{color:var(--rose);border-color:var(--rose);background:rgba(255,126,157,.12)}
+  .tone-tab[data-tone="joy"].on{color:var(--joy);border-color:var(--joy);background:rgba(255,211,107,.12)}
+  .tone-tab[data-tone="wisdom"].on{color:var(--wis);border-color:var(--wis);background:rgba(143,178,217,.12)}
+  .wiz-sugg{display:flex;flex-direction:column;gap:.35rem}
+  .sugg{text-align:left;font-size:.8rem;color:var(--cream);background:rgba(244,234,213,.04);border:1px solid var(--line-2);
+    border-radius:10px;padding:.45rem .7rem;cursor:pointer;transition:all .15s}
+  .sugg:hover{border-color:rgba(246,166,9,.4);background:rgba(246,166,9,.08);color:var(--honey-hi)}
+
+  /* gated */
+  .gated{opacity:.82;background:
+    repeating-linear-gradient(135deg,rgba(43,31,14,.9),rgba(43,31,14,.9) 9px,rgba(34,24,9,.95) 9px,rgba(34,24,9,.95) 18px)}
+  .gated .ct,.gated p,.gated li{color:var(--cream-dim)}
+  .gated::after{opacity:0}
+
+  /* see-more */
+  .more{display:none;margin-top:.6rem;padding-top:.7rem;border-top:1px dashed var(--line)}
+  .more.open{display:block;animation:up .25s both}
+  .see-more{align-self:flex-start;background:none;border:none;color:var(--honey);cursor:pointer;
+    font-family:"Space Mono",monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:.2rem 0}
+  .see-more:hover{color:var(--honey-hi)}
+
+  /* resource bars */
+  .bar{height:13px;border-radius:99px;background:rgba(22,15,7,.8);overflow:hidden;border:1px solid var(--line)}
+  .bar>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--honey-hi));transition:width .5s cubic-bezier(.2,.9,.25,1)}
+  .preset-btn{font-family:"Space Mono",monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;
+    padding:.36rem .72rem;border-radius:9px;border:1px solid var(--line);background:rgba(22,15,7,.5);color:var(--cream-dim);cursor:pointer;transition:all .18s}
+  .preset-btn[aria-pressed="true"]{border-color:var(--honey);color:var(--honey-hi);background:rgba(246,166,9,.12);font-weight:700}
+
+  /* mini stat tiles */
+  .stat{padding:.7rem .8rem;border-radius:13px;border:1px solid var(--line);background:rgba(22,15,7,.4);text-align:center}
+  .stat .n{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:1.3rem;color:var(--honey-hi);line-height:1}
+  .stat .k{font-family:"Space Mono",monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-dim);margin-top:.3rem}
+
+  /* lists / feed */
+  .item{display:flex;gap:.65rem;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid var(--line-2);font-size:.82rem}
+  .item:last-child{border-bottom:none}
+  .item .x{margin-left:auto;background:none;border:none;color:var(--cream-dim);cursor:pointer;font-size:.85rem}
+  .item .x:hover{color:var(--nectar)}
+  .dot{width:.55rem;height:.55rem;flex:none;margin-top:.4rem;background:var(--jade);
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  .qstat{font-family:"Space Mono",monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.14rem .5rem;
+    border-radius:999px;background:rgba(255,91,57,.12);color:var(--nectar);border:1px solid rgba(255,91,57,.3)}
+  .qstat.live{background:rgba(55,201,138,.12);color:var(--jade);border-color:rgba(55,201,138,.3)}
+
+  /* personas */
+  .persona{border:1px solid var(--line);border-radius:14px;padding:.85rem .95rem;background:rgba(22,15,7,.4);display:flex;flex-direction:column;gap:.5rem}
+  .persona .pn{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:1rem;background:none;border:none;
+    color:var(--honey-hi);border-bottom:1px dashed transparent;padding:.1rem 0}
+  .persona .pn:focus{outline:none;border-bottom-color:var(--honey)}
+  .persona .prow{font-size:.78rem;color:var(--cream);background:none;border:none;border-bottom:1px dashed transparent;padding:.1rem 0;width:100%}
+  .persona .prow:focus{outline:none;border-bottom-color:var(--line)}
+
+  /* tier ladder = vertical comb */
+  .ladder{display:flex;flex-direction:column;gap:.55rem}
+  .rung{display:grid;grid-template-columns:108px 1fr auto;gap:.85rem;align-items:center;padding:.8rem 1rem;border-radius:13px;
+    border:1px solid var(--line);background:var(--comb);position:relative}
+  .rung .rn{font-family:"Space Mono",monospace;font-weight:700;font-size:.64rem;text-transform:uppercase;letter-spacing:.1em}
+  .rung .rd{font-size:.8rem;color:var(--cream-dim)}
+  .rung.done{border-color:rgba(55,201,138,.4);background:rgba(55,201,138,.06)}
+  .rung.done .rn{color:var(--jade)}
+  .rung.current{border-color:var(--honey);background:linear-gradient(100deg,rgba(246,166,9,.14),rgba(255,91,57,.06));
+    box-shadow:0 0 0 1px rgba(246,166,9,.3),0 12px 30px -14px var(--glow-honey)}
+  .rung.current .rn{color:var(--honey-hi)}
+  .rung.current .rd{color:var(--cream)}
+  .rung.locked{opacity:.62}
+  .progress{height:9px;border-radius:99px;background:rgba(22,15,7,.8);overflow:hidden;border:1px solid var(--line);margin:.4rem 0}
+  .progress>span{display:block;height:100%;width:42%;background:linear-gradient(90deg,var(--honey),var(--nectar))}
+
+  /* stage ladder (activity) */
+  .stage-tabs{display:flex;gap:.35rem;flex-wrap:wrap}
+  .stage-tab{font-family:"Space Mono",monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;
+    padding:.4rem .8rem;border-radius:999px;border:1px solid var(--line);background:rgba(22,15,7,.5);color:var(--cream-dim);cursor:pointer}
+  .stage-tab.on{border-color:var(--honey);color:var(--honey-hi);background:rgba(246,166,9,.12);font-weight:700}
+
+  /* trust rings */
+  .rings-wrap{display:grid;grid-template-columns:1fr 220px;gap:1rem;align-items:center}
+  @media(max-width:620px){.rings-wrap{grid-template-columns:1fr}}
+  .circle-btn{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;
+    font-family:"Space Mono",monospace;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;
+    padding:.5rem .8rem;border-radius:11px;border:1px solid var(--line);background:rgba(22,15,7,.5);color:var(--cream-dim);
+    cursor:pointer;margin-bottom:.4rem;transition:all .16s}
+  .circle-btn:hover,.circle-btn.on{border-color:var(--honey);color:var(--honey-hi);background:rgba(246,166,9,.1)}
+  .circle-btn .c-n{font-weight:700;color:var(--honey-hi)}
+
+  /* chat */
+  .chatgrid{display:grid;grid-template-columns:200px 1fr;gap:1rem}
+  .convo{display:flex;gap:.55rem;align-items:flex-start;padding:.5rem .55rem;border-radius:11px;cursor:pointer;font-size:.8rem;border:1px solid transparent}
+  .convo:hover{background:rgba(246,166,9,.06)}
+  .convo.on{background:rgba(246,166,9,.1);border-color:rgba(246,166,9,.3)}
+  .msg{max-width:80%;padding:.55rem .85rem;border-radius:13px;font-size:.82rem;margin:.35rem 0}
+  .msg.them{background:rgba(244,234,213,.06)}
+  .msg.me{background:linear-gradient(120deg,rgba(246,166,9,.18),rgba(255,91,57,.1));margin-left:auto;color:var(--honey-hi)}
+  .thread{min-height:120px;max-height:240px;overflow-y:auto;padding:.2rem .1rem}
+  @media(max-width:720px){.chatgrid{grid-template-columns:1fr}}
+
+  /* coachmark onboarding */
+  .coach{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:1.2rem;
+    background:rgba(11,7,3,.74);backdrop-filter:blur(4px)}
+  .coach.open{display:flex;animation:up .3s both}
+  .coach-card{max-width:460px;background:linear-gradient(180deg,var(--comb2),var(--comb));border:1px solid rgba(246,166,9,.4);
+    border-radius:20px;padding:1.6rem 1.7rem;box-shadow:0 30px 70px -20px rgba(0,0,0,.8)}
+  .coach-step{display:flex;gap:.7rem;align-items:flex-start;font-size:.86rem;margin:.5rem 0;color:var(--cream)}
+  .coach-step .n{flex:none;width:1.5rem;height:1.5rem;border-radius:999px;background:linear-gradient(120deg,var(--honey),var(--honey-hi));
+    color:var(--void);font-family:"Space Mono",monospace;font-weight:700;font-size:.7rem;display:flex;align-items:center;justify-content:center}
+  .coach-step b{color:var(--honey-hi)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="honeygrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffd36b"/><stop offset=".5" stop-color="#f6a609"/><stop offset="1" stop-color="#e8830a"/>
+  </linearGradient>
+</defs></svg>
+
+<!-- atmosphere -->
+<div class="hive" aria-hidden="true">
+  <div class="hex a"><svg viewBox="0 0 100 100"><path d="M50 2 L93 26 L93 74 L50 98 L7 74 L7 26 Z" fill="none" stroke="#f6a609" stroke-width="1.2"/></svg></div>
+  <div class="hex b"><svg viewBox="0 0 100 100"><path d="M50 2 L93 26 L93 74 L50 98 L7 74 L7 26 Z" fill="none" stroke="#ff5b39" stroke-width="1.2"/></svg></div>
+  <div class="hex c"><svg viewBox="0 0 100 100"><path d="M50 2 L93 26 L93 74 L50 98 L7 74 L7 26 Z" fill="none" stroke="#f6a609" stroke-width="1.2"/></svg></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- onboarding coachmark (loud first run, discreet after — §13.6) -->
+<div class="coach" id="coach" role="dialog" aria-modal="true" aria-labelledby="coach-title">
+  <div class="coach-card">
+    <div class="ct" id="coach-title">Welcome to <span style="color:var(--honey-hi)">basicappy</span> 🍯</div>
+    <p class="muted">You climbed <b>mini → basic</b>. Everything mini had is here — plus the social layer. Three things to try:</p>
+    <div class="coach-step"><span class="n">1</span><div>Open <b>Profile</b> → tap <b>✨</b> on the Publish box for tone-tuned phrasings, or 🎤 to dictate.</div></div>
+    <div class="coach-step"><span class="n">2</span><div>In <b>Activity</b>, click a <b>trust ring</b> to add peers to a circle, and walk the <b>stage ladder</b>.</div></div>
+    <div class="coach-step"><span class="n">3</span><div>Spot the <b>🔒 unlock at normal</b> tags — those are caps lifting upstairs, never missing features.</div></div>
+    <div class="row" style="justify-content:flex-end;margin-top:.6rem"><button class="btn" onclick="coachDone()">Got it — let me in</button></div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <header class="top-bar fade d1" role="banner">
+    <div class="top-bar-menu-wrap" id="top-menu-wrap">
+      <button class="top-bar-brand" id="top-brand-btn" onclick="toggleTopMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Open site menu">
+        <svg class="bee-mark bee-mark-sm" viewBox="0 0 64 64" fill="none" role="img" aria-label="appy bee">
+          <ellipse class="wing" cx="22" cy="25" rx="11" ry="6.5" transform="rotate(-22 22 25)" fill="rgba(246,166,9,.14)" stroke="url(#honeygrad)" stroke-width="1.5"/>
+          <ellipse class="wing r" cx="42" cy="25" rx="11" ry="6.5" transform="rotate(22 42 25)" fill="rgba(246,166,9,.14)" stroke="url(#honeygrad)" stroke-width="1.5"/>
+          <rect x="23.5" y="29" width="17" height="25" rx="8.5" fill="rgba(22,15,7,.6)" stroke="url(#honeygrad)" stroke-width="1.7"/>
+          <line x1="25" y1="37" x2="39" y2="37" stroke="url(#honeygrad)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="25" y1="44" x2="39" y2="44" stroke="url(#honeygrad)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="50.5" x2="37" y2="50.5" stroke="url(#honeygrad)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="32" cy="27" r="5" fill="rgba(22,15,7,.6)" stroke="url(#honeygrad)" stroke-width="1.5"/>
+          <path d="M29 23.5 L25 16" stroke="url(#honeygrad)" stroke-width="1.4" stroke-linecap="round"/><circle cx="25" cy="16" r="2.5" fill="url(#honeygrad)"/>
+          <path d="M35 23.5 L39 16" stroke="url(#honeygrad)" stroke-width="1.4" stroke-linecap="round"/><circle cx="39" cy="16" r="2.5" fill="url(#honeygrad)"/>
+        </svg>
+        <span class="brand-text"><span class="t-tier">basic</span><span class="t-appy">appy</span></span>
+      </button>
+      <div class="top-bar-dropdown" id="top-dropdown" role="menu">
+        <button class="top-menu-item" role="menuitem" onclick="toggleAbout()">About basicappy</button>
+        <a class="top-menu-item" role="menuitem" href="./miniappy.html">↓ miniappy · the mini tier</a>
+      </div>
+    </div>
+    <button class="help-pill" onclick="openCoach()" title="Show the welcome tour" aria-label="Show welcome tour">?</button>
+    <span class="tier-flag">⬡ tier · basic — you’re in the hive</span>
+  </header>
+
+  <div class="about-panel" id="about">
+    <b>basicappy</b> is the <b>basic-tier</b> build of the appy access app — one rung up from <b>miniappy</b>.
+    It’s a <b>superset</b> of mini: the whole passport + nety base <b>plus</b> the full profile, personas, social layer
+    (follow, feed, chat, invites), trust circles and recovery — all switched <b>on and playable</b>. The <b>🔒</b> tags
+    never hide a feature; they mark <b>caps that lift</b> at <b>normal · advanced · super</b>. A mock — not yet wired.
+  </div>
+
+  <div class="ribbon fade d2">🍯 You crossed <b>mini → basic</b>: personas, the social layer, trust rings &amp; recovery just opened. Keep contributing to reach <b>normal</b>.</div>
+
+  <div class="tabs-wrap fade d3">
+    <nav class="tab-bar" role="tablist" aria-label="App sections">
+      <button class="tab-btn active" role="tab" aria-selected="true"  onclick="switchTab('profile')"    id="tab-profile">Profile</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('nety')"       id="tab-nety">Nety</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('mynet')"      id="tab-mynet">MyNet</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('chat')"       id="tab-chat">Chat</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('activity')"   id="tab-activity">Activity</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('extensions')" id="tab-extensions">Extensions</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" onclick="switchTab('privacy')"    id="tab-privacy">Privacy</button>
+    </nav>
+
+    <!-- PROFILE -->
+    <section class="tab-panel active" id="panel-profile" role="tabpanel" aria-labelledby="tab-profile">
+      <div class="sec">your profile · basic</div>
+      <div class="comb-card">
+        <div class="row" style="justify-content:space-between">
+          <div><span class="ct">@marcflove</span> <span class="pbadge">● live</span></div>
+          <span class="sbadge">stage · newbie</span>
+        </div>
+        <div class="muted">peer 12D3Koo…9fA2 · joined 2026 · 🍯 42 stars · 5 CU contributed</div>
+        <div class="row">
+          <span class="sbadge on">profile · editable</span><span class="sbadge">3 identities</span><span class="sbadge">2 groups</span>
+        </div>
+        <button class="see-more" onclick="toggleMore(this)">＋ show identity details</button>
+        <div class="more">
+          <div class="row"><span class="sbadge on">self ✓</span><span class="sbadge on">email ✓</span><span class="sbadge">keypair ed25519</span></div>
+          <p class="muted" style="margin:.5rem 0 0">Handle, keypair and linked identities live with you on the mesh — basic shows them; <b>normal</b> lets you rotate &amp; scope each.</p>
+        </div>
+      </div>
+
+      <div class="sec">personas · your sub-avatars</div>
+      <div class="comb-card">
+        <div class="row" style="justify-content:space-between">
+          <span class="ct">Faces of you</span>
+          <span class="cap-hint" id="persona-cap"></span>
+        </div>
+        <p class="muted">Split your identity into contexts. Each persona carries its own bio, tools and stats.</p>
+        <div class="grid2" id="persona-list"></div>
+        <button class="btn ghost sm" id="persona-add" onclick="addPersona()">＋ Add a persona</button>
+      </div>
+
+      <div class="grid2">
+        <div class="comb-card">
+          <span class="ct">Extend profile</span>
+          <p class="muted">Authenticate yourself — each link lifts Personal trust. Click to add.</p>
+          <div class="chipset" data-target="bio-text">
+            <span class="chip" data-append="self-verified">self ✓</span>
+            <span class="chip" data-append="email-verified">email ✓</span>
+            <span class="chip" data-append="telegram:@">telegram +</span>
+            <span class="chip" data-append="phone:+">phone +</span>
+            <span class="chip" data-append="website:">website +</span>
+          </div>
+          <textarea class="fld" id="bio-text" placeholder="More about me — some words…"></textarea>
+          <button class="btn ghost" onclick="flash(this,'Saved ✓')">Save to profile</button>
+        </div>
+        <div class="comb-card">
+          <span class="ct">Publish</span>
+          <p class="muted">Goes to the moderators’ queue, then live. Try <b>✨</b> for phrasings or 🎤 to dictate.</p>
+          <select class="fld" id="pub-vis"><option>MyNet</option><option>Public</option><option>A group</option><option>Private</option></select>
+          <textarea class="fld" id="pub-text" data-wizard maxlength="280" placeholder="What’s in your love?"></textarea>
+          <button class="btn signal" onclick="submitPost()">Submit to queue</button>
+          <div id="queue-list" style="margin-top:.3rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NETY -->
+    <section class="tab-panel" id="panel-nety" role="tabpanel" aria-labelledby="tab-nety">
+      <div class="sec">nety · the mini base</div>
+      <div class="comb-card">
+        <span class="ct">Welcome to nety</span>
+        <p class="muted">You’re a node on the mesh — the open, free <b>mini</b> base every higher tier sits on.</p>
+        <div class="row"><button class="btn ghost sm">Learn the tech →</button><button class="btn ghost sm">Join the community →</button></div>
+      </div>
+      <div class="comb-card">
+        <span class="ct">Donate computing</span>
+        <p class="muted">Share spare hardware → earn stars (feeds your Global facet).</p>
+        <div class="row" role="group" aria-label="presets">
+          <button class="preset-btn" aria-pressed="true"  onclick="setPreset('none',this)">I can’t</button>
+          <button class="preset-btn" aria-pressed="false" onclick="setPreset('light',this)">Light</button>
+          <button class="preset-btn" aria-pressed="false" onclick="setPreset('balanced',this)">Balanced</button>
+          <button class="preset-btn" aria-pressed="false" onclick="setPreset('max',this)">Max</button>
+        </div>
+        <div class="muted">CPU <span id="v-cpu">0</span> cores</div><div class="bar"><span id="b-cpu"></span></div>
+        <div class="muted">GPU <span id="v-gpu">0</span> GB</div><div class="bar"><span id="b-gpu"></span></div>
+        <div class="muted">RAM <span id="v-ram">0</span> GB</div><div class="bar"><span id="b-ram"></span></div>
+        <div class="row"><span class="muted" style="width:120px">Share with</span>
+          <select class="fld" style="max-width:200px"><option>Whole mesh</option><option>MyNet first</option><option>Close circle</option></select></div>
+        <label class="row" style="font-size:.8rem"><input type="checkbox"> Only when I’m idle &amp; charging</label>
+        <div class="row" style="justify-content:space-between"><span class="muted">≈ <b id="cu">0</b> CU / week</span><button class="btn">Share hardware</button></div>
+      </div>
+      <div class="sec">mesh stats · live</div>
+      <div class="grid3">
+        <div class="stat"><div class="n">5,902</div><div class="k">peers</div></div>
+        <div class="stat"><div class="n">2,140</div><div class="k">nodes online</div></div>
+        <div class="stat"><div class="n">812 TF</div><div class="k">compute</div></div>
+        <div class="stat"><div class="n">48k</div><div class="k">posts live</div></div>
+        <div class="stat"><div class="n">1,304</div><div class="k">groups</div></div>
+        <div class="stat"><div class="n">37</div><div class="k">regions</div></div>
+      </div>
+    </section>
+
+    <!-- MYNET -->
+    <section class="tab-panel" id="panel-mynet" role="tabpanel" aria-labelledby="tab-mynet">
+      <div class="sec">mynet · the social layer (basic)</div>
+      <div class="grid2">
+        <div class="comb-card">
+          <div class="row" style="justify-content:space-between"><span class="ct">Invites</span>
+            <span class="cap-hint"><b id="inv-left">2</b>/3 left <span class="up">· more at normal</span></span></div>
+          <p class="muted">Bring people in — each renews monthly.</p>
+          <div class="row"><input class="fld" placeholder="enter an invite code…"><button class="btn ghost" onclick="flash(this,'Valid ✓')">Validate</button></div>
+          <button class="btn" id="inv-gen" onclick="genInvite()">Generate an invite</button>
+          <div id="inv-code"></div>
+        </div>
+        <div class="comb-card">
+          <span class="ct">Network feed</span>
+          <div class="item"><span class="dot"></span><div><b>dave</b> shared a relay node in eu-west</div></div>
+          <div class="item"><span class="dot"></span><div><b>designers</b> opened a critique thread</div></div>
+          <div class="item"><span class="dot"></span><div><b>hana</b> donated 9 CU this week</div></div>
+        </div>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">Your invite chain</span>
+        <p class="muted">Who vouched you in, and who you brought. Co-signed vouches build Local trust.</p>
+        <svg viewBox="0 0 360 150" width="100%" style="max-width:360px;margin:.3rem auto;display:block" role="img" aria-label="Invite chain: zoe vouched you; you invited alice, bob, carol">
+          <line x1="180" y1="34" x2="180" y2="66" stroke="var(--line)" stroke-width="1.5"/>
+          <line x1="180" y1="100" x2="70"  y2="124" stroke="var(--line)" stroke-width="1.5"/>
+          <line x1="180" y1="100" x2="180" y2="124" stroke="var(--line)" stroke-width="1.5"/>
+          <line x1="180" y1="100" x2="290" y2="124" stroke="var(--line)" stroke-width="1.5"/>
+          <g font-family="Space Mono, monospace" font-size="9" text-anchor="middle">
+            <circle cx="180" cy="22" r="13" fill="rgba(246,166,9,.1)" stroke="var(--honey)" stroke-width="1.3"/>
+            <text x="180" y="25" fill="#ffc64d">zoe</text>
+            <circle cx="180" cy="83" r="16" fill="rgba(246,166,9,.22)" stroke="var(--honey-hi)" stroke-width="1.8"/>
+            <text x="180" y="86" fill="#f4ead5">you</text>
+            <circle cx="70"  cy="136" r="11" fill="rgba(55,201,138,.1)" stroke="var(--jade)" stroke-width="1.2"/>
+            <text x="70"  y="139" fill="#37c98a">alice</text>
+            <circle cx="180" cy="136" r="11" fill="rgba(55,201,138,.1)" stroke="var(--jade)" stroke-width="1.2"/>
+            <text x="180" y="139" fill="#37c98a">bob</text>
+            <circle cx="290" cy="136" r="11" fill="rgba(55,201,138,.1)" stroke="var(--jade)" stroke-width="1.2"/>
+            <text x="290" y="139" fill="#37c98a">carol</text>
+          </g>
+        </svg>
+        <div class="row"><button class="btn ghost sm">Revoke an invite</button><button class="btn ghost sm" title="−10 local trust">Disown a peer</button></div>
+      </div>
+
+      <div class="grid2">
+        <div class="comb-card">
+          <div class="row" style="justify-content:space-between"><span class="ct">Favourites</span>
+            <span class="cap-hint"><b id="fav-n">2</b>/10 at basic <span class="up">· unlimited at normal</span></span></div>
+          <div id="fav-list">
+            <div class="item"><span class="dot"></span><div>@alice <span class="muted">★ favourite</span></div><button class="x" onclick="removeItem(this,'fav')" aria-label="remove">✕</button></div>
+            <div class="item"><span class="dot" style="background:var(--nectar)"></span><div>@bob <span class="muted">recent</span></div><button class="x" onclick="removeItem(this,'fav')" aria-label="remove">✕</button></div>
+          </div>
+          <div class="row"><input class="fld" id="fav-in" placeholder="@handle to follow…"><button class="btn ghost sm" onclick="addFav()">Follow</button></div>
+        </div>
+        <div class="comb-card">
+          <span class="ct">Groups</span>
+          <div class="item"><span class="dot"></span><div>close <span class="muted">· 2 people</span></div></div>
+          <div class="item"><span class="dot"></span><div>designers <span class="muted">· follow</span></div></div>
+          <div class="row"><input class="fld" placeholder="find a group…"><button class="btn ghost sm" onclick="flash(this,'Joined ✓')">Join</button></div>
+        </div>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">Be more social</span>
+        <p class="muted">Tap a suggestion to queue a follow request.</p>
+        <div class="chipset" data-target="social-queue">
+          <span class="chip" data-append="@ada">@ada · maker</span>
+          <span class="chip" data-append="@lex">@lex · relays</span>
+          <span class="chip" data-append="@nora">@nora · nearby</span>
+          <span class="chip" data-append="group:builders">builders group</span>
+          <span class="chip" data-append="group:madrid">madrid meetups</span>
+        </div>
+        <textarea class="fld" id="social-queue" placeholder="your queued follows land here…"></textarea>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="tab-panel" id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
+      <div class="sec">chat · text DMs (basic)</div>
+      <div class="comb-card">
+        <div class="chatgrid">
+          <div>
+            <input class="fld" id="chat-search" placeholder="search users to invite…" style="margin-bottom:.5rem">
+            <div class="convo on" onclick="openConvo('alice',this)"><span class="dot"></span><div><b>alice</b><br><span class="muted">hey marc!</span></div></div>
+            <div class="convo" onclick="openConvo('bob',this)"><span class="dot" style="background:var(--nectar)"></span><div><b>bob</b><br><span class="muted">did you see…</span></div></div>
+            <div class="convo" onclick="openConvo('hana',this)"><span class="dot"></span><div><b>hana</b><br><span class="muted">thanks for the CU</span></div></div>
+          </div>
+          <div>
+            <div class="row" style="justify-content:space-between">
+              <b id="chat-with">Chat with alice</b>
+              <span class="row" style="gap:.35rem">
+                <label class="row" style="font-size:.66rem;gap:.3rem"><input type="checkbox"> ephemeral</label>
+                <button class="iconbtn" disabled title="advanced">🎙</button>
+                <button class="iconbtn" disabled title="advanced">🎥</button>
+                <span class="lock-badge">🔒 A/V · advanced</span>
+              </span>
+            </div>
+            <div class="thread" id="chat-thread">
+              <div class="msg them">hey marc!</div>
+              <div class="msg me">hi alice 👋</div>
+            </div>
+            <textarea class="fld" id="chat-text" data-wizard maxlength="280" placeholder="message…" style="min-height:48px"></textarea>
+            <div class="row" style="justify-content:flex-end"><button class="btn" onclick="sendMsg()">Send</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIVITY -->
+    <section class="tab-panel" id="panel-activity" role="tabpanel" aria-labelledby="tab-activity">
+      <div class="sec">activity · trust &amp; standing (basic)</div>
+      <div class="comb-card">
+        <span class="ct">Your trust circles</span>
+        <p class="muted">Click a circle to see who’s in it and add suggested peers.</p>
+        <div class="rings-wrap">
+          <svg viewBox="0 0 220 220" width="100%" style="max-width:240px;margin:0 auto;display:block" role="img" aria-label="Concentric trust rings: personal, local, social, global">
+            <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(143,178,217,.35)" stroke-width="1.2"/>
+            <circle cx="110" cy="110" r="74"  fill="none" stroke="rgba(255,91,57,.4)"   stroke-width="1.2"/>
+            <circle cx="110" cy="110" r="48"  fill="none" stroke="rgba(246,166,9,.5)"   stroke-width="1.2"/>
+            <circle cx="110" cy="110" r="22"  fill="rgba(246,166,9,.16)" stroke="var(--honey-hi)" stroke-width="1.6"/>
+            <circle cx="110" cy="110" r="22"  fill="none" stroke="var(--honey-hi)" stroke-width="1.6" opacity=".5">
+              <animate attributeName="r" values="22;100;22" dur="4.5s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values=".5;0;.5" dur="4.5s" repeatCount="indefinite"/>
+            </circle>
+            <g font-family="Space Mono, monospace" font-size="8" fill="#a99a7c" text-anchor="middle">
+              <text x="110" y="113">you</text>
+              <text x="110" y="74" fill="#ffc64d">personal</text>
+              <text x="110" y="48" fill="#ff5b39">local</text>
+              <text x="110" y="22" fill="#8fb2d9">social · global</text>
+            </g>
+          </svg>
+          <div>
+            <button class="circle-btn on" onclick="openCircle('personal',this)"><span>Personal</span><span class="c-n">40</span></button>
+            <button class="circle-btn" onclick="openCircle('local',this)"><span>Local</span><span class="c-n">30</span></button>
+            <button class="circle-btn" onclick="openCircle('social',this)"><span>Social</span><span class="c-n">20</span></button>
+            <button class="circle-btn" onclick="openCircle('global',this)"><span>Global</span><span class="c-n">15</span></button>
+          </div>
+        </div>
+        <div class="more open" id="circle-detail"></div>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">Stage ladder</span>
+        <p class="muted">Where you stand on the reputation climb. Tap a stage.</p>
+        <div class="stage-tabs" id="stage-tabs"></div>
+        <div class="more open" id="stage-detail"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="comb-card">
+          <span class="ct">Donated computing</span>
+          <div class="grid3" style="margin-top:.3rem">
+            <div class="stat"><div class="n">12</div><div class="k">CU given</div></div>
+            <div class="stat"><div class="n">98%</div><div class="k">uptime</div></div>
+            <div class="stat"><div class="n">≈3🍯</div><div class="k">/ month</div></div>
+          </div>
+        </div>
+        <div class="comb-card">
+          <span class="ct">Your posts</span>
+          <div class="item"><span class="dot" style="background:var(--nectar)"></span><div>“mesh tips #3”</div><span class="qstat" style="margin-left:auto">pending</span></div>
+          <div class="item"><span class="dot"></span><div>“hello mesh”</div><span class="qstat live" style="margin-left:auto">live ✓</span></div>
+          <p class="muted">flow: pending → curator review → live</p>
+        </div>
+      </div>
+
+      <div class="comb-card gated">
+        <div class="row" style="justify-content:space-between"><span class="ct">Per-circle weighting &amp; agent suggestions</span><span class="lock-badge">🔒 unlock at normal</span></div>
+        <p>You can <b>view</b> circles and add peers at basic. Fine-grained per-circle weighting, stage-ladder tuning and MyWizy suggestions lift in with <b>normal</b> &amp; <b>advanced</b>.</p>
+      </div>
+    </section>
+
+    <!-- EXTENSIONS -->
+    <section class="tab-panel" id="panel-extensions" role="tabpanel" aria-labelledby="tab-extensions">
+      <div class="sec">appy navs · your tier ladder</div>
+      <div class="ladder">
+        <div class="rung done"><span class="rn">mini ✓</span><span class="rd">passport + nety contribution — <b>done</b></span><span class="sbadge on">reached</span></div>
+        <div class="rung current"><span class="rn">basic ★</span><span class="rd">full profile + personas + social — you are here</span><span class="sbadge" style="color:var(--honey-hi);border-color:rgba(246,166,9,.5)">current</span></div>
+        <div class="rung locked"><span class="rn">normal</span><span class="rd">sety — tune &amp; own your data</span><span class="lock-badge">🔒 100🍯</span></div>
+        <div class="rung locked"><span class="rn">advanced</span><span class="rd">wizy — MyWizy agents</span><span class="lock-badge">🔒 1,000🍯</span></div>
+        <div class="rung locked"><span class="rn">super</span><span class="rd">vizy — visualize &amp; steward it all</span><span class="lock-badge">🔒 10,000🍯</span></div>
+      </div>
+
+      <div class="sec">be more appy → earn stars</div>
+      <div class="grid2">
+        <div class="comb-card">
+          <span class="ct">★ Donate computing</span>
+          <p class="muted">Spare cycles → stars. Quick set:</p>
+          <div class="row" role="group" aria-label="quick presets">
+            <button class="preset-btn" aria-pressed="true" onclick="setPreset('none',this)">I can’t</button>
+            <button class="preset-btn" aria-pressed="false" onclick="setPreset('light',this)">Light</button>
+            <button class="preset-btn" aria-pressed="false" onclick="setPreset('balanced',this)">Balanced</button>
+          </div>
+          <button class="see-more" onclick="toggleMore(this)">＋ see more</button>
+          <div class="more"><p class="muted">Full CPU/GPU/RAM tuning &amp; idle-only scheduling live in the <b>Nety</b> tab. Earnings feed your Global facet.</p></div>
+        </div>
+        <div class="comb-card">
+          <span class="ct">C Add content</span>
+          <p class="muted">Publish to the mesh — approved posts earn stars.</p>
+          <div class="chipset" data-target="addc-text">
+            <span class="chip" data-append="[post]">post</span><span class="chip" data-append="[page]">page</span>
+            <span class="chip" data-append="[file]">file</span><span class="chip" data-append="[link]">link</span>
+            <span class="chip" data-append="[event]">event</span>
+          </div>
+          <input class="fld" id="addc-text" placeholder="title or link…">
+          <button class="see-more" onclick="toggleMore(this)">＋ see more</button>
+          <div class="more"><p class="muted">Drafts go to the curator queue (see <b>Activity → Your posts</b>) before going live.</p></div>
+        </div>
+        <div class="comb-card">
+          <span class="ct">＋ Add invite code</span>
+          <p class="muted">Got a code from a friend? Redeem it for trust.</p>
+          <div class="row"><input class="fld" placeholder="invite code…"><button class="btn ghost sm" onclick="flash(this,'Valid ✓')">Validate</button></div>
+          <button class="see-more" onclick="toggleMore(this)">＋ see more</button>
+          <div class="more"><p class="muted">Redeeming co-signs a vouch with your inviter and seeds your Local circle.</p></div>
+        </div>
+        <div class="comb-card">
+          <span class="ct">✦ Ask for trusts</span>
+          <p class="muted">Request a vouch from peers who know you.</p>
+          <button class="btn ghost sm" onclick="flash(this,'Request sent ✓')">Ask MyNet to vouch</button>
+          <button class="see-more" onclick="toggleMore(this)">＋ see more</button>
+          <div class="more"><p class="muted">Two MyNet co-signs move you from <b>newbie</b> to <b>known</b> on the stage ladder.</p></div>
+        </div>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">More appy flove</span>
+        <p class="muted">Pick a way to give back, open a branch, then jot what you can offer. <span class="cap-hint"><b id="tree-cap">0</b>/3 notes at basic <span class="up">· unlimited at normal</span></span></p>
+        <div id="appy-tree"></div>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">Be more appy → reach normal</span>
+        <p class="muted">You’re at 🍯 42 — 58 to go for the <b>normal</b> tier (sety). Earn stars by contributing hardware or publishing approved content.</p>
+        <div class="progress"><span></span></div>
+        <button class="btn">How to reach normal</button>
+      </div>
+    </section>
+
+    <!-- PRIVACY -->
+    <section class="tab-panel" id="panel-privacy" role="tabpanel" aria-labelledby="tab-privacy">
+      <div class="sec">privacy · basic</div>
+      <div class="comb-card">
+        <span class="ct">Visibility</span>
+        <p class="muted">Who can see each thing. Default private-first.</p>
+        <div class="row"><span class="muted" style="width:90px">Content</span><select class="fld" style="max-width:170px"><option>MyNet</option><option>Public</option><option>Private</option></select></div>
+        <div class="row"><span class="muted" style="width:90px">Resources</span><select class="fld" style="max-width:170px"><option>MyNet</option><option>Public</option><option>Private</option></select></div>
+        <div class="row"><span class="muted" style="width:90px">Profile</span><select class="fld" style="max-width:170px"><option>Private</option><option>MyNet</option><option>Public</option></select></div>
+      </div>
+
+      <div class="comb-card">
+        <div class="row" style="justify-content:space-between"><span class="ct">Per-circle visibility</span>
+          <span class="cap-hint">basic scopes <span class="up">· per-field at normal</span></span></div>
+        <p class="muted">Set a default reach per circle. Basic gives one scope each; normal splits it per field.</p>
+        <div class="row"><span class="muted" style="width:90px">Personal</span><select class="fld" style="max-width:170px"><option>Private</option><option>MyNet</option></select></div>
+        <div class="row"><span class="muted" style="width:90px">Local</span><select class="fld" style="max-width:170px"><option>MyNet</option><option>Public</option></select></div>
+        <div class="row"><span class="muted" style="width:90px">Social</span><select class="fld" style="max-width:170px"><option>MyNet</option><option>Public</option></select></div>
+        <div class="row"><span class="muted" style="width:90px">Global</span><select class="fld" style="max-width:170px"><option>Public</option><option>MyNet</option></select></div>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">Self-backup</span>
+        <p class="muted">Your 12-word seed — write it down, then confirm.</p>
+        <div class="row"><span class="sbadge">orbit</span><span class="sbadge">mesh</span><span class="sbadge">facet</span><span class="sbadge">signal</span><span class="sbadge">nety</span><span class="sbadge">honey</span><span class="sbadge">…</span></div>
+        <label class="row" style="font-size:.8rem"><input type="checkbox"> I’ve backed up my seed</label>
+      </div>
+
+      <div class="comb-card">
+        <span class="ct">Social quorum</span>
+        <p class="muted">If you lose your seed, 2-of-3 MyNet peers co-sign to restore you.</p>
+        <div class="item"><span class="dot"></span><div>@alice <span class="muted">· signed</span></div><span class="pbadge" style="margin-left:auto">✓</span></div>
+        <div class="item"><span class="dot"></span><div>@bob <span class="muted">· signed</span></div><span class="pbadge" style="margin-left:auto">✓</span></div>
+        <div class="item"><span class="dot" style="background:var(--nectar)"></span><div>@carol <span class="muted">· pending</span></div><span class="qstat" style="margin-left:auto">pending</span></div>
+      </div>
+
+      <div class="comb-card gated">
+        <div class="row" style="justify-content:space-between"><span class="ct">Key rotation &amp; probation</span><span class="lock-badge">🔒 unlock at advanced</span></div>
+        <p>Rotating a compromised key and the 30-day probation flow are <b>advanced</b>-tier. Loss is covered now by your quorum above; <b>compromise</b> rotation arrives upstairs.</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* ============ basicappy · rich-basic interactions ============
+   Single self-contained file. Vanilla + localStorage. The wizard helper
+   follows the house inject/clear/current naming. Everything mini had is
+   here and playable; 🔒 marks caps that lift at higher tiers. */
+
+const LS = 'bappy.v1';
+const store = JSON.parse(localStorage.getItem(LS) || '{}');
+const save = () => localStorage.setItem(LS, JSON.stringify(store));
+
+/* ---- nav / chrome ---- */
+function switchTab(name){
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.id === 'tab-' + name;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on);
+  });
+}
+function toggleTopMenu(){
+  const w = document.getElementById('top-menu-wrap');
+  const open = w.classList.toggle('open');
+  document.getElementById('top-brand-btn').setAttribute('aria-expanded', open);
+}
+function toggleAbout(){
+  document.getElementById('about').classList.toggle('open');
+  document.getElementById('top-menu-wrap').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#top-menu-wrap')) document.getElementById('top-menu-wrap').classList.remove('open');
+});
+function toggleMore(btn){
+  const m = btn.nextElementSibling;
+  const open = m.classList.toggle('open');
+  btn.textContent = (open ? '－ ' : '＋ ') + btn.textContent.slice(2);
+}
+function flash(btn, msg){
+  const old = btn.textContent; btn.textContent = msg; btn.disabled = true;
+  setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1300);
+}
+const esc = s => s.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+
+/* ---- onboarding coachmark (§13.6 loud-first, discreet-after) ---- */
+function openCoach(){ document.getElementById('coach').classList.add('open'); }
+function coachDone(){ document.getElementById('coach').classList.remove('open'); store.onboarded = true; save(); }
+if (!store.onboarded) openCoach();
+
+/* ---- nety / extensions resource presets ---- */
+const PRESETS = { none:[0,0,0], light:[2,3,4], balanced:[4,6,8], max:[8,12,16] };
+const MAX = { cpu:8, gpu:12, ram:16 };
+function setPreset(name, btn){
+  btn.closest('.row').querySelectorAll('.preset-btn').forEach(b => b.setAttribute('aria-pressed', b === btn));
+  const [cpu,gpu,ram] = PRESETS[name];
+  const set = (k,v) => {
+    const ve = document.getElementById('v-'+k), be = document.getElementById('b-'+k);
+    if (ve) ve.textContent = v;
+    if (be) be.style.width = Math.round(v / MAX[k] * 100) + '%';
+  };
+  set('cpu',cpu); set('gpu',gpu); set('ram',ram);
+  const cu = document.getElementById('cu'); if (cu) cu.textContent = (cpu*2 + gpu + ram);
+}
+
+/* ---- publish queue ---- */
+function submitPost(){
+  const t = document.getElementById('pub-text');
+  const vis = document.getElementById('pub-vis').value;
+  const txt = t.value.trim();
+  if (!txt) return;
+  const el = document.createElement('div');
+  el.className = 'item';
+  el.innerHTML = '<span class="dot" style="background:var(--nectar)"></span><div>' + esc(txt) +
+    ' <span class="muted">· ' + vis + '</span></div><span class="qstat" style="margin-left:auto">pending</span>';
+  document.getElementById('queue-list').prepend(el);
+  t.value = ''; t.dispatchEvent(new Event('input'));
+}
+
+/* ============ wizard: magic ✨ suggestion bot ============ */
+const PHRASES = {
+  lovely: ["So glad our paths crossed on the mesh 💛","Sending you a little warmth today.","You make this hive kinder — thank you.","Thinking of you and your good work.","However small, your spark matters here."],
+  joy:    ["Big news — let’s celebrate together! 🎉","Just shipped something I’m proud of ✨","Good vibes only on the mesh today.","Who’s up for something fun this week?","Tiny win, huge smile. Sharing the joy!"],
+  wisdom: ["Slow is smooth, smooth is fast.","We own what we tend together.","Trust compounds, one vouch at a time.","Build in the open; the mesh remembers.","Less noise, more signal — always."]
+};
+const bot = {
+  current: null,                                   // active textarea
+  open(textarea){ this.current = textarea; },
+  inject(text){
+    if (!this.current) return;
+    const el = this.current, v = el.value;
+    el.value = v && !/\s$/.test(v) ? v + ' ' + text : v + text;
+    el.dispatchEvent(new Event('input')); el.focus();
+  },
+  clear(){ if (this.current){ this.current.value=''; this.current.dispatchEvent(new Event('input')); } }
+};
+function mountWizard(ta){
+  let tone = 'lovely';
+  const bar = document.createElement('div'); bar.className = 'wiz-bar';
+  bar.innerHTML =
+    '<button class="iconbtn" type="button" title="Suggestions" aria-label="Suggestions">✨</button>' +
+    '<button class="iconbtn mic" type="button" title="Dictate" aria-label="Dictate">🎤</button>' +
+    '<button class="iconbtn" type="button" title="Clear" aria-label="Clear">⌫</button>' +
+    '<span class="wiz-counter">0/' + (ta.getAttribute('maxlength')||280) + '</span>';
+  const tray = document.createElement('div'); tray.className = 'wiz-tray';
+  const tones = document.createElement('div'); tones.className = 'wiz-tones';
+  ['lovely','joy','wisdom'].forEach(t => {
+    const b = document.createElement('button'); b.type='button'; b.className='tone-tab'+(t===tone?' on':'');
+    b.dataset.tone = t; b.textContent = t;
+    b.onclick = () => { tone = t; tones.querySelectorAll('.tone-tab').forEach(x=>x.classList.toggle('on',x.dataset.tone===t)); renderSugg(); };
+    tones.appendChild(b);
+  });
+  const sugg = document.createElement('div'); sugg.className='wiz-sugg';
+  function renderSugg(){
+    sugg.innerHTML='';
+    PHRASES[tone].forEach(p => {
+      const s = document.createElement('button'); s.type='button'; s.className='sugg'; s.textContent=p;
+      s.onclick = () => { bot.open(ta); bot.inject(p); };
+      sugg.appendChild(s);
+    });
+  }
+  renderSugg();
+  tray.appendChild(tones); tray.appendChild(sugg);
+
+  const [sparkBtn, micBtn, clearBtn] = bar.querySelectorAll('.iconbtn');
+  sparkBtn.onclick = () => { bot.open(ta); const o = tray.classList.toggle('open'); sparkBtn.classList.toggle('on', o); };
+  clearBtn.onclick = () => { bot.open(ta); bot.clear(); };
+
+  // voice (Web Speech API) — hide if unsupported
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { micBtn.style.display='none'; } else {
+    let rec, listening=false;
+    micBtn.onclick = () => {
+      if (listening){ rec && rec.stop(); return; }
+      rec = new SR(); rec.lang='en-US'; rec.interimResults=false;
+      rec.onresult = e => { bot.open(ta); bot.inject(e.results[0][0].transcript.trim()); };
+      rec.onend = () => { listening=false; micBtn.classList.remove('on'); };
+      rec.start(); listening=true; micBtn.classList.add('on');
+    };
+  }
+  // live counter
+  const counter = bar.querySelector('.wiz-counter'), max = +(ta.getAttribute('maxlength')||280);
+  const upd = () => { const n = ta.value.length; counter.textContent = n+'/'+max; counter.classList.toggle('warn', n > max*0.9); };
+  ta.addEventListener('input', upd); upd();
+
+  ta.insertAdjacentElement('afterend', bar);
+  bar.insertAdjacentElement('afterend', tray);
+}
+document.querySelectorAll('textarea[data-wizard]').forEach(mountWizard);
+
+/* ============ chip-append (with selection-dim) ============ */
+document.querySelectorAll('.chipset').forEach(set => {
+  const target = document.getElementById(set.dataset.target);
+  set.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const on = chip.classList.toggle('sel');
+      set.classList.toggle('has-sel', !!set.querySelector('.chip.sel'));
+      if (target && on){
+        const tok = chip.dataset.append || chip.textContent.trim();
+        const v = target.value;
+        target.value = v ? v.replace(/\s*$/,'') + ' · ' + tok : tok;
+        target.dispatchEvent(new Event('input'));
+      }
+    });
+  });
+});
+
+/* ============ personas (CRUD + inline edit, capped) ============ */
+const PERSONA_CAP = 2;
+const defaultPersonas = [
+  { nick:'maker', a:'builds in the open', b:'Madrid · flove garden', tools:['Bio','Link','Tag','Offer','Mood'] }
+];
+store.personas = store.personas || defaultPersonas.slice();
+function renderPersonas(){
+  const list = document.getElementById('persona-list'); list.innerHTML='';
+  store.personas.forEach((p, i) => {
+    const card = document.createElement('div'); card.className='persona';
+    card.innerHTML =
+      '<div class="row" style="justify-content:space-between">' +
+        '<input class="pn" value="'+esc(p.nick)+'" aria-label="persona name">' +
+        '<button class="x" title="delete" aria-label="delete persona">✕</button></div>' +
+      '<input class="prow" value="'+esc(p.a)+'" aria-label="line one">' +
+      '<input class="prow" value="'+esc(p.b)+'" aria-label="line two">' +
+      '<div class="chipset">' + p.tools.map(t=>'<span class="chip">'+esc(t)+'</span>').join('') + '</div>';
+    const [nick,a,b] = card.querySelectorAll('input');
+    nick.oninput = e => { p.nick=e.target.value; save(); };
+    a.oninput = e => { p.a=e.target.value; save(); };
+    b.oninput = e => { p.b=e.target.value; save(); };
+    card.querySelector('.x').onclick = () => {
+      if (confirm('Delete persona “'+p.nick+'”?')){ store.personas.splice(i,1); save(); renderPersonas(); }
+    };
+    list.appendChild(card);
+  });
+  const cap = document.getElementById('persona-cap');
+  cap.innerHTML = '<b>'+store.personas.length+'</b>/'+PERSONA_CAP+' at basic <span class="up">· more at normal</span>';
+  document.getElementById('persona-add').disabled = store.personas.length >= PERSONA_CAP;
+}
+function addPersona(){
+  if (store.personas.length >= PERSONA_CAP) return;
+  store.personas.push({ nick:'new face', a:'what they do', b:'where / when', tools:['Bio','Tag'] });
+  save(); renderPersonas();
+}
+renderPersonas();
+
+/* ============ wanty-style tree: "more appy flove" (capped notes) ============ */
+const TREE = {
+  'easy-jobs': { label:'Easy jobs 🧩', kids:['Moderate a queue','Run a relay','Tag content','Welcome newbies'] },
+  'talent':    { label:'Your talent ✦', kids:['Frontend review','3D-print teaching','Translation','Illustration'] },
+  'donations': { label:'Donations ♥',  kids:['Send stars to a peer','Fund a group','Sponsor compute'] }
+};
+const TREE_CAP = 3;
+store.notes = store.notes || {};                 // key `${cat}|${kid}` -> [strings]
+function noteCount(){ return Object.values(store.notes).reduce((n,a)=>n+a.length,0); }
+function renderTree(){
+  const root = document.getElementById('appy-tree'); root.innerHTML='';
+  Object.entries(TREE).forEach(([cat, def]) => {
+    const wrap = document.createElement('div'); wrap.style.marginTop='.5rem';
+    const head = document.createElement('button'); head.type='button'; head.className='chip'; head.textContent = def.label;
+    const body = document.createElement('div'); body.className='more';
+    head.onclick = () => body.classList.toggle('open');
+    def.kids.forEach(kid => {
+      const key = cat+'|'+kid;
+      const krow = document.createElement('div'); krow.style.margin='.5rem 0';
+      const kchip = document.createElement('button'); kchip.type='button'; kchip.className='chip'; kchip.textContent = kid;
+      const editor = document.createElement('div'); editor.className='more';
+      const saved = document.createElement('div'); saved.className='chipset'; saved.style.marginTop='.4rem';
+      const renderSaved = () => {
+        saved.innerHTML='';
+        (store.notes[key]||[]).forEach((n, idx) => {
+          const c = document.createElement('span'); c.className='chip sel'; c.textContent = n;
+          c.title='click to remove'; c.onclick = () => { store.notes[key].splice(idx,1); save(); renderSaved(); updTreeCap(); };
+          saved.appendChild(c);
+        });
+      };
+      const ta = document.createElement('textarea'); ta.className='fld'; ta.placeholder='what can you offer here?'; ta.style.minHeight='44px';
+      const add = document.createElement('button'); add.type='button'; add.className='btn ghost sm'; add.textContent='Save note';
+      add.onclick = () => {
+        const v = ta.value.trim(); if (!v) return;
+        if (noteCount() >= TREE_CAP){ flash(add,'cap reached'); return; }
+        (store.notes[key] = store.notes[key] || []).push(v); ta.value=''; save(); renderSaved(); updTreeCap();
+      };
+      kchip.onclick = () => editor.classList.toggle('open');
+      editor.appendChild(saved); editor.appendChild(ta);
+      editor.appendChild(document.createElement('div')).appendChild(add);
+      krow.appendChild(kchip); krow.appendChild(editor); body.appendChild(krow);
+      renderSaved();
+    });
+    wrap.appendChild(head); wrap.appendChild(body); root.appendChild(wrap);
+  });
+}
+function updTreeCap(){
+  const el = document.getElementById('tree-cap'); if (el) el.textContent = noteCount();
+}
+renderTree(); updTreeCap();
+
+/* ============ mynet: invites, favourites ============ */
+function genInvite(){
+  const code = 'FLV-' + Math.abs((Date.parse('2026-06-20')+location.hash.length+ (store.personas.length))).toString(36).slice(-5).toUpperCase();
+  let left = +document.getElementById('inv-left').textContent;
+  if (left <= 0){ document.getElementById('inv-code').innerHTML = '<p class="muted">No invites left this month — renews at <b>normal</b> faster.</p>'; return; }
+  document.getElementById('inv-left').textContent = (left-1);
+  document.getElementById('inv-code').innerHTML = '<div class="row" style="margin-top:.4rem"><span class="sbadge on">'+code+'</span><span class="muted">share it with a friend</span></div>';
+}
+const FAV_CAP = 10;
+function addFav(){
+  const inp = document.getElementById('fav-in'); let h = inp.value.trim(); if (!h) return;
+  if (!h.startsWith('@')) h = '@'+h;
+  const list = document.getElementById('fav-list');
+  if (list.children.length >= FAV_CAP){ flash(inp.nextElementSibling,'cap'); return; }
+  const el = document.createElement('div'); el.className='item';
+  el.innerHTML = '<span class="dot"></span><div>'+esc(h)+' <span class="muted">· following</span></div><button class="x" aria-label="remove">✕</button>';
+  el.querySelector('.x').onclick = () => { el.remove(); updFav(); };
+  list.appendChild(el); inp.value=''; updFav();
+}
+function removeItem(btn){ btn.closest('.item').remove(); updFav(); }
+function updFav(){ document.getElementById('fav-n').textContent = document.getElementById('fav-list').children.length; }
+document.querySelectorAll('#fav-list .x').forEach(x => x.onclick = () => { x.closest('.item').remove(); updFav(); });
+
+/* ============ chat ============ */
+const CONVOS = {
+  alice: [['them','hey marc!'],['me','hi alice 👋']],
+  bob:   [['them','did you see the new relay?'],['me','not yet — link?']],
+  hana:  [['them','thanks for the CU 💛'],['me','anytime!']]
+};
+function openConvo(who, el){
+  document.querySelectorAll('.convo').forEach(c => c.classList.toggle('on', c===el));
+  document.getElementById('chat-with').textContent = 'Chat with ' + who;
+  const th = document.getElementById('chat-thread'); th.innerHTML='';
+  (CONVOS[who]||[]).forEach(([k,t]) => { const m=document.createElement('div'); m.className='msg '+k; m.textContent=t; th.appendChild(m); });
+  th.dataset.who = who;
+}
+function sendMsg(){
+  const t = document.getElementById('chat-text'), txt = t.value.trim(); if (!txt) return;
+  const who = document.getElementById('chat-thread').dataset.who || 'alice';
+  (CONVOS[who] = CONVOS[who] || []).push(['me', txt]);
+  const m = document.createElement('div'); m.className='msg me'; m.textContent = txt;
+  const th = document.getElementById('chat-thread'); th.appendChild(m); th.scrollTop = th.scrollHeight;
+  t.value=''; t.dispatchEvent(new Event('input'));
+}
+
+/* ============ activity: trust circles + stage ladder ============ */
+const CIRCLES = {
+  personal: { label:'Personal', desc:'Your closest, hand-picked bonds.', sugg:['@ada','@lex'] },
+  local:    { label:'Local',    desc:'People near you in space or scene.', sugg:['@rafa','@nora'] },
+  social:   { label:'Social',   desc:'Friends of friends, shared groups.', sugg:['@dave','@hana'] },
+  global:   { label:'Global',   desc:'The whole mesh you can reach.', sugg:['@mesh-news'] }
+};
+function openCircle(key, btn){
+  document.querySelectorAll('.circle-btn').forEach(b => b.classList.toggle('on', b===btn));
+  const c = CIRCLES[key], d = document.getElementById('circle-detail');
+  d.innerHTML = '<div class="ct" style="font-size:1rem">'+c.label+' circle</div>' +
+    '<p class="muted">'+c.desc+'</p><p class="muted">Suggested to add:</p>' +
+    '<div class="row" id="circle-sugg"></div>';
+  const row = d.querySelector('#circle-sugg');
+  c.sugg.forEach(s => {
+    const chip = document.createElement('button'); chip.type='button'; chip.className='chip'; chip.textContent = '＋ '+s;
+    chip.onclick = () => { chip.classList.add('sel'); chip.textContent = s+' ✓'; chip.disabled = true; };
+    row.appendChild(chip);
+  });
+}
+const STAGES = [
+  { k:'newbie', thr:'0🍯',     who:'just arrived',  sugg:['Verify your email','Publish a first post'] },
+  { k:'known',  thr:'25🍯',    who:'1.2k peers',    sugg:['Get a vouch','Join a group'] },
+  { k:'homie',  thr:'100🍯',   who:'480 peers',     sugg:['Host a relay','Mentor a newbie'] },
+  { k:'expert', thr:'1,000🍯', who:'90 peers',      sugg:['Run moderation','Curate a circle'] },
+  { k:'legend', thr:'10,000🍯',who:'12 peers',      sugg:['Steward the mesh'] }
+];
+function renderStages(){
+  const tabs = document.getElementById('stage-tabs'); tabs.innerHTML='';
+  STAGES.forEach((s,i) => {
+    const b = document.createElement('button'); b.type='button'; b.className='stage-tab'+(i===0?' on':'');
+    b.textContent = s.k; b.onclick = () => openStage(i, b); tabs.appendChild(b);
+  });
+  openStage(0, tabs.firstChild);
+}
+function openStage(i, btn){
+  document.querySelectorAll('.stage-tab').forEach(t => t.classList.toggle('on', t===btn));
+  const s = STAGES[i], d = document.getElementById('stage-detail');
+  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="ct" style="font-size:1rem">'+s.k+
+    (i===0?' <span class="sbadge on">you are here</span>':'')+'</div><span class="sbadge">'+s.thr+' · '+s.who+'</span></div>' +
+    '<p class="muted">To climb:</p><ul class="muted" style="margin:.2rem 0 0;padding-left:1.1rem">' +
+    s.sugg.map(x=>'<li>'+x+'</li>').join('') + '</ul>';
+}
+
+/* boot the dynamic activity widgets */
+openCircle('personal', document.querySelector('.circle-btn'));
+renderStages();
+</script>
+</body>
+</html>

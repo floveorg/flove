@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="author" content="Marc (marcflove)" />
+<meta name="description" content="nety — a decentralized, peer-to-peer social network. Own your graph, connect any network, run on shared resources." />
+<title>✺ nety · decentralized social</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%230b0b0f'/%3E%3Cg fill='none' stroke='%238d89ff' stroke-width='3'%3E%3Cline x1='50' y1='50' x2='28' y2='34'/%3E%3Cline x1='50' y1='50' x2='72' y2='36'/%3E%3Cline x1='50' y1='50' x2='40' y2='74'/%3E%3Ccircle cx='28' cy='34' r='5'/%3E%3Ccircle cx='72' cy='36' r='5'/%3E%3Ccircle cx='40' cy='74' r='5'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='7' fill='%2300f7a7'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --bg:#0b0b0f; --ink:#e9eaf2; --muted:#a3a7b4;
+    --line:#1e2133; --card:#11131a; --panel:#13162a;
+    --accent:#8d89ff; --accent-soft:#c9c6ff; --signal:#00f7a7;
+    --ok:#00f7a7; --warn:#ffce6b; --run:#7fb4ff; --todo:#5a5e72;
+  }
+  html{ scroll-behavior:smooth; }
+  body{
+    font-family:"Space Mono",ui-monospace,monospace; color:var(--ink);
+    background:var(--bg);
+    min-height:100svh; -webkit-font-smoothing:antialiased;
+    line-height:1.6; overflow-x:hidden;
+  }
+
+  /* ============================================================
+     MESH BACKGROUND — fixed full-bleed atmosphere
+     ============================================================ */
+  .mesh-bg{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    overflow:hidden;
+  }
+  /* Layered radial gradient mesh */
+  .mesh-bg::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse 1100px 700px at 110% -5%,  rgba(0,247,167,.13)  0%, transparent 55%),
+      radial-gradient(ellipse 900px  600px at -12% 10%,  rgba(141,137,255,.18) 0%, transparent 52%),
+      radial-gradient(ellipse 700px  500px at 55%  95%,  rgba(141,137,255,.10) 0%, transparent 50%),
+      radial-gradient(ellipse 500px  400px at 90%  60%,  rgba(0,247,167,.07)   0%, transparent 48%),
+      radial-gradient(ellipse 400px  300px at 10%  70%,  rgba(141,137,255,.06) 0%, transparent 45%),
+      var(--bg);
+  }
+  /* Grain / noise overlay via tiny SVG data-URI */
+  .mesh-bg::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.038'/%3E%3C/svg%3E");
+    opacity:.55;
+  }
+  /* Faint drifting link-line overlays */
+  .mesh-lines{
+    position:absolute; inset:0; width:100%; height:100%;
+    overflow:visible;
+  }
+  .mesh-lines line{
+    stroke:var(--accent); stroke-width:1;
+    opacity:0;
+    animation:drift-line 14s ease-in-out infinite;
+  }
+  .mesh-lines line:nth-child(1){ opacity:.07; animation-duration:17s; animation-delay:0s; }
+  .mesh-lines line:nth-child(2){ opacity:.05; animation-duration:22s; animation-delay:-5s; }
+  .mesh-lines line:nth-child(3){ opacity:.04; animation-duration:19s; animation-delay:-9s; stroke:var(--signal); }
+  .mesh-lines line:nth-child(4){ opacity:.06; animation-duration:25s; animation-delay:-14s; }
+  .mesh-lines line:nth-child(5){ opacity:.04; animation-duration:20s; animation-delay:-7s; stroke:var(--signal); }
+  @keyframes drift-line{
+    0%  { transform:translate(0,0) rotate(0deg);   opacity:inherit; }
+    30% { transform:translate(18px,-12px) rotate(1.5deg);  opacity:.08; }
+    60% { transform:translate(-8px,20px) rotate(-1deg); opacity:.04; }
+    100%{ transform:translate(0,0) rotate(0deg);   opacity:inherit; }
+  }
+
+  /* ---------- ORBIT node groups in the mesh-bg ---------- */
+  /* These SVG elements sit inside .mesh-bg and slowly rotate at different radii/speeds */
+  .mesh-orbit{
+    position:absolute;
+    pointer-events:none;
+    overflow:visible;
+  }
+  .mesh-orbit.mo1{
+    width:420px; height:420px;
+    top:-60px; right:-80px;
+    opacity:.18;
+    animation:spin 34s linear infinite;
+    transform-origin:50% 50%;
+  }
+  .mesh-orbit.mo2{
+    width:340px; height:340px;
+    bottom:10%; left:-60px;
+    opacity:.13;
+    animation:spin 52s linear infinite reverse;
+    transform-origin:50% 50%;
+  }
+  .mesh-orbit.mo3{
+    width:260px; height:260px;
+    top:38%; right:6%;
+    opacity:.11;
+    animation:spin 41s linear infinite;
+    transform-origin:50% 50%;
+  }
+
+  /* ============================================================
+     LAYOUT
+     ============================================================ */
+  .wrap{
+    position:relative; z-index:1;
+    max-width:1100px; margin:0 auto;
+    padding:clamp(1.4rem,4vw,3rem) clamp(1.2rem,4vw,2.4rem) 3rem;
+  }
+
+  /* ---------- wordmark ---------- */
+  .wm{ font-family:"Fredoka",sans-serif; font-weight:700; line-height:1; letter-spacing:-.02em; color:var(--ink); }
+  .wm em{ font-style:normal; color:var(--signal); }
+
+  /* ---------- nav ---------- */
+  .nav{ display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:clamp(2.4rem,7vw,4rem);
+    opacity:0; animation:rise-fade .5s ease .1s both; }
+  .nav .brand{ display:flex; align-items:center; gap:.5rem; font-size:1.35rem; }
+  .nav .brand svg{ width:1.05em; height:1.05em; overflow:visible; }
+  .back{ color:var(--muted); text-decoration:none; font-size:.72rem; letter-spacing:.04em;
+    padding:.4rem .8rem; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.02); transition:.18s; }
+  .back:hover{ color:var(--ink); border-color:var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero{ display:flex; flex-direction:column; align-items:flex-start; gap:1.3rem; margin-bottom:clamp(2.6rem,8vw,4.4rem); }
+  .hero .lockup{
+    display:flex; align-items:center; gap:.8rem;
+    opacity:0; animation:rise-fade .7s ease .05s both;
+  }
+  /* Large orbit mark — overlaps wordmark */
+  .hero .lockup svg{
+    width:clamp(72px,16vw,110px);
+    height:clamp(72px,16vw,110px);
+    overflow:visible;
+    margin-right:-.25em; /* intentional overlap */
+    position:relative; z-index:2;
+    filter:drop-shadow(0 0 18px rgba(141,137,255,.45)) drop-shadow(0 0 40px rgba(141,137,255,.2));
+  }
+  /* Giant wordmark — THE hero object */
+  .hero .wm{
+    font-size:clamp(4.5rem,20vw,11rem);
+    background:linear-gradient(155deg, var(--ink) 30%, var(--accent-soft) 80%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    filter:drop-shadow(0 0 60px rgba(141,137,255,.25));
+    opacity:0; animation:rise-fade .8s ease .12s both;
+  }
+  .hero .wm em{
+    -webkit-text-fill-color:var(--signal);
+    filter:drop-shadow(0 0 24px rgba(0,247,167,.6));
+  }
+  .kicker{
+    font-size:.6rem; letter-spacing:.34em; text-transform:uppercase; color:var(--muted);
+    opacity:0; animation:rise-fade .6s ease .35s both;
+  }
+  .lead{
+    font-size:clamp(.92rem,2.6vw,1.18rem); line-height:1.5; max-width:32ch;
+    font-family:"Fredoka",sans-serif; font-weight:500; color:var(--accent-soft); letter-spacing:-.01em;
+    transform:rotate(-2deg); transform-origin:0 50%;
+    opacity:0; animation:rise-fade-tilt .65s ease .45s both;
+  }
+  .lead b{ color:var(--signal); font-weight:600; }
+  /* CTAs as glowing pills */
+  .cta{ display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.4rem;
+    opacity:0; animation:rise-fade .6s ease .58s both; }
+  .chip-link{
+    display:inline-flex; align-items:center; gap:.45rem; text-decoration:none;
+    font-size:.72rem; letter-spacing:.03em; padding:.6rem 1.1rem; border-radius:999px; transition:.2s;
+  }
+  .chip-link.solid{
+    background:linear-gradient(150deg,#8d89ff,#6f6bf0); color:#fff;
+    box-shadow:
+      0 0 0 1px rgba(141,137,255,.5),
+      0 4px 18px -4px rgba(141,137,255,.7),
+      0 12px 36px -10px rgba(141,137,255,.5),
+      0 24px 60px -20px rgba(141,137,255,.3);
+  }
+  .chip-link.solid:hover{
+    transform:translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(141,137,255,.7),
+      0 6px 24px -4px rgba(141,137,255,.9),
+      0 18px 48px -10px rgba(141,137,255,.6),
+      0 32px 72px -20px rgba(141,137,255,.4);
+  }
+  .chip-link.ghost{
+    color:var(--ink); border:1px solid var(--line); background:rgba(255,255,255,.03);
+    box-shadow:0 0 0 0 rgba(141,137,255,0);
+  }
+  .chip-link.ghost:hover{
+    border-color:var(--accent); color:var(--accent-soft);
+    box-shadow:0 0 18px -4px rgba(141,137,255,.35);
+  }
+
+  /* ---------- page-load reveal keyframes ---------- */
+  @keyframes rise-fade{
+    from{ opacity:0; transform:translateY(14px); }
+    to  { opacity:1; transform:none; }
+  }
+  @keyframes rise-fade-tilt{
+    from{ opacity:0; transform:translateY(10px) rotate(-2deg); }
+    to  { opacity:1; transform:rotate(-2deg); }
+  }
+  @keyframes mesh-fade{
+    from{ opacity:0; }
+    to  { opacity:1; }
+  }
+  .mesh-bg{
+    opacity:0; animation:mesh-fade 1.4s ease .1s both;
+  }
+
+  /* ---------- section heading ---------- */
+  .sec{ font-size:.62rem; letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+    display:flex; align-items:center; gap:.7rem; margin:0 0 1.4rem; }
+  .sec::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .block{
+    margin-bottom:clamp(2.6rem,8vw,4rem);
+    opacity:0; animation:rise-fade .7s ease .72s both;
+  }
+  /* stagger subsequent blocks */
+  .block:nth-of-type(2){ animation-delay:.84s; }
+  .block:nth-of-type(3){ animation-delay:.96s; }
+
+  /* ============================================================
+     GLASS NODE CARDS
+     ============================================================ */
+  .cards{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:1px;
+    background:transparent; /* remove the flat grid bg */
+    border:none;
+    border-radius:16px; overflow:visible;
+    position:relative;
+  }
+  /* Faint connecting link-lines between cards as sub-mesh */
+  .cards::before{
+    content:"";
+    position:absolute; inset:-2px; pointer-events:none; z-index:0;
+    border-radius:18px;
+    background:linear-gradient(135deg, rgba(141,137,255,.12), rgba(0,247,167,.07), rgba(141,137,255,.08));
+    opacity:.6;
+  }
+  /* Pseudo link-line between cards — left-side vertical line hint */
+  .cards::after{
+    content:"";
+    position:absolute; inset:-1px; pointer-events:none; z-index:0;
+    border:1px solid rgba(141,137,255,.12);
+    border-radius:18px;
+    box-shadow:
+      0 0 0 1px rgba(141,137,255,.07),
+      0 0 40px -10px rgba(141,137,255,.15),
+      0 0 80px -20px rgba(141,137,255,.08);
+  }
+  .vcard{
+    position:relative; z-index:1;
+    background:rgba(17,19,26,.72);
+    backdrop-filter:blur(18px) saturate(1.3);
+    -webkit-backdrop-filter:blur(18px) saturate(1.3);
+    padding:1.6rem 1.4rem; display:flex; flex-direction:column; gap:.6rem;
+    border:1px solid rgba(141,137,255,.18);
+    border-radius:16px;
+    transition:border-color .28s, box-shadow .28s;
+    box-shadow:
+      0 0 0 0 rgba(141,137,255,0),
+      inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .vcard:hover{
+    border-color:rgba(141,137,255,.38);
+    box-shadow:
+      0 0 28px -6px rgba(141,137,255,.28),
+      0 0 60px -16px rgba(141,137,255,.14),
+      inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  /* Expanded card glow when :has(:checked) */
+  .cards:has(#x1:checked) .c1,
+  .cards:has(#x2:checked) .c2,
+  .cards:has(#x3:checked) .c3{
+    grid-column:1 / -1;
+    border-color:rgba(141,137,255,.55);
+    box-shadow:
+      0 0 0 1px rgba(141,137,255,.28),
+      0 0 40px -8px rgba(141,137,255,.45),
+      0 0 80px -20px rgba(141,137,255,.2),
+      inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  /* --- demo display unchanged logic --- */
+  .cards:has(#x1:checked) .c1 .demo,
+  .cards:has(#x2:checked) .c2 .demo,
+  .cards:has(#x3:checked) .c3 .demo{ display:block; animation:reveal .32s ease both; }
+  .cards:has(#x1:checked) .c1 .try::after,
+  .cards:has(#x2:checked) .c2 .try::after,
+  .cards:has(#x3:checked) .c3 .try::after{ content:" ↑"; }
+
+  .vcard h3{ font-family:"Fredoka",sans-serif; font-weight:600; font-size:1.08rem; letter-spacing:-.01em; color:var(--ink); }
+  .vcard p{ font-size:.74rem; color:var(--muted); line-height:1.65; }
+  .vcard .tag{ font-size:.54rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  @keyframes reveal{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:none; } }
+
+  /* ---------- value card · interactive demos (CSS-pure — unchanged logic) ---------- */
+  .vh{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .vhead{ display:flex; flex-direction:column; gap:.55rem; cursor:pointer; }
+  .vhead .try{ margin-top:.15rem; font-size:.56rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); transition:.18s; }
+  .vhead:hover .try{ color:var(--accent-soft); }
+  .vhead .try::after{ content:" ↓"; }
+  .vcard .demo{ display:none; margin-top:1.1rem; }
+
+  /* demo shell */
+  .term{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#0c0e15; }
+  .termbar{ display:flex; align-items:center; gap:.4rem; padding:.5rem .7rem; background:var(--panel); border-bottom:1px solid var(--line);
+    font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .termbar i{ width:8px; height:8px; border-radius:50%; background:var(--line); }
+  .termbar i:nth-child(1){ background:#ff5f57; } .termbar i:nth-child(2){ background:#febc2e; } .termbar i:nth-child(3){ background:#28c840; }
+  .termbar span{ margin-left:.3rem; }
+  .termbody{ padding:.9rem; display:flex; flex-direction:column; gap:.7rem; }
+
+  .dbtn{ align-self:flex-start; cursor:pointer; font-size:.66rem; letter-spacing:.03em; color:var(--ink);
+    padding:.45rem .8rem; border-radius:8px; border:1px solid var(--accent); background:rgba(141,137,255,.1); transition:.16s; }
+  .dbtn:hover{ background:rgba(141,137,255,.22); }
+  .dbtn.signbtn{ display:none; }
+
+  .out{ display:none; flex-direction:column; gap:.4rem; padding:.6rem .75rem; border-radius:8px;
+    background:rgba(255,255,255,.02); border:1px solid var(--line); }
+  .out .row{ display:flex; gap:.6rem; align-items:baseline; flex-wrap:wrap; }
+  .out .k{ color:var(--muted); min-width:52px; text-transform:uppercase; letter-spacing:.1em; font-size:.52rem; }
+  .out .v{ color:var(--accent-soft); word-break:break-all; font-size:.66rem; }
+  .out .hint{ color:var(--muted); font-size:.58rem; line-height:1.55; }
+  .badge{ font-size:.54rem; letter-spacing:.05em; padding:.2rem .5rem; border-radius:999px; }
+  .badge.ok{ color:var(--signal); border:1px solid rgba(0,247,167,.4); background:rgba(0,247,167,.08); }
+  .demo:has(#g1:checked) .out-gen{ display:flex; animation:reveal .28s ease both; }
+  .demo:has(#g1:checked) .signbtn{ display:inline-block; }
+  .demo:has(#s1:checked) .out-sign{ display:flex; animation:reveal .28s ease both; }
+
+  /* demo 2 · gossip propagation */
+  .net{ display:flex; gap:.5rem; flex-wrap:wrap; }
+  .peer{ flex:1 1 120px; min-width:108px; border:1px solid var(--line); border-radius:10px; padding:.6rem;
+    background:#0c0e15; display:flex; flex-direction:column; gap:.45rem; }
+  .peer.a{ border-color:rgba(141,137,255,.45); }
+  .peer .pl{ font-size:.52rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .post{ font-size:.64rem; color:var(--ink); padding:.4rem .55rem; border-radius:8px;
+    background:rgba(141,137,255,.14); border:1px solid rgba(141,137,255,.3); }
+  .inbox{ min-height:32px; display:flex; align-items:center; }
+  .repost{ font-size:.6rem; color:var(--accent-soft); padding:.32rem .5rem; border-radius:7px;
+    background:rgba(0,247,167,.08); border:1px solid rgba(0,247,167,.3); opacity:0; }
+  .demo:has(#b2:checked) .peer.b .repost{ opacity:1; animation:land .5s .2s both; }
+  .demo:has(#b2:checked) .peer.c .repost{ opacity:1; animation:land .5s .55s both; }
+  @keyframes land{ from{ opacity:0; transform:translateY(-8px) scale(.92); } to{ opacity:1; transform:none; } }
+  .protonote{ font-size:.58rem; color:var(--muted); margin-top:.6rem; line-height:1.55; }
+
+  /* demo 3 · shared resources + trust */
+  .roles{ display:flex; gap:.4rem; flex-wrap:wrap; }
+  .rpick{ cursor:pointer; font-size:.62rem; padding:.4rem .7rem; border-radius:999px;
+    border:1px solid var(--line); background:rgba(255,255,255,.02); color:var(--muted); transition:.16s; }
+  .rpick:hover{ color:var(--ink); }
+  .demo:has(#r-comp:checked) [for="r-comp"],
+  .demo:has(#r-stor:checked) [for="r-stor"],
+  .demo:has(#r-ai:checked) [for="r-ai"]{ color:var(--bg); background:var(--accent); border-color:var(--accent); }
+  .node{ margin-top:.7rem; border:1px solid var(--line); border-radius:10px; padding:.7rem .8rem;
+    background:#0c0e15; display:flex; flex-direction:column; gap:.4rem; }
+  .node .nlabel{ font-size:.52rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .cap{ display:none; font-size:.7rem; color:var(--accent-soft); }
+  .demo:has(#r-comp:checked) .cap-comp,
+  .demo:has(#r-stor:checked) .cap-stor,
+  .demo:has(#r-ai:checked) .cap-ai{ display:block; }
+  .matchbtn{ margin-top:.7rem; }
+  .match{ display:none; margin-top:.7rem; flex-direction:column; gap:.5rem; }
+  .demo:has(#m3:checked) .match{ display:flex; animation:reveal .28s ease both; }
+  .meter{ height:8px; border-radius:999px; background:var(--line); overflow:hidden; }
+  .meter span{ display:block; height:100%; width:0; border-radius:999px;
+    background:linear-gradient(90deg,var(--accent),var(--signal)); transition:width 1s ease .1s; }
+  .demo:has(#m3:checked) .meter span{ width:92%; }
+  .trust{ font-size:.62rem; color:var(--muted); line-height:1.55; }
+  .trust b{ color:var(--signal); font-weight:400; }
+
+  /* ============================================================
+     STACK CHIPS — glowing tokens
+     ============================================================ */
+  .stack{ display:flex; flex-wrap:wrap; gap:.55rem; }
+  .tech{
+    display:inline-flex; align-items:center; gap:.4rem; font-size:.7rem; color:var(--ink);
+    padding:.45rem .85rem; border-radius:10px;
+    background:rgba(19,22,42,.8);
+    border:1px solid rgba(141,137,255,.22);
+    backdrop-filter:blur(8px);
+    transition:border-color .2s, box-shadow .2s;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .tech:hover{
+    border-color:rgba(141,137,255,.5);
+    box-shadow:
+      0 0 14px -4px rgba(141,137,255,.35),
+      inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .tech::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 6px 1px rgba(141,137,255,.6); }
+  .tech.s::before{
+    background:var(--signal);
+    box-shadow:0 0 6px 1px rgba(0,247,167,.6);
+  }
+  .tech.s{
+    border-color:rgba(0,247,167,.22);
+  }
+  .tech.s:hover{
+    border-color:rgba(0,247,167,.5);
+    box-shadow:0 0 14px -4px rgba(0,247,167,.3), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+
+  /* ============================================================
+     STATUS
+     ============================================================ */
+  .status-head{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1.3rem; }
+  .status-head .breathe{ width:58px; height:58px; overflow:visible; flex:none; }
+  .breathe circle{ fill:none; stroke:var(--accent); stroke-width:2.4; transform-box:fill-box; transform-origin:center; }
+  .breathe circle:nth-child(1){ animation:breathe 3.4s ease-in-out infinite; }
+  .breathe circle:nth-child(2){ animation:breathe 3.4s ease-in-out infinite .4s; }
+  .breathe circle:nth-child(3){ animation:breathe 3.4s ease-in-out infinite .8s; }
+  .breathe .core{ fill:var(--signal); stroke:none; animation:corepulse 3.4s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{transform:scale(.35);opacity:0;} 50%{transform:scale(1);opacity:.9;} }
+  @keyframes corepulse{ 0%,100%{opacity:.3;} 50%{opacity:1;} }
+  .status-head .live{ font-size:.74rem; color:var(--muted); }
+  .status-head .live b{ color:var(--signal); font-weight:400; }
+
+  /* Phase board — luminous pills */
+  .phases{
+    display:grid; gap:1px; background:var(--line);
+    border:1px solid rgba(141,137,255,.15); border-radius:14px; overflow:hidden;
+    box-shadow:0 0 40px -12px rgba(141,137,255,.12);
+  }
+  .phase{
+    display:grid; grid-template-columns:auto 1fr auto; gap:.9rem; align-items:center;
+    background:rgba(17,19,26,.9); padding:.88rem 1.2rem;
+    transition:background .18s;
+  }
+  .phase:hover{ background:rgba(19,22,42,.96); }
+  .phase .id{ font-weight:700; font-size:.78rem; color:var(--accent-soft); letter-spacing:.02em; }
+  .phase .name{ font-size:.76rem; color:var(--ink); }
+  .phase .name small{ display:block; color:var(--muted); font-size:.64rem; letter-spacing:.01em; margin-top:.12rem; }
+  .pill{
+    font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; padding:.28rem .6rem; border-radius:999px;
+    white-space:nowrap; border:1px solid transparent;
+  }
+  .pill.ok{
+    color:var(--ok); border-color:rgba(0,247,167,.4); background:rgba(0,247,167,.08);
+    box-shadow:0 0 10px -2px rgba(0,247,167,.2), inset 0 0 6px -2px rgba(0,247,167,.1);
+  }
+  .pill.warn{
+    color:var(--warn); border-color:rgba(255,206,107,.4); background:rgba(255,206,107,.08);
+    box-shadow:0 0 8px -2px rgba(255,206,107,.15);
+  }
+  .pill.run{
+    color:var(--run); border-color:rgba(127,180,255,.4); background:rgba(127,180,255,.08);
+    box-shadow:0 0 10px -2px rgba(127,180,255,.2), inset 0 0 6px -2px rgba(127,180,255,.1);
+    animation:pill-pulse 2.2s ease-in-out infinite;
+  }
+  .pill.todo{ color:var(--todo); border-color:var(--line); background:rgba(255,255,255,.02); }
+  @keyframes pill-pulse{
+    0%,100%{ box-shadow:0 0 10px -2px rgba(127,180,255,.2), inset 0 0 6px -2px rgba(127,180,255,.1); }
+    50%    { box-shadow:0 0 18px -2px rgba(127,180,255,.4), inset 0 0 10px -2px rgba(127,180,255,.2); }
+  }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:1rem; margin-top:.9rem; font-size:.62rem; color:var(--muted); }
+  .legend span{ display:inline-flex; align-items:center; gap:.4rem; }
+  .legend i{ width:8px; height:8px; border-radius:50%; display:inline-block; font-style:normal; }
+
+  .candid{
+    margin-top:1.3rem; padding:1.2rem 1.3rem; border-radius:14px;
+    border:1px solid rgba(255,206,107,.18); border-left:3px solid var(--warn);
+    background:rgba(255,206,107,.04);
+    box-shadow:0 0 24px -8px rgba(255,206,107,.1);
+  }
+  .candid h4{ font-family:"Fredoka",sans-serif; font-weight:600; font-size:.84rem; color:var(--warn); margin-bottom:.5rem; letter-spacing:.01em; }
+  .candid p{ font-size:.72rem; color:var(--muted); line-height:1.7; }
+  .candid b{ color:var(--accent-soft); font-weight:400; }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  .foot{ margin-top:1rem; padding-top:1.6rem; border-top:1px solid var(--line);
+    display:flex; flex-wrap:wrap; gap:.7rem 1.4rem; align-items:center; font-size:.66rem; color:var(--muted); }
+  .foot a{ color:var(--muted); text-decoration:none; transition:.18s; }
+  .foot a:hover{ color:var(--accent-soft); }
+  .foot .dot{ width:5px; height:5px; border-radius:50%; background:var(--signal); display:inline-block;
+    box-shadow:0 0 6px 2px rgba(0,247,167,.5); }
+  .foot .spacer{ flex:1; }
+
+  /* ============================================================
+     ORBIT MARK — shared keyframes + ring style
+     ============================================================ */
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .orbit{ overflow:visible; }
+  .orbit .ring{ transform-box:fill-box; transform-origin:50px 50px; animation:spin 9s linear infinite; }
+  .orbit .link{ stroke:var(--accent); stroke-width:2.6; opacity:.5; }
+  .orbit .sat{ fill:var(--accent-soft); }
+  .orbit .core{ fill:var(--signal); }
+
+  /* ============================================================
+     REDUCED MOTION — freeze everything to static
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition-duration:.01ms !important; }
+    html{ scroll-behavior:auto; }
+
+    /* Nav / hero / blocks visible immediately (no reveal animation) */
+    .nav, .hero .lockup, .hero .wm, .kicker, .lead, .cta, .block{ opacity:1; transform:none; }
+    /* Lead loses its tilt too */
+    .lead{ transform:rotate(-2deg); }
+
+    /* Breathe rings — still (show mid-size) */
+    .breathe circle{ opacity:.55; transform:scale(.7); }
+    .breathe circle:nth-child(1){ transform:scale(1); opacity:.9; }
+
+    /* Mesh bg still visible as gradient (no fade-in needed) */
+    .mesh-bg{ opacity:1; }
+
+    /* Orbit groups static */
+    .mesh-orbit{ animation:none !important; }
+    .orbit .ring{ animation:none !important; }
+
+    /* Drift lines hidden in reduced-motion */
+    .mesh-lines line{ opacity:0 !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     MESH BACKGROUND
+     ============================================================ -->
+<div class="mesh-bg" aria-hidden="true">
+  <!-- Drifting link-lines -->
+  <svg class="mesh-lines" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <line x1="80"  y1="120" x2="680"  y2="340" />
+    <line x1="1200" y1="80"  x2="540"  y2="520" />
+    <line x1="320"  y1="680" x2="1100" y2="260" />
+    <line x1="60"   y1="500" x2="820"  y2="160" />
+    <line x1="950"  y1="720" x2="240"  y2="280" />
+  </svg>
+
+  <!-- Orbiting node group 1 — top right, large, slow -->
+  <svg class="mesh-orbit mo1" viewBox="0 0 420 420" aria-hidden="true">
+    <g stroke="var(--accent)" fill="none" stroke-width="1">
+      <line x1="210" y1="210" x2="80"  y2="90"  opacity=".6"/>
+      <line x1="210" y1="210" x2="340" y2="100" opacity=".6"/>
+      <line x1="210" y1="210" x2="360" y2="310" opacity=".4"/>
+      <line x1="210" y1="210" x2="90"  y2="330" opacity=".4"/>
+      <line x1="210" y1="210" x2="200" y2="60"  opacity=".3"/>
+      <line x1="80"  y1="90"  x2="340" y2="100" opacity=".25"/>
+      <line x1="340" y1="100" x2="360" y2="310" opacity=".2"/>
+      <line x1="90"  y1="330" x2="360" y2="310" opacity=".2"/>
+    </g>
+    <circle cx="210" cy="210" r="7" fill="var(--signal)" opacity=".9"/>
+    <circle cx="80"  cy="90"  r="5" fill="var(--accent-soft)" opacity=".8"/>
+    <circle cx="340" cy="100" r="4" fill="var(--accent-soft)" opacity=".7"/>
+    <circle cx="360" cy="310" r="5" fill="var(--accent)"      opacity=".6"/>
+    <circle cx="90"  cy="330" r="4" fill="var(--accent-soft)" opacity=".7"/>
+    <circle cx="200" cy="60"  r="3" fill="var(--signal)"      opacity=".5"/>
+  </svg>
+
+  <!-- Orbiting node group 2 — bottom left, medium, slower reverse -->
+  <svg class="mesh-orbit mo2" viewBox="0 0 340 340" aria-hidden="true">
+    <g stroke="var(--accent)" fill="none" stroke-width="1">
+      <line x1="170" y1="170" x2="60"  y2="80"  opacity=".5"/>
+      <line x1="170" y1="170" x2="280" y2="90"  opacity=".5"/>
+      <line x1="170" y1="170" x2="290" y2="260" opacity=".4"/>
+      <line x1="170" y1="170" x2="70"  y2="270" opacity=".4"/>
+      <line x1="60"  y1="80"  x2="280" y2="90"  opacity=".2"/>
+    </g>
+    <circle cx="170" cy="170" r="6"  fill="var(--signal)"      opacity=".85"/>
+    <circle cx="60"  cy="80"  r="4"  fill="var(--accent-soft)" opacity=".75"/>
+    <circle cx="280" cy="90"  r="5"  fill="var(--accent)"      opacity=".65"/>
+    <circle cx="290" cy="260" r="4"  fill="var(--accent-soft)" opacity=".7"/>
+    <circle cx="70"  cy="270" r="3"  fill="var(--signal)"      opacity=".5"/>
+  </svg>
+
+  <!-- Orbiting node group 3 — mid right, small, medium speed -->
+  <svg class="mesh-orbit mo3" viewBox="0 0 260 260" aria-hidden="true">
+    <g stroke="var(--signal)" fill="none" stroke-width="1">
+      <line x1="130" y1="130" x2="50"  y2="60"  opacity=".5"/>
+      <line x1="130" y1="130" x2="210" y2="70"  opacity=".5"/>
+      <line x1="130" y1="130" x2="200" y2="200" opacity=".4"/>
+      <line x1="130" y1="130" x2="60"  y2="200" opacity=".4"/>
+    </g>
+    <circle cx="130" cy="130" r="5"  fill="var(--signal)"      opacity=".9"/>
+    <circle cx="50"  cy="60"  r="3"  fill="var(--accent-soft)" opacity=".7"/>
+    <circle cx="210" cy="70"  r="4"  fill="var(--accent)"      opacity=".65"/>
+    <circle cx="200" cy="200" r="3"  fill="var(--accent-soft)" opacity=".6"/>
+    <circle cx="60"  cy="200" r="3"  fill="var(--signal)"      opacity=".55"/>
+  </svg>
+</div>
+
+<div class="wrap">
+
+  <!-- ---------------------------------------------------- nav -->
+  <nav class="nav">
+    <span class="brand wm">
+      <svg class="orbit" viewBox="0 0 100 100" aria-hidden="true"><g class="ring"><line class="link" x1="50" y1="50" x2="24" y2="30"/><line class="link" x1="50" y1="50" x2="76" y2="34"/><line class="link" x1="50" y1="50" x2="30" y2="74"/><line class="link" x1="50" y1="50" x2="72" y2="72"/><circle class="sat" cx="24" cy="30" r="6"/><circle class="sat" cx="76" cy="34" r="6"/><circle class="sat" cx="30" cy="74" r="6"/><circle class="sat" cx="72" cy="72" r="6"/></g><circle class="core" cx="50" cy="50" r="9"/></svg>
+      net<em>y</em>
+    </span>
+    <a class="back" href="./index.html">← flove</a>
+  </nav>
+
+  <!-- ---------------------------------------------------- hero -->
+  <header class="hero">
+    <div class="lockup">
+      <svg class="orbit" viewBox="0 0 100 100" aria-label="nety mark"><g class="ring"><line class="link" x1="50" y1="50" x2="24" y2="30"/><line class="link" x1="50" y1="50" x2="76" y2="34"/><line class="link" x1="50" y1="50" x2="30" y2="74"/><line class="link" x1="50" y1="50" x2="72" y2="72"/><circle class="sat" cx="24" cy="30" r="6"/><circle class="sat" cx="76" cy="34" r="6"/><circle class="sat" cx="30" cy="74" r="6"/><circle class="sat" cx="72" cy="72" r="6"/></g><circle class="core" cx="50" cy="50" r="9"/></svg>
+      <span class="wm">net<em>y</em></span>
+    </div>
+    <div class="kicker">decentralized social · peer-to-peer</div>
+    <p class="lead">Own your social graph. Connect <b>any</b> network. Run on resources the network shares.</p>
+    <div class="cta">
+      <a class="chip-link solid" href="https://github.com/floveorg/flovenet" target="_blank" rel="noopener">source ↗</a>
+      <a class="chip-link ghost" href="#run">run a node ↓</a>
+    </div>
+  </header>
+
+  <!-- ---------------------------------------------------- what it is -->
+  <section class="block">
+    <h2 class="sec">What nety is</h2>
+    <div class="cards">
+
+      <!-- 1 · identity -->
+      <article class="vcard c1">
+        <input id="x1" class="vh exp" type="checkbox">
+        <label class="vhead" for="x1">
+          <span class="tag">identity</span>
+          <h3>Own your graph</h3>
+          <p>Your identity is an Ed25519 keypair in an encrypted keystore — not a row in someone's database. Posts, profiles and follows are signed and yours to carry.</p>
+          <span class="try">try it</span>
+        </label>
+        <div class="demo">
+          <div class="term">
+            <div class="termbar"><i></i><i></i><i></i><span>your keystore</span></div>
+            <div class="termbody">
+              <input id="g1" class="vh" type="checkbox">
+              <input id="s1" class="vh" type="checkbox">
+              <label class="dbtn" for="g1">⚷ generate keypair</label>
+              <div class="out out-gen">
+                <div class="row"><span class="k">peerId</span><span class="v">12D3KooWh9c…Hx7q</span></div>
+                <div class="row"><span class="k">pubkey</span><span class="v">ed25519:9f3a…b1c4</span></div>
+                <span class="hint">The private key is sealed in your local keystore — it never leaves the device.</span>
+              </div>
+              <label class="dbtn signbtn" for="s1">✍ sign "gm from the mesh"</label>
+              <div class="out out-sign">
+                <div class="row"><span class="k">sig</span><span class="v">3045022100…a7</span></div>
+                <div class="row"><span class="badge ok">✓ verifiable by any peer — no server needed</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2 · interop -->
+      <article class="vcard c2">
+        <input id="x2" class="vh exp" type="checkbox">
+        <label class="vhead" for="x2">
+          <span class="tag">interop</span>
+          <h3>Connect any network</h3>
+          <p>A peer-to-peer social protocol over libp2p (gossipsub + Kademlia) moves posts and follows between peers. A GraphQL gateway lets apps speak to the mesh.</p>
+          <span class="try">try it</span>
+        </label>
+        <div class="demo">
+          <input id="b2" class="vh" type="checkbox">
+          <div class="net">
+            <div class="peer a"><span class="pl">peer A · you</span><div class="post">"gm from the mesh"</div></div>
+            <div class="peer b"><span class="pl">peer B</span><div class="inbox"><span class="repost">↳ gm from the mesh</span></div></div>
+            <div class="peer c"><span class="pl">peer C</span><div class="inbox"><span class="repost">↳ gm from the mesh</span></div></div>
+          </div>
+          <label class="dbtn" for="b2" style="margin-top:.7rem;">📡 broadcast over gossipsub</label>
+          <div class="protonote">No server in the middle — the post gossips peer-to-peer until the whole mesh has it.</div>
+        </div>
+      </article>
+
+      <!-- 3 · cooperative -->
+      <article class="vcard c3">
+        <input id="x3" class="vh exp" type="checkbox">
+        <label class="vhead" for="x3">
+          <span class="tag">cooperative</span>
+          <h3>Shared resources</h3>
+          <p>Nodes offer compute, storage and AI to each other. A Web of Trust plus CRDT reputation decides who to rely on — no central operator required.</p>
+          <span class="try">try it</span>
+        </label>
+        <div class="demo">
+          <input type="radio" name="role3" id="r-comp" class="vh" checked>
+          <input type="radio" name="role3" id="r-stor" class="vh">
+          <input type="radio" name="role3" id="r-ai" class="vh">
+          <input id="m3" class="vh" type="checkbox">
+          <div class="roles">
+            <label class="rpick" for="r-comp">⚙ compute</label>
+            <label class="rpick" for="r-stor">💾 storage</label>
+            <label class="rpick" for="r-ai">✦ ai</label>
+          </div>
+          <div class="node">
+            <span class="nlabel">your node offers</span>
+            <span class="cap cap-comp">8 vCPU · 16 GB RAM</span>
+            <span class="cap cap-stor">240 GB · IPFS-pinned</span>
+            <span class="cap cap-ai">RTX 4090 · 24 GB VRAM</span>
+          </div>
+          <label class="dbtn matchbtn" for="m3">→ match a job to the network</label>
+          <div class="match">
+            <div class="meter"><span></span></div>
+            <span class="trust">scheduler picked a peer · trust path <b>you → alice → bob ✓</b> · reputation <b>0.92</b></span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------- stack -->
+  <section class="block">
+    <h2 class="sec">Stack at a glance</h2>
+    <div class="stack">
+      <span class="tech">Rust</span>
+      <span class="tech">libp2p</span>
+      <span class="tech">Wasmtime · WASM</span>
+      <span class="tech">IPFS · S3 · Hybrid</span>
+      <span class="tech">GraphQL · axum</span>
+      <span class="tech s">Ed25519 · ChaCha20</span>
+      <span class="tech s">CRDT reputation</span>
+      <span class="tech s">Web of Trust</span>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------- status -->
+  <section class="block" id="run">
+    <h2 class="sec">Where it's at</h2>
+    <div class="status-head">
+      <svg class="breathe" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40"/><circle cx="50" cy="50" r="28"/><circle cx="50" cy="50" r="16"/><circle class="core" cx="50" cy="50" r="7"/></svg>
+      <p class="live">nety is <b>alive and growing</b> — the core networking, storage and runtime work today; the social gateway and trust layers are landing phase by phase. Here's the honest picture.</p>
+    </div>
+
+    <div class="phases">
+      <div class="phase"><span class="id">F0</span><span class="name">Bootstrap<small>workspace, daemon, CLI</small></span><span class="pill ok">done</span></div>
+      <div class="phase"><span class="id">F1</span><span class="name">Networking + discovery<small>mDNS on LAN + explicit bootstrap peers · NAT traversal pending</small></span><span class="pill warn">partial</span></div>
+      <div class="phase"><span class="id">F2</span><span class="name">Storage layer<small>Local + IPFS + S3 + Hybrid backends</small></span><span class="pill ok">done</span></div>
+      <div class="phase"><span class="id">F3</span><span class="name">WASM + scheduling<small>Wasmtime runner + local scheduler (MVP)</small></span><span class="pill ok">done</span></div>
+      <div class="phase"><span class="id">F4</span><span class="name">Identity + crypto<small>Ed25519 + keystore + JWT · biometrics pending</small></span><span class="pill warn">partial</span></div>
+      <div class="phase"><span class="id">F5</span><span class="name">GraphQL gateway<small>schema + auth + playground · in-memory store, no live subscriptions yet</small></span><span class="pill warn">partial</span></div>
+      <div class="phase"><span class="id">F6</span><span class="name">Reputation<small>CRDT + gossip · cryptographic signing next</small></span><span class="pill warn">partial</span></div>
+      <div class="phase"><span class="id">F7</span><span class="name">Trust graph<small>2nd-order transitivity + Ed25519 edge verification</small></span><span class="pill warn">partial</span></div>
+      <div class="phase"><span class="id">F8</span><span class="name">Replication + cache<small>hybrid local tiers · cross-node replication pending</small></span><span class="pill warn">partial</span></div>
+      <div class="phase"><span class="id">F9</span><span class="name">Distributed GPU<small>resource sharing for AI workloads</small></span><span class="pill run">in&nbsp;progress</span></div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--ok)"></i> functional</span>
+      <span><i style="background:var(--warn)"></i> partial / gaps</span>
+      <span><i style="background:var(--run)"></i> in progress</span>
+      <span><i style="background:var(--todo)"></i> planned</span>
+    </div>
+
+    <div class="candid">
+      <h4>Today vs. the design</h4>
+      <p>Being straight about it: the GraphQL gateway currently keeps feed, profiles and follows in an <b>in-memory store</b> (lost on restart) and doesn't yet talk to the P2P daemon. WebSocket <b>subscriptions</b> are in the schema but not served over the wire. The private-subnet <b>PSK</b> flag is accepted but not enforced at the transport layer yet. The mesh runs; wiring the social gateway into it is the work in flight.</p>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------- footer -->
+  <footer class="foot">
+    <span class="dot"></span>
+    <span>nety · a flovenet front · CSS-pure, motion-respectful</span>
+    <span class="spacer"></span>
+    <a href="https://github.com/floveorg/flovenet" target="_blank" rel="noopener">github ↗</a>
+    <a href="./index.html">apps</a>
+    <a href="../index.html">flove</a>
+  </footer>
+
+</div>
+</body>
+</html>

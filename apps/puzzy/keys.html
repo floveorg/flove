@@ -4455,7 +4455,7 @@ window.tKey = function tKey(k){
   </div>
 
   <section class="intro-slider" id="intro-slider" aria-label="How to play">
-    <img class="intro-panda" id="intro-panda" src="../../others/panda/gifs/pensativo/frame-00.svg" alt="" aria-hidden="true">
+    <img class="intro-panda" id="intro-panda" src="../../images/pandas/panda-pensativo.gif" alt="" aria-hidden="true">
     <div class="intro-chips" id="intro-chips" aria-hidden="true"></div>
     <div class="intro-track" id="intro-track"></div>
     <div class="intro-arrows">
@@ -4562,7 +4562,7 @@ window.tKey = function tKey(k){
           <button class="btn btn-primary opt-go" id="master-go" type="button" data-i18n="chooser.go">Go →</button>
         </div>
       </div>
-      <img class="chooser-panda" id="chooserPanda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">
+      <img class="chooser-panda" id="chooserPanda" src="../../images/pandas/panda-neutral-talk.gif" alt="" aria-hidden="true">
       <div class="opt easy chooser-card" id="chooser-step1" role="button" tabindex="0" aria-expanded="false">
         <h3 data-i18n="chooser.normal_title">Normal</h3>
         <div class="desc" data-i18n="chooser.normal_desc">Rank words</div>
@@ -6942,58 +6942,32 @@ window.tKey = function tKey(k){
     updateIntroUI();
   }
 
-  // Cycles a panda emotion's lone frames consecutively (the gifs themselves
-  // don't move), giving a live loop on a transparent background. The emotion
-  // set swaps as the intro slides change, keeping size/position untouched.
-  const PANDA_BASE = '../../others/panda/gifs/';
-  let pandaFrames = [];
-  let pandaFrameIdx = 0;
-  let pandaTimer = null;
+  // Panda art is baked GIFs in images/pandas/ — the GIFs self-animate, so we
+  // just swap the <img> src per emotion (no manual frame cycling). "neutral"
+  // maps to the talking-neutral loop; every other mood is panda-<emotion>.gif.
+  const PANDA_BASE = '../../images/pandas/';
+  function pandaGif(emotion){
+    return PANDA_BASE + (emotion === 'neutral' ? 'panda-neutral-talk.gif'
+                                               : 'panda-' + emotion + '.gif');
+  }
   let pandaEmotion = '';
   function setPandaEmotion(name){
     if (name === pandaEmotion) return;
-    pandaEmotion = name; pandaFrameIdx = 0; pandaFrames = [];
-    for (let i = 0; i < 12; i++){
-      const src = PANDA_BASE + name + '/frame-' + String(i).padStart(2, '0') + '.svg';
-      new Image().src = src;          // preload to avoid first-loop flicker
-      pandaFrames.push(src);
-    }
+    pandaEmotion = name;
     const $panda = document.getElementById('intro-panda');
-    if ($panda) $panda.src = pandaFrames[0];
+    if ($panda) $panda.src = pandaGif(name);
   }
   function startPandaFrames($panda){
     if (!$panda) return;
-    $panda.classList.add('show');
-    if (pandaTimer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    pandaTimer = setInterval(() => {
-      if (!pandaFrames.length) return;
-      pandaFrameIdx = (pandaFrameIdx + 1) % pandaFrames.length;
-      $panda.src = pandaFrames[pandaFrameIdx];
-    }, 248);   // slowed a further 50% (was 165ms)
+    $panda.classList.add('show');   // the GIF loops on its own once shown
   }
-
-  // Frame sources for any emotion. "neutral" lives in animated/ (10 frames);
-  // every other mood is a 12-frame set under gifs/<emotion>/.
-  function pandaFrameSrcs(emotion){
-    if (emotion === 'neutral')
-      return Array.from({length:10}, (_,i) => `../../others/panda/animated/frame-${String(i).padStart(2,'0')}.svg`);
-    return Array.from({length:12}, (_,i) => `${PANDA_BASE}${emotion}/frame-${String(i).padStart(2,'0')}.svg`);
-  }
-  // Generic standalone cycler for the secondary pandas (chooser, section corners).
-  // Returns the interval id (or null) so a caller can stop/swap it.
+  // Generic mood swap for the secondary pandas (chooser, section corners, decks).
+  // Keeps its old signature (ms/maxLoops now unused) so every caller still works;
+  // returns null since there's no interval to track anymore.
   function cyclePanda(el, emotion, ms, maxLoops){
     if (!el) return null;
-    const frames = pandaFrameSrcs(emotion);
-    frames.forEach(s => { new Image().src = s; });
-    el.src = frames[0];
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
-    let f = 0, loops = 0;
-    const timer = setInterval(() => {
-      f = (f + 1) % frames.length;
-      el.src = frames[f];
-      if (f === 0 && maxLoops){ loops++; if (loops >= maxLoops) clearInterval(timer); }
-    }, ms || 248);
-    return timer;
+    el.src = pandaGif(emotion);
+    return null;
   }
   let chooserPandaStarted = false;
   let chooserSeqInterval = null, chooserSeqTimeout = null;
@@ -7835,7 +7809,7 @@ window.tKey = function tKey(k){
     if (!host) return;
     const splash = document.createElement('div');
     splash.className = 'primer-splash';
-    splash.innerHTML = '<img class="primer-splash-panda" src="../../others/panda/animated/frame-00.svg" alt="" aria-hidden="true">';
+    splash.innerHTML = '<img class="primer-splash-panda" src="../../images/pandas/panda-neutral-talk.gif" alt="" aria-hidden="true">';
     host.appendChild(splash);
     setTimeout(() => splash.remove(), 3000);
   }

@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Strategic Persistence Planner</title>
+<style>
+  :root{
+    --bg:#f6f4ef;
+    --ink:#2b2a28;
+    --muted:#8a857c;
+    --accent:#6b5bd6;
+    --accent-soft:#efeafc;
+    --social:#cc2f2f;      /* Local band (red) */
+    --socialgrp:#000;      /* SOCIAL band (black) */
+    --hide:#b9791f;        /* Hides chip tone */
+    /* 3-tone chip scheme */
+    --c-bt:#cc2f2f;        /* bluetooth + top "add" row (red) */
+    --c-action:#6b5bd6;    /* (legacy) */
+    --c-orange:#e08329;    /* export · edit · delete · expiry (orange) */
+    --c-rest:#2d9e7a;      /* RAM · server/browser cache · cookies · storage · hides (green) */
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:radial-gradient(1200px 600px at 50% -10%, #fff 0%, var(--bg) 60%);
+    color:var(--ink); min-height:100vh; padding:48px 22px 80px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+  }
+  .title{
+    color:var(--accent); font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+    font-size:1.05rem; display:flex; align-items:center; gap:.5rem;
+  }
+  .sub{margin:.5rem 0 1.6rem; color:var(--muted); font-size:.82rem; letter-spacing:.05em}
+
+  .stage{width:100%; max-width:1080px}
+
+  .axis, .cols, .custom-chips{display:grid; grid-template-columns:repeat(9,1fr); gap:12px}
+
+  /* ---- custom chips (My Ideal builder) ---- */
+  .custom-chips{gap:6px; margin-bottom:10px}
+  .custom-chips .cchip{
+    justify-self:stretch; text-align:center; position:relative; cursor:grab; user-select:none;
+    font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    padding:.55rem 3.4rem .3rem; border-radius:999px; background:#fff; color:var(--accent);
+    box-shadow:0 2px 8px rgba(43,42,40,.12);
+  }
+  .custom-chips .cchip:active{cursor:grabbing}
+  .custom-chips .cchip .x{position:absolute; right:.45rem; top:.15rem; cursor:pointer; opacity:.45; font-weight:700; z-index:5}
+  .custom-chips .cchip .x:hover{opacity:1}
+
+  /* ---- click-resize arrow pairs (narrow/wide on each side of a chip) ---- */
+  .rsz{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:22px; height:30px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:1.12rem; line-height:1; color:inherit; opacity:.4; z-index:4; user-select:none;
+  }
+  .rsz:hover{opacity:1}
+  .rsz.lw{left:2px}
+  .rsz.ln{left:26px}
+  .rsz.rn{right:26px}
+  .rsz.rw{right:2px}
+  .export-card .rsz{display:none}
+
+  /* ---- "add" chip stack (above the axis; only in Ideal / My Ideal) ---- */
+  .add-stack{display:flex; flex-direction:column; gap:0; margin-bottom:10px}
+  .add-row{display:grid; grid-template-columns:repeat(9,1fr); gap:12px; margin-bottom:6px}
+  /* centered "save" button row, sits above the chip being added */
+  .save-row{display:flex; justify-content:center; margin-bottom:4px}
+  .save-add{
+    cursor:pointer; font:inherit; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    font-size:.6rem; padding:.32rem 1.6rem; border-radius:999px; color:#fff; border:none;
+    background:linear-gradient(135deg,#e0533f,var(--c-bt));
+    box-shadow:0 6px 18px rgba(204,47,47,.32); transition:transform .12s ease, box-shadow .2s ease;
+  }
+  .save-add:hover{transform:translateY(-1px); box-shadow:0 9px 22px rgba(204,47,47,.42)}
+  .save-add:active{transform:translateY(0)}
+  .addchip{
+    grid-column:1 / -1; justify-self:stretch; position:relative; user-select:none;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    padding:.25rem 3rem; border-radius:999px;
+    background:transparent; border:2px dashed var(--c-bt); color:var(--c-bt); cursor:pointer;
+    transition:border-radius .2s ease, background .2s ease;
+  }
+  .addchip.editing{border-style:solid; background:rgba(204,47,47,.06); cursor:text}
+  .addchip.saved{border-style:solid; cursor:default}
+  /* saved chips pack together into one continuous-bordered stack */
+  .add-row.saved-row{margin-bottom:0}
+  .add-row.saved-row + .add-row.saved-row{margin-top:-2px}
+  .add-row.saved-row .addchip.saved{border-radius:6px}
+  .add-row.saved-row:has(+ .add-row.saved-row) .addchip.saved{border-bottom-left-radius:0; border-bottom-right-radius:0}
+  .add-row.saved-row + .add-row.saved-row .addchip.saved{border-top-left-radius:0; border-top-right-radius:0}
+  .addchip .lbl{pointer-events:none; min-width:1ch}
+  .addchip.editing .lbl{pointer-events:auto; outline:none; cursor:text}
+  /* resize arrows are always shown so any chip — fresh, editing or saved — can be sized */
+  .addchip .arw{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:20px; height:20px; display:flex; align-items:center; justify-content:center;
+    cursor:ew-resize; font-size:1rem; line-height:1; color:var(--c-bt); opacity:.6; z-index:2;
+    border-radius:50%; background:rgba(255,255,255,.7);
+  }
+  .addchip .arw:hover{opacity:1; background:#fff; box-shadow:0 1px 5px rgba(0,0,0,.2)}
+  .addchip .arw.l{left:.15rem}
+  .addchip .arw.r{right:.15rem}
+
+  /* ---- parallel bar above ---- */
+  .axis{position:relative; grid-template-rows:repeat(10,26px); align-items:center; margin-bottom:12px}
+  .axis::before{
+    content:""; position:absolute; left:0; right:0; bottom:10px; height:8px;
+    border-radius:999px;
+    /* obviously progressive: faint on the left, deep accent on the right */
+    background:linear-gradient(90deg,
+      #f1ecfb 0%,
+      #ddd0f6 26%,
+      #b89fe9 50%,
+      #8a6add 74%,
+      #4d2fbb 100%);
+    box-shadow:0 1px 6px rgba(77,47,187,.28);
+  }
+  .tag{
+    grid-row:2;
+    position:relative; z-index:1; justify-self:center;
+    font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    padding:.25rem 3rem; border-radius:999px; background:#fff;
+    box-shadow:0 2px 8px rgba(43,42,40,.12);
+  }
+  .tag.ram{grid-row:10; grid-column:1; color:var(--c-rest)}
+  /* expiry: orange→green gradient text, with an orange bar above + green bar below the pill */
+  .tag.expiry{grid-row:10; grid-column:1 / 3;}
+  .tag.expiry .grad{
+    background:linear-gradient(90deg,var(--c-orange),var(--c-rest));
+    -webkit-background-clip:text; background-clip:text;
+    color:transparent; -webkit-text-fill-color:transparent;
+  }
+  .tag.expiry::before, .tag.expiry::after{
+    content:""; position:absolute; left:10%; right:10%; height:3px; border-radius:999px; pointer-events:none;
+  }
+  .tag.expiry::before{top:-5px; background:var(--c-orange)}
+  .tag.expiry::after{bottom:-5px; background:var(--c-rest)}
+  .tag.bt{grid-row:1; grid-column:1 / 2; justify-self:end; color:var(--c-bt)}
+  .tag.cache{
+    grid-row:7; justify-self:stretch; text-align:left;
+    color:var(--c-rest); visibility:hidden;
+  }
+  .axis.ideal .tag.cache{visibility:visible; grid-column:1 / 5}
+  .axis.oasis .tag.cache{visibility:visible; grid-column:1}
+
+  .axis.ideal .tag.expiry{grid-column:2 / 7; justify-self:stretch; text-align:center}
+  .axis.ideal .tag.bt, .axis.oasis .tag.bt{grid-column:1 / -1; justify-self:stretch; text-align:center}
+
+  /* ---- action chips: export / edit / delete (rows below bluetooth) ---- */
+  .tag.export, .tag.edit, .tag.del{justify-self:stretch; text-align:center; visibility:hidden; color:var(--c-orange)}
+  .tag.export{grid-row:2}
+  .tag.edit{grid-row:3}
+  .tag.del{grid-row:4}
+  /* export: inbox -> Layout in both presets */
+  .axis.ideal .tag.export, .axis.oasis .tag.export{visibility:visible; grid-column:2 / 10}
+  /* edit & delete: chat -> minimal profile in Oasis, chat -> Layout in Ideal */
+  .axis.oasis .tag.edit, .axis.oasis .tag.del{visibility:visible; grid-column:1 / 8}
+  .axis.ideal .tag.edit, .axis.ideal .tag.del{visibility:visible; grid-column:1 / 10}
+
+  /* ---- storage chips stacked above server cache ---- */
+  .tag.bcache, .tag.cookies, .tag.storage{justify-self:stretch; text-align:left; visibility:hidden; color:var(--c-rest)}
+  .tag.bcache{grid-row:5}   /* browser cache: chat -> extended profile */
+  .tag.cookies{grid-row:6}  /* cookies: chat -> minimal profile */
+  .tag.storage{grid-row:8}  /* local/session storage: extended content -> minimal profile */
+  .axis.ideal .tag.bcache, .axis.oasis .tag.bcache{visibility:visible; grid-column:1 / 7}
+  .axis.ideal .tag.cookies, .axis.oasis .tag.cookies{visibility:visible; grid-column:1 / 8}
+  .axis.ideal .tag.storage, .axis.oasis .tag.storage{visibility:visible; grid-column:3 / 8}
+
+  /* ---- Hides chips (row below bluetooth) ---- */
+  .tag.hides{
+    grid-row:9; grid-column:2 / 8; justify-self:stretch; text-align:center;
+    color:var(--c-rest); background:#fff; letter-spacing:.14em; visibility:hidden;
+  }
+
+  /* ---- category columns ---- */
+  .cols{grid-template-rows:auto auto}
+  .col{display:flex; flex-direction:column; align-items:center; gap:8px; grid-row:1}
+
+  .bar{
+    width:100%; cursor:pointer; border:1px solid transparent; border-radius:12px;
+    padding:.7rem .45rem; font-size:.84rem; font-weight:650; letter-spacing:.02em; line-height:1.2;
+    background:var(--accent); color:#fff; opacity:1;
+    transition:opacity .18s ease, transform .12s ease;
+  }
+  .bar:hover{transform:translateY(-2px)}
+
+  /* group labels — all on the same line: personal · Local · personal · Social */
+  .group-label{
+    font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    padding:.35rem 0; text-align:center; border-top:2px solid currentColor; margin-top:4px;
+    grid-row:2;
+  }
+  .group-label.local{color:var(--social)}
+  .group-label.socialgrp{color:var(--socialgrp)}
+  .group-label.personal{color:#1a6b3c}
+
+  /* click-state legend */
+  .legend{
+    margin:30px auto 0; width:max-content;
+    display:flex; flex-direction:column; align-items:flex-start; gap:.45rem;
+    font-size:.84rem; color:var(--ink);
+  }
+  .legend .val{background:var(--accent); color:#fff; border-radius:9px; padding:.3rem .8rem}
+  .legend .val b{display:inline-block; min-width:1.3em; text-align:center; margin-right:.3rem}
+  .legend .s0{background:#a6c8f5; opacity:1}
+  .legend .s1{background:#5ea6ff; opacity:1}
+  .legend .s2{background:#5132a8; opacity:1}
+  .legend .legrow{display:flex; align-items:stretch; gap:.55rem}
+  .legend .vline{width:2px; background:#000; border-radius:2px}
+  .legend .social-leg{color:var(--socialgrp); font-weight:700; letter-spacing:.12em; text-transform:uppercase; align-self:center}
+
+  /* preset buttons */
+  .presets{margin-top:26px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+  .preset{
+    cursor:pointer; font:inherit; font-weight:700; letter-spacing:.04em;
+    padding:.5rem 1.3rem; border-radius:999px; border:1.5px solid var(--accent);
+    background:#fff; color:var(--accent); transition:background .15s ease, color .15s ease;
+  }
+  .preset:hover{background:var(--accent-soft)}
+  .preset.active{background:var(--accent); color:#fff; box-shadow:0 4px 14px rgba(107,91,214,.35)}
+  .preset.active:hover{background:var(--accent); color:#fff}
+
+  /* view toggle (Horizontal / Vertical) */
+  .viewtabs{margin-top:14px; display:flex; gap:12px; justify-content:center}
+
+  /* Save → format sub-buttons (centered below) */
+  .save-formats{margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+  .save-formats .fmt{
+    cursor:pointer; font:inherit; font-weight:700; letter-spacing:.05em; font-size:.76rem;
+    padding:.4rem 1rem; border-radius:999px; border:1.5px solid var(--accent);
+    background:#fff; color:var(--accent); transition:background .15s ease, color .15s ease, transform .1s ease;
+  }
+  .save-formats .fmt:hover{background:var(--accent); color:#fff; transform:translateY(-1px)}
+  .save-formats .fmt:active{transform:translateY(0)}
+
+  /* comparison hints */
+  .hintsbox{
+    margin:14px auto 0; max-width:760px; text-align:left; background:#fff;
+    border-radius:16px; box-shadow:0 8px 30px rgba(43,42,40,.12);
+    padding:18px 20px; font-size:.84rem; color:var(--ink);
+  }
+  .hintsbox h4{margin:.1rem 0 .5rem; color:var(--accent); font-size:.78rem; letter-spacing:.1em; text-transform:uppercase}
+  .hintsbox table{width:100%; border-collapse:collapse; margin-top:.5rem}
+  .hintsbox th, .hintsbox td{padding:.35rem .5rem; border-bottom:1px solid #eee; text-align:left; font-size:.8rem}
+  .hintsbox th{font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .hintsbox .note{color:var(--accent)}
+  .hintsbox .same{color:var(--muted); font-size:.8rem; margin:.2rem 0}
+
+  /* My Ideal builder panel */
+  .builder{
+    margin-top:14px; display:flex; gap:12px; justify-content:center; align-items:center;
+    flex-wrap:wrap; font-size:.82rem; color:var(--ink);
+  }
+  .builder label{display:flex; align-items:center; gap:.4rem; font-weight:650}
+  .builder select, .builder input[type=text]{font:inherit; padding:.3rem .5rem; border-radius:8px; border:1.5px solid var(--accent); background:#fff; color:var(--accent)}
+  .builder input[type=text]{color:var(--ink); min-width:9em}
+  .builder .addc{cursor:pointer; font:inherit; font-weight:700; padding:.4rem 1rem; border-radius:999px; border:1.5px solid var(--accent); background:var(--accent); color:#fff}
+  .builder .clearc{cursor:pointer; font:inherit; font-weight:700; padding:.4rem 1rem; border-radius:999px; border:1.5px solid var(--accent); background:#fff; color:var(--accent)}
+
+  /* ---- vertical (table) view ---- */
+  .viz-v{margin-top:6px; overflow-x:auto}
+  .vtable{width:100%; max-width:980px; margin:0 auto; border-collapse:collapse; font-size:.86rem}
+  .vtable th, .vtable td{padding:.55rem .7rem; text-align:left; border-bottom:1px solid #e6e2d9; vertical-align:top}
+  .vtable th{font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:700}
+  .vtable td.item{font-weight:650}
+  .vtable .chips{display:flex; flex-wrap:wrap; gap:.25rem}
+  .vtable .chips .c{
+    font-size:.56rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    padding:.14rem .45rem; border-radius:999px; border:1px solid #d8d3c8; color:var(--muted);
+  }
+  .vtable .grp{
+    font-size:.6rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:.18rem .55rem; border-radius:999px; border:1.5px solid currentColor;
+  }
+  .vtable .grp.Local{color:var(--social)}
+  .vtable .grp.Social{color:var(--socialgrp)}
+  .vtable .grp.Personal{color:#1a6b3c}
+  .vtable .stcell{
+    cursor:pointer; user-select:none; font-weight:700;
+    background:var(--accent); color:#fff; border-radius:9px; padding:.3rem .7rem;
+    display:inline-block; min-width:5.5em; text-align:center;
+  }
+  .vtable .saved{color:var(--accent); font-weight:650}
+  .vtable .detail{color:var(--muted); font-size:.8rem}
+
+  /* ---- diagram view (Mermaid render + CSS-flow fallback) ---- */
+  .viz-d .mermaid-out{display:flex; justify-content:center; width:100%; overflow-x:auto}
+  .viz-d .mermaid-out svg{max-width:100%; height:auto}
+  .viz-d{margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:0}
+  .flow-root{
+    font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.8rem;
+    color:#fff; background:var(--accent); padding:.55rem 1.4rem; border-radius:999px;
+    box-shadow:0 6px 18px rgba(107,91,214,.32);
+  }
+  .flow-stem{width:2px; height:22px; background:var(--accent); opacity:.5}
+  .flow-groups{display:flex; flex-wrap:wrap; justify-content:center; gap:18px; width:100%}
+  .flow-group{
+    flex:1 1 220px; max-width:300px; border:1.5px solid currentColor; border-radius:16px;
+    padding:12px; display:flex; flex-direction:column; gap:10px; background:#fff;
+    box-shadow:0 4px 16px rgba(43,42,40,.08);
+  }
+  .flow-group.Local{color:var(--social)}
+  .flow-group.Social{color:var(--socialgrp)}
+  .flow-group.Personal{color:#1a6b3c}
+  .flow-group-head{
+    font-size:.66rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    text-align:center; padding-bottom:6px; border-bottom:1.5px solid currentColor;
+  }
+  .flow-node{
+    border:1px solid #e3ded3; border-radius:12px; padding:.5rem .6rem; background:var(--bg); color:var(--ink);
+    display:flex; flex-direction:column; gap:.2rem;
+  }
+  .flow-node .nm{font-weight:700; font-size:.82rem; display:flex; justify-content:space-between; align-items:center; gap:.4rem}
+  .flow-node .pub{
+    font-size:.54rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding:.1rem .45rem; border-radius:999px; color:#fff; white-space:nowrap;
+  }
+  .flow-node .pub.s0{background:#a6c8f5; color:#16335c}
+  .flow-node .pub.s1{background:#5ea6ff}
+  .flow-node .pub.s2{background:#5132a8}
+  .flow-node .tl{display:flex; flex-wrap:wrap; gap:.22rem}
+  .flow-node .tl .t{
+    font-size:.52rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:.1rem .4rem; border-radius:999px; border:1px solid #d8d3c8; color:var(--muted);
+  }
+  [hidden]{display:none !important}
+
+  footer{margin-top:34px; color:var(--muted); font-size:.76rem; text-align:center}
+  footer .dot{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="title">Strategic Persistence Planner</div>
+
+<div class="stage">
+
+  <!-- ===== HORIZONTAL VIEW (default design) ===== -->
+  <div class="viz-h">
+
+    <div class="custom-chips" id="customChips" hidden></div>
+
+    <div class="add-stack" id="addStack" hidden></div>
+
+    <div class="axis">
+      <span class="tag bt">bluetooth</span>
+      <span class="tag export">export</span>
+      <span class="tag edit">edit</span>
+      <span class="tag del">delete</span>
+      <span class="tag bcache">browser cache</span>
+      <span class="tag cookies">cookies</span>
+      <span class="tag cache">server cache</span>
+      <span class="tag storage">local / session storage</span>
+      <span class="tag hides">Hides</span>
+      <span class="tag ram">RAM</span>
+      <span class="tag expiry"><span class="grad">Expiry</span></span>
+    </div>
+
+    <div class="cols">
+
+      <div class="col">
+        <button class="bar" data-name="chat" data-info="RAM only — held in memory, not written to disk; gone on close.">chat</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="inbox" data-info="Kept until its expiry, then dropped.">inbox</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="extended content" data-info="Your extended content — the full body of what you publish.">extended content</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="minimal content" data-info="A light, reduced footprint of content.">minimal content</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="friends" data-info="Your friends — links to 0asis avatars.">friends</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="extended profile" data-info="The most persistent layer — your full, durable identity.">extended profile</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="minimal profile" data-info="The smallest durable identity — name + avatar only.">minimal profile</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="Labels" data-info="Your labels — how you tag and sort. Social.">Labels</button>
+      </div>
+
+      <div class="col">
+        <button class="bar" data-name="Layout" data-info="Your layout — how things are arranged. Social.">Layout</button>
+      </div>
+
+      <!-- personal flanks Local on both sides; Social on the right -->
+      <div class="group-label personal" style="grid-column:1/3;">personal</div>
+      <div class="group-label local" style="grid-column:3/6;">Local</div>
+      <div class="group-label personal" style="grid-column:6/8;">personal</div>
+      <div class="group-label socialgrp" style="grid-column:8/10;">Social</div>
+
+    </div>
+
+  </div>
+
+  <!-- ===== VERTICAL VIEW (table) ===== -->
+  <div class="viz-v" hidden>
+    <table class="vtable">
+      <thead>
+        <tr id="vhead"><th>Persistence</th><th>Item</th><th>Group</th><th>State</th><th>Detail</th></tr>
+      </thead>
+      <tbody id="vbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===== DIAGRAM VIEW (CSS flow diagram) ===== -->
+  <div class="viz-d" id="vizDiagram" hidden></div>
+
+  <div class="legend">
+    <span class="val s0"><b>0</b> Private</span>
+    <div class="legrow">
+      <span class="val s1"><b>1</b> Public</span>
+      <span class="vline"></span>
+      <span class="social-leg">SOCIAL</span>
+    </div>
+    <span class="val s2"><b>2</b> Optional</span>
+  </div>
+
+  <div class="viewtabs" id="viewTabs">
+    <button class="preset view-tab active" data-view="h">bars</button>
+    <button class="preset view-tab" data-view="v">table</button>
+    <button class="preset view-tab" data-view="d">diagrama</button>
+  </div>
+
+  <div class="presets" id="presets">
+    <button id="btn-ideal" class="preset">Ideal</button>
+    <button id="btn-mine" class="preset">My Ideal</button>
+  </div>
+
+  <div class="builder" id="builder" hidden>
+    <label>Tool
+      <select id="chipType">
+        <option style="color:var(--c-bt)">Bluetooth</option>
+        <option style="color:var(--c-rest)">RAM</option>
+        <option style="color:var(--c-orange)">Expiry</option>
+        <option style="color:var(--c-rest)">server cache</option>
+        <option style="color:var(--c-rest)">browser cache</option>
+        <option style="color:var(--c-rest)">cookies</option>
+        <option style="color:var(--c-rest)">local/session storage</option>
+        <option style="color:var(--c-orange)">export</option>
+        <option style="color:var(--c-orange)">edit</option>
+        <option style="color:var(--c-orange)">delete</option>
+        <option style="color:var(--c-rest)">Hides</option>
+      </select>
+    </label>
+    <label>From <select id="chipFrom"></select></label>
+    <label>To <select id="chipTo"></select></label>
+    <label>Intensity
+      <select id="chipIntensity">
+        <option value="0" selected>0 · none</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+    </label>
+    <button class="addc" id="addChip">Add tool</button>
+    <button class="addc" id="saveSel">Save view</button>
+  </div>
+
+  <div class="viewtabs" id="hintsRow" hidden>
+    <button id="btn-hints" class="preset">Compare</button>
+  </div>
+  <div class="hintsbox" id="hintsBox" hidden></div>
+
+  <div class="viewtabs">
+    <button id="btn-save-view" class="preset">Save file</button>
+  </div>
+  <div class="save-formats" id="saveFormats" hidden>
+    <button class="fmt" data-fmt="csv">CSV</button>
+    <button class="fmt" data-fmt="md">MD</button>
+    <button class="fmt" data-fmt="jpg">JPG</button>
+    <button class="fmt" data-fmt="html">HTML</button>
+    <button class="fmt" data-fmt="mmd">Mermaid</button>
+    <button class="fmt" data-fmt="copy">Copy prompt</button>
+  </div>
+
+</div>
+
+<script>
+  const OPACITY = [0.5, 0.75, 1];
+  const MAX = OPACITY.length - 1;
+  const STATE_LABEL = ['Private', 'Public', 'Optional'];
+  // clear blue (private) -> brighter clear blue (public) -> dark violet (optional)
+  const COLORS = ['#a6c8f5', '#5ea6ff', '#5132a8'];
+  const SOCIAL_ITEMS = ['Labels', 'Layout']; // Public by default / Oasis / My Ideal
+  const PUBLIC = 1;
+  const bars = [...document.querySelectorAll('.bar')];
+  const ITEMS = bars.map(b => b.dataset.name);
+  const axis = document.querySelector('.axis');
+
+  const getMax = (el) => MAX;
+
+  const setBar = (el, s) => { el.dataset.state = s; el.style.background = COLORS[s]; el.style.opacity = 1; };
+  bars.forEach(el => setBar(el, 0));
+
+  bars.forEach(el => el.addEventListener('click', () => {
+    setBar(el, ((+el.dataset.state) + 1) % OPACITY.length);
+    refreshTable();
+  }));
+
+  const tagRam    = axis.querySelector('.tag.ram');
+  const tagExpiry = axis.querySelector('.tag.expiry');
+  const tagBt     = axis.querySelector('.tag.bt');
+  const tagHides  = [...axis.querySelectorAll('.tag.hides')];
+  const vis = (el, on) => { if (el) el.style.visibility = on ? 'visible' : 'hidden'; };
+  const visHides = (on) => tagHides.forEach(el => vis(el, on));
+
+  /* ---- per-column slice colouring: a chip is split internally into one slice per
+     grid column it spans. Clicking a slice cycles it through 3 shades (the 4th click
+     resets that slice). The pill keeps its single, un-split shape — only the colour
+     fills the clicked column's width. Shared by the axis tags, the My Ideal custom
+     chips, and the saved "add" chips. ---- */
+  const ORANGE = '#e08329';
+  const SLICE_SHADES = 3;                                  // three clicks, then reset
+  // how many grid columns the chip currently spans (parent is always a 9-col grid)
+  function chipSpan(el){
+    const colW = el.parentElement.getBoundingClientRect().width / 9;
+    return Math.max(1, Math.round(el.getBoundingClientRect().width / colW));
+  }
+  const readLevels = (el) => (el.dataset.levels || '').split(',').filter(s => s !== '').map(Number);
+  // build the {bg,color} for a set of per-slice levels (reused by render + export)
+  function sliceParts(base, levels){
+    if (!levels.length || levels.every(l => l <= 0)) return { bg:'', color:'' };
+    const span = levels.length, seg = 100 / span, stops = [];
+    levels.forEach((lv, i) => {
+      const c = lv <= 0 ? 'rgba(0,0,0,0)' : 'color-mix(in srgb, ' + base + ' ' + (lv * 33 + 1) + '%, #fff)';
+      stops.push(c + ' ' + (i * seg).toFixed(3) + '%', c + ' ' + ((i + 1) * seg).toFixed(3) + '%');
+    });
+    return { bg:'linear-gradient(90deg,' + stops.join(',') + ')', color:'#1a1a1a' };   // coloured chips: text in black
+  }
+  function renderSlices(el){
+    const span = chipSpan(el);
+    let levels = readLevels(el);
+    while (levels.length < span) levels.push(0);
+    levels = levels.slice(0, span);
+    el.dataset.levels = levels.join(',');
+    const parts = sliceParts(el.dataset.base, levels);
+    el.style.background = parts.bg;                          // '' reverts to the CSS resting look
+    el.style.color = parts.bg ? parts.color : (el.dataset.rest || '');
+  }
+  function sliceColor(el, e){
+    if (e.target.classList && (e.target.classList.contains('rsz') || e.target.classList.contains('arw') || e.target.classList.contains('x'))) return;
+    const span = chipSpan(el);
+    const colW = el.parentElement.getBoundingClientRect().width / 9;
+    const r = el.getBoundingClientRect();
+    let idx = Math.floor((e.clientX - r.left) / colW);
+    idx = Math.max(0, Math.min(span - 1, idx));
+    let levels = readLevels(el);
+    while (levels.length < span) levels.push(0);
+    levels = levels.slice(0, span);
+    levels[idx] = (levels[idx] + 1) % (SLICE_SHADES + 1);    // 0→1→2→3→0
+    el.dataset.levels = levels.join(',');
+    renderSlices(el);
+  }
+
+  /* ---- click-resize: a narrow/wide arrow pair on each side of every chip ---- */
+  function chipCols(el){   // returns {start, span} in grid columns
+    if (el.classList.contains('addchip')) return { start:+el.dataset.start, span:(+el.dataset.end) - (+el.dataset.start) };
+    const gc = el.style.gridColumn || '';
+    let m = gc.match(/(\d+)\s*\/\s*span\s*(\d+)/);
+    if (m) return { start:+m[1], span:+m[2] };
+    m = gc.match(/(\d+)\s*\/\s*(\d+)/);
+    if (m) return { start:+m[1], span:(+m[2]) - (+m[1]) };
+    const pr = el.parentElement.getBoundingClientRect(), r = el.getBoundingClientRect(), colW = pr.width / 9;
+    return { start: Math.max(1, Math.round((r.left - pr.left) / colW) + 1), span: Math.max(1, Math.round(r.width / colW)) };
+  }
+  function setChipCols(el, start, span){
+    span = Math.max(1, Math.min(9, span));
+    start = Math.max(1, Math.min(10 - span, start));
+    if (el.classList.contains('addchip')){
+      el.dataset.start = start; el.dataset.end = start + span; applySpan(el);
+    } else {
+      el.style.gridColumn = start + ' / span ' + span;
+      el.dataset.span = span;
+      if (el.classList.contains('tag')) el.style.justifySelf = 'stretch';   // let the width actually show
+    }
+    renderSlices(el);
+  }
+  function resizeChip(el, act){
+    let { start, span } = chipCols(el);
+    if (act === 'lw' && start > 1){ start -= 1; span += 1; }          // grow left edge outward
+    else if (act === 'ln' && span > 1){ start += 1; span -= 1; }      // pull left edge inward
+    else if (act === 'rn' && span > 1){ span -= 1; }                  // pull right edge inward
+    else if (act === 'rw' && start + span <= 9){ span += 1; }         // grow right edge outward
+    else return;
+    setChipCols(el, start, span);
+  }
+  function addResizeArrows(el){
+    const mk = (act, glyph, title) => {
+      const s = document.createElement('span');
+      s.className = 'rsz ' + act; s.dataset.act = act; s.textContent = glyph; s.title = title;
+      s.addEventListener('mousedown', ev => ev.stopPropagation());                       // never start a drag
+      s.addEventListener('click', ev => { ev.stopPropagation(); resizeChip(el, act); });  // never colour
+      return s;
+    };
+    el.appendChild(mk('lw', '◀', 'wider'));
+    el.appendChild(mk('ln', '▶', 'narrower'));
+    el.appendChild(mk('rn', '◀', 'narrower'));
+    el.appendChild(mk('rw', '▶', 'wider'));
+  }
+
+  // axis tool tags: click a column to colour it, click the side arrows to resize
+  const axisTags = [...axis.querySelectorAll('.tag')];
+  axisTags.forEach(t => {
+    t.dataset.base = t.classList.contains('expiry') ? ORANGE : getComputedStyle(t).color;
+    t.dataset.rest = '';                                     // CSS owns the resting look
+    t.dataset.levels = '';
+    t.style.cursor = 'pointer';
+    t.title = 'click a column to colour it · arrows to resize';
+    t.addEventListener('click', e => sliceColor(t, e));
+    addResizeArrows(t);
+  });
+
+  const btnIdeal = document.getElementById('btn-ideal');
+  const btnMine  = document.getElementById('btn-mine');
+  const builder  = document.getElementById('builder');
+  const customChips = document.getElementById('customChips');
+  const presetsRow = document.getElementById('presets');
+  let active = null;
+  let savedSelection = null;
+  let savedTh = null;
+
+  const clearActive = () => [...presetsRow.querySelectorAll('.preset')].forEach(b => b.classList.remove('active'));
+
+  const applyDefault = () => { axis.classList.remove('ideal','oasis'); vis(tagRam,false); vis(tagExpiry,false); vis(tagBt,false); visHides(false); bars.forEach(el => setBar(el, SOCIAL_ITEMS.includes(el.dataset.name) ? PUBLIC : 0)); };
+  const applyIdeal   = () => { axis.classList.add('ideal'); axis.classList.remove('oasis'); vis(tagRam,true);  vis(tagExpiry,true);  vis(tagBt,true);  visHides(true);  bars.forEach(el => setBar(el, SOCIAL_ITEMS.includes(el.dataset.name) ? PUBLIC : getMax(el))); };
+  const applyOasis   = () => {
+    axis.classList.add('oasis'); axis.classList.remove('ideal'); vis(tagRam,true); vis(tagExpiry,false); vis(tagBt,true); visHides(false);
+    bars.forEach(el => {
+      const n = el.dataset.name;
+      if (n === 'extended profile' || n === 'minimal profile') setBar(el, MAX);
+      else if (SOCIAL_ITEMS.includes(n)) setBar(el, PUBLIC);
+      else setBar(el, 0);
+    });
+  };
+  // My Ideal: restore the saved selection (if any), hide stock chips, reveal builder + custom chips
+  const applyMine = () => {
+    axis.classList.remove('ideal','oasis'); vis(tagRam,false); vis(tagExpiry,false); vis(tagBt,false); visHides(false);
+    if (savedSelection){
+      bars.forEach((el, i) => setBar(el, savedSelection.states[i]));
+      customChips.innerHTML = ''; crow = 0;
+      savedSelection.chips.forEach(c => createChip(c.label, c.col, c.span, c.levels || []));
+    } else {
+      bars.forEach(el => { if (SOCIAL_ITEMS.includes(el.dataset.name)) setBar(el, PUBLIC); });
+    }
+  };
+
+  function toggle(which, btn){
+    active = (active === which) ? null : which;
+    clearActive();
+    if (active) btn.classList.add('active');
+    builder.hidden = active !== 'mine';
+    customChips.hidden = active !== 'mine';
+    addStack.hidden = !(active === 'ideal' || active === 'mine');   // add chip only in Ideal / My Ideal
+    axisTags.forEach(t => { t.style.gridColumn = ''; t.style.justifySelf = ''; });   // drop manual tag resizes; let the preset own the layout
+    if (active === 'ideal') applyIdeal();
+    else if (active === 'oasis') applyOasis();
+    else if (active === 'mine') applyMine();
+    else applyDefault();
+    axisTags.forEach(renderSlices);   // tag spans change per preset — re-paint their slices
+    refreshTable();
+    if (!vizD.hidden) renderDiagramView();
+  }
+  btnIdeal.addEventListener('click', () => toggle('ideal', btnIdeal));
+  btnMine.addEventListener('click',  () => toggle('mine',  btnMine));
+
+  /* ---- My Ideal: From / To dropdowns over all items ---- */
+  const chipType  = document.getElementById('chipType');
+  const chipFrom  = document.getElementById('chipFrom');
+  const chipTo    = document.getElementById('chipTo');
+  ITEMS.forEach((name, i) => {
+    chipFrom.insertAdjacentHTML('beforeend', '<option value="' + i + '">' + name + '</option>');
+    chipTo.insertAdjacentHTML('beforeend',   '<option value="' + i + '">' + name + '</option>');
+  });
+  chipFrom.value = '0';
+  chipTo.value = String(Math.min(2, ITEMS.length - 1));
+
+  let crow = 0;
+
+  function makeDraggable(div){
+    div.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('x')) return;
+      e.preventDefault();
+      div._dragged = false;
+      const rect = customChips.getBoundingClientRect();
+      const span = +div.dataset.span;
+      const startX = e.clientX;
+      const move = (ev) => {
+        if (Math.abs(ev.clientX - startX) > 4) div._dragged = true;   // real drag, not a colour click
+        const colW = rect.width / 9;
+        let col = Math.floor((ev.clientX - rect.left) / colW) + 1;
+        col = Math.max(1, Math.min(10 - span, col));
+        div.style.gridColumn = col + ' / span ' + span;
+      };
+      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    });
+  }
+
+  // 3-tone scheme + orange action tone, matching the axis chips / dropdown words
+  const TOOL_COLOR = {
+    'Bluetooth':'var(--c-bt)',
+    'Expiry':'var(--c-orange)', 'export':'var(--c-orange)', 'edit':'var(--c-orange)', 'delete':'var(--c-orange)',
+    'RAM':'var(--c-rest)', 'server cache':'var(--c-rest)', 'browser cache':'var(--c-rest)',
+    'cookies':'var(--c-rest)', 'local/session storage':'var(--c-rest)', 'Hides':'var(--c-rest)'
+  };
+
+  const chipIntensity = document.getElementById('chipIntensity');
+
+  function createChip(label, startCol, span, levels){
+    const div = document.createElement('div');
+    div.className = 'cchip';
+    div.dataset.label = label;
+    div.dataset.span = span;
+    div.dataset.base = TOOL_COLOR[label] || 'var(--accent)';
+    div.dataset.rest = div.dataset.base;
+    div.dataset.levels = (levels && levels.length ? levels.slice(0, span) : new Array(span).fill(0)).join(',');
+    div.style.gridColumn = startCol + ' / span ' + span;
+    div.style.gridRow = (++crow);
+    div.innerHTML = '<span class="lbl">' + label + '</span><span class="x" title="remove">×</span>';
+    div.querySelector('.x').addEventListener('click', () => div.remove());
+    addResizeArrows(div);                         // ◀▶ pairs on each side to resize by click
+    makeDraggable(div);
+    customChips.appendChild(div);
+    div.addEventListener('click', e => { if (!div._dragged) sliceColor(div, e); });  // click a column to colour it
+    renderSlices(div);                            // paint any carried-over slices
+    return div;
+  }
+
+  document.getElementById('addChip').addEventListener('click', () => {
+    let a = +chipFrom.value, b = +chipTo.value;
+    if (b < a) { const t = a; a = b; b = t; }
+    const span = b - a + 1;
+    createChip(chipType.value, a + 1, span, new Array(span).fill(+chipIntensity.value));  // dropdown = initial fill
+  });
+
+  /* ---- group + persistence-chip maps ---- */
+  const GROUPS = {
+    'extended content':'Local', 'minimal content':'Local', 'friends':'Local',
+    'Labels':'Social', 'Layout':'Social'
+  };
+  const groupOf = (name) => GROUPS[name] || 'Personal';
+
+  const CHIPS = {
+    'chat':            ['bluetooth','RAM','server cache','edit','delete'],
+    'inbox':           ['bluetooth','Expiry','server cache','browser cache','cookies','export','edit','delete','Hides'],
+    'extended content':['bluetooth','Expiry','server cache','browser cache','cookies','local/session storage','export','edit','delete','Hides'],
+    'minimal content': ['bluetooth','Expiry','server cache','browser cache','cookies','local/session storage','export','edit','delete','Hides'],
+    'friends':         ['bluetooth','Expiry','browser cache','cookies','local/session storage','export','edit','delete','Hides'],
+    'extended profile':['bluetooth','Expiry','browser cache','cookies','local/session storage','export','edit','delete','Hides'],
+    'minimal profile': ['bluetooth','cookies','local/session storage','export','edit','delete','Hides'],
+    'Labels':          ['bluetooth','export','Hides'],
+    'Layout':          ['bluetooth','export','Hides']
+  };
+
+  /* ---- vertical (table) view ---- */
+  const vbody = document.getElementById('vbody');
+  const vhead = document.getElementById('vhead');
+  bars.forEach(el => {
+    const name = el.dataset.name, grp = groupOf(name);
+    const chips = (CHIPS[name] || []).map(c => '<span class="c">' + c + '</span>').join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><div class="chips">' + chips + '</div></td>' +
+      '<td class="item">' + name + '</td>' +
+      '<td><span class="grp ' + grp + '">' + grp + '</span></td>' +
+      '<td><span class="stcell" data-for="' + name + '"></span></td>' +
+      '<td class="detail">' + (el.dataset.info || '') + '</td>';
+    const st = tr.querySelector('.stcell');
+    st.addEventListener('click', () => {
+      setBar(el, ((+el.dataset.state) + 1) % OPACITY.length);
+      refreshTable();
+    });
+    vbody.appendChild(tr);
+  });
+
+  function refreshTable(){
+    bars.forEach(el => {
+      const s = +el.dataset.state;
+      const cell = vbody.querySelector('.stcell[data-for="' + el.dataset.name + '"]');
+      if (cell){ cell.textContent = s + ' · ' + STATE_LABEL[s]; cell.style.background = COLORS[s]; cell.style.opacity = 1; }
+    });
+  }
+
+  /* ---- Save a selection: stored in memory + one "My Ideal" table column; restored on reopen ---- */
+  function upsertSavedColumn(states){
+    if (!savedTh){
+      savedTh = document.createElement('th');
+      savedTh.textContent = 'My Ideal';
+      vhead.appendChild(savedTh);
+      [...vbody.rows].forEach(tr => { const td = document.createElement('td'); td.className = 'saved'; tr.appendChild(td); });
+    }
+    [...vbody.rows].forEach((tr, i) => { tr.cells[tr.cells.length - 1].textContent = STATE_LABEL[states[i]]; });
+  }
+
+  document.getElementById('saveSel').addEventListener('click', () => {
+    const states = bars.map(b => +b.dataset.state);
+    const chips = [...customChips.children].map(c => ({ label:c.dataset.label, col:parseInt(c.style.gridColumn,10), span:+c.dataset.span, levels:readLevels(c) }));
+    savedSelection = { states, chips };
+    upsertSavedColumn(states);
+    document.getElementById('hintsRow').hidden = false;
+    // collapse My Ideal back into its button
+    active = null;
+    clearActive();
+    builder.hidden = true;
+    customChips.hidden = true;
+    customChips.innerHTML = ''; crow = 0;
+  });
+
+  const vizH = document.querySelector('.viz-h');
+  const vizV = document.querySelector('.viz-v');
+  const vizD = document.getElementById('vizDiagram');
+  const viewTabs = document.getElementById('viewTabs');
+  const visibleView = () => (!vizH.hidden ? { node:vizH, name:'Horizontal' }
+                          :  !vizV.hidden ? { node:vizV, name:'Vertical' }
+                          :                 { node:vizD, name:'Diagram' });
+  function setViewMode(mode){
+    vizH.hidden = mode !== 'h';
+    vizV.hidden = mode !== 'v';
+    vizD.hidden = mode !== 'd';
+    [...viewTabs.querySelectorAll('.view-tab')].forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+    if (mode === 'v') refreshTable();
+    if (mode === 'd') renderDiagramView();
+  }
+  viewTabs.addEventListener('click', e => { const b = e.target.closest('.view-tab'); if (b) setViewMode(b.dataset.view); });
+
+  /* ---- diagram view: real Mermaid (lazy-loaded from CDN), falling back to the CSS flow when offline ---- */
+  let mermaidPromise = null, mmdSeq = 0;
+  function loadMermaid(){
+    if (window.mermaid) return Promise.resolve(window.mermaid);
+    if (mermaidPromise) return mermaidPromise;
+    mermaidPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+      s.onload = () => resolve(window.mermaid);
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    return mermaidPromise;
+  }
+  function renderDiagramView(){
+    renderDiagram();   // show the CSS flow immediately, then upgrade to Mermaid if it loads
+    loadMermaid().then(m => {
+      m.initialize({ startOnLoad:false, securityLevel:'loose', theme:'neutral', flowchart:{ htmlLabels:true } });
+      return m.render('mmd-graph-' + (++mmdSeq), buildMermaid());
+    }).then(({ svg }) => {
+      if (!vizD.hidden) vizD.innerHTML = '<div class="mermaid-out">' + svg + '</div>';
+    }).catch(() => {/* offline or failure → keep the CSS flow diagram already shown */});
+  }
+
+  /* ---- CSS flow diagram (offline fallback): a boxes-and-arrows render of the current plan ---- */
+  function renderDiagram(){
+    const p = collectPlan();
+    const groups = {};
+    p.items.forEach(it => { (groups[it.group] = groups[it.group] || []).push(it); });
+    let html = '<div class="flow-root">Strategic Persistence</div><div class="flow-stem"></div>';
+    html += '<div class="flow-groups">';
+    Object.keys(groups).forEach(g => {
+      html += '<div class="flow-group ' + g + '"><div class="flow-group-head">' + g + '</div>';
+      groups[g].forEach(it => {
+        const tools = (it.tools || []).map(t => '<span class="t">' + t + '</span>').join('');
+        html += '<div class="flow-node"><div class="nm">' + it.name +
+                '<span class="pub s' + it.state + '">' + it.publicity + '</span></div>' +
+                (tools ? '<div class="tl">' + tools + '</div>' : '') + '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    vizD.innerHTML = html;
+  }
+
+  /* ---- Comparison hints: your saved selection vs Ideal & Oasis ---- */
+  const idealStates = () => bars.map(el => getMax(el));
+  const oasisStates = () => bars.map(el => {
+    const n = el.dataset.name;
+    if (n === 'extended profile' || n === 'minimal profile') return MAX;
+    if (SOCIAL_ITEMS.includes(n)) return PUBLIC;
+    return 0;
+  });
+  // canonical chip widths (columns) in each preset's layout
+  const IDEAL_W = { Bluetooth:9, RAM:1, Expiry:5, 'server cache':4, 'browser cache':6, cookies:7, 'local/session storage':5, export:8, edit:9, delete:9, Hides:6 };
+  const OASIS_W = { Bluetooth:9, RAM:1, Expiry:0, 'server cache':1, 'browser cache':6, cookies:7, 'local/session storage':5, export:8, edit:7, delete:7, Hides:0 };
+  const wLabel = (w) => w ? (w + (w === 1 ? ' col' : ' cols')) : '—';
+
+  // openness rank by state: Private (most private) < Optional < Public (most public)
+  const OPENNESS = [0, 2, 1]; // [Private, Public, Optional] -> rank
+  const stateHint = (you, ideal, oasis) => {
+    const oy = OPENNESS[you];
+    const parts = [];
+    if (you !== ideal) parts.push('vs Ideal you keep it ' + (oy < OPENNESS[ideal] ? 'more private' : 'more public'));
+    if (you !== oasis) parts.push('vs Oasis you keep it ' + (oy < OPENNESS[oasis] ? 'more private' : 'more public'));
+    return parts.join(' · ');
+  };
+  const chipHint = (yourW, iW, oW) => {
+    const cmp = (w, name) => w === 0 ? (name + ' has none')
+      : yourW > w ? ('wider than ' + name)
+      : yourW < w ? ('narrower than ' + name)
+      : ('same as ' + name);
+    return cmp(iW, 'Ideal') + ' · ' + cmp(oW, 'Oasis');
+  };
+
+  const hintsBox = document.getElementById('hintsBox');
+  function buildHints(){
+    const you = savedSelection.states, ideal = idealStates(), oasis = oasisStates();
+    let rows = '', dI = 0, dO = 0;
+    ITEMS.forEach((name, i) => {
+      const vI = you[i] - ideal[i], vO = you[i] - oasis[i];
+      if (vI) dI++;
+      if (vO) dO++;
+      if (vI || vO){
+        rows += '<tr><td>' + name + '</td><td>' + STATE_LABEL[you[i]] + '</td><td>' + STATE_LABEL[ideal[i]] + '</td><td>' + STATE_LABEL[oasis[i]] + '</td><td class="note">' + stateHint(you[i], ideal[i], oasis[i]) + '</td></tr>';
+      }
+    });
+
+    let html = '<h4>Publicity degrees — your selection vs Ideal &amp; Oasis</h4>';
+    html += '<p class="same">' + dI + ' difference' + (dI === 1 ? '' : 's') + ' from Ideal · ' + dO + ' difference' + (dO === 1 ? '' : 's') + ' from Oasis.</p>';
+    if (rows) html += '<table><thead><tr><th>Item</th><th>You</th><th>Ideal</th><th>Oasis</th><th>Hint</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    else html += '<p class="same">Your publicity degrees match both presets exactly.</p>';
+
+    if (savedSelection.chips.length){
+      let crows = '';
+      savedSelection.chips.forEach(c => {
+        const iW = IDEAL_W[c.label] || 0, oW = OASIS_W[c.label] || 0;
+        crows += '<tr><td>' + c.label + '</td><td>' + wLabel(c.span) + '</td><td>' + wLabel(iW) + '</td><td>' + wLabel(oW) + '</td><td class="note">' + chipHint(c.span, iW, oW) + '</td></tr>';
+      });
+      html += '<h4>Chip widths — yours vs Ideal &amp; Oasis</h4>';
+      html += '<table><thead><tr><th>Chip</th><th>You</th><th>Ideal</th><th>Oasis</th><th>Hint</th></tr></thead><tbody>' + crows + '</tbody></table>';
+    } else {
+      html += '<p class="same">You placed no chips — Ideal spreads bluetooth · RAM · Expiry · server cache · Hides across the bar; Oasis keeps only bluetooth · RAM · a 1-col server cache.</p>';
+    }
+    hintsBox.innerHTML = html;
+  }
+  document.getElementById('btn-hints').addEventListener('click', () => {
+    if (!savedSelection) return;
+    hintsBox.hidden = !hintsBox.hidden;
+    if (!hintsBox.hidden) buildHints();
+  });
+
+  /* saved My Ideal chips → standalone markup (only when they aren't already live on screen) */
+  function buildChipsHTML(){
+    if (!(savedSelection && savedSelection.chips.length) || customChips.children.length) return '';
+    const inner = savedSelection.chips.map((c, i) => {
+      const base = TOOL_COLOR[c.label] || 'var(--accent)';
+      const parts = sliceParts(base, (c.levels || []).slice(0, c.span));
+      const shade = parts.bg ? 'background:' + parts.bg + ';color:' + parts.color + ';' : 'color:' + base + ';';
+      return '<div class="cchip" style="grid-column:' + c.col + ' / span ' + c.span + '; grid-row:' + (i + 1) + ';' + shade + '">' + c.label + '</div>';
+    }).join('');
+    return '<div class="custom-chips" style="margin-bottom:14px">' + inner + '</div>';
+  }
+
+  /* ---- Save view: export whatever is actually displayed as a standalone, styled HTML file ---- */
+  function exportView(){
+    const css = document.querySelector('style').innerHTML;
+    const vv = visibleView();
+    const viewName = vv.name;
+    const viewHTML = vv.node.outerHTML;
+    const legendHTML = document.querySelector('.legend').outerHTML;
+    let hintsHTML = '';
+    if (savedSelection){ buildHints(); hintsHTML = '<div class="hintsbox" style="margin-top:26px">' + hintsBox.innerHTML + '</div>'; }
+    const chipsHTML = buildChipsHTML();
+    const when = new Date().toLocaleString();
+    const out =
+'<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n' +
+'<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+'<title>Strategic Persistence — ' + viewName + ' snapshot</title>\n' +
+'<style>' + css + '</style>\n' +
+'<style>\n' +
+'  body{padding:40px 22px 60px}\n' +
+'  .export-card{width:100%; max-width:1120px; margin:0 auto; background:#fff; border-radius:22px;\n' +
+'    box-shadow:0 24px 70px rgba(43,42,40,.14); padding:42px 38px 46px}\n' +
+'  .export-head{margin-bottom:26px; text-align:left}\n' +
+'  .export-head .k{color:var(--accent); font-weight:700; letter-spacing:.2em; text-transform:uppercase; font-size:1rem}\n' +
+'  .export-head .when{color:var(--muted); font-size:.76rem; letter-spacing:.06em; margin-top:.3rem}\n' +
+'  .export-card .bar{cursor:default}\n' +
+'  .export-card .bar:hover{transform:none}\n' +
+'  .export-card .stcell, .export-card .cchip{cursor:default}\n' +
+'  .export-foot{margin-top:30px; color:var(--muted); font-size:.74rem; text-align:center}\n' +
+'  .export-foot b{color:var(--accent)}\n' +
+'</style>\n</head>\n<body class="export">\n' +
+'  <div class="export-card">\n' +
+'    <div class="export-head"><div class="k">Strategic Persistence</div>' +
+'<div class="when">' + viewName + ' view · ' + when + '</div></div>\n' +
+'    <div class="stage">' + chipsHTML + viewHTML + legendHTML + hintsHTML + '</div>\n' +
+'    <div class="export-foot">Strategic Persistence</div>\n' +
+'  </div>\n</body>\n</html>';
+    const blob = new Blob([out], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'strategic-persistence-' + viewName.toLowerCase() + '-' + Date.now() + '.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+  /* ---- Save: reveal format sub-buttons (CSV · MD/prompt · Mermaid · Copy · JPG · HTML) ---- */
+  const saveFormats = document.getElementById('saveFormats');
+  const isDefaultState = () => bars.every(el => +el.dataset.state === (SOCIAL_ITEMS.includes(el.dataset.name) ? PUBLIC : 0));
+  function ensureExportState(){
+    // nothing chosen or customised → default the export to the Ideal preset
+    if (active === null && !savedSelection && customChips.children.length === 0 && isDefaultState()){
+      toggle('ideal', btnIdeal);
+    }
+  }
+  document.getElementById('btn-save-view').addEventListener('click', () => {
+    if (saveFormats.hidden) ensureExportState();   // about to open → settle the displayed state first
+    saveFormats.hidden = !saveFormats.hidden;
+  });
+
+  function downloadFile(name, content, mime){
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  // gather the current plan into a plain object (used by CSV / MD / prompt exports)
+  function collectPlan(){
+    const items = bars.map(el => ({
+      name: el.dataset.name, group: groupOf(el.dataset.name),
+      state: +el.dataset.state, publicity: STATE_LABEL[+el.dataset.state],
+      tools: CHIPS[el.dataset.name] || [], info: el.dataset.info || ''
+    }));
+    const chips = [...customChips.children].map(c => ({
+      label: c.dataset.label, col: parseInt(c.style.gridColumn, 10), span: +c.dataset.span, levels: readLevels(c)
+    }));
+    return { items, chips, view: visibleView().name };
+  }
+
+  function exportCSV(){
+    const p = collectPlan();
+    const esc = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['Item','Group','Publicity','Persistence tools'].map(esc).join(',')];
+    p.items.forEach(it => rows.push([it.name, it.group, it.publicity, it.tools.join(' | ')].map(esc).join(',')));
+    if (p.chips.length){
+      rows.push('');
+      rows.push(['Custom chip','Start column','Span','Per-column intensities'].map(esc).join(','));
+      p.chips.forEach(c => rows.push([c.label, c.col, c.span, c.levels.join(' ')].map(esc).join(',')));
+    }
+    downloadFile('strategic-persistence.csv', rows.join('\r\n'), 'text/csv');
+  }
+
+  // the Mermaid flowchart source for the current plan (no fences)
+  function buildMermaid(){
+    const p = collectPlan();
+    let m = 'flowchart TB\n  PLAN["Strategic Persistence"]\n';
+    const groups = {};
+    p.items.forEach(it => { (groups[it.group] = groups[it.group] || []).push(it); });
+    Object.keys(groups).forEach((g, gi) => {
+      m += `  subgraph G${gi}["${g}"]\n`;
+      groups[g].forEach((it, ii) => {
+        const tools = it.tools.join(' · ') || 'none';
+        m += `    N${gi}_${ii}["${it.name}<br/>${it.publicity}<br/>${tools}"]\n`;
+      });
+      m += '  end\n';
+      m += `  PLAN --> G${gi}\n`;
+    });
+    return m;
+  }
+  // prompt-friendly Markdown — wraps the table + the Mermaid flowchart you can paste straight to Claude
+  function buildMarkdown(){
+    const p = collectPlan();
+    let md = '# Strategic Persistence plan\n\n';
+    md += '_Publicity scale: 0 Private · 1 Public · 2 Optional._\n\n';
+    md += '| Item | Group | Publicity | Persistence tools |\n|---|---|---|---|\n';
+    p.items.forEach(it => md += `| ${it.name} | ${it.group} | ${it.publicity} | ${it.tools.join(', ') || '—'} |\n`);
+    if (p.chips.length){
+      md += '\n## My Ideal tool chips\n\n';
+      p.chips.forEach(c => md += `- **${c.label}** — columns ${c.col}–${c.col + c.span - 1}, intensity [${c.levels.join(', ') || '0'}]\n`);
+    }
+    md += '\n## Flow diagram (Mermaid)\n\n```mermaid\n' + buildMermaid() + '```\n';
+    md += '\n---\n*Paste this whole file to Claude to refine, compare, or render/extend the flow diagram.*\n';
+    return md;
+  }
+  function exportMD(){ downloadFile('strategic-persistence.md', buildMarkdown(), 'text/markdown'); }
+  function exportMermaid(){ downloadFile('strategic-persistence.mmd', buildMermaid(), 'text/plain'); }
+  function copyPrompt(){
+    const text = buildMarkdown();
+    const done = () => { const b = saveFormats.querySelector('[data-fmt="copy"]'); if (b){ const o = b.textContent; b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = o, 1400); } };
+    if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done)); }
+    else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done){
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { alert('Copy failed — use the Mermaid download or HTML instead.'); }
+    ta.remove();
+  }
+
+  // JPG: render the visible view — plus the chips and legend — to a raster via SVG <foreignObject> → canvas
+  function exportJPG(){
+    const view = visibleView().node;
+    // compose chips + view + legend into one off-screen, laid-out card, then snapshot it
+    const wrap = document.createElement('div');
+    wrap.className = 'stage';
+    wrap.style.cssText = 'position:absolute; left:-99999px; top:0; box-sizing:content-box; width:' +
+      Math.ceil(view.getBoundingClientRect().width) + 'px; background:#fff; padding:24px;';
+    wrap.innerHTML = buildChipsHTML();
+    wrap.appendChild(view.cloneNode(true));
+    wrap.appendChild(document.querySelector('.legend').cloneNode(true));
+    document.body.appendChild(wrap);
+    const rect = wrap.getBoundingClientRect();
+    const w = Math.max(1, Math.ceil(rect.width)), h = Math.max(1, Math.ceil(rect.height));
+    const css = document.querySelector('style').innerHTML;
+    wrap.style.cssText = 'box-sizing:content-box; width:' + (w - 48) + 'px; background:#fff; padding:24px;';   // drop off-screen offset before snapshot
+    const xhtml = new XMLSerializer().serializeToString(wrap);
+    document.body.removeChild(wrap);
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
+      '<foreignObject width="100%" height="100%">' +
+      '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + w + 'px;background:#fff;padding:0;">' +
+      '<style>' + css + '</style><style>.rsz,.cchip .x{display:none}</style>' + xhtml + '</div></foreignObject></svg>';
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    img.onload = () => {
+      const scale = 2, canvas = document.createElement('canvas');
+      canvas.width = w * scale; canvas.height = h * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b => {
+        if (!b){ alert('JPG export is not supported in this browser. Try HTML instead.'); return; }
+        const u = URL.createObjectURL(b);
+        const a = document.createElement('a'); a.href = u; a.download = 'strategic-persistence.jpg';
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);
+      }, 'image/jpeg', 0.95);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); alert('JPG export failed in this browser. Use HTML and print-to-image, or try another browser.'); };
+    img.src = url;
+  }
+
+  saveFormats.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fmt'); if (!btn) return;
+    ({ csv: exportCSV, md: exportMD, mmd: exportMermaid, copy: copyPrompt, jpg: exportJPG, html: exportView })[btn.dataset.fmt]();
+  });
+
+  /* ---- "add" chip stack: click "add" to type a label straight into the chip, then drag the
+     ‹ › arrows on its sides to shrink / expand its width across the 9 columns. A centered "Save"
+     button appears above; pressing it solidifies the chip(s) below into one continuous-bordered
+     stack and turns the save row itself back into a fresh "add" row. ---- */
+  const addStack = document.getElementById('addStack');
+  const applySpan = (chip) => { chip.style.gridColumn = chip.dataset.start + ' / ' + chip.dataset.end; };
+  let saveRow = null;
+
+  function showSaveRow(){
+    if (saveRow) return;
+    saveRow = document.createElement('div');
+    saveRow.className = 'save-row';
+    const btn = document.createElement('button');
+    btn.className = 'save-add';
+    btn.textContent = 'Save';
+    btn.addEventListener('click', commitSaves);
+    saveRow.appendChild(btn);
+    addStack.prepend(saveRow);            // centered Save sits above the chip being added
+  }
+
+  function startEdit(chip){
+    chip.classList.add('editing');
+    const lbl = chip.querySelector('.lbl');
+    if (lbl.textContent === 'add') lbl.textContent = '';
+    lbl.setAttribute('contenteditable', 'true');
+    const sel = window.getSelection(), range = document.createRange();
+    range.selectNodeContents(lbl); sel.removeAllRanges(); sel.addRange(range);
+    lbl.focus();
+    lbl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter'){ e.preventDefault(); commitSaves(); }
+    });
+    showSaveRow();                        // reveal the centered Save button above
+  }
+
+  function commitSaves(){
+    const editing = [...addStack.querySelectorAll('.addchip.editing')];
+    editing.forEach(chip => {
+      const lbl = chip.querySelector('.lbl');
+      const txt = lbl.textContent.trim();
+      lbl.removeAttribute('contenteditable');
+      if (!txt){ chip.closest('.add-row').remove(); return; }   // empty: drop it
+      lbl.textContent = txt;
+      chip.classList.remove('editing');
+      chip.classList.add('saved');
+      chip.closest('.add-row').classList.add('saved-row');      // joins the continuous-bordered stack
+    });
+    if (saveRow){ saveRow.remove(); saveRow = null; }           // the save row...
+    addNewAddRow();                                             // ...becomes a fresh "add" row
+  }
+
+  function addNewAddRow(){
+    const row = document.createElement('div');
+    row.className = 'add-row';
+    const chip = document.createElement('div');
+    chip.className = 'addchip';
+    chip.dataset.start = '1';
+    chip.dataset.end = '10';
+    chip.dataset.base = 'var(--c-bt)';    // red, for slice colouring once saved
+    chip.dataset.rest = '';               // CSS owns the dashed/solid resting look
+    chip.dataset.levels = '';
+    chip.innerHTML = '<span class="lbl">add</span>';
+    applySpan(chip);
+    addResizeArrows(chip);                                   // ◀▶ pairs on each side to resize by click
+    chip.addEventListener('click', (e) => {
+      if (e.target.classList.contains('rsz')) return;       // resizing, not a click
+      if (chip.classList.contains('editing')) return;       // typing the label
+      if (chip.classList.contains('saved')){ sliceColor(chip, e); return; }   // colour a column
+      startEdit(chip);                                       // fresh chip → type its label
+    });
+    row.appendChild(chip);
+    addStack.prepend(row);                // newest "add" row always on top
+  }
+  addNewAddRow();
+
+  applyDefault();
+  refreshTable();
+</script>
+
+</body>
+</html>

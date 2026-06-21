@@ -1496,6 +1496,37 @@ body{
   .profile-card:not(.open) .profile-card-expand{ max-height:0; opacity:0; }
   .profile-card.open .profile-card-expand{ max-height:900px; opacity:1; }
 }
+
+/* --- Upload section: rainbow app buttons + Played apps --- */
+.upload-sec{ margin-top:.9rem; }
+.upload-head{ font-weight:700; font-size:.9rem; }
+.upload-sub{ font-weight:400; color:var(--muted); font-size:.74rem; }
+.upload-sub code, .played-empty code{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.72rem; background:var(--panel); padding:.05rem .3rem; border-radius:.25rem; }
+.rainbow-row{ display:flex; gap:2px; margin-top:.5rem; }
+.rb{ flex:1 1 0; min-width:0; aspect-ratio:1/1; border:none; border-radius:9px; cursor:pointer;
+  background:var(--c); opacity:.5; color:#fff; font-weight:700; font-size:.62rem; line-height:1.1;
+  display:flex; align-items:center; justify-content:center; text-align:center; padding:.25rem;
+  text-shadow:0 1px 2px rgba(0,0,0,.4); transition:opacity .25s, transform .15s, box-shadow .25s; }
+.rb:hover{ transform:translateY(-2px); opacity:.75; }
+.rb:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+.rb.played{ opacity:1; box-shadow:0 6px 16px -6px var(--c); }
+.upload-msg{ margin-top:.45rem; font-size:.76rem; min-height:1.1em; }
+.upload-msg.ok{ color:var(--signal); }
+.upload-msg.err{ color:var(--danger); }
+.played-sec{ margin-top:.9rem; }
+.played-head{ font-weight:700; font-size:.9rem; margin-bottom:.5rem; }
+.played-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem; }
+.played-empty{ color:var(--muted); font-size:.78rem; }
+.app-card{ border:1px solid var(--line); border-radius:12px; padding:.7rem .8rem; cursor:pointer;
+  background:color-mix(in srgb, var(--c) 13%, var(--card)); transition:box-shadow .2s, transform .15s; }
+.app-card:hover{ transform:translateY(-2px); box-shadow:0 8px 20px -8px var(--c); }
+.app-card:focus-visible{ outline:2px solid var(--c); outline-offset:2px; }
+.app-card .ac-title{ font-weight:700; color:var(--c); font-size:.95rem; }
+.app-card .ac-sub{ font-size:.66rem; color:var(--muted); margin-top:.1rem; }
+.app-card .ac-body{ display:none; margin:.5rem 0 0; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.66rem;
+  white-space:pre-wrap; word-break:break-word; max-height:220px; overflow:auto; background:var(--panel);
+  border-radius:8px; padding:.5rem; color:var(--ink); }
+.app-card.open .ac-body{ display:block; }
 </style>
 </head>
 <body>
@@ -1704,6 +1735,28 @@ body{
           </div>
 
         </div><!-- /.access-card-grid -->
+
+        <!-- Upload — play an app by uploading its summary -->
+        <section class="upload-sec" aria-label="Upload app summaries">
+          <div class="upload-head">Upload <span class="upload-sub">— add an app by its <code>Appname-summary.json</code></span></div>
+          <div class="rainbow-row" role="group" aria-label="App upload buttons">
+            <button class="rb" data-app="Goddy"     style="--c:#e23b3b" onclick="pickApp('Goddy',this)">Goddy</button>
+            <button class="rb" data-app="Hacky"     style="--c:#ef7d1a" onclick="pickApp('Hacky',this)">Hacky</button>
+            <button class="rb" data-app="Pracsys"   style="--c:#e3bb12" onclick="pickApp('Pracsys',this)">Pracsys</button>
+            <button class="rb" data-app="Myfamily"  style="--c:#34b36b" onclick="pickApp('Myfamily',this)">Myfamily</button>
+            <button class="rb" data-app="Inventary" style="--c:#2f7fd6" onclick="pickApp('Inventary',this)">Inventary</button>
+            <button class="rb" data-app="Realy"     style="--c:#5a4fd0" onclick="pickApp('Realy',this)">Realy</button>
+            <button class="rb" data-app="Keys"      style="--c:#9b51e0" onclick="pickApp('Keys',this)">Keys</button>
+          </div>
+          <input type="file" id="app-file" accept=".json,application/json" hidden onchange="handleAppFile(this)" aria-hidden="true">
+          <div class="upload-msg" id="upload-msg" role="status" aria-live="polite"></div>
+        </section>
+
+        <!-- Played apps — the uploaded summaries -->
+        <section class="played-sec" aria-label="Played apps">
+          <div class="played-head">Played apps</div>
+          <div class="played-grid" id="played-grid"><div class="played-empty" id="played-empty">No apps yet — upload a matching <code>summary.json</code> above.</div></div>
+        </section>
 
         <!-- submitted posts — pending review, above the extend profile section -->
         <div class="profile-posts" id="profile-posts" aria-live="polite"></div>
@@ -3739,6 +3792,65 @@ function renderNavMore() {
 buildFeatureTiers();
 render();
 switchTab('profile');
+</script>
+<script>
+/* --- Upload section: play apps by uploading their summary.json --- */
+(function(){
+  const RAINBOW = {Goddy:'#e23b3b',Hacky:'#ef7d1a',Pracsys:'#e3bb12',Myfamily:'#34b36b',Inventary:'#2f7fd6',Realy:'#5a4fd0',Keys:'#9b51e0'};
+  const escHtml = s => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  let pending = null;
+
+  window.pickApp = function(name, btn){
+    pending = {name, btn};
+    const f = document.getElementById('app-file');
+    f.value = '';      // allow re-picking the same file
+    f.click();
+  };
+
+  window.handleAppFile = function(input){
+    const file = input.files && input.files[0];
+    const msg = document.getElementById('upload-msg');
+    if (!file || !pending) return;
+    const app = pending.name, btn = pending.btn;
+    const base = file.name.replace(/\.[^.]+$/, '').toLowerCase();   // strip extension
+    const target = app.toLowerCase();
+    // accept Appname-summary.json, Appname.json, or any file whose title starts with the app name
+    const titleMatch = base === target || base === target + '-summary' || base.startsWith(target);
+    if (!titleMatch){
+      msg.textContent = '“' + file.name + '” doesn’t match ' + app + '. Expected ' + app + '-summary.json.';
+      msg.className = 'upload-msg err';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => { addPlayedApp(app, file.name, e.target.result, btn);
+      msg.textContent = app + ' added to Played apps ✓'; msg.className = 'upload-msg ok'; };
+    reader.onerror = () => { msg.textContent = 'Could not read ' + file.name + '.'; msg.className = 'upload-msg err'; };
+    reader.readAsText(file);
+  };
+
+  function addPlayedApp(app, fname, raw, btn){
+    if (btn) btn.classList.add('played');                       // rainbow button → full colour
+    const empty = document.getElementById('played-empty'); if (empty) empty.remove();
+    const grid = document.getElementById('played-grid');
+    let pretty;
+    try { pretty = escHtml(JSON.stringify(JSON.parse(raw), null, 2)); }
+    catch(_) { pretty = escHtml(raw); }                          // show as-is if not valid JSON
+    let card = grid.querySelector('.app-card[data-app="' + app + '"]');
+    if (card){ card.querySelector('.ac-body').innerHTML = pretty; card.classList.add('open'); return; }
+    card = document.createElement('div');
+    card.className = 'app-card'; card.dataset.app = app;
+    card.style.setProperty('--c', RAINBOW[app] || 'var(--accent)');
+    card.tabIndex = 0; card.setAttribute('role','button');
+    card.setAttribute('aria-label', app + ' summary — toggle contents');
+    card.innerHTML = '<div class="ac-title">' + escHtml(app) + '</div>' +
+                     '<div class="ac-sub">' + escHtml(fname) + ' · tap to view</div>' +
+                     '<pre class="ac-body">' + pretty + '</pre>';
+    const toggle = () => card.classList.toggle('open');
+    card.addEventListener('click', toggle);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    grid.appendChild(card);
+  }
+})();
 </script>
 </body>
 </html>

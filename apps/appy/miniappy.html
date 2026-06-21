@@ -1562,6 +1562,41 @@ body{
 @media (prefers-reduced-motion: reduce){
   .appbtn, .appbtn svg, .app-card, .rb{ animation:none !important; transition:none !important; }
 }
+
+/* --- played-app colour dots on user chips + profile modal --- */
+.played-dots{ display:inline-flex; gap:2px; margin-left:5px; vertical-align:middle; }
+.pdot{ width:7px; height:7px; border-radius:50%; background:var(--c);
+  box-shadow:0 0 0 1px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.18); }
+.clickable-user{ cursor:pointer; border-radius:4px; transition:color .15s; }
+.clickable-user:hover{ color:var(--accent); text-decoration:underline; }
+.prof-overlay{ position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center; padding:1rem;
+  background:rgba(22,20,31,.5); backdrop-filter:blur(4px); }
+.prof-overlay.open{ display:flex; animation:profFade .2s ease; }
+@keyframes profFade{ from{ opacity:0; } to{ opacity:1; } }
+.prof-modal{ position:relative; width:100%; max-width:360px; background:var(--card); border:1px solid var(--line); border-radius:18px;
+  padding:1.3rem 1.35rem; box-shadow:0 30px 70px -20px rgba(0,0,0,.45); animation:profPop .3s cubic-bezier(.2,.9,.25,1); }
+@keyframes profPop{ from{ opacity:0; transform:translateY(14px) scale(.95); } to{ opacity:1; transform:none; } }
+.prof-close{ position:absolute; top:.6rem; right:.6rem; border:none; background:var(--panel); color:var(--muted);
+  width:27px; height:27px; border-radius:50%; cursor:pointer; font-size:.8rem; }
+.prof-close:hover{ color:var(--ink); }
+.prof-top{ display:flex; gap:.8rem; align-items:center; }
+.prof-av{ width:52px; height:52px; border-radius:15px; flex:none; display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:1.4rem; color:#fff; background:linear-gradient(140deg, color-mix(in srgb, var(--c) 72%, #fff), var(--c)); }
+.prof-handle{ font-weight:800; font-size:1.15rem; color:var(--ink); }
+.prof-sub{ font-size:.58rem; color:var(--muted); font-family:ui-monospace,Menlo,Consolas,monospace; }
+.prof-stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:.4rem; margin:.95rem 0 .2rem; }
+.ps{ background:var(--panel); border-radius:10px; padding:.5rem .2rem; text-align:center; }
+.ps b{ display:block; font-size:.92rem; color:var(--ink); }
+.ps span{ font-size:.48rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.prof-section{ font-size:.58rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:.75rem 0 .4rem; }
+.prof-apps{ display:flex; flex-wrap:wrap; gap:.35rem; }
+.prof-app{ font-size:.62rem; font-weight:700; color:#fff; padding:.24rem .6rem; border-radius:999px;
+  background:var(--c); box-shadow:0 2px 7px -2px var(--c); }
+.prof-actions{ display:flex; gap:.45rem; margin-top:1.1rem; }
+.prof-actions .net-btn{ flex:1; justify-content:center; text-align:center; }
+.net-btn.alt{ background:var(--signal); border-color:var(--signal); color:#fff; }
+.net-btn.ghost{ background:transparent; color:var(--ink); }
+.net-btn.done{ background:var(--accent); border-color:var(--accent); color:#fff; }
 </style>
 </head>
 <body>
@@ -3914,6 +3949,76 @@ switchTab('profile');
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
     grid.appendChild(card);
   }
+})();
+</script>
+<script>
+/* --- user chips: played-app colour dots + click-through profile card --- */
+(function(){
+  const APP_COLORS = {Goddy:'#e23b3b',Hacky:'#ef7d1a',Pracsys:'#e3bb12',Myfamily:'#34b36b',Inventary:'#2f7fd6',Realy:'#5a4fd0',Keys:'#9b51e0'};
+  const APPS = Object.keys(APP_COLORS);
+  const PLAYED = {alice:['Goddy','Myfamily','Keys'], bob:['Hacky','Inventary'], carol:['Realy','Pracsys','Keys']};
+  const escH = s => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  function hash(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; }
+  function playedOf(h){ if(PLAYED[h]) return PLAYED[h]; const x=hash(h); const r=APPS.filter((_,i)=>(x>>i)&1); return r.length?r:[APPS[x%APPS.length]]; }
+  function statOf(h){ const x=hash(h); return {souls:40+x%180, trust:['low','med','high'][x%3], stars:5+x%90, cu:1+x%12}; }
+  function personHandles(){ const s=new Set(['alice','bob','carol']);
+    try{ (state.morePeople||[]).forEach(p=>s.add(p.handle)); (state.peers||[]).forEach(p=>s.add(p.handle)); (state.favourites||[]).forEach(h=>s.add(h)); }catch(_){}
+    return s; }
+
+  function dotsHTML(h){ return '<span class="played-dots">'+playedOf(h).map(a=>'<i class="pdot" style="--c:'+APP_COLORS[a]+'" title="plays '+a+'"></i>').join('')+'</span>'; }
+  function decorate(){
+    const ph = personHandles();
+    document.querySelectorAll('.net-name, .peer-handle').forEach(el => {
+      const h = el.textContent.trim();
+      if (!ph.has(h)) return;                                  // skip groups/non-people
+      if (!el.querySelector('.played-dots')) el.insertAdjacentHTML('beforeend', ' ' + dotsHTML(h));
+      if (!el.dataset.ph){ el.dataset.ph = '1'; el.classList.add('clickable-user');
+        el.addEventListener('click', ev => { ev.stopPropagation(); openProfile(h); }); }
+    });
+  }
+
+  // build the overlay once
+  const ov = document.createElement('div');
+  ov.className = 'prof-overlay'; ov.id = 'profile-overlay';
+  ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-hidden','true'); ov.setAttribute('aria-label','User profile');
+  ov.innerHTML = '<div class="prof-modal"><button class="prof-close" aria-label="Close profile">✕</button><div id="prof-body"></div></div>';
+  (document.body || document.documentElement).appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) closeProfile(); });
+  ov.querySelector('.prof-close').addEventListener('click', closeProfile);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+
+  window.openProfile = function(h){
+    const pl = playedOf(h), st = statOf(h);
+    const apps = pl.map(a => '<span class="prof-app" style="--c:'+APP_COLORS[a]+'">'+escH(a)+'</span>').join('');
+    document.getElementById('prof-body').innerHTML =
+      '<div class="prof-top"><div class="prof-av" style="--c:'+(APP_COLORS[pl[0]]||'#6c5ce7')+'">'+escH((h[0]||'?').toUpperCase())+'</div>'+
+        '<div><div class="prof-handle">@'+escH(h)+'</div><div class="prof-sub">peer nety:p2p:'+hash(h).toString(16)+'… · stage homie · LIVE</div></div></div>'+
+      '<div class="prof-stats">'+
+        '<div class="ps"><b>'+st.souls+'</b><span>souls</span></div>'+
+        '<div class="ps"><b>'+st.trust+'</b><span>trust</span></div>'+
+        '<div class="ps"><b>'+st.stars+'</b><span>⭐ stars</span></div>'+
+        '<div class="ps"><b>'+st.cu+'</b><span>CU</span></div></div>'+
+      '<div class="prof-section">Played apps · '+pl.length+'</div><div class="prof-apps">'+apps+'</div>'+
+      '<div class="prof-actions">'+
+        '<button class="net-btn" onclick="profAct(this,\'follow\',\''+escH(h)+'\')">Follow</button>'+
+        '<button class="net-btn alt" onclick="profAct(this,\'support\',\''+escH(h)+'\')">Support</button>'+
+        '<button class="net-btn ghost" onclick="profAct(this,\'message\',\''+escH(h)+'\')">Message</button></div>';
+    ov.classList.add('open'); ov.setAttribute('aria-hidden','false');
+  };
+  window.closeProfile = function(){ ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); };
+  window.profAct = function(btn, kind, h){
+    if (kind === 'follow'){ btn.textContent = 'Following ✓'; btn.classList.add('done'); try{ if(window.followMore) followMore(h); }catch(_){} }
+    else if (kind === 'support'){ btn.textContent = 'Supporting ✓'; btn.classList.add('done'); }
+    else { btn.textContent = 'Drafted ✉'; try{ state.chatActive = h; }catch(_){} }
+    btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 1200);
+  };
+
+  // re-apply dots after every social render
+  ['renderMyNet','renderMoreSocial'].forEach(fn => {
+    const orig = window[fn];
+    if (typeof orig === 'function') window[fn] = function(){ const r = orig.apply(this, arguments); decorate(); return r; };
+  });
+  decorate();
 })();
 </script>
 </body>

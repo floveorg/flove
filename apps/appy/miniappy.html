@@ -1907,6 +1907,10 @@ body{
           </div>
         </div>
 
+        <!-- Export profile — download everything added in this section as JSON -->
+        <button class="btn signal" style="width:100%;justify-content:center;margin-top:1.2rem;padding:.74rem 1rem;font-size:.8rem" onclick="exportProfile()">⤓ Export profile · JSON</button>
+        <div id="export-profile-msg" style="margin-top:.4rem;font-size:.6rem;color:var(--muted);text-align:center" aria-live="polite"></div>
+
       </div>
     </div>
 
@@ -2580,6 +2584,52 @@ function goToPlayApps() {
   switchTab('profile');
   const el = document.getElementById('play-apps');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Canonical download helper (one copy — reuse if more export formats are added)
+function downloadBlob(body, mime, filename){
+  const blob = new Blob([body], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Export profile — serialise everything added in the Profile section to JSON
+function exportProfile(){
+  const APP_C = { Goddy:'#e23b3b', Souls:'#ef7d1a', Pracsys:'#e3bb12', Myfamily:'#34b36b', Inventary:'#2f7fd6', Realy:'#5a4fd0', Keys:'#9b51e0' };
+  const played = Array.prototype.map.call(
+    document.querySelectorAll('#played-grid .app-card'),
+    c => ({ app: c.dataset.app, colour: APP_C[c.dataset.app] || null })
+  );
+  const model = {
+    kind: 'flove-profile',
+    version: 1,
+    exported: new Date().toISOString(),
+    handle: state.handle,
+    presence: state.activity,
+    stage: { name: state.stageName[state.stage] || 'newbie', index: state.stage, stars: state.stars },
+    contributionsCU: state.contributions,
+    trust: Object.assign({}, state.facets),
+    identities: (state.linkedIdentities || []).slice(),
+    socialProfiles: (state.socialProfiles || []).slice(),
+    appsPlayed: played,
+    network: {
+      groups:     (state.joinedGroups || []).slice(),
+      follows:    (state.follows || []).slice(),
+      supports:   (state.supports || []).slice(),
+      favourites: (state.favourites || []).slice(),
+    },
+    posts: (state.queue || []).slice(),
+    visibility: Object.assign({}, state.permissions),
+  };
+  const json  = JSON.stringify(model, null, 2);
+  const slug  = (state.handle || 'profile').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const fname = slug + '-profile.json';
+  downloadBlob(json, 'application/json;charset=utf-8', fname);
+  const msg = document.getElementById('export-profile-msg');
+  if (msg) msg.textContent = 'Saved ' + fname + ' · ' + json.length + ' bytes ✓';
 }
 
 // ============================================================

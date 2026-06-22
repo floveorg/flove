@@ -1642,6 +1642,8 @@ body{
 .net-btn.ghost{ background:transparent; color:var(--ink); }
 .net-btn.done{ background:var(--accent); border-color:var(--accent); color:#fff; }
 </style>
+<!-- receiver: read apps published from other flove apps (no data-app → no button) -->
+<script src="../flove-appy.js" defer></script>
 </head>
 <body>
 
@@ -4071,6 +4073,24 @@ switchTab('profile');
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
     grid.appendChild(card);
   }
+
+  // --- Ingest apps published from other flove apps via flove-appy.js (localStorage) ---
+  function ingestAppy(){
+    if (!window.floveAppy) return;
+    floveAppy.played().forEach(function(rec){
+      if (!rec || !rec.app) return;
+      const raw = rec.summary != null
+        ? JSON.stringify(rec.summary, null, 2)
+        : JSON.stringify({ published: rec.date || null, from: rec.url || null }, null, 2);
+      addPlayedApp(rec.app, rec.app.toLowerCase() + '-summary.json', raw, null);
+      const b = document.querySelector('.rb[data-app="' + rec.app + '"]'); if (b) b.classList.add('played');
+    });
+  }
+  // run after flove-appy.js (deferred) has loaded
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ingestAppy);
+  else ingestAppy();
+  // live-update when an app publishes from another tab
+  window.addEventListener('storage', function(e){ if (window.floveAppy && e.key === floveAppy.KEY) ingestAppy(); });
 })();
 </script>
 <script>

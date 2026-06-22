@@ -912,7 +912,7 @@
 <div class="flove-bar">
   <!-- the logo + title open the app menu (About · flove) on click -->
   <label class="flove-brand" for="menu-toggle" role="button" tabindex="0"
-         aria-haspopup="true" aria-controls="flove-menu" title="Menu">
+         aria-haspopup="true" aria-controls="flove-menu" title="Menu" aria-label="Menu" data-aria-en="Menu" data-aria-es="Menú">
     <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100">
       <defs>
         <linearGradient id="g-pracsys" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
@@ -1120,6 +1120,8 @@
         if (typeof relocalize === 'function') relocalize();   // re-render the JS-built UI
       }));
       applyLang();
+      // restore: if a non-default language was saved, re-render the JS-built UI too
+      if (saved && saved !== 'en' && typeof relocalize === 'function') relocalize();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   })();
@@ -1133,6 +1135,8 @@
     try{
       if (typeof renderDeck === 'function') renderDeck();
       if (typeof afterChange === 'function') afterChange();
+      if (typeof syncCheckLabel === 'function') syncCheckLabel();
+      if (typeof magicLang !== 'undefined' && (LANG() === 'es' || LANG() === 'en')) magicLang = LANG();
       const ss = $('#summarySection');
       if (ss && ss.classList.contains('show') && typeof renderSummary === 'function'){
         renderSummary();
@@ -1598,10 +1602,10 @@
   let recog = null;
   function startDictation(btn, input){
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR){ toast('Speech input not available in this browser'); return; }
+    if (!SR){ toast(T('Speech input not available in this browser','La entrada por voz no está disponible en este navegador')); return; }
     if (recog){ recog.stop(); return; }
     recog = new SR();
-    recog.lang = 'en-US'; recog.interimResults = true;
+    recog.lang = T('en-US','es-ES'); recog.interimResults = true;
     btn.classList.add('rec');
     let base = input.value ? input.value + ' ' : '';
     recog.onresult = e => {
@@ -1664,7 +1668,7 @@
   }
   function placeSub(subId, kind, slot){
     if (!canPlaceSub(kind, slot)){
-      toast(kind === 'nerve' ? 'Place it on a system other than Nervous' : 'Place it on a system other than Immune');
+      toast(kind === 'nerve' ? T('Place it on a system other than Nervous','Colócalo en un sistema que no sea el Nervioso') : T('Place it on a system other than Immune','Colócalo en un sistema que no sea el Inmunitario'));
       return false;
     }
     state.subs[subId] = { kind, slotId: slot.dataset.slot };
@@ -1764,8 +1768,8 @@
         return t;
       };
       // the name label rides at the third-quarter point
-      const txt = mkText(nx, ny, def ? def.label : subId, null, colour);
-      txt.setAttribute('aria-label', 'Reason / verb for ' + (def ? def.label : subId));
+      const txt = mkText(nx, ny, def ? defLabel(def) : subId, null, colour);
+      txt.setAttribute('aria-label', T('Reason / verb for ','Razón / verbo de ') + (def ? defLabel(def) : subId));
       svg.appendChild(txt);
       // reason (15-char preview) sits ABOVE the line at the first-quarter point · verb just below it
       const subR = state.subReasons[subId] || [], subV = state.subVerbs[subId] || [];
@@ -1787,12 +1791,12 @@
     p.style.left = Math.min(Math.max(x, 130), window.innerWidth - 130) + 'px';
     p.style.top  = Math.min(Math.max(y, 90),  window.innerHeight - 90) + 'px';
     p.innerHTML = `
-      <div class="lp-row"><input class="lp-reason" type="text" placeholder="Reason…"><button class="icon-btn lp-rsave" title="Save reason">💾</button></div>
+      <div class="lp-row"><input class="lp-reason" type="text" placeholder="${T('Reason…','Razón…')}"><button class="icon-btn lp-rsave" title="${T('Save reason','Guardar razón')}">💾</button></div>
       <div class="lp-saved lp-rsaved"></div>
-      <div class="lp-label">↳ ${def ? def.label : subId}</div>
+      <div class="lp-label">↳ ${def ? defLabel(def) : subId}</div>
       <div class="lp-saved lp-vsaved"></div>
-      <div class="lp-row"><input class="lp-verb" type="text" placeholder="Verb…"><button class="icon-btn lp-vsave" title="Save verb">✓</button></div>
-      <button class="lp-unthread" type="button">✕ unthread</button>`;
+      <div class="lp-row"><input class="lp-verb" type="text" placeholder="${T('Verb…','Verbo…')}"><button class="icon-btn lp-vsave" title="${T('Save verb','Guardar verbo')}">✓</button></div>
+      <button class="lp-unthread" type="button">✕ ${T('unthread','desenhebrar')}</button>`;
     const rsaved = p.querySelector('.lp-rsaved'), vsaved = p.querySelector('.lp-vsaved');
     // each saved reason / verb is a chip with a ✕ that deletes it
     const renderSaved = (host, arr) => {
@@ -1800,7 +1804,7 @@
       arr.forEach((txt, i) => {
         const chip = document.createElement('span');
         chip.className = 'lp-chip';
-        chip.innerHTML = `<span class="lp-chip-txt"></span><button class="lp-chip-del" type="button" title="Delete" aria-label="Delete">✕</button>`;
+        chip.innerHTML = `<span class="lp-chip-txt"></span><button class="lp-chip-del" type="button" title="${T('Delete','Borrar')}" aria-label="${T('Delete','Borrar')}">✕</button>`;
         chip.querySelector('.lp-chip-txt').textContent = txt;
         chip.querySelector('.lp-chip-del').addEventListener('click', () => {
           arr.splice(i, 1); paint(); save(); drawLinks();
@@ -1857,7 +1861,7 @@
     $('#checkBtn').classList.toggle('show', showCheck);
     if (!showCheck){
       $('#board').classList.remove('checking','show-polarities');
-      const cb = $('#checkBtn'); cb.textContent = 'Check'; cb.setAttribute('aria-pressed','false');
+      const cb = $('#checkBtn'); cb.textContent = T('Check','Comprobar'); cb.setAttribute('aria-pressed','false');
     }
     // Complete: reveal the "Related apps" button (mirrors the Complete progress step)
     const complete = state.stage === 4 && subsAllIn;
@@ -1934,11 +1938,11 @@
 
     const reasonCount = REASON_KEYS.filter(k => state.reasons[k] && state.reasons[k].length).length;
     const verbCount   = Object.values(state.verbs).filter(a => a && a.length).length;
-    const steps = [{ lab:'Systems pairs', cur:placedCount, max:SYSTEMS.length, cls:'' }];
-    if (st >= 2) steps.push({ lab:'Reasons', cur:reasonCount, max:REASON_KEYS.length, cls:'sub' });
-    if (st >= 3) steps.push({ lab:'Verbs',   cur:verbCount,   max:SYSTEMS.length,     cls:'sub' });
-    if (st >= 4) steps.push({ lab:'Subsystems', cur:subCount, max:TOTAL_SUBS, cls:'sub' });
-    if (st >= 4 && subCount === TOTAL_SUBS) steps.push({ lab:'Complete', cur:1, max:1, cls:'' });
+    const steps = [{ lab:T('Systems pairs','Pares de sistemas'), cur:placedCount, max:SYSTEMS.length, cls:'' }];
+    if (st >= 2) steps.push({ lab:T('Reasons','Razones'), cur:reasonCount, max:REASON_KEYS.length, cls:'sub' });
+    if (st >= 3) steps.push({ lab:T('Verbs','Verbos'),   cur:verbCount,   max:SYSTEMS.length,     cls:'sub' });
+    if (st >= 4) steps.push({ lab:T('Subsystems','Subsistemas'), cur:subCount, max:TOTAL_SUBS, cls:'sub' });
+    if (st >= 4 && subCount === TOTAL_SUBS) steps.push({ lab:T('Complete','Completo'), cur:1, max:1, cls:'' });
 
     steps.forEach((st, i) => {
       if (i > 0){
@@ -2021,7 +2025,7 @@
         // moving a placed system to another slot
         const fromId = String(dragSys).slice(1);
         const sysId = state.placed[fromId];
-        if (slot.classList.contains('filled') && slot.dataset.slot !== fromId){ toast('That spot is taken'); return; }
+        if (slot.classList.contains('filled') && slot.dataset.slot !== fromId){ toast(T('That spot is taken','Ese hueco está ocupado')); return; }
         unplaceSystem(slotEl(fromId));
         placeSystem(sysId, slot);
       } else if (!slot.classList.contains('filled')){
@@ -2109,7 +2113,7 @@
       if (state.subs[id]){ removeSub(id); return; }       // already threaded → pull back
       armedSub = (armedSub === id) ? null : id;
       renderSubChips(subCard.dataset.kind);
-      toast(armedSub ? 'Now click a system to thread it' : '');
+      toast(armedSub ? T('Now click a system to thread it','Ahora haz clic en un sistema para enhebrarlo') : '');
       return;
     }
     // clicking a slot while a subsystem is armed → thread it there
@@ -2124,7 +2128,7 @@
     if (!card || card.classList.contains('is-dragging')) return;
     if (card.closest('#deck')){
       const empty = firstEmptySlot();
-      if (!empty){ toast('Board is full — click a placed system to free it'); return; }
+      if (!empty){ toast(T('Board is full — click a placed system to free it','El tablero está lleno: haz clic en un sistema colocado para liberarlo')); return; }
       placeSystem(card.dataset.sys, empty);
     } else if (card.closest('.slot')){
       const cslot = card.closest('.slot');
@@ -2173,28 +2177,32 @@
   $('#nextBtn').addEventListener('click', () => {
     if (state.stage !== 1 || !allPlaced()) return;
     goStage(2);
-    toast('Placements locked — write reasons in the middle');
+    toast(T('Placements locked — write reasons in the middle','Colocaciones bloqueadas: escribe las razones en el centro'));
   });
   // Check → confluence; Polarities → groupings; a third click resets to the
   // default (no animation, no groupings) so the button loops Check → Polarities
   // → default → Check…
+  function syncCheckLabel(){
+    const b = $('#board'), btn = $('#checkBtn'); if (!b || !btn) return;
+    btn.textContent = b.classList.contains('checking') ? T('Polarities','Polaridades') : T('Check','Comprobar');
+  }
   function resetCheck(){
     const board = $('#board'), btn = $('#checkBtn');
     board.classList.remove('checking','show-polarities');
-    btn.textContent = 'Check'; btn.setAttribute('aria-pressed','false');
+    btn.textContent = T('Check','Comprobar'); btn.setAttribute('aria-pressed','false');
   }
   $('#checkBtn').addEventListener('click', () => {
     const board = $('#board'), btn = $('#checkBtn');
     if (!board.classList.contains('checking')){
       board.classList.add('checking');
-      btn.textContent = 'Polarities';
-      toast('Confluence — tap Polarities to reveal the groupings');
+      btn.textContent = T('Polarities','Polaridades');
+      toast(T('Confluence — tap Polarities to reveal the groupings','Confluencia: pulsa Polaridades para revelar las agrupaciones'));
     } else if (!board.classList.contains('show-polarities')){
       board.classList.add('show-polarities');
       btn.setAttribute('aria-pressed', 'true');
     } else {
       resetCheck();                         // loop back to the default state
-      toast('Reset — tap Check to run it again');
+      toast(T('Reset — tap Check to run it again','Reinicio: pulsa Comprobar para ejecutarlo otra vez'));
     }
   });
   // middle-stage Next: 2 → 3 (reveal + verbs) · 3 → 4 (reveal subsystems) · 4 → done
@@ -2216,7 +2224,7 @@
   $('#clearBtn').addEventListener('click', () => {
     if (state.stage !== 1) return;
     allSlots().forEach(s => { if (s.classList.contains('filled')) unplaceSystem(s); });
-    toast('Board cleared — place the systems again');
+    toast(T('Board cleared — place the systems again','Tablero vaciado: vuelve a colocar los sistemas'));
   });
 
   // ── Complete · related flove apps (keys-style panel + intro overlay) ──
@@ -2234,16 +2242,16 @@
     { key:'willy',    label:'Willy',    href:'willy.html',    icon:'🎯' }
   ];
   const APP_INTROS = {
-    souls:    'Souls names the eleven systems you just practised — meet them at their source.',
-    keys:     'Keys shapes what matters into triads you can carry.',
-    sensy:    'Sensy tunes into how each sense reads the moment.',
-    fivy:     'Fivy opens your shapes into five-pointed stars.',
-    worthing: 'Worthing asks what is worth your time and your care.',
-    realy:    'Realy weighs how real each thing feels to you.',
-    crafty:   'Crafty turns intuition into a craft you can grow.',
-    hoty:     "Hoty plots what's hottest in your attention right now.",
-    willy:    'Willy aims your will at a single target.',
-    default:  "Open this one with the systems you've just laid out."
+    souls:    { en:'Souls names the eleven systems you just practised — meet them at their source.', es:'Souls nombra los once sistemas que acabas de practicar: encuéntralos en su origen.' },
+    keys:     { en:'Keys shapes what matters into triads you can carry.', es:'Keys da forma a lo que importa en tríadas que puedes llevar contigo.' },
+    sensy:    { en:'Sensy tunes into how each sense reads the moment.', es:'Sensy sintoniza cómo cada sentido lee el momento.' },
+    fivy:     { en:'Fivy opens your shapes into five-pointed stars.', es:'Fivy abre tus formas en estrellas de cinco puntas.' },
+    worthing: { en:'Worthing asks what is worth your time and your care.', es:'Worthing pregunta qué merece tu tiempo y tu cuidado.' },
+    realy:    { en:'Realy weighs how real each thing feels to you.', es:'Realy sopesa cuán real te resulta cada cosa.' },
+    crafty:   { en:'Crafty turns intuition into a craft you can grow.', es:'Crafty convierte la intuición en un oficio que puedes cultivar.' },
+    hoty:     { en:"Hoty plots what's hottest in your attention right now.", es:'Hoty traza qué es lo más candente en tu atención ahora mismo.' },
+    willy:    { en:'Willy aims your will at a single target.', es:'Willy apunta tu voluntad a un único objetivo.' },
+    default:  { en:"Open this one with the systems you've just laid out.", es:'Abre esta con los sistemas que acabas de disponer.' }
   };
   let relatedBuilt = false;
   function buildRelatedApps(){
@@ -2258,7 +2266,8 @@
   function showAppIntro(opts){
     $('#aiIcon').textContent   = opts.icon  || '';
     $('#aiName').textContent   = opts.label || '';
-    $('#aiPhrase').textContent = APP_INTROS[opts.key] || APP_INTROS.default;
+    const intro = APP_INTROS[opts.key] || APP_INTROS.default;
+    $('#aiPhrase').textContent = T(intro.en, intro.es);
     $('#aiGo').onclick = () => { $('#appIntro').hidden = true; if (opts.href) window.location.href = opts.href; };
     $('#appIntro').hidden = false;
   }
@@ -2309,20 +2318,20 @@
     for (let r = 0; r < N_ROWS; r++){
       const L = sysAt(leftSlotId(r)), R = sysAt(rightSlotId(r));
       if (!L && !R) continue;
-      rows.push({ kind:'pair', title:`${L?L.label:'—'} ↔ ${R?R.label:'—'}`, items:(state.reasons[r]||[]).slice() });
+      rows.push({ kind:'pair', title:`${L?defLabel(L):'—'} ↔ ${R?defLabel(R):'—'}`, items:(state.reasons[r]||[]).slice() });
     }
     const C = sysAt(CENTRE_SLOT);
-    if (C) rows.push({ kind:'centroid', title:C.label, items:(state.reasons.c||[]).slice() });
+    if (C) rows.push({ kind:'centroid', title:defLabel(C), items:(state.reasons.c||[]).slice() });
     Object.keys(state.placed).forEach(slotId => {
       const vs = state.verbs[slotId]; if (!vs || !vs.length) return;
       const s = sysAt(slotId); if (!s) return;
-      rows.push({ kind:'verbs', title:s.label, items:vs.slice() });
+      rows.push({ kind:'verbs', title:defLabel(s), items:vs.slice() });
     });
     Object.keys(state.subs).forEach(id => {
       const rec = state.subs[id], sub = SUB_BY_ID[id]; if (!sub) return;
       const tgt = sysAt(rec.slotId);
       const items = (state.subReasons[id]||[]).concat((state.subVerbs[id]||[]).map(v => '→ ' + v));
-      rows.push({ kind:'subsystem', title:`${sub.label} (${rec.kind==='nerve'?'nervous':'immune'}) → ${tgt?tgt.label:'—'}`, items });
+      rows.push({ kind:'subsystem', title:`${defLabel(sub)} (${kindWord(rec.kind)}) → ${tgt?defLabel(tgt):'—'}`, items });
     });
     return rows;
   }
@@ -2343,15 +2352,15 @@
   // ── plain-text resume (Copy / TXT / MD / Share / Email / Print) ──
   function summaryText(){
     const rows = summaryRows();
-    const out = ['✺ pracsys body', ''];
+    const out = [T('✺ pracsys body','✺ cuerpo de pracsys'), ''];
     const group = (label, kind, fmt) => {
       const items = rows.filter(r => r.kind === kind); if (!items.length) return;
       out.push(label); items.forEach(r => out.push('  · ' + fmt(r))); out.push('');
     };
-    group('Systems pairs', 'pair',      r => r.title + (r.items.length ? ' — ' + r.items.join('; ') : ''));
-    group('Centroid',      'centroid',  r => r.title + (r.items.length ? ' — ' + r.items.join('; ') : ''));
-    group('Verbs',         'verbs',     r => r.title + ': ' + r.items.join(', '));
-    group('Subsystems',    'subsystem', r => r.title + (r.items.length ? ' — ' + r.items.join(' · ') : ''));
+    group(T('Systems pairs','Pares de sistemas'), 'pair',      r => r.title + (r.items.length ? ' — ' + r.items.join('; ') : ''));
+    group(T('Centroid','Centroide'),      'centroid',  r => r.title + (r.items.length ? ' — ' + r.items.join('; ') : ''));
+    group(T('Verbs','Verbos'),         'verbs',     r => r.title + ': ' + r.items.join(', '));
+    group(T('Subsystems','Subsistemas'),    'subsystem', r => r.title + (r.items.length ? ' — ' + r.items.join(' · ') : ''));
     out.push(new Date().toISOString().slice(0,10));
     return out.join('\n').trim();
   }
@@ -2368,7 +2377,7 @@
     const pool = PREPOSITIONS[magicLang].slice();
     const draw = () => { if (!pool.length) pool.push(...PREPOSITIONS[magicLang]); return pool.splice(Math.floor(Math.random()*pool.length), 1)[0]; };
     const parts = summaryRows().map(r => `${draw()} ${r.title}${r.items.length ? ' (' + r.items.join(', ') + ')' : ''}`);
-    return '✺ pracsys — ' + (parts.length ? parts.join(' · ') : 'an empty body') + '.';
+    return '✺ pracsys — ' + (parts.length ? parts.join(' · ') : (magicLang === 'es' ? 'un cuerpo vacío' : 'an empty body')) + '.';
   }
   // what Copy / Share read: whatever the panel currently shows
   function shownText(){ return magicOn ? magicPhrase() : summaryText(); }
@@ -2399,11 +2408,11 @@
     let meta = '';
     if (m.verbs.length) meta += `<div class="sm-line sm-verb">🔗 ${m.verbs.map(escHtml).join(' · ')}</div>`;
     m.arrows.forEach(a => {
-      meta += `<div class="sm-line sm-arrow">↳ ${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(a.sub.label)}`
+      meta += `<div class="sm-line sm-arrow">↳ ${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(defLabel(a.sub))}`
             + (a.extra.length ? ' · ' + escHtml(a.extra.join(' · ')) : '') + `</div>`;
     });
     return `<div class="sum-cell"><div class="sum-sq${slotId === CENTRE_SLOT ? ' centre' : ''}">`
-      + `<span class="sq-ico">${sys.icon}</span><span class="sq-lbl">${escHtml(sys.label)}</span></div>`
+      + `<span class="sq-ico">${sys.icon}</span><span class="sq-lbl">${escHtml(defLabel(sys))}</span></div>`
       + `<div class="sum-meta">${meta}</div></div>`;
   }
   const gridCell = (inner, col, row) => inner ? `<div class="sum-gridcell" style="grid-column:${col};grid-row:${row}">${inner}</div>` : '';
@@ -2411,7 +2420,7 @@
   // the systems laid out in their board square — the pair's reason sits in the
   // middle between them, the centroid square (+ its reason) at the centre
   function summaryRenderHTML(){
-    if (!Object.keys(state.placed).length) return `<p class="sum-empty">Nothing placed yet.</p>`;
+    if (!Object.keys(state.placed).length) return `<p class="sum-empty">${T('Nothing placed yet.','Aún no hay nada colocado.')}</p>`;
     let html = `<div class="sum-board">`;
     for (let r = 0; r < N_ROWS; r++){
       html += gridCell(sumSquareHTML(leftSlotId(r)),  1, r + 1);
@@ -2438,13 +2447,18 @@
     const subI = Object.values(state.subs).filter(s => s.kind === 'immune').length;
     const pairs = summaryRows().filter(r => r.kind === 'pair').map(r => r.title);
     const C = sysAt(CENTRE_SLOT);
+    const cLab = C ? defLabel(C) : '';
     return [
-      ['The read', magicOn
-        ? `<p>A body breathing as <em>${placed}</em> systems${C?`, gathered at the <em>${C.label.toLowerCase()}</em> centroid`:''} — threaded by <em>${subN}</em> nervous and <em>${subI}</em> immune currents.</p>`
-        : `<p><strong>${placed}/11</strong> systems placed${C?`, centroid <em>${C.label}</em>`:''}. <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems threaded.</p>`],
-      ['By the numbers', `<p><strong>${placed}/11</strong> systems · <strong>${reasons}/6</strong> reasons · <strong>${verbs}/11</strong> verbs · <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems (<em>${subN}</em> nervous · <em>${subI}</em> immune).</p>`],
-      ['The pairs', pairs.length ? `<p>${pairs.map(p => `<em>${escHtml(p)}</em>`).join(' · ')}</p>` : '<p>—</p>'],
-      ['Polarities', `<p>Left column vs right column; and the first three left + first two rows right against the rest — two groupings the <em>Polarities</em> view colours in.</p>`]
+      [T('The read','La lectura'), magicOn
+        ? T(`<p>A body breathing as <em>${placed}</em> systems${C?`, gathered at the <em>${cLab.toLowerCase()}</em> centroid`:''} — threaded by <em>${subN}</em> nervous and <em>${subI}</em> immune currents.</p>`,
+            `<p>Un cuerpo que respira como <em>${placed}</em> sistemas${C?`, reunidos en el centroide <em>${cLab.toLowerCase()}</em>`:''} — enhebrado por <em>${subN}</em> corrientes nerviosas y <em>${subI}</em> inmunitarias.</p>`)
+        : T(`<p><strong>${placed}/11</strong> systems placed${C?`, centroid <em>${cLab}</em>`:''}. <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems threaded.</p>`,
+            `<p><strong>${placed}/11</strong> sistemas colocados${C?`, centroide <em>${cLab}</em>`:''}. <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsistemas enhebrados.</p>`)],
+      [T('By the numbers','En cifras'), T(`<p><strong>${placed}/11</strong> systems · <strong>${reasons}/6</strong> reasons · <strong>${verbs}/11</strong> verbs · <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems (<em>${subN}</em> nervous · <em>${subI}</em> immune).</p>`,
+        `<p><strong>${placed}/11</strong> sistemas · <strong>${reasons}/6</strong> razones · <strong>${verbs}/11</strong> verbos · <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsistemas (<em>${subN}</em> nerviosos · <em>${subI}</em> inmunitarios).</p>`)],
+      [T('The pairs','Los pares'), pairs.length ? `<p>${pairs.map(p => `<em>${escHtml(p)}</em>`).join(' · ')}</p>` : '<p>—</p>'],
+      [T('Polarities','Polaridades'), T(`<p>Left column vs right column; and the first three left + first two rows right against the rest — two groupings the <em>Polarities</em> view colours in.</p>`,
+        `<p>Columna izquierda frente a columna derecha; y las tres primeras de la izquierda + las dos primeras filas de la derecha frente al resto: dos agrupaciones que colorea la vista <em>Polaridades</em>.</p>`)]
     ];
   }
   let insightIdx = -1;
@@ -2462,12 +2476,12 @@
     const sec = $('#summarySection');
     sec.classList.add('show');
     sec.scrollIntoView({ behavior:'smooth', block:'nearest' });
-    toast('Your pracsys body — copy, save, share or publish it');
+    toast(T('Your pracsys body — copy, save, share or publish it','Tu cuerpo de pracsys: cópialo, guárdalo, compártelo o publícalo'));
   }
 
   // ── action bar: Magic / Insight / Copy ──
   $('#magicBtn').addEventListener('click', e => {
-    if (e.shiftKey){ magicLang = magicLang === 'en' ? 'es' : 'en'; toast('Magic language · ' + magicLang.toUpperCase()); if (!magicOn){ renderSummary(); return; } }
+    if (e.shiftKey){ magicLang = magicLang === 'en' ? 'es' : 'en'; toast(T('Magic language · ','Idioma mágico · ') + magicLang.toUpperCase()); if (!magicOn){ renderSummary(); return; } }
     else magicOn = !magicOn;
     $('#magicBtn').setAttribute('aria-pressed', String(magicOn));
     renderSummary();
@@ -2513,15 +2527,15 @@
     const list = loadPlatforms();
     row.innerHTML =
       list.map((p,i) => `<label class="pub-platform"><input type="checkbox" data-pub="${escHtml(p.id)}"${i===0?' checked':''}> ${escHtml(p.name)}</label>`).join('')
-      + `<span class="pub-add"><input type="text" id="pubAdd" placeholder="Add platform name…" aria-label="Add a platform"><button class="sum-btn" type="button" id="pubAddBtn">+ Add</button></span>`
-      + `<button class="sum-btn" type="button" data-action="publish">↗ Publish</button>`;
+      + `<span class="pub-add"><input type="text" id="pubAdd" placeholder="${T('Add platform name…','Nombre de la plataforma…')}" aria-label="${T('Add a platform','Añadir una plataforma')}"><button class="sum-btn" type="button" id="pubAddBtn">+ ${T('Add','Añadir')}</button></span>`
+      + `<button class="sum-btn" type="button" data-action="publish">↗ ${T('Publish','Publicar')}</button>`;
   }
   document.addEventListener('click', e => {
     const addBtn = e.target.closest('#pubAddBtn'); if (!addBtn) return;
     const inp = $('#pubAdd'), name = inp.value.trim(); if (!name) return;
     let custom = []; try{ custom = JSON.parse(localStorage.getItem(PUBLISH_KEY)) || []; }catch(_){}
     custom.push({ id:'p' + Date.now(), name, kind:'webhook' });
-    savePlatforms(custom); renderPublishRow(); toast('Platform added · ' + name);
+    savePlatforms(custom); renderPublishRow(); toast(T('Platform added · ','Plataforma añadida · ') + name);
   });
 
   // ── the [data-action] surface: Copy / Save (download) / Share / Publish ──
@@ -2535,7 +2549,7 @@
   // a lavish self-contained HTML document of the body (board only, no chrome)
   function exportHtmlDoc(){
     const board = summaryRenderHTML();   // same board markup as the in-page summary
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+    return `<!doctype html><html lang="${LANG()}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FLOVE · PRACSYS body</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2619,7 +2633,7 @@ footer a{color:#4dd0e1;text-decoration:none}
     const metaOf = slotId => {
       const mt = slotMeta(slotId); const out = [];
       if (mt.verbs.length) wrap('🔗 ' + mt.verbs.join(' · '), colW, META_FONT).forEach(t => out.push({ c:'#b388ff', t }));
-      mt.arrows.forEach(a => wrap('↳ ' + (a.sub.kind==='immune'?'🛡 ':'🧠 ') + a.sub.label + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
+      mt.arrows.forEach(a => wrap('↳ ' + (a.sub.kind==='immune'?'🛡 ':'🧠 ') + defLabel(a.sub) + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
       return out;
     };
     const reasonLines = key => { const a = state.reasons[key]||[]; return a.length ? wrap(a.join(' · '), colW, REASON_FONT) : []; };
@@ -2655,9 +2669,9 @@ footer a{color:#4dd0e1;text-decoration:none}
     ctx.beginPath(); ctx.arc(gx,y,4.5,0,Math.PI*2); ctx.fillStyle = gg; ctx.fill();
     y += rr + 34; ctx.textAlign = 'center';
     const tg = ctx.createLinearGradient(gx-180,0,gx+180,0); tg.addColorStop(0,'#4dd0e1'); tg.addColorStop(.5,'#b388ff'); tg.addColorStop(1,'#69f0ae');
-    ctx.fillStyle = tg; ctx.font = '700 38px Georgia, "Times New Roman", serif'; ctx.fillText('pracsys body', gx, y);
+    ctx.fillStyle = tg; ctx.font = '700 38px Georgia, "Times New Roman", serif'; ctx.fillText(T('pracsys body','cuerpo de pracsys'), gx, y);
     y += 24; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 14px Inter, system-ui, sans-serif';
-    ctx.fillText('eleven systems, laid out as a living body · ' + new Date().toISOString().slice(0,10), gx, y);
+    ctx.fillText(T('eleven systems, laid out as a living body · ','once sistemas, dispuestos como un cuerpo vivo · ') + new Date().toISOString().slice(0,10), gx, y);
     y += 34;
 
     const drawSquare = (slotId, x, yy, metaLines) => {
@@ -2665,7 +2679,7 @@ footer a{color:#4dd0e1;text-decoration:none}
       // borderless — just the icon + label, with verbs/arrows hugging right below
       ctx.textAlign = 'center';
       ctx.font = '22px serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.icon, x + sqW/2, yy + 22);
-      ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = slotId === CENTRE_SLOT ? '#ff8a65' : '#e8eef7'; ctx.fillText(sys.label, x + sqW/2, yy + 40);
+      ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = slotId === CENTRE_SLOT ? '#ff8a65' : '#e8eef7'; ctx.fillText(defLabel(sys), x + sqW/2, yy + 40);
       let my = yy + sqH + 6;
       metaLines.forEach(ln => { ctx.fillStyle = ln.c; ctx.font = META_FONT; ctx.fillText(ln.t, x + sqW/2, my); my += lineH; });
     };
@@ -2686,9 +2700,9 @@ footer a{color:#4dd0e1;text-decoration:none}
       y += rm.rowH;
     });
 
-    if (!Object.keys(state.placed).length){ ctx.textAlign = 'center'; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 16px Inter, sans-serif'; ctx.fillText('An empty body.', W/2, y + 10); }
+    if (!Object.keys(state.placed).length){ ctx.textAlign = 'center'; ctx.fillStyle = '#9fb0c4'; ctx.font = '400 16px Inter, sans-serif'; ctx.fillText(T('An empty body.','Un cuerpo vacío.'), W/2, y + 10); }
     ctx.textAlign = 'center'; ctx.fillStyle = '#7f8da0'; ctx.font = '400 13px Inter, system-ui, sans-serif';
-    ctx.fillText('made with flove · pracsys', W/2, H - 24);
+    ctx.fillText(T('made with flove · pracsys','hecho con flove · pracsys'), W/2, H - 24);
     cv.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = 'pracsys-results.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, 'image/jpeg', 0.95);
   }
   document.addEventListener('click', async e => {
@@ -2696,31 +2710,31 @@ footer a{color:#4dd0e1;text-decoration:none}
     const action = btn.dataset.action;
     if (action === 'copy'){
       const payload = e.shiftKey ? JSON.stringify(buildElement(), null, 2) : shownText();
-      try{ await navigator.clipboard.writeText(payload); toast(e.shiftKey ? '✺ JSON copied' : '✺ phrase copied'); }
-      catch(_){ toast('Copy not available'); }
+      try{ await navigator.clipboard.writeText(payload); toast(e.shiftKey ? T('✺ JSON copied','✺ JSON copiado') : T('✺ phrase copied','✺ frase copiada')); }
+      catch(_){ toast(T('Copy not available','Copiar no está disponible')); }
     } else if (action === 'download'){
       const fmt = (btn.dataset.fmt || 'txt').toLowerCase();
-      if (fmt === 'jpg'){ summaryToJpg(); toast('Downloaded · JPG'); return; }
+      if (fmt === 'jpg'){ summaryToJpg(); toast(T('Downloaded · ','Descargado · ') + 'JPG'); return; }
       if (fmt === 'json'){ downloadBlob(JSON.stringify(buildElement(), null, 2), 'application/json;charset=utf-8', 'json'); }
       else if (fmt === 'csv'){ downloadBlob(rowsCsv(), 'text/csv;charset=utf-8', 'csv'); }
       else if (fmt === 'xml'){ downloadBlob(rowsXml(), 'application/xml;charset=utf-8', 'xml'); }
       else if (fmt === 'html'){ downloadBlob(exportHtmlDoc(), 'text/html;charset=utf-8', 'html'); }
-      else if (fmt === 'md'){ downloadBlob('# ✺ pracsys body\n\n```\n' + summaryText() + '\n```\n', 'text/markdown;charset=utf-8', 'md'); }
+      else if (fmt === 'md'){ downloadBlob('# ' + T('✺ pracsys body','✺ cuerpo de pracsys') + '\n\n```\n' + summaryText() + '\n```\n', 'text/markdown;charset=utf-8', 'md'); }
       else { downloadBlob(summaryText(), 'text/plain;charset=utf-8', 'txt'); }
-      toast('Downloaded · ' + fmt.toUpperCase());
+      toast(T('Downloaded · ','Descargado · ') + fmt.toUpperCase());
     } else if (action === 'share' || action === 'share-mobile'){
       const text = shownText();
       if (navigator.share){ try{ await navigator.share({ title:'flove · pracsys', text }); }catch(_){} }
-      else if (action === 'share'){ try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }catch(_){ toast('Share not available'); } }
-      else { toast('Mobile share unavailable on this device'); }
+      else if (action === 'share'){ try{ await navigator.clipboard.writeText(text); toast(T('Copied to clipboard','Copiado al portapapeles')); }catch(_){ toast(T('Share not available','Compartir no está disponible')); } }
+      else { toast(T('Mobile share unavailable on this device','Compartir en móvil no está disponible en este dispositivo')); }
     } else if (action === 'email'){
-      location.href = 'mailto:?subject=' + encodeURIComponent('flove · pracsys body') + '&body=' + encodeURIComponent(summaryText());
+      location.href = 'mailto:?subject=' + encodeURIComponent(T('flove · pracsys body','flove · cuerpo de pracsys')) + '&body=' + encodeURIComponent(summaryText());
     } else if (action === 'print'){
       const w = window.open('', '_blank');
       if (w){ w.document.write(`<!doctype html><meta charset="utf-8"><title>pracsys body</title><pre style="font:14px/1.5 ui-monospace,monospace">${escHtml(summaryText())}</pre>`); w.document.close(); w.focus(); setTimeout(() => w.print(), 200); }
     } else if (action === 'publish'){
       const chosen = $$('#publishRow input[data-pub]:checked').map(c => c.parentElement.textContent.trim());
-      toast(chosen.length ? 'Dry-run · would publish to ' + chosen.join(', ') : 'Pick a platform to publish to');
+      toast(chosen.length ? T('Dry-run · would publish to ','Simulación · se publicaría en ') + chosen.join(', ') : T('Pick a platform to publish to','Elige una plataforma donde publicar'));
     }
   });
 
@@ -2748,5 +2762,6 @@ footer a{color:#4dd0e1;text-decoration:none}
   setDeckOpen(true);
   afterChange();
 </script>
+<script src="../flove-appy.js" data-app="Pracsys" data-colour="#e3bb12" defer></script>
 </body>
 </html>

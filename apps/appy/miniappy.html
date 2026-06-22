@@ -589,13 +589,19 @@ body{
 .rstage.current{ border-color:var(--signal); color:var(--signal); font-weight:700; }
 /* background highlight moves to whichever stage is being checked */
 .rstage.checked{ background:rgba(2,133,92,.08); box-shadow:inset 0 0 0 1px rgba(2,133,92,.18); }
-.rstage-text{ font-size:.5rem; color:var(--muted); line-height:1.55; text-align:left; width:100%; }
+/* stars threshold to reach the stage — always visible under each chip */
+.rstage-th{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.62rem; color:var(--signal); line-height:1; }
+/* description revealed only on click — plain, no background nor border */
+.rstage-text{ font-size:.5rem; color:var(--muted); line-height:1.55; text-align:left; width:100%; background:none; border:none; }
 .rstage-reach{ color:var(--ink); }
 .rstage-reach strong{ color:var(--signal); }
 .rstage-unlocks{ list-style:none; padding:0; margin:.2rem 0 0; }
 .rstage-unlocks li{ position:relative; padding-left:.65rem; margin-bottom:.12rem; }
 .rstage-unlocks li::before{ content:""; position:absolute; left:0; top:.5em; width:3px; height:3px; border-radius:50%; background:var(--accent); }
 .rstage-unlocks li strong{ color:var(--accent-soft); }
+.rstage-acts{ display:flex; flex-direction:column; gap:.25rem; margin-top:.35rem; }
+.rstage-act{ background:none; border:none; padding:0; cursor:pointer; text-align:left; font-family:"Space Mono",monospace; font-size:.5rem; color:var(--accent); }
+.rstage-act:hover{ text-decoration:underline; }
 /* Facet circles — 4 columns below the circle, each with its onclick text */
 .rings-circles{ display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; margin-top:1.1rem; }
 @media (max-width:560px){ .rings-circles{ grid-template-columns:1fr 1fr; } }
@@ -606,11 +612,14 @@ body{
 .sd-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:.5rem; }
 .sd-stage{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.95rem; text-transform:capitalize; }
 .sd-stars{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.1rem; color:var(--signal); }
-.rcircle-col{ display:flex; flex-direction:column; gap:.4rem; padding:.7rem .75rem; border-radius:12px; border:1px solid var(--line); background:var(--card); }
-.rcircle-top{ display:flex; align-items:center; gap:.4rem; font-size:.66rem; }
+/* facet columns — plain, no card background nor border */
+.rcircle-col{ display:flex; flex-direction:column; gap:.4rem; }
+.rcircle-top{ display:flex; align-items:center; gap:.4rem; font-size:.66rem; width:100%; background:none; border:none; padding:.15rem 0; cursor:pointer; color:inherit; }
+.rcircle-top:hover .rcircle-name{ text-decoration:underline; }
 .rcircle-dot{ width:11px; height:11px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 7px 1px currentColor; }
-.rcircle-name{ flex:1; font-weight:700; color:inherit; }
+.rcircle-name{ flex:1; font-weight:700; color:inherit; text-align:left; }
 .rcircle-col strong{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.9rem; color:inherit; }
+/* description revealed only on click — plain, no background nor border */
 .rcircle-desc{ font-size:.52rem; color:var(--muted); line-height:1.55; }
 .rcircle-actions{ display:flex; flex-direction:column; gap:.3rem; margin-top:.05rem; }
 .rcircle-actions .btn{ font-size:.52rem; padding:.32rem .55rem; justify-content:center; }
@@ -1858,7 +1867,7 @@ body{
             <a class="appbtn" style="--c:#5a4fd0" href="../realy.html" data-app="Realy" title="Realy preview" aria-label="Realy preview" onclick="appJump(event,this)">
               <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-4.5 6-7.7 6-11a6 6 0 0 0-12 0c0 3.3 2 6.5 6 11z"/><circle cx="12" cy="10" r="2.2"/></svg><span>Realy</span></a>
             <a class="appbtn" style="--c:#9b51e0" href="../puzzy/keys.html" data-app="Keys" title="Keys preview" aria-label="Keys preview" onclick="appJump(event,this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="3.4"/><path d="M11.4 12H20M17 12v3M14 12v2"/></svg><span>Keys</span></a>
+              <svg viewBox="0 0 100 100" style="fill:#fff;stroke:none"><g transform="rotate(0 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(72 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(288 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><circle cx="50" cy="50" r="4.5"/></svg><span>Keys</span></a>
           </div>
         </section>
 
@@ -2949,22 +2958,12 @@ const CIRCLE_SUGGEST = {
 };
 function openCirclePlus(f)  { const same = state.openCircle === f && state.circleMode === 'suggest'; state.openCircle = same ? null : f; state.circleMode = 'suggest'; renderCircleDetail(); }
 function openCircleTitle(f) { const same = state.openCircle === f && state.circleMode === 'upgrade'; state.openCircle = same ? null : f; state.circleMode = 'upgrade'; renderCircleDetail(); }
+// Facet detail now renders inline (title/desc/actions) inside each column on click,
+// so the separate bottom panel is no longer used.
 function renderCircleDetail() {
   const wrap = document.getElementById('circle-detail');
   if (!wrap) return;
-  const f = state.openCircle;
-  if (!f) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
-  const s = CIRCLE_SUGGEST[f];
-  let inner;
-  if (state.circleMode === 'upgrade') {
-    inner = `<div class="circle-info-desc"><a href="#" onclick="switchTab('extensions');return false" style="color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent)">Upgrade to Basic</a> to see more custom Local and Social Activities and scores.</div>`;
-  } else {
-    inner = `<div class="circle-info-title" style="color:${s.color}">${s.title}</div>
-      <div class="circle-info-desc">${s.desc}</div>
-      <div class="circle-info-actions">${s.actions.map((a, i) => `<button class="btn ${i === 0 ? 'signal' : 'ghost'}" style="font-size:.62rem;padding:.4rem .8rem" onclick="switchTab('${a[1]}')">${a[0]}</button>`).join('')}</div>`;
-  }
-  wrap.classList.add('open');
-  wrap.innerHTML = `<div class="circle-info-inner">${inner}</div>`;
+  wrap.classList.remove('open'); wrap.innerHTML = '';
 }
 
 // ============================================================
@@ -3769,21 +3768,12 @@ function toggleStageDetail(stageName) {
   buildRingStages();
   renderStageDetail();
 }
-// Stage detail panel — stage texts now render inline under each tab (buildRingStages),
-// so the bottom panel only carries the extra "ways to generate activity" actions when present.
+// Stage detail now renders inline (reach + unlocks + activities) under each tab on click,
+// so the separate bottom panel is no longer used.
 function renderStageDetail() {
   const wrap = document.getElementById('stage-detail');
   if (!wrap) return;
-  const s = state.openStageDetail;
-  const d = s ? STAGE_DETAIL[s] : null;
-  if (!d || !d.activities) { wrap.classList.remove('open'); wrap.innerHTML = ''; return; }
-  const html = `<div class="stage-detail-inner2">
-    <div class="sd-head"><span class="sd-stage">${s}</span></div>
-    <div class="sd-unlocks-label">ways to generate more activity</div>
-    <div class="sd-activities">${d.activities.map(a => `<button class="btn ghost" style="font-size:.62rem;padding:.38rem .8rem" onclick="switchTab('${a.tab}')">${a.label} →</button>`).join('')}</div>
-  </div>`;
-  wrap.classList.add('open');
-  wrap.innerHTML = html;
+  wrap.classList.remove('open'); wrap.innerHTML = '';
 }
 
 // Stage tabs to the left of the rings (newbie → legend)
@@ -3795,14 +3785,21 @@ function buildRingStages() {
     let cls = 'rstage';
     if (i === state.stage) cls += ' current';        // border stays on newbie
     else if (i < state.stage) cls += ' reached';
-    if (s === state.openStageDetail) cls += ' checked'; // background moves to the checked one
+    const open = (s === state.openStageDetail);
+    if (open) cls += ' checked';                      // background moves to the checked one
+    const th = state.stageThresholds[i];             // stars needed to reach this stage
+    const thTxt = th === 0 ? 'open' : th + ' ⭐';
     const d = STAGE_DETAIL[s] || {};
-    let txt = '';
-    if (d.reach)    txt += `<div class="rstage-reach">to reach: <strong>${d.reach}</strong></div>`;
-    if (d.unlocks)  txt += `<ul class="rstage-unlocks">${d.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>`;
+    let txt = '';                                     // description shown only on click
+    if (open) {
+      if (d.reach)   txt += `<div class="rstage-reach">to reach: <strong>${d.reach}</strong></div>`;
+      if (d.unlocks) txt += `<ul class="rstage-unlocks">${d.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>`;
+      if (d.activities) txt += `<div class="rstage-acts">${d.activities.map(a => `<button class="rstage-act" onclick="event.stopPropagation();switchTab('${a.tab}')">${a.label} →</button>`).join('')}</div>`;
+    }
     return `<div class="rstage-col">
-      <button class="${cls}" onclick="toggleStageDetail('${s}')">${s}</button>
-      <div class="rstage-text">${txt}</div>
+      <button class="${cls}" onclick="toggleStageDetail('${s}')" aria-expanded="${open}">${s}</button>
+      <div class="rstage-th">${thTxt}</div>
+      ${open ? `<div class="rstage-text">${txt}</div>` : ''}
     </div>`;
   }).join('');
   wrap.innerHTML = `<span class="rstage-arrow" aria-hidden="true">→</span>` + cols;
@@ -3820,13 +3817,17 @@ function renderRingCircles() {
   ];
   wrap.innerHTML = FACETS.map(f => {
     const s = CIRCLE_SUGGEST[f.key];
+    const open = (state.openCircle === f.key);       // description shown only on click
     const actions = s.actions.map((a, i) => `<button class="btn ${i === 0 ? 'signal' : 'ghost'}" onclick="switchTab('${a[1]}')">${a[0]}</button>`).join('');
-    return `<div class="rcircle-col${f.active ? ' rcircle-active' : ''}" style="color:${s.color}">
-      <div class="rcircle-top"><span class="rcircle-dot"></span><span class="rcircle-name">${f.name}</span><strong id="${f.score}">${state.facets[f.key]}</strong></div>
-      <div class="rcircle-desc">${s.desc}</div>
-      <div class="rcircle-actions">${actions}</div>
+    return `<div class="rcircle-col${f.active ? ' rcircle-active' : ''}${open ? ' open' : ''}" style="color:${s.color}">
+      <button class="rcircle-top" onclick="toggleRingCircle('${f.key}')" aria-expanded="${open}"><span class="rcircle-dot"></span><span class="rcircle-name">${f.name}</span><strong id="${f.score}">${state.facets[f.key]}</strong></button>
+      ${open ? `<div class="rcircle-desc">${s.desc}</div><div class="rcircle-actions">${actions}</div>` : ''}
     </div>`;
   }).join('');
+}
+function toggleRingCircle(key){
+  state.openCircle = (state.openCircle === key) ? null : key;
+  renderRingCircles();
 }
 
 // ============================================================

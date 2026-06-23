@@ -2858,7 +2858,8 @@ function linkIdentity(id) {
   if (id === 'phone')      state.facets.personal = Math.min(100, state.facets.personal + 6);
   if (id === 'biometrics') state.facets.personal = Math.min(100, state.facets.personal + 8);
   if (id === 'email')      state.facets.personal = Math.min(100, state.facets.personal + 4);
-  render();
+  const pts = ({ email: 20, telegram: 50, phone: 100, biometrics: 200 })[id] || 0;   // authenticated an identity
+  if (pts) awardPoints(pts); else render();
 }
 
 // ============================================================
@@ -3084,13 +3085,15 @@ function saveAbout() {
   const link   = l  ? l.value.trim()  : '';
   const social = sh ? sh.value.trim() : '';
   if (!about && !link && !social) { if (a) a.focus(); return; }
-  if (about)  state.aboutEntries.push({ type: 'about',  text: about });
-  if (link)   state.aboutEntries.push({ type: 'link',   text: link });
-  if (social) state.aboutEntries.push({ type: 'social', platform: sp ? sp.value : '', text: social });
+  let pts = 0;
+  if (about)  { state.aboutEntries.push({ type: 'about',  text: about }); pts += 5; }   // saved content · +5
+  if (link)   { state.aboutEntries.push({ type: 'link',   text: link }); pts += 5; }    // saved content · +5
+  if (social) { state.aboutEntries.push({ type: 'social', platform: sp ? sp.value : '', text: social }); pts += 10; }  // social profile · +10
   if (a) a.value = '';
   if (l) l.value = '';
   if (sh) sh.value = '';
   renderProfileExtras();
+  awardPoints(pts);
 }
 function deleteAbout(i) {
   if (i < 0 || i >= state.aboutEntries.length) return;

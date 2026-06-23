@@ -2216,16 +2216,16 @@ body:has(#lang-es:checked) .es{display:inline}
         <div class="nav-more" id="nav-more"><!-- renderNavMore() --></div>
 
         <!-- Full (mini-full) — under the mini column, same width, linked by a line; shown at 100 ⭐ -->
-        <div class="full-card-row d-none" id="full-upgrade-card">
+        <div class="full-card-row" id="full-upgrade-card">
           <div class="full-card">
             <div class="full-card-top">
-              <span class="full-card-title">Full</span>
+              <span class="full-card-title">mini-full</span>
+              <span class="sbadge"><span class="en" lang="en">current ✓</span><span class="es" lang="es">actual ✓</span></span>
             </div>
             <ul class="full-card-feats">
               <li><span class="en" lang="en">Play all apps</span><span class="es" lang="es">Juega todas las apps</span></li>
               <li><span class="en" lang="en">Extended profile</span><span class="es" lang="es">Perfil ampliado</span></li>
             </ul>
-            <button type="button" class="btn signal w-100 justify-center fz-58 pad-34-4" onclick="upgradeToFull()"><span class="en" lang="en">⬆ Upgrade</span><span class="es" lang="es">⬆ Mejorar</span></button>
           </div>
         </div>
 
@@ -4442,24 +4442,21 @@ function buildFeatureTiers() {
   const wrap = document.getElementById('upgrade-feat-ladder');
   if (!wrap) return;
   // Opacity scheme: mini full (current), basic lightly dimmed, the rest half
-  const TIER_OPACITY = { mini: 1, basic: 0.8, normal: 0.5, advanced: 0.5, super: 0.5 };
+  const TIER_OPACITY = { mini: 0.85, basic: 0.8, normal: 0.5, advanced: 0.5, super: 0.5 };
   const cap = f => f.charAt(0).toUpperCase() + f.slice(1);   // capitalize each attribute
   wrap.innerHTML = '';
   FEATURE_TIERS.forEach((tier, i) => {
     const isOpen = (state.openFeatureTier === i);
     let cls = 'feat-rung feat-rung-clickable';
-    if (tier.name === 'mini') cls += ' feat-mini';            // very highlighted + wavy
     if (isOpen) cls += ' feat-expanded';
     const op = isOpen ? 1 : (TIER_OPACITY[tier.name] ?? 0.5);
+    const rungClick = tier.name === 'mini' ? "location.href='appy-mini.html'" : `toggleFeatureTier(${i})`;
     const featsHtml = tier.features.map(f => `<li>${bx(cap(f[0]), cap(f[1]))}</li>`).join('');
 
     // Threshold below the nav — full bar for mini, progress for basic, label otherwise
     let threshHtml;
     if (tier.name === 'mini') {
-      threshHtml = `<div class="feat-thresh">
-        <div class="feat-thresh-track"><div class="feat-thresh-fill" style="width:100%"></div></div>
-        <span class="feat-thresh-txt">100%</span>
-      </div>`;
+      threshHtml = `<div class="feat-thresh"><span class="feat-thresh-txt">${bx('↩ open mini', '↩ abrir mini')}</span></div>`;
     } else if (tier.name === 'basic') {
       const pct = Math.max(0, Math.min(100, Math.round(state.stars / tier.threshold * 100)));
       const reached = state.stars >= tier.threshold;
@@ -4473,7 +4470,7 @@ function buildFeatureTiers() {
     }
 
     const moreLabel = state.navMoreOpen === tier.name ? bx('see less', 'ver menos') : bx('see more', 'ver más');
-    wrap.innerHTML += `<div class="${cls}" style="opacity:${op}" onclick="toggleFeatureTier(${i})" role="button" tabindex="0" aria-expanded="${isOpen}" aria-label="Toggle ${tier.name} feature list" data-aria-en="Toggle ${tier.name} feature list" data-aria-es="Mostrar la lista de funciones de ${tier.name}">
+    wrap.innerHTML += `<div class="${cls}" style="opacity:${op}" onclick="${rungClick}" role="button" tabindex="0" aria-expanded="${isOpen}" aria-label="Toggle ${tier.name} feature list" data-aria-en="Toggle ${tier.name} feature list" data-aria-es="Mostrar la lista de funciones de ${tier.name}">
       <button type="button" class="feat-name-btn tr-stage-btn" style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:.85rem;line-height:1;letter-spacing:.01em">${tier.name}</button>
       <span style="font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.06rem 0 .14rem;font-family:'Space Mono',monospace">${bx(tier.label[0], tier.label[1])}</span>
       <ul class="fr-feats feat-feats-collapse">${featsHtml}</ul>
@@ -4482,7 +4479,7 @@ function buildFeatureTiers() {
     </div>`;
   });
   const _fc = document.getElementById('full-upgrade-card');
-  if (_fc) _fc.style.display = state.stars >= 100 ? '' : 'none';
+  if (_fc) { _fc.classList.remove('d-none'); _fc.style.display = ''; }   // mini-full is the current tier — always shown
   renderNavMore();
   if (window.applyLang) applyLang();
 }

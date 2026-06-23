@@ -7,7 +7,8 @@ set -uo pipefail
 # Carpeta donde vive este script = raíz de flove (resuelve symlinks).
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PORT=8642
-URL="http://localhost:${PORT}/index.html"
+ENTRY="apps/appy/miniappy.html"        # página de entrada (relativa a la raíz flove)
+URL="http://localhost:${PORT}/${ENTRY}"
 
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/${PORT}") 2>/dev/null; }
 
@@ -27,5 +28,5 @@ else
   # (localStorage puede no persistir; módulos/fetch/SVG <use> limitados).
   command -v notify-send >/dev/null && notify-send "flove" \
     "Sin servidor local — abriendo en modo fichero (file://). La persistencia puede no guardarse."
-  xdg-open "$ROOT/index.html" >/dev/null 2>&1 &
+  xdg-open "$ROOT/${ENTRY}" >/dev/null 2>&1 &
 fi

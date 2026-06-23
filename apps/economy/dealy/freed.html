@@ -2041,10 +2041,40 @@
     out.curseDetail = $("#curse-detail").value;
     return out;
   }
-  let saveT;
-  function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} }, 250); }
+  let saveT, quotaWarned = false;
+  function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{
+    try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
+    catch(e){
+      // QuotaExceeded / storage disabled (private mode): warn ONCE, never
+      // crash — Copy / Save keep the declaration (backend_plan.md §10.3b).
+      if(!quotaWarned){ quotaWarned = true;
+        toast(T("Couldn't save locally — use Copy/Save to keep it.",
+                "No se pudo guardar en local — usa Copiar/Guardar para conservarlo.")); }
+    }
+  }, 250); }
   $("#decl").addEventListener("input", save);
   $("#decl").addEventListener("change", save);
+
+  // F0 · re-derive the saved declaration on load — inverse of snapshot().
+  // Defensive: missing/corrupt/old storage is ignored, never throws.
+  function restore(){
+    let raw = null;
+    try{ raw = localStorage.getItem(KEY); }catch(_){ return; }
+    if(!raw) return;
+    let data;
+    try{ data = JSON.parse(raw); }catch(_){ return; }          // corrupt → ignore
+    if(!data || typeof data !== "object") return;
+    const textMap = { thing:"#thing-name", thingDesc:"#thing-desc", where:"#where",
+                      how:"#how", saying:"#saying", timeSpan:"#time-span", curseDetail:"#curse-detail" };
+    Object.keys(textMap).forEach(k => {
+      if(typeof data[k] === "string"){ const el = $(textMap[k]); if(el) el.value = data[k]; }
+    });
+    Object.keys(data).forEach(id => {
+      if(Object.prototype.hasOwnProperty.call(textMap, id)) return;   // text keys done above
+      const el = document.getElementById(id);
+      if(el && (el.type === "checkbox" || el.type === "radio")) el.checked = !!data[id];
+    });
+  }
 
   // Invitation panel — hidden until a selection/entry exists, and its
   // button grows greener as more of the form is filled in.
@@ -2782,9 +2812,13 @@ em{color:#14503e}</style></head>
   // re-telling) whenever the worldball flips language.
   $$('input[name="lang"]').forEach(r => r.addEventListener("change", () => { mirror(); renderMagic(); }));
 
-  // Each visit starts fresh — drop any previously saved snapshot so a
-  // reload always fully resets (no carried-over selections or stale state).
-  try{ localStorage.removeItem(KEY); }catch(e){}
+  // F0 · local persistence (backend_plan.md §10.3a/b). Previously each visit
+  // WIPED the snapshot; now we re-derive the declaration from storage on load
+  // so it survives reload / close / reopen. The sentence/summary are read live
+  // from the DOM (CSS :has() repaints clauses, mirror() refills the free-text
+  // spans), so there is no stale snapshot and no Update button is needed here
+  // (§10.3a Update = N/A for live-state apps). "Reset" in the menu clears it.
+  restore();
   mirror();
   renderMagic();
   updateInvFill();

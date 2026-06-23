@@ -10959,6 +10959,131 @@ window.tKey = function tKey(k){
   });
 
 
+  // ============== Hard local persistence (flove F0) ==============
+  // Tailored persistence for keys' OWN play-state (orderings, perspective-bar
+  // positions, picks, why-drafts, group names, per-mode words, counters,
+  // timings) — NOT a generic DOM-input scanner. The DOM is re-rendered from
+  // these JS objects, so we snapshot the objects and let keys repaint itself.
+  // View/navigation flags (intro/prelude/stage/openTriad) are deliberately NOT
+  // persisted, so a reload always lands on the normal entry view with the
+  // user's data intact underneath. Language (keys.lang) is left untouched.
+  const KEYS_STATE_KEY = 'flove:keys-advanced:state';
+  // The slice of `state` that is meaningful play-state AND safely serialisable.
+  // Excludes transient/non-serialisable fields (recognition, _cur, dragSrcPos,
+  // preludeDrag) and view flags (introActive, preludeActive, stageIdx,
+  // openTriadIdx, analyzeLevel, whyPanelOpen, isRecording, whyBase).
+  const KEYS_PERSIST_FIELDS = [
+    'gameMode', 'saveClicks', 'stepClicks', 'masterDone', 'masterForced',
+    'modesDone', 'showExtras', 'orders', 'done', 'whys', 'whyDraft',
+    'modeWords', 'step0Completed', 'clicks', 'selections', 'stars', 'pandas',
+    't0', 'tEnd', 'timing',
+    'preludePhase', 'preludePool', 'preludeGroups', 'preludeStars',
+    'preludeAxisOrder', 'preludeAxisChecked', 'preludeAxisStars',
+    'preludeGroupToTriad',
+  ];
+  function keysSnapshot(){
+    const s = {};
+    KEYS_PERSIST_FIELDS.forEach(k => { if (state[k] !== undefined) s[k] = state[k]; });
+    return {
+      v: 1,
+      state: s,
+      barState: barState,
+      parallelRows: parallelRows,
+      extraOrders: extraOrders,
+      picks: (typeof _fpSelectedWords !== 'undefined') ? Array.from(_fpSelectedWords) : [],
+      touched: (typeof touchedSections !== 'undefined') ? Array.from(touchedSections) : [],
+      secondPlayOrder: (typeof secondPlayOrder !== 'undefined') ? secondPlayOrder : null,
+      secondPlayItemOrders: (typeof secondPlayItemOrders !== 'undefined') ? secondPlayItemOrders : null,
+      secondPlayFinished: (typeof secondPlayFinished !== 'undefined') ? secondPlayFinished : false,
+      secondPlayMs: (typeof secondPlayMs !== 'undefined') ? secondPlayMs : 0,
+    };
+  }
+  function keysSave(){
+    try {
+      localStorage.setItem(KEYS_STATE_KEY, JSON.stringify(keysSnapshot()));
+    } catch (_e) { /* QuotaExceeded / private mode → persist nothing, quietly */ }
+  }
+  function keysClearSaved(){
+    try { localStorage.removeItem(KEYS_STATE_KEY); } catch (_e) {}
+  }
+  function keysRestore(){
+    let raw;
+    try { raw = localStorage.getItem(KEYS_STATE_KEY); } catch (_e) { return; }
+    if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch (_e) { keysClearSaved(); return; }   // corrupt → ignore
+    if (!data || typeof data !== 'object') return;
+    try {
+      // ---- state (whitelisted fields only) ----
+      const ss = data.state;
+      if (ss && typeof ss === 'object'){
+        KEYS_PERSIST_FIELDS.forEach(k => {
+          if (ss[k] !== undefined) state[k] = ss[k];
+        });
+      }
+      // Guard: orders/done are keyed by triad id; drop any stale ids so a later
+      // schema change can't leave dangling keys driving the render.
+      const KNOWN_TRIADS = new Set(TRIADS.map(d => d.id).concat(EXTRA_TRIADS.map(d => d.id)));
+      if (state.orders && typeof state.orders === 'object'){
+        Object.keys(state.orders).forEach(id => { if (!KNOWN_TRIADS.has(id)) delete state.orders[id]; });
+      } else { state.orders = {}; }
+      // Re-seed any main-triad order that wasn't restored, so render() always
+      // has a complete orders map.
+      TRIADS.forEach(d => { if (!Array.isArray(state.orders[d.id])) state.orders[d.id] = d.items.map((_,i)=>i); });
+      if (state.done && typeof state.done === 'object'){
+        Object.keys(state.done).forEach(id => { if (!KNOWN_TRIADS.has(id)) delete state.done[id]; });
+      }
+      if (!state.whys || typeof state.whys !== 'object') state.whys = {};
+      // ---- barState ----
+      if (data.barState && typeof data.barState === 'object'){
+        BARS.forEach(b => {
+          const bs = data.barState[b.id];
+          if (bs && typeof bs === 'object') barState[b.id] = bs;
+        });
+      }
+      // ---- parallel perspective rows ----
+      if (Array.isArray(data.parallelRows)){
+        parallelRows.length = 0;
+        data.parallelRows.forEach(r => { if (r && typeof r === 'object') parallelRows.push(r); });
+      }
+      // ---- extra-triad orders ----
+      if (data.extraOrders && typeof data.extraOrders === 'object'){
+        EXTRA_TRIADS.forEach(d => {
+          const o = data.extraOrders[d.id];
+          if (Array.isArray(o)) extraOrders[d.id] = o;
+        });
+      }
+      // ---- picks (the three favourite keys) ----
+      if (typeof _fpSelectedWords !== 'undefined' && Array.isArray(data.picks)){
+        _fpSelectedWords.clear();
+        data.picks.slice(0, 3).forEach(w => { if (typeof w === 'string') _fpSelectedWords.add(w); });
+      }
+      // ---- touched summary sections ----
+      if (typeof touchedSections !== 'undefined' && Array.isArray(data.touched)){
+        touchedSections.clear();
+        data.touched.forEach(id => { if (typeof id === 'string') touchedSections.add(id); });
+      }
+      // ---- second-play (new-perspective reorder) ----
+      if (Array.isArray(data.secondPlayOrder)) secondPlayOrder = data.secondPlayOrder;
+      if (data.secondPlayItemOrders && typeof data.secondPlayItemOrders === 'object') secondPlayItemOrders = data.secondPlayItemOrders;
+      if (typeof data.secondPlayFinished === 'boolean') secondPlayFinished = data.secondPlayFinished;
+      if (typeof data.secondPlayMs === 'number') secondPlayMs = data.secondPlayMs;
+    } catch (_e) { /* anything odd → keep whatever rehydrated, don't crash boot */ }
+  }
+  // Debounced autosave on any meaningful interaction. keys mutates its state in
+  // response to clicks/inputs and then repaints, so a trailing-edge save after
+  // those events captures the post-mutation state.
+  let _keysSaveT = null;
+  function keysSaveDebounced(){
+    if (_keysSaveT) clearTimeout(_keysSaveT);
+    _keysSaveT = setTimeout(keysSave, 400);
+  }
+  document.addEventListener('click', keysSaveDebounced, true);
+  document.addEventListener('input', keysSaveDebounced, true);
+  // Flush immediately when the tab is hidden / closing so nothing is lost.
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') keysSave(); });
+  window.addEventListener('pagehide', keysSave);
+
   // ============== Boot ==============
   introStart = Date.now();   // start counting intro time (timer stays hidden here)
   // Honor the saved/initial language for triad + intro content and the controls
@@ -10972,6 +11097,11 @@ window.tKey = function tKey(k){
     if (typeof cust === 'object' && cust) cust.lang = L;
   })();
   initPrelude();
+  // Hard local persistence: rehydrate the user's play-state AFTER the engine is
+  // initialised (initPrelude resets the prelude fields) and BEFORE the first
+  // render, so renderPrelude()/render() repaint from the restored objects.
+  // View flags are not restored → we still land on the normal intro entry view.
+  keysRestore();
   renderIntro();
   renderPrelude();   // build prelude DOM in advance (hidden by setUIMode)
   setUIMode('intro');

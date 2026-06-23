@@ -3273,10 +3273,102 @@
       });
     }
 
+    /* ✦ F0 local persistence (backend_plan.md §10.3a/b).
+       Inventary's state is class-/object-based, not form-field based, so the
+       generic input-scanner pattern can't capture it. We snapshot three things:
+       (1) the names of dynamically-added rows (.is-new), so they can be
+       re-created on load; (2) every row's selected priority cells
+       (name → [have|wish|want|need]); and (3) the per-item itemState object
+       (pills, notes, pref, worthy, urgent/fully, customSubs…). On load we
+       re-create added rows FIRST, then re-apply selections, then merge
+       itemState, then re-render — so the structure exists before values land.
+       Defensive: missing/corrupt/old storage is ignored, never throws. */
+    const LS_KEY = 'flove:' + (location.pathname.split('/').pop().replace(/\.html$/, '') || 'app') + ':state';
+
+    function snapshotState() {
+      const added = [];
+      const selections = [];
+      getRows().forEach(row => {
+        const name = row.querySelector('.col-item')?.textContent.trim() || '';
+        if (!name) return;
+        if (row.classList.contains('is-new')) {
+          added.push({ name, catClass: rowCatClass(row) || 'cat-varios' });
+        }
+        const types = ['have', 'wish', 'want', 'need'].filter(t =>
+          row.querySelector('.col-' + t)?.classList.contains('selected-' + t));
+        if (types.length) selections.push({ name, types });
+      });
+      return { added, selections, itemState };
+    }
+
+    let _saveT;
+    function saveState() {
+      clearTimeout(_saveT);
+      _saveT = setTimeout(() => {
+        try { localStorage.setItem(LS_KEY, JSON.stringify(snapshotState())); }
+        catch (_) { /* QuotaExceeded / private mode: never crash (§10.3b) */ }
+      }, 250);
+    }
+
+    function restoreState() {
+      let raw = null;
+      try { raw = localStorage.getItem(LS_KEY); } catch (_) { return; }
+      if (!raw) return;
+      let data;
+      try { data = JSON.parse(raw); } catch (_) { return; }      // corrupt → ignore
+      if (!data || typeof data !== 'object') return;
+
+      // (1) re-create dynamically-added rows at the top (newest restored first
+      //     so the visible order roughly matches insert-at-top behavior).
+      if (Array.isArray(data.added)) {
+        const labelRow = tbody.querySelector('.label-row');
+        data.added.slice().reverse().forEach(a => {
+          if (!a || !a.name) return;
+          const row = buildRow(a.name, a.catClass || 'cat-varios');
+          row.classList.add('is-new');
+          if (labelRow && labelRow.nextSibling) tbody.insertBefore(row, labelRow.nextSibling);
+          else tbody.appendChild(row);
+        });
+      }
+
+      // (2) re-apply priority-cell selections by item name.
+      if (Array.isArray(data.selections)) {
+        const byName = {};
+        getRows().forEach(row => {
+          const n = row.querySelector('.col-item')?.textContent.trim() || '';
+          if (n && !(n in byName)) byName[n] = row;
+        });
+        data.selections.forEach(sel => {
+          const row = sel && byName[sel.name];
+          if (!row || !Array.isArray(sel.types)) return;
+          sel.types.forEach(t => {
+            if (['have', 'wish', 'want', 'need'].indexOf(t) === -1) return;
+            row.querySelector('.col-' + t)?.classList.add('selected-' + t);
+          });
+          updateRowPriority(row);
+        });
+      }
+
+      // (3) merge the per-item state object (pills, notes, pref, worthy…).
+      if (data.itemState && typeof data.itemState === 'object') {
+        Object.keys(data.itemState).forEach(k => {
+          const s = data.itemState[k];
+          if (s && typeof s === 'object') itemState[k] = Object.assign(ensureItemState(k), s);
+        });
+      }
+      renderAllCategories();
+    }
+
     // Initialize · no category expanded by default (all items shown, no active tab)
+    restoreState();
     filterByCategory(null);
     updateAllHighlights();
     updateCounts();
+    // Persist on any interaction — bubble-phase listeners fire AFTER the app's
+    // own click/change handlers mutate the DOM classes and itemState.
+    document.addEventListener('click', saveState, false);
+    document.addEventListener('change', saveState, false);
+    document.addEventListener('input', saveState, false);
   })();
 </script>
 <script src="../../flove-appy.js" data-app="Inventary" data-colour="#2f7fd6" defer></script>

@@ -785,6 +785,17 @@ body{
 /* faded just enough to read "demo", but still fully clickable / mock-playable */
 .demo-dim{ opacity:.6; }
 
+/* upgrade-to-basic button — appears at the basic threshold once reached */
+.feat-upgrade-btn{
+  display:block; width:100%; margin-top:.4rem; cursor:pointer;
+  font-family:"Space Mono",monospace; font-size:.54rem; font-weight:700; letter-spacing:.04em;
+  padding:.34rem .4rem; border-radius:8px;
+  border:1px solid rgba(0,247,167,.6); background:rgba(0,247,167,.12); color:var(--signal);
+  transition:background .16s, box-shadow .16s, transform .12s;
+}
+.feat-upgrade-btn:hover{ background:rgba(0,247,167,.22); box-shadow:0 0 14px -3px var(--glow-s); }
+.feat-upgrade-btn:active{ transform:translateY(1px); }
+
 
 
 
@@ -1883,6 +1894,7 @@ body:has(#lang-es:checked) .es{display:inline}
               <div class="profily-badges" style="margin-top:.2rem">
                 <span id="pc-presence" class="pbadge LIVE" style="font-size:.52rem">LIVE</span>
                 <span class="sbadge" id="pc-stage" style="font-size:.48rem">newbie</span>
+                <span class="sbadge" id="pc-score" style="font-size:.48rem" title="Your live score" aria-label="Your live score" data-aria-en="Your live score" data-aria-es="Tu puntuación en vivo">⭐ 42</span>
                 <span class="pc-chevron" aria-hidden="true">▸</span>
               </div>
             </div>
@@ -2815,6 +2827,8 @@ function createId() {
   if (btn) btn.style.display = 'none';
   const rows = document.getElementById('id-rows');
   if (rows) rows.style.display = 'flex';
+
+  awardPoints(5);                                  // created your id · +5
 }
 
 // Copy any id value to the clipboard (stays in place, no navigation). Used by both rows.
@@ -2958,10 +2972,10 @@ const RESOURCE_META = {
 };
 // Reward scales with the chosen preset
 const RESOURCE_REWARD = {
-  none:     { cu: 0, stars: 0,  global: 0 },
-  light:    { cu: 2, stars: 3,  global: 2 },
-  balanced: { cu: 5, stars: 8,  global: 5 },
-  max:      { cu: 9, stars: 14, global: 9 },
+  none:     { cu: 0, stars: 0,   global: 0 },
+  light:    { cu: 2, stars: 30,  global: 2 },
+  balanced: { cu: 5, stars: 80,  global: 5 },   // "medium"
+  max:      { cu: 9, stars: 200, global: 9 },
 };
 function setResourcePreset(name) {
   if (!RESOURCE_PRESETS[name]) return;
@@ -3188,6 +3202,21 @@ function checkStageThreshold() {
   }
 }
 
+// Score engine — every scored interaction routes through here so the live
+// totals (profile card + Extensions basic threshold) refresh together.
+function awardPoints(n) {
+  if (!n) return;
+  state.stars += n;
+  checkStageThreshold();
+  render();
+}
+
+// Basic threshold reached → carry the whole profile into the basic fork.
+function upgradeToBasic() {
+  try { localStorage.setItem('appyTransfer', JSON.stringify(state)); } catch (_) {}
+  location.href = 'basicappy.html';
+}
+
 function updatePerm(area, val) {
   state.permissions[area] = val;
 }
@@ -3258,6 +3287,8 @@ function renderProfileCard() {
   if (pcSocial) pcSocial.textContent = state.socialProfiles.length;
   const pcStars = document.getElementById('pc-stars');
   if (pcStars) pcStars.textContent = state.stars;
+  const pcScore = document.getElementById('pc-score');
+  if (pcScore) pcScore.textContent = '⭐ ' + state.stars;
 }
 
 // ============================================================
@@ -3276,7 +3307,7 @@ function submitContent() {
   if (!content) return;
   state.queue.push({ id: queueCounter++, type, content, status: 'pending' });
   document.getElementById('pub-content').value = '';
-  render();
+  awardPoints(1);                                  // post added · +1
 }
 
 
@@ -3413,7 +3444,7 @@ function ecGoPublish() {
     msg.innerHTML = bx('Added to queue · ', 'Añadido a la cola · ') + '<button type="button" onclick="switchTab(\'activity\')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:2px;padding:0">' + state.sessionQueueCount + '</button>';
     msg.style.color = 'var(--muted)';
   }
-  render();
+  awardPoints(1);                                  // post added · +1
 }
 
 // ============================================================
@@ -3563,8 +3594,8 @@ const groupSvg = name => GROUP_SVG[name] || ICO('<rect x="4" y="4" width="12" he
 function togglePeer(h) { state.openPeer = (state.openPeer === h) ? null : h; renderMyNet(); }
 function toggleGroup(n) { state.openGroup = (state.openGroup === n) ? null : n; renderMyNet(); }
 // More Social — follow/support adds the entity to the Follows / Supports lists above
-function followMore(n)  { state.follows  = state.follows.includes(n)  ? state.follows.filter(x => x !== n)  : state.follows.concat(n);  renderMyNet(); }
-function supportMore(n) { state.supports = state.supports.includes(n) ? state.supports.filter(x => x !== n) : state.supports.concat(n); renderMyNet(); }
+function followMore(n)  { const add = !state.follows.includes(n);  state.follows  = add ? state.follows.concat(n)  : state.follows.filter(x => x !== n);  renderMyNet(); if (add) awardPoints(1); }   // follow · +1
+function supportMore(n) { const add = !state.supports.includes(n); state.supports = add ? state.supports.concat(n) : state.supports.filter(x => x !== n); renderMyNet(); if (add) awardPoints(1); }  // support · +1
 // Favourites are only the follows you star in the Follows list
 function toggleFavourite(n) {
   if (!state.follows.includes(n)) return;
@@ -3731,7 +3762,7 @@ function chatSend() {
   if (!t) return;
   active.messages.push({ from: 'me', text: t });
   inp.value = '';
-  renderChat();
+  awardPoints(1);                                  // sent a chat message · +1
 }
 function renderChatSearch(q) {
   const res = document.getElementById('chat-search-results');
@@ -4184,9 +4215,11 @@ function buildFeatureTiers() {
       </div>`;
     } else if (tier.name === 'basic') {
       const pct = Math.max(0, Math.min(100, Math.round(state.stars / tier.threshold * 100)));
+      const reached = state.stars >= tier.threshold;
       threshHtml = `<div class="feat-thresh">
         <div class="feat-thresh-track"><div class="feat-thresh-fill" style="width:${pct}%"></div></div>
         <span class="feat-thresh-txt">${state.stars} / ${tier.threshold} ⭐</span>
+        ${reached ? `<button type="button" class="feat-upgrade-btn" onclick="event.stopPropagation();upgradeToBasic()">${bx('⬆ Upgrade to basic', '⬆ Subir a basic')}</button>` : ''}
       </div>`;
     } else {
       threshHtml = `<div class="feat-thresh"><span class="feat-thresh-txt">${tier.threshold === 0 ? bx('open', 'abierto') : tier.threshold + ' ⭐'}</span></div>`;
@@ -4286,6 +4319,7 @@ switchTab('profile');
     }
     const reader = new FileReader();
     reader.onload = e => { addPlayedApp(app, file.name, e.target.result, btn);
+      awardPoints(10);                              // played app uploaded · +10
       msg.innerHTML = bx(ap + ' added to Played apps ✓', ap + ' añadido a Apps jugadas ✓'); msg.className = 'upload-msg ok'; if (window.applyLang) applyLang(); };
     reader.onerror = () => { msg.innerHTML = bx('Could not read ' + fn + '.', 'No se pudo leer ' + fn + '.'); msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); };
     reader.readAsText(file);

@@ -1624,6 +1624,12 @@ body{
 .upload-msg{ margin-top:.45rem; font-size:.76rem; min-height:1.1em; }
 .upload-msg.ok{ color:var(--signal); }
 .upload-msg.err{ color:var(--danger); }
+.upload-big{ width:100%; display:flex; align-items:center; justify-content:center; gap:.5rem; cursor:pointer;
+  font-family:"Space Mono",monospace; font-size:.8rem; font-weight:700; color:var(--accent);
+  padding:1.4rem 1rem; border-radius:13px; border:1.5px dashed rgba(108,92,231,.5);
+  background:rgba(108,92,231,.05); transition:background .18s, border-color .18s, box-shadow .18s; }
+.upload-big:hover{ background:rgba(108,92,231,.12); border-color:var(--accent); box-shadow:0 0 18px -5px var(--glow-a); }
+.upload-big svg{ width:22px; height:22px; flex:none; }
 .played-sec{ margin-top:.9rem; }
 .played-head{ font-weight:700; font-size:.9rem; margin-bottom:.5rem; }
 .played-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem; }
@@ -1975,7 +1981,11 @@ body:has(#lang-es:checked) .es{display:inline}
         <!-- Played apps — play an app by uploading its summary -->
         <section class="upload-sec" aria-label="Played apps" data-aria-en="Played apps" data-aria-es="Apps jugadas">
           <div class="upload-head"><span class="en" lang="en">Played apps</span><span class="es" lang="es">Apps jugadas</span> <span class="upload-sub"><span class="en" lang="en">— add an app by its <code>Appname-summary.json</code></span><span class="es" lang="es">— añade una app por su <code>Appname-summary.json</code></span></span></div>
-          <div class="rainbow-row" role="group" aria-label="App upload buttons" data-aria-en="App upload buttons" data-aria-es="Botones para subir apps">
+          <button type="button" class="upload-big" id="upload-big" onclick="pickAppAny()" aria-label="Upload a summary" data-aria-en="Upload a summary" data-aria-es="Subir un resumen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3"/></svg>
+            <span class="en" lang="en">Upload summary here</span><span class="es" lang="es">Sube aquí un resumen</span>
+          </button>
+          <div class="rainbow-row" style="display:none" role="group" aria-label="App upload buttons" data-aria-en="App upload buttons" data-aria-es="Botones para subir apps">
             <button type="button" class="rb" data-app="Goddy"     style="--c:#e23b3b" onclick="pickApp('Goddy',this)">Goddy</button>
             <button type="button" class="rb" data-app="Souls"     style="--c:#ef7d1a" onclick="pickApp('Souls',this)">Souls</button>
             <button type="button" class="rb" data-app="Pracsys"   style="--c:#e3bb12" onclick="pickApp('Pracsys',this)">Pracsys</button>
@@ -4337,25 +4347,47 @@ switchTab('profile');
     f.click();
   };
 
+  // big "Upload summary here" button — accepts any app, detected from the filename
+  window.pickAppAny = function(){
+    pending = {name: '*', btn: null};
+    const f = document.getElementById('app-file');
+    f.value = '';
+    f.click();
+  };
+  // default = big button; once an app is played, show the rainbow bars instead
+  function refreshUploadUI(){
+    const big = document.getElementById('upload-big');
+    const row = document.querySelector('.rainbow-row');
+    const has = document.querySelectorAll('#played-grid .app-card').length > 0;
+    if (big) big.style.display = has ? 'none' : '';
+    if (row) row.style.display = has ? '' : 'none';
+  }
+
   window.handleAppFile = function(input){
     const file = input.files && input.files[0];
     const msg = document.getElementById('upload-msg');
     if (!file || !pending) return;
-    const app = pending.name, btn = pending.btn;
     const base = file.name.replace(/\.[^.]+$/, '').toLowerCase();   // strip extension
-    const target = app.toLowerCase();
-    // accept Appname-summary.json, Appname.json, or any file whose title starts with the app name
-    const titleMatch = base === target || base === target + '-summary' || base.startsWith(target);
-    const fn = escHtml(file.name), ap = escHtml(app);
-    if (!titleMatch){
-      msg.innerHTML = bx('“' + fn + '” doesn’t match ' + ap + '. Expected ' + ap + '-summary.json.', '«' + fn + '» no coincide con ' + ap + '. Se esperaba ' + ap + '-summary.json.');
-      msg.className = 'upload-msg err';
-      if (window.applyLang) applyLang();
-      return;
+    const fn = escHtml(file.name);
+    const matches = a => { const t = a.toLowerCase(); return base === t || base === t + '-summary' || base.startsWith(t); };
+    let app = pending.name, btn = pending.btn;
+    if (app === '*'){                               // big button — detect the app from the filename
+      app = Object.keys(RAINBOW).find(matches);
+      if (!app){
+        msg.innerHTML = bx('“' + fn + '” doesn’t match any app. Expected e.g. Goddy-summary.json.', '«' + fn + '» no coincide con ninguna app. Se esperaba p. ej. Goddy-summary.json.');
+        msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); return;
+      }
+      btn = document.querySelector('.rb[data-app="' + app + '"]');
+    } else if (!matches(app)){
+      const ap0 = escHtml(app);
+      msg.innerHTML = bx('“' + fn + '” doesn’t match ' + ap0 + '. Expected ' + ap0 + '-summary.json.', '«' + fn + '» no coincide con ' + ap0 + '. Se esperaba ' + ap0 + '-summary.json.');
+      msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); return;
     }
+    const ap = escHtml(app);
     const reader = new FileReader();
     reader.onload = e => { addPlayedApp(app, file.name, e.target.result, btn);
       awardPoints(30, 'social');                    // played app uploaded · +30
+      refreshUploadUI();
       msg.innerHTML = bx(ap + ' added to Played apps ✓', ap + ' añadido a Apps jugadas ✓'); msg.className = 'upload-msg ok'; if (window.applyLang) applyLang(); };
     reader.onerror = () => { msg.innerHTML = bx('Could not read ' + fn + '.', 'No se pudo leer ' + fn + '.'); msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); };
     reader.readAsText(file);
@@ -4398,11 +4430,13 @@ switchTab('profile');
       addPlayedApp(rec.app, rec.app.toLowerCase() + '-summary.json', raw, null);
       const b = document.querySelector('.rb[data-app="' + rec.app + '"]'); if (b) b.classList.add('played');
     });
+    refreshUploadUI();
   }
   window.floveIngest = ingestAppy;                       // let switchTab re-ingest on Profile
   // run after flove-appy.js (deferred) has loaded; retry to defeat any load-order race
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ingestAppy);
   else ingestAppy();
+  refreshUploadUI();
   setTimeout(ingestAppy, 300);
   setTimeout(ingestAppy, 1200);
   // live-update when an app publishes from another tab, and when the window regains focus

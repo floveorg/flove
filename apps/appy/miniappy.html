@@ -760,6 +760,18 @@ body{
 .field textarea{ resize:vertical; min-height:82px; }
 .field select{ cursor:pointer; }
 
+/* Identity rows — one homogeneous treatment for the nety id + keypair */
+.id-rows{ display:none; flex-direction:column; gap:.55rem; margin-bottom:1.3rem; }
+.id-row{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+.id-row-label{ flex:0 0 58px; font-size:.56rem; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); font-family:"Space Mono",monospace; }
+.id-val{ flex:1; min-width:0; font-family:"Space Mono",monospace; font-weight:700; font-size:.74rem;
+  color:var(--signal); letter-spacing:.04em; padding:.4rem .7rem; border-radius:8px;
+  border:1px solid rgba(0,247,167,.3); background:rgba(0,247,167,.06);
+  word-break:break-all; text-shadow:0 0 12px rgba(0,247,167,.28); }
+.id-copy{ flex:none; font-size:.58rem !important; padding:.34rem .62rem !important; }
+.id-actions{ display:flex; gap:.5rem; margin-top:.1rem; }
+
 
 
 
@@ -2091,16 +2103,22 @@ body:has(#lang-es:checked) .es{display:inline}
           </div>
         </div>
 
-        <!-- Identity — the Create ID button becomes your codename in place (no title/intro/header) -->
+        <!-- Identity — Create ID becomes the nety id + keypair in place: same design, each with copy -->
         <button type="button" class="btn signal" id="create-id-btn" style="margin-bottom:1.3rem" onclick="createId()"><span class="en" lang="en">✦ Create ID</span><span class="es" lang="es">✦ Crear ID</span></button>
-        <div id="id-codename-wrap" style="display:none;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.3rem">
-          <span id="id-codename" style="font-family:'Space Mono',monospace;font-weight:700;font-size:.82rem;color:var(--signal);letter-spacing:.06em;text-shadow:0 0 12px rgba(0,247,167,.45);padding:.34rem .7rem;border-radius:8px;border:1px solid rgba(0,247,167,.3);background:rgba(0,247,167,.06)"></span>
-          <button type="button" class="btn ghost" id="id-copy-btn" style="font-size:.6rem;padding:.32rem .7rem" onclick="copyCodename()"><span class="en" lang="en">Copy</span><span class="es" lang="es">Copiar</span></button>
-          <button type="button" class="btn ghost" id="id-settings-btn" style="font-size:.6rem;padding:.32rem .7rem" onclick="switchTab('privacy')"><span class="en" lang="en">Settings</span><span class="es" lang="es">Ajustes</span></button>
-        </div>
-        <div class="field" style="margin-bottom:1.3rem">
-          <label><span class="en" lang="en">Keypair (mock)</span><span class="es" lang="es">Par de claves (simulado)</span></label>
-          <input type="text" id="nety-keypair" readonly value="" placeholder="— create your id to generate keys —" data-ph-en="— create your id to generate keys —" data-ph-es="— crea tu id para generar claves —" style="color:var(--muted)" aria-label="Mock keypair" data-aria-en="Mock keypair" data-aria-es="Par de claves simulado">
+        <div class="id-rows" id="id-rows">
+          <div class="id-row">
+            <span class="id-row-label">nety id</span>
+            <span class="id-val" id="id-codename"></span>
+            <button type="button" class="btn ghost id-copy" onclick="copyText('id-codename',this)" aria-label="Copy nety id" data-aria-en="Copy nety id" data-aria-es="Copiar id de nety"><span class="en" lang="en">Copy</span><span class="es" lang="es">Copiar</span></button>
+          </div>
+          <div class="id-row">
+            <span class="id-row-label">keypair</span>
+            <span class="id-val" id="nety-keypair"></span>
+            <button type="button" class="btn ghost id-copy" onclick="copyText('nety-keypair',this)" aria-label="Copy keypair" data-aria-en="Copy keypair" data-aria-es="Copiar par de claves"><span class="en" lang="en">Copy</span><span class="es" lang="es">Copiar</span></button>
+          </div>
+          <div class="id-actions">
+            <button type="button" class="btn ghost" id="id-settings-btn" style="font-size:.6rem;padding:.32rem .7rem" onclick="switchTab('privacy')"><span class="en" lang="en">Settings</span><span class="es" lang="es">Ajustes</span></button>
+          </div>
         </div>
 
         <div class="sec"><span class="en" lang="en">Donate Computing</span><span class="es" lang="es">Donar cómputo</span></div>
@@ -2719,28 +2737,27 @@ function createId() {
   const pid = document.getElementById('pc-peer-id');
   if (pid) { pid.textContent = state.peerId; pid.style.opacity = '1'; }
 
+  const cn = document.getElementById('id-codename');
+  if (cn) cn.textContent = state.peerId;
   const kp = document.getElementById('nety-keypair');
-  if (kp) { kp.value = state.keypair; kp.style.color = 'var(--ink)'; }
+  if (kp) kp.textContent = state.keypair;
 
   // reveal the Privacy ("security") tab so the Settings button can reach it (no auto-switch)
   const ptab = document.getElementById('tab-privacy');
   if (ptab) ptab.style.display = '';
 
-  // the Create ID button disappears; the codename takes its exact place, with copy + settings
+  // the Create ID button disappears; the id + keypair rows take its exact place
   const btn = document.getElementById('create-id-btn');
   if (btn) btn.style.display = 'none';
-  const wrap = document.getElementById('id-codename-wrap');
-  if (wrap) wrap.style.display = 'flex';
-  const cn = document.getElementById('id-codename');
-  if (cn) cn.textContent = state.peerId;
+  const rows = document.getElementById('id-rows');
+  if (rows) rows.style.display = 'flex';
 }
 
-// Copy the generated codename to the clipboard (stays in place, no navigation)
-function copyCodename() {
-  const el = document.getElementById('id-codename');
+// Copy any id value to the clipboard (stays in place, no navigation). Used by both rows.
+function copyText(id, btn) {
+  const el = document.getElementById(id);
   if (!el) return;
   if (navigator.clipboard) navigator.clipboard.writeText(el.textContent).catch(() => {});
-  const btn = document.getElementById('id-copy-btn');
   if (btn) {
     const en = btn.querySelector('.en'), es = btn.querySelector('.es');
     const oe = en ? en.textContent : '', os = es ? es.textContent : '';

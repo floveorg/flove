@@ -913,26 +913,6 @@
   body:has(#insight-3:checked) .inv-body .insight-3-content,
   body:has(#insight-4:checked) .inv-body .insight-4-content{ display:block; }
 
-  .inv-body .cssbar{ display:flex; align-items:center; gap:.55rem; margin:.34rem 0; }
-  .inv-body .cssbar-emo{ width:1.5em; text-align:center; font-size:1.1rem }
-  .inv-body .cssbar-trk{
-    position:relative; flex:1; height:10px;
-    background: rgba(0,0,0,.08); border-radius:999px; overflow:hidden;
-  }
-  .inv-body .cssbar-trk > i{
-    position:absolute; left:0; top:0; bottom:0; width:0;
-    background: var(--accent); transition: width .2s ease;
-  }
-  .inv-body .csscol{ display:flex; flex-direction:column; align-items:center; gap:.35rem; }
-  .inv-body .csscol-trk{
-    position:relative; width:14px; height:104px;
-    background: rgba(0,0,0,.08); border-radius:999px; overflow:hidden;
-  }
-  .inv-body .csscol-trk > i{
-    position:absolute; left:0; right:0; bottom:0; height:0;
-    background: var(--accent); transition: height .2s ease;
-  }
-
   /* Copy hint */
   .inv-body .copy-btn{ margin: 0; }
   .inv-body .copy-hint-panel{
@@ -2125,6 +2105,7 @@ em{color:#14503e}</style></head>
 
   // ===== MAGIC TOGGLE — rewrite the same selections in a warmer voice =====
   function renderMagic(){
+    const esc = s => String(s ?? "").replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
     const thing = $("#thing-name").value.trim() || "this thing";
     const desc  = $("#thing-desc").value.trim();
     const where = $("#where").value.trim();
@@ -2143,23 +2124,23 @@ em{color:#14503e}</style></head>
       ["own-ours-strong","belonging to everyone, everywhere"]
     ].filter(([id]) => $("#"+id)?.checked).map(([,t]) => t);
     const bits = [];
-    bits.push(`✨ I set <strong>${thing}</strong> free`);
-    if (desc) bits.push(`— a ${desc.toLowerCase()}`);
-    if (tags.length) bits.push(`woven from <em>${tags.join(" · ")}</em>`);
-    if (where) bits.push(`from ${where}`);
-    if (span)  bits.push(`(${span})`);
+    bits.push(`✨ I set <strong>${esc(thing)}</strong> free`);
+    if (desc) bits.push(`— a ${esc(desc.toLowerCase())}`);
+    if (tags.length) bits.push(`woven from <em>${esc(tags.join(" · "))}</em>`);
+    if (where) bits.push(`from ${esc(where)}`);
+    if (span)  bits.push(`(${esc(span)})`);
     if (owns.length) bits.push(`Now ${owns.join(", and ")}.`);
     if ($("#no-rules")?.checked) bits.push("No rule binds it.");
     if ($("#no-law")?.checked)   bits.push("No law claims it.");
-    if (how) bits.push(how.endsWith(".") ? how : how + ".");
+    if (how) bits.push(esc(how.endsWith(".") ? how : how + "."));
     if (wishes.length || scopes.length){
       const w = wishes.length ? wishes.join(", ") : "the times to come";
       const s = scopes.length ? scopes.join(", ") : "the world";
       bits.push(`May goodness ripple through ${w} and reach ${s}.`);
     }
-    if (say) bits.push(`— ${say}`);
+    if (say) bits.push(`— ${esc(say)}`);
     if ($("#curse")?.checked){
-      bits.push(`🪄 Any who deceive will feel their own choice answer back${cd ? ` (${cd})` : ""}.`);
+      bits.push(`🪄 Any who deceive will feel their own choice answer back${cd ? ` (${esc(cd)})` : ""}.`);
     }
     $("#sentenceMagic").innerHTML = bits.join(" ");
   }
@@ -2274,12 +2255,12 @@ em{color:#14503e}</style></head>
 
   // ===== DOWNLOAD bundle — what's ticked under Save gets emitted =====
   const fmtBuilders = {
-    txt:  () => ({ blob: new Blob([fullText() + "\n"], { type:"text/plain" }),       name:"freed-declaration.txt" }),
-    md:   () => ({ blob: new Blob([buildMD()],         { type:"text/markdown" }),    name:"freed-declaration.md" }),
-    html: () => ({ blob: new Blob([buildHTMLDoc()],    { type:"text/html" }),        name:"freed-declaration.html" }),
-    csv:  () => ({ blob: new Blob([buildCSV()],        { type:"text/csv" }),         name:"freed-declaration.csv" }),
-    xml:  () => ({ blob: new Blob([buildXML()],        { type:"application/xml" }),  name:"freed-declaration.xml" }),
-    json: () => ({ blob: new Blob([JSON.stringify({ ...snapshot(), declaration: fullText() }, null, 2)], { type:"application/json" }), name:"freed-declaration.json" }),
+    txt:  () => ({ blob: new Blob([fullText() + "\n"], { type:"text/plain;charset=utf-8" }),       name:"freed-declaration.txt" }),
+    md:   () => ({ blob: new Blob([buildMD()],         { type:"text/markdown;charset=utf-8" }),    name:"freed-declaration.md" }),
+    html: () => ({ blob: new Blob([buildHTMLDoc()],    { type:"text/html;charset=utf-8" }),        name:"freed-declaration.html" }),
+    csv:  () => ({ blob: new Blob([buildCSV()],        { type:"text/csv;charset=utf-8" }),         name:"freed-declaration.csv" }),
+    xml:  () => ({ blob: new Blob([buildXML()],        { type:"application/xml;charset=utf-8" }),  name:"freed-declaration.xml" }),
+    json: () => ({ blob: new Blob([JSON.stringify({ ...snapshot(), declaration: fullText() }, null, 2)], { type:"application/json;charset=utf-8" }), name:"freed-declaration.json" }),
   };
   $("#dlBtn")?.addEventListener("click", e => {
     e.preventDefault();

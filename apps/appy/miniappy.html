@@ -796,6 +796,22 @@ body{
 .feat-upgrade-btn:hover{ background:rgba(0,247,167,.22); box-shadow:0 0 14px -3px var(--glow-s); }
 .feat-upgrade-btn:active{ transform:translateY(1px); }
 
+/* live stars counter — bottom-left: star background + centred number, pulses when it counts up */
+.star-counter{ position:fixed; left:14px; bottom:14px; z-index:400; width:60px; height:60px;
+  display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.star-counter svg{ position:absolute; inset:0; width:100%; height:100%;
+  fill:#ffd24a; filter:drop-shadow(0 3px 10px rgba(0,0,0,.35)) drop-shadow(0 0 6px rgba(255,210,74,.6)); }
+.star-counter span{ position:relative; z-index:1; font-family:"Fredoka",sans-serif; font-weight:700;
+  font-size:.92rem; color:#5a3d00; text-shadow:0 1px 0 rgba(255,255,255,.4); }
+.star-counter.bump{ animation:star-bump .55s cubic-bezier(.2,.8,.25,1); }
+@keyframes star-bump{ 0%{ transform:scale(1) translateY(0); }
+  30%{ transform:scale(1.4) translateY(-6px); filter:brightness(1.3); }
+  100%{ transform:scale(1) translateY(0); } }
+@media (prefers-reduced-motion:reduce){ .star-counter.bump{ animation:none; } }
+/* current-stage star credit, shown above the chip the user is in */
+.rstage-credit{ font-family:"Fredoka",sans-serif; font-weight:700; font-size:.72rem; color:var(--signal);
+  line-height:1; margin-bottom:.1rem; text-shadow:0 0 12px rgba(0,247,167,.4); }
+
 
 
 
@@ -1905,11 +1921,12 @@ body:has(#lang-es:checked) .es{display:inline}
                 <div class="pc-row"><span class="en" lang="en">Joined:</span><span class="es" lang="es">Se unió:</span> <strong>2026-01</strong></div>
                 <div class="pc-row"><span class="en" lang="en">Stars:</span><span class="es" lang="es">Estrellas:</span> <strong id="pc-stars">0</strong> ⭐</div>
 
-                <!-- More about me — say-something + add-link fields, then your added entries (was "Added") -->
+                <!-- More about me — chips above, then say-something + add-link fields + Save below -->
                 <div class="pc-extras-label" style="margin-top:.7rem"><span class="en" lang="en">More about me</span><span class="es" lang="es">Más sobre mí</span></div>
-                <div class="field"><input type="text" id="ep-about" placeholder="Some words" data-ph-en="Some words" data-ph-es="Unas palabras" aria-label="More about me" data-aria-en="More about me" data-aria-es="Más sobre mí" style="font-size:.64rem"></div>
-                <div class="field" style="margin-top:.4rem"><input type="text" id="add-link-input" placeholder="add link" data-ph-en="add link" data-ph-es="añadir enlace" aria-label="Add link" data-aria-en="Add link" data-aria-es="Añadir enlace" style="font-size:.64rem"></div>
                 <div class="pc-extras" id="pc-extras" aria-live="polite"></div>
+                <div class="field" style="margin-top:.4rem"><input type="text" id="ep-about" placeholder="Some words" data-ph-en="Some words" data-ph-es="Unas palabras" aria-label="More about me" data-aria-en="More about me" data-aria-es="Más sobre mí" style="font-size:.64rem"></div>
+                <div class="field" style="margin-top:.4rem"><input type="text" id="add-link-input" placeholder="add link" data-ph-en="add link" data-ph-es="añadir enlace" aria-label="Add link" data-aria-en="Add link" data-aria-es="Añadir enlace" style="font-size:.64rem"></div>
+                <button type="button" class="btn signal" style="margin-top:.45rem;font-size:.62rem;padding:.38rem .8rem;align-self:flex-start" onclick="saveAbout()"><span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
               </div>
             </div>
           </div>
@@ -1928,7 +1945,7 @@ body:has(#lang-es:checked) .es{display:inline}
               </select>
               <input type="text" id="ep-social-handle" placeholder="social handle or link" data-ph-en="social handle or link" data-ph-es="alias o enlace social" aria-label="Social link" data-aria-en="Social link" data-aria-es="Enlace social" style="flex:1;min-width:90px;font-family:'Space Mono',monospace;font-size:.64rem;color:var(--ink);background:rgba(255,255,255,.85);border:1px solid rgba(28,25,42,.07);border-radius:7px;padding:.38rem .7rem;outline:none">
             </div>
-            <button type="button" class="btn signal" style="margin-top:.45rem;font-size:.62rem;padding:.38rem .8rem;align-self:flex-start" onclick="saveAbout()"><span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
+            <button type="button" class="btn signal" style="margin-top:.45rem;font-size:.62rem;padding:.38rem .8rem;align-self:flex-start" onclick="saveSocial()"><span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
             <div class="pc-extras" id="pc-social-links" aria-live="polite"></div>
           </aside>
 
@@ -2638,7 +2655,7 @@ const state = {
   stageThresholds: [0, 10, 100, 1000, 10000],
   linkedIdentities: [],
   socialProfiles: [],
-  facets: { personal: 0, local: 30, social: 20, global: 15 },
+  facets: { personal: 0, local: 0, social: 0, global: 0 },
   activity: 'LIVE',
   queue: [],
   peers: [],
@@ -2849,7 +2866,7 @@ function createId() {
   const rows = document.getElementById('id-rows');
   if (rows) rows.style.display = 'flex';
 
-  awardPoints(30);                                 // created your id · +30
+  awardPoints(30, 'personal');                     // created your id · +30
 }
 
 // Copy any id value to the clipboard (stays in place, no navigation). Used by both rows.
@@ -2872,15 +2889,9 @@ function copyText(id, btn) {
 function linkIdentity(id) {
   if (state.linkedIdentities.includes(id)) return;
   state.linkedIdentities.push(id);
-  if (id === 'telegram') {
-    state.facets.personal = Math.min(100, state.facets.personal + 12);
-    state.publishUnlocked = true;
-  }
-  if (id === 'phone')      state.facets.personal = Math.min(100, state.facets.personal + 6);
-  if (id === 'biometrics') state.facets.personal = Math.min(100, state.facets.personal + 8);
-  if (id === 'email')      state.facets.personal = Math.min(100, state.facets.personal + 4);
-  const pts = ({ email: 20, telegram: 50, phone: 100, biometrics: 200 })[id] || 0;   // authenticated an identity
-  if (pts) awardPoints(pts); else render();
+  if (id === 'telegram') state.publishUnlocked = true;
+  const pts = ({ email: 20, telegram: 50, phone: 100, biometrics: 200 })[id] || 0;   // authentication → Personal circle
+  if (pts) awardPoints(pts, 'personal'); else render();
 }
 
 // ============================================================
@@ -3076,23 +3087,28 @@ function renderIdentityForm() {
 
 // Save — pushes typed entries (about / link / social) shown in the marcflove card
 function saveAbout() {
-  const a  = document.getElementById('ep-about');
-  const l  = document.getElementById('add-link-input');
-  const sp = document.getElementById('ep-social-platform');
-  const sh = document.getElementById('ep-social-handle');
-  const about  = a  ? a.value.trim()  : '';
-  const link   = l  ? l.value.trim()  : '';
-  const social = sh ? sh.value.trim() : '';
-  if (!about && !link && !social) { if (a) a.focus(); return; }
+  const a = document.getElementById('ep-about');
+  const l = document.getElementById('add-link-input');
+  const about = a ? a.value.trim() : '';
+  const link  = l ? l.value.trim() : '';
+  if (!about && !link) { if (a) a.focus(); return; }
   let pts = 0;
-  if (about)  { state.aboutEntries.push({ type: 'about',  text: about }); pts += 5; }   // saved content · +5
-  if (link)   { state.aboutEntries.push({ type: 'link',   text: link }); pts += 5; }    // saved content · +5
-  if (social) { state.aboutEntries.push({ type: 'social', platform: sp ? sp.value : '', text: social }); pts += 10; }  // social profile · +10
+  if (about) { state.aboutEntries.push({ type: 'about', text: about }); pts += 5; }   // saved content · +5
+  if (link)  { state.aboutEntries.push({ type: 'link',  text: link }); pts += 5; }    // saved content · +5
   if (a) a.value = '';
   if (l) l.value = '';
+  renderProfileExtras();
+  awardPoints(pts, 'personal');             // your own profile → Personal circle
+}
+function saveSocial() {
+  const sp = document.getElementById('ep-social-platform');
+  const sh = document.getElementById('ep-social-handle');
+  const social = sh ? sh.value.trim() : '';
+  if (!social) { if (sh) sh.focus(); return; }
+  state.aboutEntries.push({ type: 'social', platform: sp ? sp.value : '', text: social });
   if (sh) sh.value = '';
   renderProfileExtras();
-  awardPoints(pts);
+  awardPoints(10, 'social');                // social profile → Social circle
 }
 function deleteAbout(i) {
   if (i < 0 || i >= state.aboutEntries.length) return;
@@ -3187,11 +3203,8 @@ function shareHardware() {
   if (state.shared) return;                 // one-time — no repeat star farming
   const r = RESOURCE_REWARD[state.resourcePreset] || RESOURCE_REWARD.balanced;
   state.contributions += r.cu;
-  state.stars += r.stars;
-  state.facets.global = Math.min(100, state.facets.global + r.global);
   state.shared = true;
-  checkStageThreshold();
-  render();
+  awardPoints(r.stars, 'global');           // computing donation → Global circle
 }
 
 function checkStageThreshold() {
@@ -3208,11 +3221,20 @@ function checkStageThreshold() {
 
 // Score engine — every scored interaction routes through here so the live
 // totals (profile card + Extensions basic threshold) refresh together.
-function awardPoints(n) {
+function awardPoints(n, circle) {
   if (!n) return;
   state.stars += n;
+  if (circle && state.facets[circle] != null) state.facets[circle] += n;   // every star belongs to a circle
   checkStageThreshold();
   render();
+  bumpStarCounter();
+}
+function bumpStarCounter() {
+  const c = document.getElementById('star-counter');
+  if (!c) return;
+  const num = document.getElementById('star-counter-num');
+  if (num) num.textContent = state.stars;
+  c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump');
 }
 
 // Basic threshold reached → carry the whole profile into the basic fork.
@@ -3311,7 +3333,7 @@ function submitContent() {
   if (!content) return;
   state.queue.push({ id: queueCounter++, type, content, status: 'pending' });
   document.getElementById('pub-content').value = '';
-  awardPoints(1);                                  // post added · +1
+  awardPoints(1, 'social');                        // post added · +1
 }
 
 
@@ -3448,7 +3470,7 @@ function ecGoPublish() {
     msg.innerHTML = bx('Added to queue · ', 'Añadido a la cola · ') + '<button type="button" onclick="switchTab(\'activity\')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:2px;padding:0">' + state.sessionQueueCount + '</button>';
     msg.style.color = 'var(--muted)';
   }
-  awardPoints(1);                                  // post added · +1
+  awardPoints(1, 'social');                        // post added · +1
 }
 
 // ============================================================
@@ -3530,7 +3552,7 @@ function pubLike(id) {
   e.liked = !e.liked;
   e.likeCount += e.liked ? 1 : -1;
   if (e.likeCount < 0) e.likeCount = 0;
-  if (e.liked) state.facets.social = Math.min(100, state.facets.social + 1);
+  if (e.liked) { awardPoints(1, 'social'); return; }   // liking → Social circle
   render();
 }
 
@@ -3598,8 +3620,8 @@ const groupSvg = name => GROUP_SVG[name] || ICO('<rect x="4" y="4" width="12" he
 function togglePeer(h) { state.openPeer = (state.openPeer === h) ? null : h; renderMyNet(); }
 function toggleGroup(n) { state.openGroup = (state.openGroup === n) ? null : n; renderMyNet(); }
 // More Social — follow/support adds the entity to the Follows / Supports lists above
-function followMore(n)  { const add = !state.follows.includes(n);  state.follows  = add ? state.follows.concat(n)  : state.follows.filter(x => x !== n);  renderMyNet(); if (add) awardPoints(1); }   // follow · +1
-function supportMore(n) { const add = !state.supports.includes(n); state.supports = add ? state.supports.concat(n) : state.supports.filter(x => x !== n); renderMyNet(); if (add) awardPoints(1); }  // support · +1
+function followMore(n)  { const add = !state.follows.includes(n);  state.follows  = add ? state.follows.concat(n)  : state.follows.filter(x => x !== n);  renderMyNet(); if (add) awardPoints(1, 'social'); }   // follow · +1
+function supportMore(n) { const add = !state.supports.includes(n); state.supports = add ? state.supports.concat(n) : state.supports.filter(x => x !== n); renderMyNet(); if (add) awardPoints(1, 'social'); }  // support · +1
 // Favourites are only the follows you star in the Follows list
 function toggleFavourite(n) {
   if (!state.follows.includes(n)) return;
@@ -3766,7 +3788,7 @@ function chatSend() {
   if (!t) return;
   active.messages.push({ from: 'me', text: t });
   inp.value = '';
-  awardPoints(1);                                  // sent a chat message · +1
+  awardPoints(1, 'social');                        // sent a chat message · +1
 }
 function renderChatSearch(q) {
   const res = document.getElementById('chat-search-results');
@@ -3972,6 +3994,10 @@ function render() {
   // Profile card (Access tab)
   renderProfileCard();
 
+  // live star counter (bottom-left)
+  const _sc = document.getElementById('star-counter-num');
+  if (_sc) _sc.textContent = state.stars;
+
   // translate2: apply data-* (option/placeholder/aria) on freshly-injected markup
   if (window.applyLang) applyLang();
 }
@@ -3987,7 +4013,7 @@ function updateRings() {
   rings.forEach(r => {
     const el = document.getElementById(r.id);
     if (!el) return;
-    const fill = (r.score / 100) * r.circ;
+    const fill = (Math.min(100, r.score) / 100) * r.circ;
     el.setAttribute('stroke-dasharray', fill + ' ' + r.circ);
   });
   // Pulse visibility
@@ -4125,12 +4151,13 @@ function buildRingStages() {
       if (d.activities) txt += `<div class="rstage-acts">${d.activities.map(a => `<button type="button" class="rstage-act" onclick="event.stopPropagation();switchTab('${a.tab}')">${bx(a.label[0] + ' →', a.label[1] + ' →')}</button>`).join('')}</div>`;
     }
     return `<div class="rstage-col">
+      ${i === cur ? `<div class="rstage-credit">${state.stars} ⭐</div>` : ''}
       <button type="button" class="${cls}" onclick="toggleStageDetail('${s}')" aria-expanded="${open}">${s}</button>
       <div class="rstage-th">${thTxt}</div>
       ${open ? `<div class="rstage-text">${txt}</div>` : ''}
     </div>`;
   }).join('');
-  wrap.innerHTML = `<span class="rstage-arrow" title="Your stars" aria-label="Your stars">${state.stars} ⭐ →</span>` + cols;
+  wrap.innerHTML = cols;
   if (window.applyLang) applyLang();
 }
 
@@ -4149,7 +4176,7 @@ function renderRingCircles() {
     const open = (state.openCircle === f.key);       // description shown only on click
     const actions = s.actions.map((a, i) => `<button type="button" class="btn ${i === 0 ? 'signal' : 'ghost'}" onclick="switchTab('${a[2]}')">${bx(a[0], a[1])}</button>`).join('');
     return `<div class="rcircle-col${f.active ? ' rcircle-active' : ''}${open ? ' open' : ''}" style="color:${s.color}">
-      <button type="button" class="rcircle-top" onclick="toggleRingCircle('${f.key}')" aria-expanded="${open}"><span class="rcircle-dot"></span><span class="rcircle-name">${f.name}</span><strong id="${f.score}">${state.facets[f.key]}</strong></button>
+      <button type="button" class="rcircle-top" onclick="toggleRingCircle('${f.key}')" aria-expanded="${open}"><span class="rcircle-dot"></span><span class="rcircle-name">${f.name}</span><strong id="${f.score}">${state.facets[f.key]} ⭐</strong></button>
       ${open ? `<div class="rcircle-desc">${bx(s.desc, s.descEs)}</div><div class="rcircle-actions">${actions}</div>` : ''}
     </div>`;
   }).join('');
@@ -4325,7 +4352,7 @@ switchTab('profile');
     }
     const reader = new FileReader();
     reader.onload = e => { addPlayedApp(app, file.name, e.target.result, btn);
-      awardPoints(30);                              // played app uploaded · +30
+      awardPoints(30, 'social');                    // played app uploaded · +30
       msg.innerHTML = bx(ap + ' added to Played apps ✓', ap + ' añadido a Apps jugadas ✓'); msg.className = 'upload-msg ok'; if (window.applyLang) applyLang(); };
     reader.onerror = () => { msg.innerHTML = bx('Could not read ' + fn + '.', 'No se pudo leer ' + fn + '.'); msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); };
     reader.readAsText(file);
@@ -4548,5 +4575,10 @@ switchTab('profile');
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+  <!-- live stars counter — bottom-left, star background + number, pulses when it counts up -->
+  <div id="star-counter" class="star-counter" title="Your stars" aria-label="Your stars">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.7 5.85 6.3.7-4.7 4.3 1.27 6.25L12 16.9 6.43 19.95 7.7 13.7 3 9.4l6.3-.7z"/></svg>
+    <span id="star-counter-num">0</span>
+  </div>
 </body>
 </html>

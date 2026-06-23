@@ -2606,9 +2606,30 @@
     aqNest: { aq1:'', aq2:'', aq3:'' },
     cqNest: { cq1:'', cq2:'', cq3:'' }
   };
-  // Reload always starts fresh — wipe any persisted state from prior sessions
-  // so nothing typed or selected carries over after a page refresh.
-  try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
+  // ✦ F0 local persistence (backend_plan.md §10.3a/b).
+  // Hydrate the prior session's selections/inputs so nothing typed or picked
+  // is lost on reload — the boot below repaints the whole UI from `state`.
+  // Navigation is intentionally NOT restored: the boot (further down) always
+  // resets state.view='welcome' / state.slide=0, so reopening lands on the
+  // welcome view rather than a deep stage/tab.
+  (function hydrateState(){
+    let raw; try { raw = localStorage.getItem(STORAGE_KEY); } catch(_){ return; }
+    if (!raw) return;
+    let saved; try { saved = JSON.parse(raw); } catch(_){ return; }
+    if (!saved || typeof saved !== 'object') return;
+    Object.keys(state).forEach(k => {
+      if (!(k in saved)) return;
+      const cur = state[k], val = saved[k];
+      // deep-merge the nested object slices (stars, *Nest) so a stale/partial
+      // save can't drop expected keys; primitives/arrays are taken as-is.
+      if (cur && typeof cur === 'object' && !Array.isArray(cur)
+          && val && typeof val === 'object' && !Array.isArray(val)) {
+        Object.assign(cur, val);
+      } else {
+        state[k] = val;
+      }
+    });
+  })();
 
   // ── hidden timer ──
   const logEvent = (kind, target) => {
@@ -3961,6 +3982,40 @@
         renderCertFields(n.dataset.cert);          // reveal the feature fields for this method
       });
     });
+
+    // ✦ F0: reflect hydrated customize-panel state back onto its controls, so a
+    // restored session shows the right mode / language / play-method / cert-node
+    // (these controls only sync DOM→state on change, never state→DOM on boot).
+    (function reflectCustomize(){
+      // mode radios + Private download link
+      document.querySelectorAll('input[name="custMode"]').forEach(r => {
+        r.checked = (r.value === state.custMode);
+      });
+      refreshDl();
+      // language radios
+      document.querySelectorAll('input[name="uiLang"]').forEach(r => {
+        const isEs = r.id === 'ui-lang-es';
+        r.checked = (isEs ? state.uiLang === 'es' : state.uiLang !== 'es');
+      });
+      // "Play with" progress bar
+      if (state.custTell && playNodes.length){
+        const pn = playNodes.find(n => n.dataset.play === state.custTell);
+        if (pn){
+          playNodes.forEach(o => o.classList.toggle('is-on', o === pn));
+          renderIntro(playIntro, PLAY_INFO[state.custTell]);
+        }
+      }
+      // certify node (only if one was previously chosen)
+      if (state.custCertNode && certNodes.length){
+        const cn = certNodes.find(n => n.dataset.cert === state.custCertNode);
+        if (cn){
+          certNodes.forEach(o => o.classList.toggle('is-on', o === cn));
+          if (certGeneral) certGeneral.hidden = true;
+          renderIntro(certIntro, CERT_INFO[state.custCertNode]);
+          renderCertFields(state.custCertNode);
+        }
+      }
+    })();
   })();
 
   // ── welcome "More info": the architecture behind the extreme intimacy ──

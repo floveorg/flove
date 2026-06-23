@@ -3420,18 +3420,50 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
   })();
 
   // local persistence
+  // F0 hard-local persistence (flove backend_plan.md §10.3a/b).
+  // Canonical key follows the flove convention; the legacy key is read once
+  // on load (one-way migration) so existing users keep their data.
+  const STORE_KEY        = 'flove:realy:state';
+  const LEGACY_STORE_KEY = 'realy_state';
+  // pending restore payloads — filled by loadLocal(), consumed in the boot
+  // sequence AFTER the DOM (canonical cards + branch realms) is rebuilt.
+  let pendingExtraRealms = null;   // dynamically-added branch realms + values
+  let pendingMoreLabels  = null;   // custom realm-option labels
+
   function saveLocal() {
     syncSectionsFromDOM();
-    try { localStorage.setItem('realy_state', JSON.stringify({ sections, notes: notesInput.value })); } catch(e) {}
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        sections,
+        notes: notesInput.value,
+        // branch realms (Person / Place / Object + custom) spawned via More
+        extraRealms: extraRealms.map(r => ({
+          id: r.id, stepId: r.stepId, title: r.title,
+          icon: r.icon, sub: r.sub,
+          realPlaceholder: r.realPlaceholder, ficPlaceholder: r.ficPlaceholder,
+          realValue: r.realValue || '', ficValue: r.ficValue || ''
+        })),
+        // custom realm-option labels added via "Add new"
+        moreRealmsLabels
+      }));
+    } catch(e) {}
   }
   function loadLocal() {
     try {
-      const raw = localStorage.getItem('realy_state');
+      let raw = localStorage.getItem(STORE_KEY);
+      if (!raw) {
+        // one-way migration: read the legacy key once, then carry on.
+        raw = localStorage.getItem(LEGACY_STORE_KEY);
+      }
       if (!raw) return;
-      const s = JSON.parse(raw);
+      let s;
+      try { s = JSON.parse(raw); } catch(e) { return; }
+      if (!s || typeof s !== 'object') return;
+
       if (Array.isArray(s.sections) && s.sections.length) {
         // Map only the four canonical realms by id; any older custom realms
-        // are intentionally ignored (More Realms now handles dynamic ones).
+        // stored under `sections` are ignored (More Realms / extraRealms now
+        // handles dynamic ones).
         const allowed = ['event','fact','idea','project'];
         const byId = {};
         s.sections.forEach(x => { if (x && allowed.includes(x.id)) byId[x.id] = x; });
@@ -3446,6 +3478,14 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
         });
       }
       if (typeof s.notes === 'string') notesInput.value = s.notes;
+
+      // stash dynamic data for the post-render restore pass
+      if (Array.isArray(s.extraRealms) && s.extraRealms.length) {
+        pendingExtraRealms = s.extraRealms;
+      }
+      if (Array.isArray(s.moreRealmsLabels) && s.moreRealmsLabels.length) {
+        pendingMoreLabels = s.moreRealmsLabels.filter(l => typeof l === 'string');
+      }
     } catch(e) {}
   }
 
@@ -3645,6 +3685,44 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
 
   buildMoreRealmsGrid();
 
+  // ---------- restore dynamic state (branches + custom labels) ----------
+  // Called from the boot sequence AFTER canonical cards are rendered:
+  // restore the structure first (re-spawn branches, rebuild the grid),
+  // then refill the typed Real/Fictional values into the rebuilt DOM.
+  function restoreDynamicState() {
+    // 1. custom realm-option labels added via "Add new"
+    if (Array.isArray(pendingMoreLabels) && pendingMoreLabels.length) {
+      pendingMoreLabels.forEach(l => {
+        if (!moreRealmsLabels.some(x => x.toLowerCase() === l.toLowerCase())) {
+          moreRealmsLabels.push(l);
+        }
+      });
+      buildMoreRealmsGrid();
+      pendingMoreLabels = null;
+    }
+    // 2. re-spawn branch realms, then refill their values
+    if (Array.isArray(pendingExtraRealms) && pendingExtraRealms.length) {
+      pendingExtraRealms.forEach(saved => {
+        if (!saved || !saved.title) return;
+        spawnExtraRealm(saved.title);
+        // spawnExtraRealm matches/creates a realm by title — find it and refill
+        const realm = extraRealms.find(r => r.title.toLowerCase() === String(saved.title).toLowerCase());
+        if (!realm) return;
+        realm.realValue = saved.realValue || '';
+        realm.ficValue  = saved.ficValue  || '';
+        const realEl = document.getElementById('real-' + realm.id);
+        const ficEl  = document.getElementById('fic-'  + realm.id);
+        if (realEl) realEl.value = realm.realValue;
+        if (ficEl)  ficEl.value  = realm.ficValue;
+      });
+      pendingExtraRealms = null;
+    }
+    // land on the welcome step (step-0), not the last spawned branch
+    const r0 = document.getElementById('step-0');
+    if (r0) r0.checked = true;
+    renderPhrase();
+  }
+
   document.getElementById('copyPhraseBtn').addEventListener('click', () => {
     copyText(phraseDisplay.textContent);
   });
@@ -3788,9 +3866,16 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
         close();
         if (act === 'reset') {
           if (confirm('Reset all realms and notes?')) {
-            localStorage.removeItem('realy_state');
+            try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+            try { localStorage.removeItem(LEGACY_STORE_KEY); } catch(e) {}
+            // also tear down any spawned branch realms + custom labels
+            extraRealms.slice().forEach(r => removeExtraRealm(r.id));
+            moreRealmsLabels = DEFAULT_MORE_REALMS.slice();
+            buildMoreRealmsGrid();
             notesInput.value = '';
             initSections();
+            const r0 = document.getElementById('step-0');
+            if (r0) r0.checked = true;
             toast('reset');
           }
         } else if (act === 'export') {
@@ -3859,8 +3944,9 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
 
   // ---------- start ----------
   initSections();
-  loadLocal();
+  loadLocal();                  // restores canonical values + notes; stashes dynamic data
   if (sections.length) renderSections();
+  restoreDynamicState();        // re-spawn branches + custom labels, refill, land on step-0
   renderPhrase();
   setInterval(saveLocal, 4000);
 })();

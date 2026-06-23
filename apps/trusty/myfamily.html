@@ -1593,6 +1593,60 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+<script>
+/* ✦ F0 local persistence (backend_plan.md §10.3a/b).
+   myfamily has NO dynamic list — state is static controls only: the friend
+   name, 35 quiz checkboxes (7 cats × 5 cols) and 7 per-category nuance
+   textareas. All bars / points / phrase / jungle / order are *derived* from
+   those controls by the app's own recalcAll(). So we only persist the raw
+   control values, then replay native input/change events on restore so the
+   app re-derives everything itself. We also re-open any category panel that
+   holds a restored checkbox (those panels start hidden). Language radio +
+   any ctl/pop control is excluded. */
+(function(){
+  var KEY='flove:'+(location.pathname.split('/').pop().replace(/\.html$/,'').toLowerCase()||'app')+':state';
+  function keyOf(el){ var cls=el.className||'';
+    if(/ctl|pop/.test(cls)) return null;
+    if(el.name==='lang'||/^lang-/.test(el.id||'')) return null;
+    if(el.type==='radio') return el.id||null;
+    return el.id||el.name||null; }
+  /* checkboxes share a name per category, so id||name collides — give each a
+     stable composite key (name + its column) for save/restore. */
+  function ckey(el){ return el.name+':'+(el.dataset.col||''); }
+  function checks(){ return Array.prototype.slice.call(document.querySelectorAll('input[type="checkbox"][data-col]')); }
+  function each(fn){ Array.prototype.forEach.call(document.querySelectorAll('input,select,textarea'),fn); }
+  function save(){ try{ var o={};
+    each(function(el){ if(el.type==='checkbox') return;   /* checkboxes handled below */
+      var k=keyOf(el); if(!k) return;
+      o[k]=(el.type==='radio')?el.checked:el.value; });
+    var c={}; checks().forEach(function(el){ c[ckey(el)]=el.checked; }); o.__checks=c;
+    localStorage.setItem(KEY,JSON.stringify(o)); }catch(_){} }
+  function restore(){ var raw; try{ raw=localStorage.getItem(KEY);}catch(_){return;} if(!raw) return;
+    var o; try{ o=JSON.parse(raw);}catch(_){return;} if(!o||typeof o!=='object') return;
+    var fire=[];
+    each(function(el){ if(el.type==='checkbox') return;
+      var k=keyOf(el); if(!k||!(k in o)) return;
+      if(el.type==='radio'){ el.checked=!!o[k]; }
+      else { el.value=o[k]; }
+      fire.push(el); });
+    var c=o.__checks||{};
+    checks().forEach(function(el){ var k=ckey(el); if(!(k in c)) return;
+      el.checked=!!c[k];
+      if(el.checked){ fire.push(el);
+        /* reveal the category panel + chip that hosts a restored selection */
+        var sec=el.closest('.qpanel'), cat=sec&&sec.getAttribute('data-cat');
+        if(sec) sec.hidden=false;
+        if(cat){ var chip=document.querySelector('.cat-chip[data-cat="'+cat+'"]');
+          if(chip){ chip.classList.add('open'); chip.setAttribute('aria-expanded','true'); } }
+      } });
+    /* replay native events so the app's own listeners re-derive all UI */
+    fire.forEach(function(el){
+      var ev=(el.type==='checkbox'||el.type==='radio')?'change':'input';
+      el.dispatchEvent(new Event(ev,{bubbles:true})); }); }
+  function go(){ restore(); document.addEventListener('input',save,true); document.addEventListener('change',save,true); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
+})();
+</script>
 <script src="../flove-appy.js" data-app="Myfamily" data-colour="#34b36b" defer></script>
 
 </body>

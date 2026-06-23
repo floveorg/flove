@@ -1960,14 +1960,45 @@
     });
   }
 
-  // ── persistence ─────────────────────────────────────────────
+  // ── persistence (F0 hard local persistence · backend_plan.md §10.3a/b) ──
   function save(){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({
       placed:state.placed, reasons:state.reasons, subs:state.subs, verbs:state.verbs,
-      stage:state.stage, nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
+      subReasons:state.subReasons, subVerbs:state.subVerbs,
+      stage:state.stage, verbsShown:state.verbsShown, reasonsShown:state.reasonsShown,
+      nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
     })); }catch(_){}
   }
-  // (no restore on load — each reload starts with a clean, unplaced board)
+  // restore on load: rehydrate the saved board (placements, reasons, verbs,
+  // threaded subsystems, stage) so a reload / close / reopen continues where the
+  // player left off. The deck + all surfaces are then rebuilt from `state`.
+  function restore(){
+    let raw; try{ raw = localStorage.getItem(STORAGE_KEY); }catch(_){ return false; }
+    if (!raw) return false;
+    let o; try{ o = JSON.parse(raw); }catch(_){ return false; }
+    if (!o || typeof o !== 'object') return false;
+    // scalars / authored content — fall back to the fresh defaults when absent
+    if (o.placed     && typeof o.placed     === 'object') state.placed     = o.placed;
+    if (o.reasons    && typeof o.reasons    === 'object') state.reasons    = Object.assign(freshReasons(), o.reasons);
+    if (o.subs       && typeof o.subs       === 'object') state.subs       = o.subs;
+    if (o.verbs      && typeof o.verbs      === 'object') state.verbs      = o.verbs;
+    if (o.subReasons && typeof o.subReasons === 'object') state.subReasons = o.subReasons;
+    if (o.subVerbs   && typeof o.subVerbs   === 'object') state.subVerbs   = o.subVerbs;
+    if (typeof o.stage === 'number')   state.stage        = Math.max(1, Math.min(4, o.stage));
+    state.verbsShown   = !!o.verbsShown;
+    state.reasonsShown = !!o.reasonsShown;
+    state.nerveOpen    = !!o.nerveOpen;
+    state.immuneOpen   = !!o.immuneOpen;
+    // paint the placed systems into their slots (mirrors placeSystem, minus the
+    // per-card renderDeck/afterChange — those run once after the loop)
+    Object.keys(state.placed).forEach(slotId => {
+      const sysId = state.placed[slotId];
+      const slot  = slotEl(slotId);
+      if (slot && SYS[sysId] && !slot.classList.contains('filled')) fillSlot(slot, sysId);
+      else if (!slot || !SYS[sysId]) delete state.placed[slotId];   // drop stale ids
+    });
+    return true;
+  }
 
   // ── drag & drop ─────────────────────────────────────────────
   let dragSys = null, dragSub = null;
@@ -2754,13 +2785,14 @@ footer a{color:#4dd0e1;text-decoration:none}
   window.addEventListener('scroll', scheduleDraw, { passive:true });
 
   // ── boot ────────────────────────────────────────────────────
-  // Reload always starts fresh — nothing placed, deck collapsed (mirrors souls.html).
-  try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
+  // F0 hard local persistence: rebuild the empty board, then rehydrate any saved
+  // game from localStorage so a reload / close / reopen continues where it left off.
   buildSlots();
-  renderDeck();
+  restore();          // fills placed slots from STORAGE_KEY (no-op on a clean start)
+  renderDeck();       // hides placed systems from the deck
   // systems start already fanned open (5·1·5), not collapsed behind one card
   setDeckOpen(true);
-  afterChange();
+  afterChange();      // re-renders reasons / verbs / subsystems / links / progress from `state`
 </script>
 <script src="../flove-appy.js" data-app="Pracsys" data-colour="#e3bb12" defer></script>
 </body>

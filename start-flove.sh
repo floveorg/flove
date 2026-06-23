@@ -7,7 +7,7 @@ set -uo pipefail
 # Carpeta donde vive este script = raíz de flove (resuelve symlinks).
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PORT=8642
-ENTRY="apps/appy/miniappy.html"        # página de entrada (relativa a la raíz flove)
+ENTRY="apps/appy/appy-mini.html"        # página de entrada (relativa a la raíz flove)
 URL="http://localhost:${PORT}/${ENTRY}"
 
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/${PORT}") 2>/dev/null; }

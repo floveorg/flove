@@ -1085,6 +1085,7 @@
     filter: saturate(.55);
   }
   .btn:focus-visible{ outline: 2px solid #000; outline-offset: 3px }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; pointer-events:none }
 
   /* Clearly highlighted when a button is "checked":
      - Views / Save / Publish while their dropdown is open (aria-expanded="true")
@@ -1872,16 +1873,20 @@
           <div class="action-row">
             <div class="btn-popup-wrap">
               <div class="popup-menu above right" id="saveAbove" hidden role="menu" aria-label="Save format" data-aria-en="Save format" data-aria-es="Formato de guardado">
-                <button class="btn fmt-btn" type="button" data-fmt="json">JSON</button>
-                <button class="btn fmt-btn" type="button" data-fmt="txt">TXT</button>
-                <button class="btn fmt-btn" type="button" data-fmt="md">Markdown</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="json">JSON</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="md">Markdown</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="xml">XML</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="html">HTML</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="csv">CSV</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="jpg">JPG</button>
+                <button class="btn fmt-btn" type="button" data-flove-save="txt">TXT</button>
               </div>
               <button class="btn" type="button" id="saveBtn" aria-haspopup="true" aria-expanded="false"><span class="en" lang="en">💾 Save</span><span class="es" lang="es">💾 Guardar</span></button>
               <div class="popup-menu right" id="saveBelow" hidden role="menu" aria-label="App" data-aria-en="App" data-aria-es="App">
                 <button class="btn" type="button" id="downloadAppBtn"><span class="en" lang="en">📦 Download App</span><span class="es" lang="es">📦 Descargar app</span></button>
               </div>
             </div>
-            <button class="btn" type="button" id="shareBtn"><span class="en" lang="en">🔗 Share</span><span class="es" lang="es">🔗 Compartir</span></button>
+            <button class="btn" type="button" id="shareBtn" data-flove-share="mobile"><span class="en" lang="en">🔗 Share</span><span class="es" lang="es">🔗 Compartir</span></button>
             <div class="btn-popup-wrap">
               <div class="popup-menu above left" id="publishAbove" hidden role="menu" aria-label="Visibility" data-aria-en="Visibility" data-aria-es="Visibilidad">
                 <button class="btn vis-btn" type="button" data-vis="Private"><span class="en" lang="en">Private</span><span class="es" lang="es">Privado</span></button>
@@ -2250,6 +2255,18 @@
         const centreTxt = v.length > 22 ? v.slice(0, 22) + '…' : v;
         document.querySelectorAll('.axial-svg .center-name, .spider-svg .center-name')
           .forEach(t => { t.textContent = centreTxt });
+
+        syncExportGate();
+      }
+
+      // empty-model gate (§13.12 B.4): nothing scored → nothing to send
+      function syncExportGate(){
+        const on = GROUPS.some(g => document.querySelector('input[name="'+g+'"]:checked'))
+                || customCats.some(c => valueOfKey(c.key) != null);
+        ['saveBtn','shareBtn'].forEach(id => {
+          const b = document.getElementById(id);
+          if (b){ b.disabled = !on; b.setAttribute('aria-disabled', String(!on)); }
+        });
       }
 
       // Toast helper
@@ -2434,23 +2451,98 @@
       function asMd(){
         const d = collectData();
         const L = labelsNow();
+        // keep a stray pipe or newline in a name/note from breaking the table
+        const oneLine = x => String(x).replace(/\r?\n+/g, ' ');
+        const cell = x => oneLine(x).replace(/\|/g, '\\|');
         const head = curLangCode() === 'es' ? '| Criterio | Nota | Comentario |' : '| Criterion | Score | Note |';
-        let s = '# Worthing — ' + (d.name || t().untitled) + '\n\n';
+        let s = '# Worthing — ' + oneLine(d.name || t().untitled) + '\n\n';
         s += head + '\n|---|---|---|\n';
         GROUPS.forEach(g => {
           const v = d.scores[g] != null ? d.scores[g] : '—';
-          s += '| ' + L[g] + ' | ' + v + ' | ' + (d.notes[g] || '') + ' |\n';
+          s += '| ' + cell(L[g]) + ' | ' + v + ' | ' + cell(d.notes[g] || '') + ' |\n';
         });
         return s;
       }
+      // ── export helpers (§13.12) — one shared escaping pair + localized filename ──
+      const esc      = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+      const escAttr  = s => esc(s).replace(/"/g, '&quot;');
+      const safeName = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const summaryWord = () => curLangCode() === 'es' ? 'resumen' : 'summary';
+      function fileBase(){
+        const nm = safeName(collectData().name || '');
+        return nm ? 'worthing-' + nm + '-' + summaryWord() : 'worthing-' + summaryWord();
+      }
+      // XML — well-formed, every value escaped; element/attr names stay English
+      function asXml(){
+        const d = collectData(); const L = labelsNow();
+        let s = '<?xml version="1.0" encoding="UTF-8"?>\n<worthing name="' + escAttr(d.name || '') + '">\n';
+        GROUPS.forEach(g => {
+          const v = d.scores[g];
+          s += '  <criterion key="' + escAttr(g) + '" label="' + escAttr(L[g]) + '"'
+             + (v != null ? ' score="' + v + '"' : '') + '>' + esc(d.notes[g] || '') + '</criterion>\n';
+        });
+        return s + '</worthing>\n';
+      }
+      // CSV — RFC-4180 quoting; headers stay English
+      function asCsv(){
+        const d = collectData(); const L = labelsNow();
+        const q = v => { const x = String(v); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+        const lines = ['key,criterion,score,note'];
+        GROUPS.forEach(g => lines.push([g, L[g], d.scores[g] != null ? d.scores[g] : '', d.notes[g] || ''].map(q).join(',')));
+        return lines.join('\n');
+      }
+      // HTML — standalone doc, inline style, every user value escaped (no injection)
+      function asHtml(){
+        const d = collectData(); const L = labelsNow();
+        const es = curLangCode() === 'es';
+        const rows = GROUPS.map(g => '<tr><td>' + esc(L[g]) + '</td><td>'
+          + (d.scores[g] != null ? d.scores[g] : '—') + '</td><td>' + esc(d.notes[g] || '') + '</td></tr>').join('');
+        return '<!doctype html><html lang="' + curLangCode() + '"><head><meta charset="utf-8">'
+          + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+          + '<title>' + esc(d.name || 'Worthing') + ' · ' + summaryWord() + '</title>'
+          + '<style>body{font:15px/1.6 system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:1rem}'
+          + 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:.4rem .6rem;text-align:left}</style></head>'
+          + '<body><h1>' + esc(d.name || 'Worthing') + '</h1><table><thead><tr><th>'
+          + (es ? 'Criterio' : 'Criterion') + '</th><th>' + (es ? 'Nota' : 'Score') + '</th><th>'
+          + (es ? 'Comentario' : 'Note') + '</th></tr></thead><tbody>' + rows + '</tbody></table></body></html>';
+      }
+      // JPG — visual-only canvas, ≥1080px, visible … when it overflows (never silent)
+      function asJpg(){
+        const d = collectData(); const L = labelsNow();
+        const W = 1080, H = 720, canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#14140a'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#f7d24a'; ctx.font = '600 40px Georgia, serif';
+        ctx.fillText(('Worthing — ' + (d.name || '')).slice(0, 40), 48, 72);
+        ctx.fillStyle = '#fff'; ctx.font = '22px system-ui, sans-serif';
+        const lines = GROUPS.map(g => {
+          const v = d.scores[g] != null ? d.scores[g] : '—';
+          return L[g] + ': ' + v + (d.notes[g] ? '  — ' + d.notes[g] : '');
+        });
+        const MAX = 18;
+        lines.slice(0, MAX).forEach((ln, i) => ctx.fillText(String(ln).slice(0, 72), 48, 140 + i * 30));
+        if (lines.length > MAX) ctx.fillText('…', 48, 140 + MAX * 30);
+        canvas.toBlob(b => {
+          if (!b) { showToast('JPG ✗'); return; }
+          const url = URL.createObjectURL(b);
+          const a = document.createElement('a');
+          a.href = url; a.download = fileBase() + '.jpg';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showToast(t().saved + fileBase() + '.jpg');
+        }, 'image/jpeg', 0.92);
+      }
       document.querySelectorAll('.fmt-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const fmt = btn.dataset.fmt;
-          const d = collectData();
-          const base = (d.name || 'worth');
-          if (fmt === 'json') downloadBlob(JSON.stringify(d, null, 2), 'application/json', base + '.json');
-          else if (fmt === 'txt') downloadBlob(asTxt(), 'text/plain', base + '.txt');
-          else if (fmt === 'md') downloadBlob(asMd(), 'text/markdown', base + '.md');
+          const fmt = btn.dataset.floveSave, base = fileBase();
+          if      (fmt === 'json') downloadBlob(JSON.stringify(collectData(), null, 2), 'application/json', base + '.json');
+          else if (fmt === 'txt')  downloadBlob(asTxt(),  'text/plain',      base + '.txt');
+          else if (fmt === 'md')   downloadBlob(asMd(),   'text/markdown',   base + '.md');
+          else if (fmt === 'xml')  downloadBlob(asXml(),  'application/xml', base + '.xml');
+          else if (fmt === 'html') downloadBlob(asHtml(), 'text/html',       base + '.html');
+          else if (fmt === 'csv')  downloadBlob(asCsv(),  'text/csv',        base + '.csv');
+          else if (fmt === 'jpg')  asJpg();
           // dropdown stays open so you can pick another format
         });
       });
@@ -2465,8 +2557,21 @@
           .map(g => d.scores[g] != null ? L[g][0] + d.scores[g] : null)
           .filter(Boolean);
         s += parts.length ? parts.join(' ') : t().nothing;
-        try { await navigator.clipboard.writeText(s); showToast(t().shareCopied); }
-        catch(_) { showToast(t().shareFail); }
+        // §13.12 share ladder: Web Share + standalone HTML (guarded) → text → clipboard
+        const title = 'flove · worthing';
+        try {
+          const file = new File([asHtml()], fileBase() + '.html', { type: 'text/html' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ title, text: s, files: [file] });
+          } else if (navigator.share) {
+            await navigator.share({ title, text: s });
+          } else {
+            await navigator.clipboard.writeText(s); showToast(t().shareCopied);
+          }
+        } catch(_) {
+          try { await navigator.clipboard.writeText(s); showToast(t().shareCopied); }
+          catch(__) { showToast(t().shareFail); }
+        }
         shareBtn.classList.add('checked');
         clearTimeout(shareBtn._t);
         shareBtn._t = setTimeout(() => shareBtn.classList.remove('checked'), 1600);

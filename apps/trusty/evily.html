@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FLOVE · EVILY</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff4500' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 18.5 C5.5 13 5.5 8 8.7 8 10.7 8 12 9.9 12 9.9 12 9.9 13.3 8 15.3 8 18.5 8 18.5 13 12 18.5Z'/><path d='M9.2 7.6 q-.7 -1.8 .1 -2.9'/><path d='M14.8 7.6 q.7 -1.8 -.1 -2.9'/><path d='M12 18.5 q3.2 1 3.2 -2.2'/><path fill='%23ff4500' stroke='none' d='M13.6 13.8 l1.8 -.5 -.5 1.9z'/></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -62,6 +62,8 @@
     }
     .flove-bar .evil-mark{
       width:2em;height:2em;
+      vertical-align:-.15em;
+      overflow:visible;
       filter:drop-shadow(0 0 8px rgba(255,90,0,.6))
              drop-shadow(0 0 14px rgba(180,0,0,.4));
       animation:mark-flicker 3.4s ease-in-out infinite;
@@ -211,6 +213,7 @@
       background:rgba(255,69,0,.12);
       color:var(--app-accent);
     }
+    .menu-star--green{color:#00ff88}
 
     /* ===== Form ===== */
     .tree-form{
@@ -225,6 +228,16 @@
       margin:14px 0 18px;
       padding:10px 12px 8px;
       border-left:1px dashed rgba(255,255,255,.08);
+    }
+
+    /* utility */
+    .mt-14{margin-top:14px}
+    .visually-hidden{
+      position:absolute !important;
+      width:1px;height:1px;
+      padding:0;margin:-1px;
+      overflow:hidden;clip:rect(0,0,0,0);
+      white-space:nowrap;border:0;
     }
 
     /* Generic field */
@@ -952,64 +965,99 @@
       .subitem{border-radius:9px}
       .flove-bar{font-size:20px;padding:12px 14px}
     }
+
+    /* ===== translate2 — page-translation engine + worldball switcher ===== */
+    /* ── i18n span toggle (CSS-only): hide every non-active language ── */
+    .es{display:none}                                  /* default view = .en */
+    body:has(#lang-es:checked) .en{display:none}
+    body:has(#lang-es:checked) .es{display:inline}
+
+    /* ── worldball switcher (🌐 opens the language options) ── */
+    .lang{display:inline-block;position:relative;margin:.2rem 0 .6rem}
+    .lang>summary{list-style:none;cursor:pointer;width:40px;height:40px;border:1px solid #999;border-radius:50%;
+      display:inline-flex;align-items:center;justify-content:center;font-size:1.35rem;line-height:1;-webkit-user-select:none;user-select:none}
+    .lang>summary::-webkit-details-marker{display:none}
+    .lang[open]>summary{border-color:#333;background:#f2f2f2}
+    .lang-opts{position:absolute;right:0;z-index:10;margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;
+      background:#fff;border:1px solid #999;border-radius:12px;padding:6px;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+    .lang input{position:absolute;opacity:0;pointer-events:none}
+    .lang label{cursor:pointer;padding:0 12px;min-height:40px;display:inline-flex;align-items:center;border:1px solid #999;border-radius:11px;white-space:nowrap}
+    .lang input:checked + label{background:#333;color:#fff;font-weight:bold;border-color:#333}
+
+    @media (prefers-color-scheme:dark){
+      .lang>summary{border-color:#777} .lang[open]>summary{background:#2a2a2a;border-color:#999}
+      .lang-opts{background:#222;border-color:#777;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+      .lang label{border-color:#777}
+      .lang input:checked + label{background:#e9e9e9;color:#111;border-color:#e9e9e9}
+    }
   </style>
 </head>
 <body>
   <canvas id="fxCanvas" aria-hidden="true"></canvas>
 
   <div class="flove-bar flove-bar--dark">
-    <a href="#" class="evily-mark-link" id="evilyLogo" aria-label="Reload Evily" title="Reload">
-      <svg class="evil-mark" aria-hidden="true" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-.15em;overflow:visible;" fill="none" stroke="#ff4500" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d='M12 18.5 C5.5 13 5.5 8 8.7 8 10.7 8 12 9.9 12 9.9 12 9.9 13.3 8 15.3 8 18.5 8 18.5 13 12 18.5Z'/><path d='M9.2 7.6 q-.7 -1.8 .1 -2.9'/><path d='M14.8 7.6 q.7 -1.8 -.1 -2.9'/><path d='M12 18.5 q3.2 1 3.2 -2.2'/><path fill='#ff4500' stroke='none' d='M13.6 13.8 l1.8 -.5 -.5 1.9z'/></svg>
+    <a href="#" class="evily-mark-link" id="evilyLogo" aria-label="Reload Evily" data-aria-en="Reload Evily" data-aria-es="Recargar Evily" title="Reload">
+      <svg class="evil-mark" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="#ff4500" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d='M12 18.5 C5.5 13 5.5 8 8.7 8 10.7 8 12 9.9 12 9.9 12 9.9 13.3 8 15.3 8 18.5 8 18.5 13 12 18.5Z'/><path d='M9.2 7.6 q-.7 -1.8 .1 -2.9'/><path d='M14.8 7.6 q.7 -1.8 -.1 -2.9'/><path d='M12 18.5 q3.2 1 3.2 -2.2'/><path fill='#ff4500' stroke='none' d='M13.6 13.8 l1.8 -.5 -.5 1.9z'/></svg>
     </a>
-    <button type="button" class="flove-title-btn" id="titleBtn" aria-expanded="false" aria-controls="introSection" title="About Evily">
+    <button type="button" class="flove-title-btn" id="titleBtn" aria-expanded="false" aria-controls="introSection" aria-label="About Evily" data-aria-en="About Evily" data-aria-es="Acerca de Evily" title="About Evily">
       <span class="evily-name" data-text="Evily">Evily</span>
     </button>
     <span class="flove-spacer"></span>
+    <details class="lang">
+      <summary class="worldball" title="Language" aria-label="Language" data-aria-en="Language" data-aria-es="Idioma">🌐</summary>
+      <div class="lang-opts">
+        <input type="radio" name="lang" id="lang-en" checked><label for="lang-en">English</label>
+        <input type="radio" name="lang" id="lang-es"><label for="lang-es">Español</label>
+      </div>
+    </details>
     <div class="top-menu">
-      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">☰</button>
+      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu" data-aria-en="Menu" data-aria-es="Menú">☰</button>
       <ul class="menu-list" id="menuList" hidden role="menu">
-        <li role="none"><a role="menuitem" href="#" data-act="reset"><i class="fas fa-rotate-left"></i> &nbsp;Reset form</a></li>
-        <li role="none"><a role="menuitem" href="#" data-act="about"><i class="fas fa-circle-info"></i> &nbsp;About Evily</a></li>
-        <li role="none"><a role="menuitem" href="crumbler.html"><span aria-hidden="true" style="color:#00ff88">✺</span> &nbsp;Crumbler</a></li>
-        <li role="none"><a role="menuitem" href="index.html"><span aria-hidden="true">✺</span> &nbsp;All flove apps</a></li>
+        <li role="none"><a role="menuitem" href="#" data-act="reset"><i class="fas fa-rotate-left"></i> &nbsp;<span class="en" lang="en">Reset form</span><span class="es" lang="es">Reiniciar formulario</span></a></li>
+        <li role="none"><a role="menuitem" href="#" data-act="about"><i class="fas fa-circle-info"></i> &nbsp;<span class="en" lang="en">About Evily</span><span class="es" lang="es">Acerca de Evily</span></a></li>
+        <li role="none"><a role="menuitem" href="crumbler.html"><span class="menu-star menu-star--green" aria-hidden="true">✺</span> &nbsp;Crumbler</a></li>
+        <li role="none"><a role="menuitem" href="index.html"><span aria-hidden="true">✺</span> &nbsp;<span class="en" lang="en">All flove apps</span><span class="es" lang="es">Todas las apps de flove</span></a></li>
       </ul>
     </div>
   </div>
 
-  <section id="introSection" hidden aria-label="About Evily">
-    <button type="button" class="intro-close" id="introClose" aria-label="Close intro" title="Close">×</button>
+  <section id="introSection" hidden aria-label="About Evily" data-aria-en="About Evily" data-aria-es="Acerca de Evily">
+    <button type="button" class="intro-close" id="introClose" aria-label="Close intro" data-aria-en="Close intro" data-aria-es="Cerrar introducción" title="Close">×</button>
     <p class="intro-lead">
-      <strong>Evily</strong> — the dark twin of <a href="crumbler.html">Crumbler</a>. Sign,
+      <strong>Evily</strong> —
+      <span class="en" lang="en">the dark twin of <a href="crumbler.html">Crumbler</a>. Sign,
       in advance, what someone is allowed to <em>do against you</em>, on what scope, and what
-      compensation may put it right.
+      compensation may put it right.</span><span class="es" lang="es">el gemelo oscuro de <a href="crumbler.html">Crumbler</a>. Firma,
+      por adelantado, qué se le permite a alguien <em>hacer en tu contra</em>, en qué ámbito y qué
+      compensación puede repararlo.</span>
     </p>
     <button type="button" class="see-more-btn" id="seeMoreBtn" aria-expanded="false" aria-controls="introMore">
       <span class="flame-i" aria-hidden="true"><i class="fas fa-fire"></i></span>
-      <span class="see-more-text">See more</span>
+      <span class="see-more-text"><span class="en" lang="en">See more</span><span class="es" lang="es">Ver más</span></span>
       <span class="chev" aria-hidden="true">▾</span>
     </button>
     <div class="intro-more" id="introMore">
-      <p>An Evily is not permission to be hurt — it's a way to name the worst that can happen and bind it to terms, so its sting is already paid for.</p>
-      <p>Type a name. Tick what you allow them to do. Set the time, the visibility, the compensation. The form's <strong>Resume</strong> rewrites itself live as you go.</p>
-      <p>When you're ready, copy it, save it, or publish it. The fire below grows with each line you sign; the water comes when you take one back.</p>
+      <p><span class="en" lang="en">An Evily is not permission to be hurt — it's a way to name the worst that can happen and bind it to terms, so its sting is already paid for.</span><span class="es" lang="es">Un Evily no es permiso para que te hagan daño: es una forma de nombrar lo peor que puede pasar y atarlo a unas condiciones, para que su aguijón ya esté pagado de antemano.</span></p>
+      <p><span class="en" lang="en">Type a name. Tick what you allow them to do. Set the time, the visibility, the compensation. The form's <strong>Resume</strong> rewrites itself live as you go.</span><span class="es" lang="es">Escribe un nombre. Marca lo que les permites hacer. Fija el tiempo, la visibilidad, la compensación. El <strong>Resumen</strong> del formulario se reescribe en vivo a medida que avanzas.</span></p>
+      <p><span class="en" lang="en">When you're ready, copy it, save it, or publish it. The fire below grows with each line you sign; the water comes when you take one back.</span><span class="es" lang="es">Cuando estés listo, cópialo, guárdalo o publícalo. El fuego de abajo crece con cada línea que firmas; el agua llega cuando retiras alguna.</span></p>
       <div class="intro-columns">
         <div class="intro-col">
-          <h4>Photos</h4>
+          <h4><span class="en" lang="en">Photos</span><span class="es" lang="es">Fotos</span></h4>
           <div class="slides" id="slides">
-            <figure class="slide-1 is-active" data-i="0">A burning offer · signed in advance</figure>
-            <figure class="slide-2" data-i="1">Conditions · compensation · time</figure>
-            <figure class="slide-3" data-i="2">The price of a curse · made small</figure>
+            <figure class="slide-1 is-active" data-i="0"><span class="en" lang="en">A burning offer · signed in advance</span><span class="es" lang="es">Una oferta ardiente · firmada por adelantado</span></figure>
+            <figure class="slide-2" data-i="1"><span class="en" lang="en">Conditions · compensation · time</span><span class="es" lang="es">Condiciones · compensación · tiempo</span></figure>
+            <figure class="slide-3" data-i="2"><span class="en" lang="en">The price of a curse · made small</span><span class="es" lang="es">El precio de una maldición · vuelto pequeño</span></figure>
             <div class="slides-dots" id="slidesDots">
               <span class="is-on"></span><span></span><span></span>
             </div>
           </div>
         </div>
         <div class="intro-col">
-          <h4>Video</h4>
+          <h4><span class="en" lang="en">Video</span><span class="es" lang="es">Vídeo</span></h4>
           <div class="video-wrap">
             <video id="introVideo" controls playsinline preload="metadata" poster="">
               <source src="" type="video/mp4">
-              <p class="video-placeholder">Video placeholder — set a src on #introVideo.</p>
+              <p class="video-placeholder"><span class="en" lang="en">Video placeholder — set a src on #introVideo.</span><span class="es" lang="es">Marcador de vídeo — define un src en #introVideo.</span></p>
             </video>
           </div>
         </div>
@@ -1021,116 +1069,116 @@
 
     <!-- ===== "I allow [name] to send me to HELL" ===== -->
     <section class="section">
-      <label class="switch inline-flow">
-        <input type="checkbox" name="let_place" id="let_place" checked />
+      <div class="switch inline-flow">
+        <input type="checkbox" name="let_place" id="let_place" checked aria-label="I allow to send me to hell" data-aria-en="I allow to send me to hell" data-aria-es="Permito enviarme al infierno">
         <span>
-          I allow
-          <input type="text" class="inline-input" id="person" name="person" placeholder="Name here…" autocomplete="off" />
-          to send me to HELL
+          <span class="en" lang="en">I allow</span><span class="es" lang="es">Permito a</span>
+          <input type="text" class="inline-input" id="person" name="person" placeholder="Name here…" data-ph-en="Name here…" data-ph-es="Nombre aquí…" autocomplete="off">
+          <span class="en" lang="en">to send me to HELL</span><span class="es" lang="es">enviarme al INFIERNO</span>
         </span>
-      </label>
-
-      <div class="curse-row warn-danger">
-        <input type="checkbox" name="cast_curse" id="cast_curse" />
-        <a href="crumbler.html" class="curse-link">Curse me too</a>
       </div>
 
-      <div class="grid grid--3" style="margin-top:14px">
-        <label class="field">
-          <span class="field__label">During (days)</span>
+      <div class="curse-row warn-danger">
+        <input type="checkbox" name="cast_curse" id="cast_curse">
+        <a href="crumbler.html" class="curse-link"><span class="en" lang="en">Curse me too</span><span class="es" lang="es">Maldíceme también</span></a>
+      </div>
+
+      <div class="grid grid--3 mt-14">
+        <div class="field">
+          <label class="field__label" for="for_days"><span class="en" lang="en">During (days)</span><span class="es" lang="es">Durante (días)</span></label>
           <div class="num-stepper">
-            <input class="field__control" type="number" name="for_days" id="for_days" min="0" value="100" />
+            <input class="field__control" type="number" name="for_days" id="for_days" min="0" value="100">
             <span class="num-arrows">
-              <button type="button" class="num-btn" data-step="1" data-target="for_days" aria-label="increase">▲</button>
-              <button type="button" class="num-btn" data-step="-1" data-target="for_days" aria-label="decrease">▼</button>
+              <button type="button" class="num-btn" data-step="1" data-target="for_days" aria-label="increase" data-aria-en="increase" data-aria-es="aumentar">▲</button>
+              <button type="button" class="num-btn" data-step="-1" data-target="for_days" aria-label="decrease" data-aria-en="decrease" data-aria-es="disminuir">▼</button>
             </span>
           </div>
-        </label>
+        </div>
         <label class="field">
-          <span class="field__label">Visibility</span>
+          <span class="field__label"><span class="en" lang="en">Visibility</span><span class="es" lang="es">Visibilidad</span></span>
           <select class="field__control" name="public_scope" id="public_scope">
-            <option value="private">Private</option>
-            <option value="mediator">Mediator</option>
-            <option value="comunitary">Comunitary</option>
-            <option value="public">Public</option>
+            <option value="private" data-en="Private" data-es="Privada">Private</option>
+            <option value="mediator" data-en="Mediator" data-es="Mediador">Mediator</option>
+            <option value="community" data-en="Community" data-es="Comunitaria">Community</option>
+            <option value="public" data-en="Public" data-es="Pública">Public</option>
           </select>
         </label>
-        <label class="field">
-          <span class="field__label">Expires in (days)</span>
+        <div class="field">
+          <label class="field__label" for="expires_days"><span class="en" lang="en">Expires in (days)</span><span class="es" lang="es">Caduca en (días)</span></label>
           <div class="num-stepper">
-            <input class="field__control" type="number" name="expires_days" id="expires_days" min="0" value="10" />
+            <input class="field__control" type="number" name="expires_days" id="expires_days" min="0" value="10">
             <span class="num-arrows">
-              <button type="button" class="num-btn" data-step="1" data-target="expires_days" aria-label="increase">▲</button>
-              <button type="button" class="num-btn" data-step="-1" data-target="expires_days" aria-label="decrease">▼</button>
+              <button type="button" class="num-btn" data-step="1" data-target="expires_days" aria-label="increase" data-aria-en="increase" data-aria-es="aumentar">▲</button>
+              <button type="button" class="num-btn" data-step="-1" data-target="expires_days" aria-label="decrease" data-aria-en="decrease" data-aria-es="disminuir">▼</button>
             </span>
           </div>
-        </label>
+        </div>
       </div>
     </section>
 
     <!-- ===== Compensable / Fully with [...] / Warn me with [N] days in advance ===== -->
     <section class="section">
       <label class="checkbox">
-        <input type="checkbox" name="compensable" id="compensable" checked />
-        <span>Compensable</span>
+        <input type="checkbox" name="compensable" id="compensable" checked>
+        <span><span class="en" lang="en">Compensable</span><span class="es" lang="es">Compensable</span></span>
       </label>
 
-      <label class="checkbox inline-flow">
-        <input type="checkbox" name="fully" id="fully" checked />
+      <div class="checkbox inline-flow">
+        <input type="checkbox" name="fully" id="fully" checked aria-label="Fully with" data-aria-en="Fully with" data-aria-es="Por completo con">
         <span>
-          Fully with
-          <input type="text" class="inline-input wide" name="with_what" id="with_what" placeholder="goods and services…" autocomplete="off" />
+          <span class="en" lang="en">Fully with</span><span class="es" lang="es">Por completo con</span>
+          <input type="text" class="inline-input wide" name="with_what" id="with_what" placeholder="goods and services…" data-ph-en="goods and services…" data-ph-es="bienes y servicios…" autocomplete="off">
         </span>
-      </label>
+      </div>
 
-      <label class="checkbox inline-flow">
-        <input type="checkbox" name="warnme" id="warnme" checked />
+      <div class="checkbox inline-flow">
+        <input type="checkbox" name="warnme" id="warnme" checked aria-label="Warn me with days in advance" data-aria-en="Warn me with days in advance" data-aria-es="Avisame con dias de antelacion">
         <span>
-          Warn me with
+          <span class="en" lang="en">Warn me with</span><span class="es" lang="es">Avísame con</span>
           <span class="num-stepper">
-            <input type="number" min="0" name="warn_days" id="warn_days" value="10" />
+            <input type="number" min="0" name="warn_days" id="warn_days" value="10">
             <span class="num-arrows">
-              <button type="button" class="num-btn" data-step="1" data-target="warn_days" aria-label="increase">▲</button>
-              <button type="button" class="num-btn" data-step="-1" data-target="warn_days" aria-label="decrease">▼</button>
+              <button type="button" class="num-btn" data-step="1" data-target="warn_days" aria-label="increase" data-aria-en="increase" data-aria-es="aumentar">▲</button>
+              <button type="button" class="num-btn" data-step="-1" data-target="warn_days" aria-label="decrease" data-aria-en="decrease" data-aria-es="disminuir">▼</button>
             </span>
           </span>
-          days in advance
+          <span class="en" lang="en">days in advance</span><span class="es" lang="es">días de antelación</span>
         </span>
-      </label>
+      </div>
     </section>
 
     <!-- ===== "I also allow [name] to" + chips + reciprocity ===== -->
     <section class="section">
       <label class="checkbox">
-        <input type="checkbox" name="get_my" id="get_my" checked />
-        <span>I also allow <span class="person-out" data-bind="person">—</span> to</span>
+        <input type="checkbox" name="get_my" id="get_my" checked>
+        <span><span class="en" lang="en">I also allow</span><span class="es" lang="es">También permito a</span> <span class="person-out" data-bind="person">—</span> <span class="en" lang="en">to</span><span class="es" lang="es"></span></span>
       </label>
 
       <div class="chips">
         <label class="chip">
-          <input type="checkbox" name="get_offer1" id="get_offer1" checked />
-          <span>Know me more</span>
+          <input type="checkbox" name="get_offer1" id="get_offer1" checked>
+          <span data-en="Know me more" data-es="Conocerme más"><span class="en" lang="en">Know me more</span><span class="es" lang="es">Conocerme más</span></span>
         </label>
         <label class="chip">
-          <input type="checkbox" name="get_offer2" id="get_offer2" checked />
-          <span>Get more contact information</span>
+          <input type="checkbox" name="get_offer2" id="get_offer2" checked>
+          <span data-en="Get more contact information" data-es="Obtener más información de contacto"><span class="en" lang="en">Get more contact information</span><span class="es" lang="es">Obtener más información de contacto</span></span>
         </label>
         <label class="chip">
-          <input type="checkbox" name="get_service1" id="get_service1" />
-          <span>Use my grants</span>
+          <input type="checkbox" name="get_service1" id="get_service1">
+          <span data-en="Use my grants" data-es="Usar mis concesiones"><span class="en" lang="en">Use my grants</span><span class="es" lang="es">Usar mis concesiones</span></span>
         </label>
         <label class="chip">
-          <input type="checkbox" name="get_service2" id="get_service2" />
-          <span>Use any of my things</span>
+          <input type="checkbox" name="get_service2" id="get_service2">
+          <span data-en="Use any of my things" data-es="Usar cualquiera de mis cosas"><span class="en" lang="en">Use any of my things</span><span class="es" lang="es">Usar cualquiera de mis cosas</span></span>
         </label>
         <label class="chip chip--input">
-          <input type="text" name="get_other" id="get_other" placeholder="+ other" autocomplete="off" />
+          <input type="text" name="get_other" id="get_other" placeholder="+ other" data-ph-en="+ other" data-ph-es="+ otro" autocomplete="off">
         </label>
       </div>
 
-      <label class="checkbox" style="margin-top:14px">
-        <input type="checkbox" name="reciprocity" id="reciprocity" checked />
-        <span>I want reciprocity</span>
+      <label class="checkbox mt-14">
+        <input type="checkbox" name="reciprocity" id="reciprocity" checked>
+        <span><span class="en" lang="en">I want reciprocity</span><span class="es" lang="es">Quiero reciprocidad</span></span>
       </label>
     </section>
 
@@ -1138,58 +1186,58 @@
 
     <!-- ===== Resume ===== -->
     <details id="reviewBlock">
-      <summary class="review-summary"><span class="review-title">Resume</span></summary>
+      <summary class="review-summary"><span class="review-title"><span class="en" lang="en">Resume</span><span class="es" lang="es">Resumen</span></span></summary>
       <div class="review-body">
         <div class="summary-line" id="summaryLine">
-          <strong>I allow</strong>
+          <strong><span class="en" lang="en">I allow</span><span class="es" lang="es">Permito a</span></strong>
           <span class="person-out" id="outName">—</span>
-          <strong>to</strong>
+          <strong><span class="en" lang="en">to</span><span class="es" lang="es"></span></strong>
           <span id="outList">— select options to see the detail —</span>
         </div>
 
         <div class="button-group action-row">
-          <button type="button" class="btn" id="insightBtn"><i class="fas fa-brain"></i><span>Insight</span></button>
-          <button type="button" class="btn" id="magicBtn"><i class="fas fa-magic"></i><span>Magic</span></button>
-          <button type="button" class="btn" id="copyBtn"><i class="fas fa-copy"></i><span>Copy</span></button>
+          <button type="button" class="btn" id="insightBtn"><i class="fas fa-brain"></i><span><span class="en" lang="en">Insight</span><span class="es" lang="es">Revelación</span></span></button>
+          <button type="button" class="btn" id="magicBtn"><i class="fas fa-magic"></i><span><span class="en" lang="en">Magic</span><span class="es" lang="es">Magia</span></span></button>
+          <button type="button" class="btn" id="copyBtn"><i class="fas fa-copy"></i><span><span class="en" lang="en">Copy</span><span class="es" lang="es">Copiar</span></span></button>
         </div>
 
         <div class="action-spacer" aria-hidden="true"></div>
 
         <div class="button-group">
           <div class="btn-with-subs" id="saveWrap">
-            <button type="button" class="btn" id="saveBtn"><i class="fas fa-download"></i><span>Save</span></button>
+            <button type="button" class="btn" id="saveBtn"><i class="fas fa-download"></i><span><span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></span></button>
             <div class="subitems">
               <button type="button" class="subitem" data-group="save" data-action="jpg">JPG</button>
               <button type="button" class="subitem" data-group="save" data-action="html">HTML</button>
-              <button type="button" class="subitem" data-group="save" data-action="text">Text</button>
+              <button type="button" class="subitem" data-group="save" data-action="text"><span class="en" lang="en">Text</span><span class="es" lang="es">Texto</span></button>
               <button type="button" class="subitem" data-group="save" data-action="json">JSON</button>
             </div>
           </div>
           <div class="btn-with-subs" id="shareWrap">
-            <button type="button" class="btn" id="shareBtn"><i class="fas fa-share-alt"></i><span>Share</span></button>
+            <button type="button" class="btn" id="shareBtn"><i class="fas fa-share-alt"></i><span><span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></span></button>
             <div class="subitems">
               <button type="button" class="subitem" data-group="share" data-action="whatsapp">WhatsApp</button>
               <button type="button" class="subitem" data-group="share" data-action="telegram">Telegram</button>
-              <button type="button" class="subitem" data-group="share" data-action="mail">Mail</button>
+              <button type="button" class="subitem" data-group="share" data-action="mail"><span class="en" lang="en">Mail</span><span class="es" lang="es">Correo</span></button>
             </div>
           </div>
           <div class="btn-with-subs" id="publishWrap">
             <div class="subitems subitems-above">
-              <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP0" data-r="0" data-platform="Mastodon" aria-hidden="true">
+              <input class="subitem-radio" type="radio" tabindex="-1" name="publishPlatform" id="pubP0" data-r="0" data-platform="Mastodon" aria-hidden="true">
               <label class="subitem is-radio" for="pubP0" data-r="0" data-group="publish">Mastodon</label>
-              <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP1" data-r="1" data-platform="Bluesky" aria-hidden="true">
+              <input class="subitem-radio" type="radio" tabindex="-1" name="publishPlatform" id="pubP1" data-r="1" data-platform="Bluesky" aria-hidden="true">
               <label class="subitem is-radio" for="pubP1" data-r="1" data-group="publish">Bluesky</label>
-              <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP2" data-r="2" data-platform="X" aria-hidden="true">
+              <input class="subitem-radio" type="radio" tabindex="-1" name="publishPlatform" id="pubP2" data-r="2" data-platform="X" aria-hidden="true">
               <label class="subitem is-radio" for="pubP2" data-r="2" data-group="publish">X</label>
             </div>
-            <button type="button" class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i><span>Publish</span></button>
+            <button type="button" class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i><span><span class="en" lang="en">Publish</span><span class="es" lang="es">Publicar</span></span></button>
             <div class="subitems subitems-below">
-              <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV0" data-r="0" data-visibility="Public" aria-hidden="true">
-              <label class="subitem is-radio" for="pubV0" data-r="0" data-group="publish">Public</label>
-              <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV1" data-r="1" data-visibility="Friends" aria-hidden="true">
-              <label class="subitem is-radio" for="pubV1" data-r="1" data-group="publish">Friends</label>
-              <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV2" data-r="2" data-visibility="Private" aria-hidden="true">
-              <label class="subitem is-radio" for="pubV2" data-r="2" data-group="publish">Private</label>
+              <input class="subitem-radio" type="radio" tabindex="-1" name="publishVisibility" id="pubV0" data-r="0" data-visibility="Public" aria-hidden="true">
+              <label class="subitem is-radio" for="pubV0" data-r="0" data-group="publish"><span class="en" lang="en">Public</span><span class="es" lang="es">Pública</span></label>
+              <input class="subitem-radio" type="radio" tabindex="-1" name="publishVisibility" id="pubV1" data-r="1" data-visibility="Friends" aria-hidden="true">
+              <label class="subitem is-radio" for="pubV1" data-r="1" data-group="publish"><span class="en" lang="en">Friends</span><span class="es" lang="es">Amigos</span></label>
+              <input class="subitem-radio" type="radio" tabindex="-1" name="publishVisibility" id="pubV2" data-r="2" data-visibility="Private" aria-hidden="true">
+              <label class="subitem is-radio" for="pubV2" data-r="2" data-group="publish"><span class="en" lang="en">Private</span><span class="es" lang="es">Privada</span></label>
             </div>
           </div>
         </div>
@@ -1197,9 +1245,22 @@
         <div class="hint-area" id="hintMessage"></div>
       </div>
     </details>
+
+    <button type="submit" class="visually-hidden">
+      <span class="en" lang="en">Sign the Evily</span><span class="es" lang="es">Firmar el Evily</span>
+    </button>
   </form>
 
   <script>
+    // ===== i18n helper (shared) — pick the string for the active language =====
+    // The active language is the code after "lang-" in the checked worldball radio.
+    window.flLang = function(){
+      const r = document.querySelector('input[name="lang"]:checked');
+      return r ? r.id.replace('lang-', '') : 'en';
+    };
+    // tx({en:'…', es:'…'}) → the active-language string (falls back to en).
+    window.tx = function(map){ const l = window.flLang(); return map[l] != null ? map[l] : map.en; };
+
     // ===== Live Resume + name binding =====
     const form        = document.getElementById('evilForm');
     const personInput = document.getElementById('person');
@@ -1212,46 +1273,53 @@
       bindEls.forEach(el => el.textContent = name);
       outName.textContent = name;
 
+      const li = window.flLang();
       const items = [];
-      if (form.let_place.checked) items.push('send me to hell');
-      if (form.cast_curse?.checked) items.push('and curse me');
+      if (form.let_place.checked) items.push(tx({en:'send me to hell', es:'enviarme al infierno'}));
+      if (form.cast_curse?.checked) items.push(tx({en:'and curse me', es:'y maldecirme'}));
 
       const d = form.for_days.value?.trim();
       const exp = form.expires_days.value?.trim();
       const scope = form.public_scope.value;
-      if (d) items.push(`during ${d} days`);
-      if (scope && scope !== 'private') items.push(`visibility: ${scope}`);
-      if (exp) items.push(`offer expires in ${exp} days`);
+      // visibility label in the active language (from the matching <option>)
+      const scopeOpt = form.public_scope.options[form.public_scope.selectedIndex];
+      const scopeLabel = scopeOpt ? (scopeOpt.dataset[li] || scopeOpt.textContent) : scope;
+      if (d) items.push(tx({en:`during ${d} days`, es:`durante ${d} días`}));
+      if (scope && scope !== 'private') items.push(tx({en:`visibility: ${scopeLabel}`, es:`visibilidad: ${scopeLabel}`}));
+      if (exp) items.push(tx({en:`offer expires in ${exp} days`, es:`la oferta caduca en ${exp} días`}));
 
       const cond = [];
-      if (form.compensable.checked) cond.push('compensable');
+      if (form.compensable.checked) cond.push(tx({en:'compensable', es:'compensable'}));
       if (form.fully.checked){
         const w = form.with_what.value.trim();
-        cond.push(w ? `fully with «${w}»` : 'fully');
+        cond.push(w ? tx({en:`fully with «${w}»`, es:`por completo con «${w}»`}) : tx({en:'fully', es:'por completo'}));
       }
-      if (cond.length) items.push('conditions: ' + cond.join(', '));
+      if (cond.length) items.push(tx({en:'conditions: ', es:'condiciones: '}) + cond.join(', '));
 
       if (form.warnme.checked && form.warn_days.value)
-        items.push(`warn me with ${form.warn_days.value} days in advance`);
+        items.push(tx({en:`warn me with ${form.warn_days.value} days in advance`, es:`avísame con ${form.warn_days.value} días de antelación`}));
 
       if (form.get_my.checked){
         const gets = [];
         [...form.querySelectorAll('.chips input[type="checkbox"]:checked')].forEach(cb => {
           const span = cb.parentElement.querySelector('span');
-          if (span) gets.push(span.textContent.trim());
+          if (span) gets.push((span.dataset[li] || span.textContent).trim());
         });
         if (form.get_other.value.trim()) gets.push(form.get_other.value.trim());
-        if (gets.length) items.push(`also let ${name} ` + gets.join(', '));
+        if (gets.length) items.push(tx({en:`also let ${name} `, es:`también dejar a ${name} `}) + gets.join(', '));
       }
 
-      if (form.reciprocity.checked) items.push('I ask for reciprocity');
+      if (form.reciprocity.checked) items.push(tx({en:'I ask for reciprocity', es:'pido reciprocidad'}));
 
-      outList.textContent = items.length ? items.join(' · ') : '— select options to see the detail —';
+      outList.textContent = items.length ? items.join(' · ') : tx({en:'— select options to see the detail —', es:'— selecciona opciones para ver el detalle —'});
     }
 
     form.addEventListener('input', collect);
     form.addEventListener('change', collect);
     form.addEventListener('reset', () => setTimeout(collect, 0));
+    // Re-render the live resume when the page language switches.
+    document.querySelectorAll('input[name="lang"]').forEach(r =>
+      r.addEventListener('change', () => setTimeout(collect, 0)));
     collect();
 
     // ===== Number steppers =====
@@ -1335,11 +1403,15 @@
     const seeMoreBtn = document.getElementById('seeMoreBtn');
     const introMore  = document.getElementById('introMore');
     const seeMoreText = seeMoreBtn?.querySelector('.see-more-text');
+    const seeMoreEn = seeMoreText?.querySelector('.en');
+    const seeMoreEs = seeMoreText?.querySelector('.es');
     seeMoreBtn?.addEventListener('click', e => {
       e.stopPropagation();
       const open = introMore.classList.toggle('is-open');
       seeMoreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (seeMoreText) seeMoreText.textContent = open ? 'See less' : 'See more';
+      // keep both language spans in sync so the worldball still flips the label
+      if (seeMoreEn) seeMoreEn.textContent = open ? 'See less' : 'See more';
+      if (seeMoreEs) seeMoreEs.textContent = open ? 'Ver menos' : 'Ver más';
     });
 
     // ===== Photo slides — auto-cycle while intro is visible =====
@@ -1362,6 +1434,7 @@
   // ===== Save / Share / Publish / Insight / Magic / Copy =====
   (function(){
     "use strict";
+    const tx = window.tx;
     const hintMessage = document.getElementById('hintMessage');
     const saveBtn    = document.getElementById('saveBtn');
     const shareBtn   = document.getElementById('shareBtn');
@@ -1387,9 +1460,10 @@
         warnme:       form.warnme.checked,
         warn_days:    form.warn_days.value,
         get_my:       form.get_my.checked,
-        chips:        [...form.querySelectorAll('.chips input[type="checkbox"]:checked')]
-                        .map(cb => cb.parentElement.querySelector('span')?.textContent.trim() || '')
-                        .filter(Boolean),
+        chips:        (function(){ const li = window.flLang();
+                        return [...form.querySelectorAll('.chips input[type="checkbox"]:checked')]
+                          .map(cb => { const s = cb.parentElement.querySelector('span'); return s ? (s.dataset[li] || s.textContent).trim() : ''; })
+                          .filter(Boolean); })(),
         get_other:    form.get_other.value.trim(),
         reciprocity:  form.reciprocity.checked,
       };
@@ -1403,17 +1477,7 @@
       const d = getFormData();
       const esc = s => (s||'').toString().replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
       const li = arr => arr.map(x => `<li>${esc(x)}</li>`).join('');
-      const bullets = [];
-      if (d.let_place) bullets.push(`Send me to hell (${d.person||'—'})`);
-      if (d.cast_curse) bullets.push('Curse me');
-      if (d.for_days) bullets.push(`During ${d.for_days} days`);
-      if (d.public_scope) bullets.push(`Visibility: ${d.public_scope}`);
-      if (d.expires_days) bullets.push(`Expires in ${d.expires_days} days`);
-      if (d.compensable) bullets.push('Compensable');
-      if (d.fully) bullets.push(d.with_what ? `Fully with ${d.with_what}` : 'Fully');
-      if (d.warnme) bullets.push(`Warn me with ${d.warn_days} days in advance`);
-      if (d.get_my) bullets.push(`Also let ${d.person||'—'}: ` + (d.chips.concat(d.get_other ? [d.get_other] : []).join(', ') || '—'));
-      if (d.reciprocity) bullets.push('Reciprocity requested');
+      const bullets = bulletList(d);
 
       return `<!doctype html><html><head><meta charset="utf-8"><title>Evily · ${esc(d.person||'')}</title>
 <style>body{background:#0b0b0f;color:#eaeaf0;font-family:system-ui;padding:24px;max-width:680px;margin:auto}
@@ -1421,7 +1485,29 @@ h1{font-family:Georgia,serif;background:linear-gradient(to top,#ffae42,#ff5500,#
 h2{color:#a0a3ad;font-size:.9rem;text-transform:uppercase;letter-spacing:.08em}
 ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
 <body><h1>Evily — ${esc(d.person||'—')}</h1>
-<h2>Terms</h2><ul>${li(bullets)}</ul></body></html>`;
+<h2>${esc(tx({en:'Terms', es:'Condiciones'}))}</h2><ul>${li(bullets)}</ul></body></html>`;
+    }
+
+    // Active-language bullet list shared by HTML export and the JPG render.
+    function bulletList(d){
+      const li2 = window.flLang();
+      const scopeLabel = (function(){
+        const sel = document.getElementById('public_scope');
+        const o = sel && sel.options[sel.selectedIndex];
+        return o ? (o.dataset[li2] || o.textContent) : d.public_scope;
+      })();
+      const bullets = [];
+      if (d.let_place) bullets.push(tx({en:`Send me to hell (${d.person||'—'})`, es:`Enviarme al infierno (${d.person||'—'})`}));
+      if (d.cast_curse) bullets.push(tx({en:'Curse me', es:'Maldecirme'}));
+      if (d.for_days) bullets.push(tx({en:`During ${d.for_days} days`, es:`Durante ${d.for_days} días`}));
+      if (d.public_scope) bullets.push(tx({en:`Visibility: ${scopeLabel}`, es:`Visibilidad: ${scopeLabel}`}));
+      if (d.expires_days) bullets.push(tx({en:`Expires in ${d.expires_days} days`, es:`Caduca en ${d.expires_days} días`}));
+      if (d.compensable) bullets.push(tx({en:'Compensable', es:'Compensable'}));
+      if (d.fully) bullets.push(d.with_what ? tx({en:`Fully with ${d.with_what}`, es:`Por completo con ${d.with_what}`}) : tx({en:'Fully', es:'Por completo'}));
+      if (d.warnme) bullets.push(tx({en:`Warn me with ${d.warn_days} days in advance`, es:`Avísame con ${d.warn_days} días de antelación`}));
+      if (d.get_my) bullets.push(tx({en:`Also let ${d.person||'—'}: `, es:`También dejar a ${d.person||'—'}: `}) + (d.chips.concat(d.get_other ? [d.get_other] : []).join(', ') || '—'));
+      if (d.reciprocity) bullets.push(tx({en:'Reciprocity requested', es:'Reciprocidad solicitada'}));
+      return bullets;
     }
 
     function downloadBlob(blob, filename){
@@ -1450,20 +1536,10 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
 
       ctx.fillStyle = '#a0a3ad';
       ctx.font = '600 13px system-ui';
-      ctx.fillText(`To: ${d.person || '—'}`, 24, 80);
-      ctx.fillText('TERMS', 24, 110);
+      ctx.fillText(tx({en:`To: ${d.person || '—'}`, es:`Para: ${d.person || '—'}`}), 24, 80);
+      ctx.fillText(tx({en:'TERMS', es:'CONDICIONES'}), 24, 110);
 
-      const bullets = [];
-      if (d.let_place) bullets.push(`Send me to hell (${d.person||'—'})`);
-      if (d.cast_curse) bullets.push('Curse me');
-      if (d.for_days) bullets.push(`During ${d.for_days} days`);
-      if (d.public_scope) bullets.push(`Visibility: ${d.public_scope}`);
-      if (d.expires_days) bullets.push(`Expires in ${d.expires_days} days`);
-      if (d.compensable) bullets.push('Compensable');
-      if (d.fully) bullets.push(d.with_what ? `Fully with ${d.with_what}` : 'Fully');
-      if (d.warnme) bullets.push(`Warn me with ${d.warn_days} days in advance`);
-      if (d.get_my) bullets.push(`Also let ${d.person||'—'}: ` + (d.chips.concat(d.get_other ? [d.get_other] : []).join(', ') || '—'));
-      if (d.reciprocity) bullets.push('Reciprocity requested');
+      const bullets = bulletList(d);
 
       ctx.fillStyle = '#eaeaf0';
       ctx.font = '500 15px system-ui';
@@ -1471,7 +1547,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
       bullets.slice(0, maxRows).forEach((t, i) => ctx.fillText(`• ${t}`, 24, 138 + i * 24));
       if (bullets.length > maxRows){
         ctx.fillStyle = '#a0a3ad';
-        ctx.fillText(`… +${bullets.length - maxRows} more`, 24, 138 + maxRows * 24);
+        ctx.fillText(tx({en:`… +${bullets.length - maxRows} more`, es:`… +${bullets.length - maxRows} más`}), 24, 138 + maxRows * 24);
       }
       ctx.fillStyle = 'rgba(255,69,0,.45)';
       ctx.font = 'italic 12px system-ui';
@@ -1514,7 +1590,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
         const vis  = document.querySelector('input[name="publishVisibility"]:checked');
         const platName = plat?.dataset.platform || '—';
         const visName  = vis?.dataset.visibility || '—';
-        setHint(`<i class="fas fa-cloud-upload-alt"></i> Published · ${platName} · ${visName}.`);
+        setHint(`<i class="fas fa-cloud-upload-alt"></i> ${tx({en:'Published', es:'Publicado'})} · ${platName} · ${visName}.`);
         wraps.publish.classList.remove('is-open');
       } else {
         closeAllWraps();
@@ -1525,13 +1601,13 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
     document.addEventListener('click', () => closeAllWraps());
 
     const subActions = {
-      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'evily.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
-      'save:text': () => { downloadBlob(new Blob([summaryText()+'\n'], {type:'text/plain'}), 'evily.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
-      'save:json': () => { downloadBlob(new Blob([JSON.stringify(getFormData(), null, 2)], {type:'application/json'}), 'evily.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
-      'save:jpg':  () => { renderJPG(blob => { if(!blob){ setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; } downloadBlob(blob, 'evily.jpg'); setHint('<i class="fas fa-check-circle"></i> JPG downloaded.'); }); },
-      'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
-      'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
-      'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },
+      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'evily.html'); setHint('<i class="fas fa-check-circle"></i> ' + tx({en:'HTML downloaded.', es:'HTML descargado.'})); },
+      'save:text': () => { downloadBlob(new Blob([summaryText()+'\n'], {type:'text/plain'}), 'evily.txt'); setHint('<i class="fas fa-check-circle"></i> ' + tx({en:'Text downloaded.', es:'Texto descargado.'})); },
+      'save:json': () => { downloadBlob(new Blob([JSON.stringify(getFormData(), null, 2)], {type:'application/json'}), 'evily.json'); setHint('<i class="fas fa-check-circle"></i> ' + tx({en:'JSON downloaded.', es:'JSON descargado.'})); },
+      'save:jpg':  () => { renderJPG(blob => { if(!blob){ setHint('<i class="fas fa-info-circle"></i> ' + tx({en:'JPG export not supported.', es:'Exportar a JPG no es compatible.'})); return; } downloadBlob(blob, 'evily.jpg'); setHint('<i class="fas fa-check-circle"></i> ' + tx({en:'JPG downloaded.', es:'JPG descargado.'})); }); },
+      'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> ' + tx({en:'Opening WhatsApp…', es:'Abriendo WhatsApp…'})); },
+      'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> ' + tx({en:'Opening Telegram…', es:'Abriendo Telegram…'})); },
+      'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> ' + tx({en:'Opening Mail…', es:'Abriendo el correo…'})); },
     };
 
     document.querySelectorAll('.subitem').forEach(btn => {
@@ -1549,17 +1625,17 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
     const copyBtn    = document.getElementById('copyBtn');
 
     const insights = [
-      'An Evily, openly signed, defangs half its evil.',
-      'Letting in the worst on purpose makes the rest of the field smaller.',
-      'Compensation transforms a curse into a contract.',
-      'Visibility is not punishment — it\'s witness.',
-      'A 10-day warning is the kindest sword.',
-      'The reciprocity you ask for is the boundary you keep.',
+      {en:'An Evily, openly signed, defangs half its evil.', es:'Un Evily, firmado abiertamente, desarma la mitad de su maldad.'},
+      {en:'Letting in the worst on purpose makes the rest of the field smaller.', es:'Dejar entrar lo peor a propósito empequeñece todo lo demás.'},
+      {en:'Compensation transforms a curse into a contract.', es:'La compensación convierte una maldición en un contrato.'},
+      {en:'Visibility is not punishment — it\'s witness.', es:'La visibilidad no es castigo: es testimonio.'},
+      {en:'A 10-day warning is the kindest sword.', es:'Un aviso de 10 días es la espada más amable.'},
+      {en:'The reciprocity you ask for is the boundary you keep.', es:'La reciprocidad que pides es el límite que conservas.'},
     ];
     let insightIdx = 0;
     insightBtn.addEventListener('click', e => {
       e.stopPropagation(); fireRipple(insightBtn);
-      setHint(`<i class="fas fa-brain"></i> ${insights[insightIdx % insights.length]}`);
+      setHint(`<i class="fas fa-brain"></i> ${tx(insights[insightIdx % insights.length])}`);
       insightIdx++;
     });
 
@@ -1575,7 +1651,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
         cb.checked = Math.random() < 0.5;
         cb.dispatchEvent(new Event('change',{bubbles:true}));
       });
-      setHint('<i class="fas fa-magic"></i> Magic rerolled your terms.');
+      setHint('<i class="fas fa-magic"></i> ' + tx({en:'Magic rerolled your terms.', es:'La magia ha vuelto a tirar los dados de tus condiciones.'}));
     });
 
     copyBtn.addEventListener('click', async e => {
@@ -1583,11 +1659,11 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
       try{
         await navigator.clipboard.writeText(summaryText());
         const orig = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fas fa-check"></i><span>Copied</span>';
-        setHint('<i class="fas fa-check-circle"></i> Copied to clipboard.');
+        copyBtn.innerHTML = '<i class="fas fa-check"></i><span>' + tx({en:'Copied', es:'Copiado'}) + '</span>';
+        setHint('<i class="fas fa-check-circle"></i> ' + tx({en:'Copied to clipboard.', es:'Copiado al portapapeles.'}));
         setTimeout(() => { copyBtn.innerHTML = orig; }, 1400);
       } catch {
-        setHint('<i class="fas fa-info-circle"></i> Clipboard not available.');
+        setHint('<i class="fas fa-info-circle"></i> ' + tx({en:'Clipboard not available.', es:'Portapapeles no disponible.'}));
       }
     });
 
@@ -1618,7 +1694,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
         if (act === 'reset'){
           form.reset();
           form.dispatchEvent(new Event('change'));
-          setHint('<i class="fas fa-rotate-left"></i> Form reset.');
+          setHint('<i class="fas fa-rotate-left"></i> ' + tx({en:'Form reset.', es:'Formulario reiniciado.'}));
         } else if (act === 'about'){
           document.getElementById('titleBtn')?.click();
         }
@@ -1974,6 +2050,34 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
         spawnWaterAt(cx, cy); // water effect
       }
     });
+  })();
+  </script>
+
+  <script>
+  // ===== translate2 engine — language switch + persistence + <html lang> sync =====
+  (function(){
+    const LS = 'translate2-lang';
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const radios = () => Array.from(document.querySelectorAll('input[name="lang"]'));
+    const curLang = () => { const r = radios().find(x => x.checked); return r ? r.id.replace('lang-', '') : 'en'; };
+    function applyLang(){
+      const li = curLang();
+      document.documentElement.lang = li;
+      document.querySelectorAll('option[data-en]').forEach(o => { if (o.dataset[li] != null) o.textContent = o.dataset[li]; });
+      document.querySelectorAll('[data-ph-en]').forEach(el => { const v = el.dataset['ph' + cap(li)]; if (v != null) el.placeholder = v; });
+      document.querySelectorAll('[data-aria-en]').forEach(el => { const v = el.dataset['aria' + cap(li)]; if (v != null) el.setAttribute('aria-label', v); });
+      try { localStorage.setItem(LS, li); } catch (_) {}
+    }
+    function init(){
+      let saved = null; try { saved = localStorage.getItem(LS); } catch (_) {}
+      if (saved){ const r = document.getElementById('lang-' + saved); if (r) r.checked = true; }
+      radios().forEach(r => r.addEventListener('change', () => {
+        applyLang();
+        const d = document.querySelector('details.lang'); if (d) d.open = false;
+      }));
+      applyLang();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   })();
   </script>
 </body>

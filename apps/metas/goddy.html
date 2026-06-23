@@ -416,6 +416,7 @@
   <nav class="goddy-menu" id="goddyMenu" hidden aria-label="Goddy menu">
     <label class="goddy-menu-item" for="aboutToggle"><i class="fas fa-circle-info"></i> <span class="en" lang="en">About goddy</span><span class="es" lang="es">Acerca de goddy</span></label>
     <a class="goddy-menu-item" href="goddy.html"><i class="fas fa-rotate-right"></i> <span class="en" lang="en">Reload</span><span class="es" lang="es">Recargar</span></a>
+    <button type="button" class="goddy-menu-item" id="clearDataBtn"><i class="fas fa-eraser"></i> <span class="en" lang="en">Clear my data</span><span class="es" lang="es">Borrar mis datos</span></button>
   </nav>
 </div>
 
@@ -622,6 +623,60 @@
                 if (l > 0) m.set(k, l);
             }
             return m;
+        }
+
+        // ── F0 · local persistence (backend_plan.md §10.3a/b) ──────────
+        // The matrix radios ARE the live source of truth, so the summary /
+        // export are always read live — there is no frozen snapshot, hence
+        // no staleness, no polling and no Update button needed here (§10.3a
+        // Update is N/A for live-state apps). What was missing is durability:
+        // we persist on every change and re-derive the matrix from storage
+        // on load (never "first value wins"). localStorage is the hot store;
+        // Save / Appy stay the real backup (§10.3b).
+        const STORE_KEY = 'flove:goddy:matrix';
+        const VER_KEY   = 'flove:goddy:v';
+        const SCHEMA    = 1;
+
+        function saveMatrix() {
+            const obj = {};
+            levelMap().forEach((lvl, key) => { obj[key] = lvl; });
+            try {
+                localStorage.setItem(STORE_KEY, JSON.stringify(obj));
+                localStorage.setItem(VER_KEY, String(SCHEMA));
+            } catch (_err) {
+                // QuotaExceededError / storage disabled (private mode): warn,
+                // never crash — Save keeps the matrix (§10.3b).
+                setHint('<i class="fas fa-triangle-exclamation"></i> '
+                    + bx('Could not save locally — use Save to keep your matrix.',
+                         'No se pudo guardar en local — usa Guardar para conservar tu matriz.'));
+            }
+        }
+
+        function loadMatrix() {
+            let raw = null;
+            try { raw = localStorage.getItem(STORE_KEY); } catch (_) { return {}; }
+            if (!raw) return {};
+            try {
+                const obj = JSON.parse(raw);                       // defensive parse
+                return (obj && typeof obj === 'object') ? obj : {};
+            } catch (_) { return {}; }                             // corrupt → ignore
+        }
+
+        function restoreMatrix() {
+            const obj = loadMatrix();
+            Object.keys(obj).forEach(key => {
+                const lvl = +obj[key];
+                if (!(lvl >= 1 && lvl <= 3)) return;
+                const radio = document.querySelector(
+                    `input[name="${radioName(key)}"][data-lvl="${lvl}"]`);
+                if (radio) radio.checked = true;   // CSS :has() repaints; no change event
+            });
+        }
+
+        function clearMatrix() {
+            try { localStorage.removeItem(STORE_KEY); localStorage.removeItem(VER_KEY); } catch (_) {}
+            document.querySelectorAll('.cell-input[data-lvl="0"]').forEach(r => { r.checked = true; });
+            setHint('<i class="fas fa-eraser"></i> ' + bx('Matrix cleared.', 'Matriz borrada.'));
         }
 
         // Generate standalone matrix HTML (for save/share)
@@ -861,6 +916,13 @@
         // menu items close the menu on click (bubbles up to the document handler);
         // "About goddy" is a pure-CSS toggle (label → #aboutToggle), no JS needed
         document.addEventListener('click', () => setMenu(false));
+
+        // ── F0 wiring: persist on every cell change, restore on load ──
+        document.querySelectorAll('.cell-input').forEach(r =>
+            r.addEventListener('change', saveMatrix));
+        const clearBtn = document.getElementById('clearDataBtn');
+        if (clearBtn) clearBtn.addEventListener('click', clearMatrix);
+        restoreMatrix();   // DOM is ready (script at end of body) → re-derive now
 
         // ── Publish-to-Appy result (read by flove-appy.js on the floating button) ──
         // Snapshot of the matrix: which cells see who and at what level (1–3).

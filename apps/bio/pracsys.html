@@ -703,6 +703,29 @@
   }
   .summary-sub{ margin:0; color:var(--ink-dim); font:400 .85rem/1.4 var(--font-ui); }
 
+  /* §13.9 title row: [Reset] — ✦ Summary — [Update] */
+  .summary-head .title-row{
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    flex-wrap:wrap; width:100%;
+  }
+  .summary-head .title-row .summary-title{ order:1; }
+  .reset-wrap--title{ order:0; }
+  .update-wrap--title{ order:2; }
+  .reset-wrap--title, .update-wrap--title{
+    display:inline-flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .reset-hint, .update-hint{ font:400 .66rem/1.2 var(--font-ui); color:var(--ink-dim); }
+  /* the re-derive / fresh-start buttons reuse the .sum-btn skin */
+  .update-btn, .reset-btn{ position:relative; }
+  /* "out of date" dot — hidden until an already-saved item is re-edited in-session */
+  .stale-dot{
+    display:inline-block; width:8px; height:8px; margin-left:3px; border-radius:50%;
+    background:var(--accent-2, #ff8a65); box-shadow:0 0 6px var(--accent-2, #ff8a65);
+    vertical-align:middle; animation:stalePulse 1.6s ease-in-out infinite;
+  }
+  .stale-dot[hidden]{ display:none; }
+  @keyframes stalePulse{ 0%,100%{ opacity:1 } 50%{ opacity:.35 } }
+
   /* the styled, rendered resume — grouped cards with coloured chips */
   .summary-render{ display:flex; flex-direction:column; gap:16px; }
   .sum-group h3{
@@ -1029,6 +1052,20 @@
     <!-- Summary · revealed by the subsystems-stage Next: the resume of every
          selection + the magic / insight / copy + save / share / publish bar -->
     <section class="summary-section" id="summarySection" aria-label="Your pracsys results" data-aria-en="Your pracsys results" data-aria-es="Tus resultados de pracsys">
+      <!-- §13.9 title row: [Reset] — ✦ Summary — [Update] -->
+      <header class="summary-head">
+        <div class="title-row">
+          <span class="reset-wrap reset-wrap--title">
+            <button class="sum-btn btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en t-en" lang="en">Reset</span><span class="es t-es" lang="es">Reiniciar</span></button>
+            <small class="reset-hint"><span class="en t-en" lang="en">Clear all and start new play</span><span class="es t-es" lang="es">Borra todo y empieza de nuevo</span></small>
+          </span>
+          <h2 class="summary-title">✦ <span class="en t-en" lang="en">Summary</span><span class="es t-es" lang="es">Resumen</span></h2>
+          <span class="update-wrap update-wrap--title">
+            <button class="sum-btn btn ghost update-btn" type="button" data-flove-update><span class="en t-en" lang="en">Update</span><span class="es t-es" lang="es">Actualizar</span> <span class="stale-dot" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
+            <small class="update-hint"><span class="en t-en" lang="en">if you re-edited the form</span><span class="es t-es" lang="es">si has reeditado el formulario</span></small>
+          </span>
+        </div>
+      </header>
       <div class="summary-render" id="summaryRender"></div>
       <pre class="summary-text" id="summaryText" hidden></pre>
       <div class="insight-panel" id="insightPanel" hidden></div>
@@ -1040,6 +1077,7 @@
             <span class="label-off">✨ <span class="en" lang="en">Magic</span><span class="es" lang="es">Magia</span></span>
             <span class="label-on">✦ <span class="en" lang="en">Plain</span><span class="es" lang="es">Llano</span></span>
           </button>
+          <button class="sum-btn btn ghost update-btn" type="button" data-flove-update><span class="en t-en" lang="en">Update</span><span class="es t-es" lang="es">Actualizar</span> <span class="stale-dot" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
           <button class="sum-btn copy-btn" type="button" id="copyBtn" data-action="copy" aria-label="Click: copy phrase · Shift-click: copy JSON" data-aria-en="Click: copy phrase · Shift-click: copy JSON" data-aria-es="Clic: copiar frase · Mayús+clic: copiar JSON">⎘ <span class="en" lang="en">Copy</span><span class="es" lang="es">Copiar</span></button>
         </div>
         <div class="action-row action-row--right">
@@ -1095,6 +1133,7 @@
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
   const STORAGE_KEY = 'flove.pracsys.v1';
+  let relocalizing = false;   // true while relocalize() re-renders, so save() skips the stale mark
 
   // ── translate2 engine — switches the page language and translates the bits CSS
   //    can't (placeholders, aria-labels), remembers the choice, syncs <html lang>. ──
@@ -1132,6 +1171,7 @@
   const T = (en, es) => (LANG() === 'es' ? es : en);
   // re-render every dynamically-built surface when the language flips
   function relocalize(){
+    relocalizing = true;   // a language flip re-renders but is NOT an edit → no stale dot
     try{
       if (typeof renderDeck === 'function') renderDeck();
       if (typeof afterChange === 'function') afterChange();
@@ -1145,6 +1185,7 @@
       const pr = $('#publishRow');
       if (pr && !pr.hidden && typeof renderPublishRow === 'function') renderPublishRow();
     }catch(_){}
+    finally{ relocalizing = false; }
   }
 
   // ── the eleven systems (from souls.html BIO_SYSTEMS), alphabetical ──
@@ -1961,13 +2002,27 @@
   }
 
   // ── persistence (F0 hard local persistence · backend_plan.md §10.3a/b) ──
+  const SCHEMA_VERSION = 1;   // bump if the saved shape changes (key already carries .v1)
   function save(){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      placed:state.placed, reasons:state.reasons, subs:state.subs, verbs:state.verbs,
-      subReasons:state.subReasons, subVerbs:state.subVerbs,
-      stage:state.stage, verbsShown:state.verbsShown, reasonsShown:state.reasonsShown,
-      nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
-    })); }catch(_){}
+    // mark the summary "out of date" when a player edits an already-persisted board
+    // in-session (state lives in JS objects, so this is wired to the save funnel, not
+    // a timer); the Update button clears it. Armed only after the first hydrate/render.
+    if (typeof markStale === 'function') markStale();
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        v:SCHEMA_VERSION,
+        placed:state.placed, reasons:state.reasons, subs:state.subs, verbs:state.verbs,
+        subReasons:state.subReasons, subVerbs:state.subVerbs,
+        stage:state.stage, verbsShown:state.verbsShown, reasonsShown:state.reasonsShown,
+        nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
+      }));
+    }catch(e){
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)){
+        toast(T('Storage full — export your board (Save ▸) to keep it safe',
+                'Almacenamiento lleno — exporta tu tablero (Guardar ▸) para no perderlo'));
+      }
+      // any other write error is swallowed: the in-memory board keeps working
+    }
   }
   // restore on load: rehydrate the saved board (placements, reasons, verbs,
   // threaded subsystems, stage) so a reload / close / reopen continues where the
@@ -2784,15 +2839,76 @@ footer a{color:#4dd0e1;text-decoration:none}
   window.addEventListener('resize', scheduleDraw);
   window.addEventListener('scroll', scheduleDraw, { passive:true });
 
+  // ── F0 Update / Reset / persist (backend_plan §10.3a · §13.9) ───────────────
+  // stale-dot machinery: the dot un-hides when an already-persisted board is edited
+  // in-session and clears on Update. `staleArmed` stays false through boot/hydrate so
+  // the initial restore + first render don't trip it; the first real edit arms it.
+  let staleArmed = false;
+  function markStale(){ if (!staleArmed || relocalizing) return; $$('.stale-dot').forEach(d => { d.hidden = false; }); }
+  function hideStale(){ $$('.stale-dot').forEach(d => { d.hidden = true; }); }
+
+  // Update: re-run pracsys' existing hydrate/restore-from-storage + summary re-render,
+  // then drop every stale dot (re-derive · §10.3a).
+  function floveUpdate(){
+    restore();          // rehydrate placed slots / reasons / verbs / subs from STORAGE_KEY
+    renderDeck();
+    afterChange();      // re-derive every surface from `state`
+    if ($('#summarySection') && $('#summarySection').classList.contains('show')) renderSummary();
+    hideStale();
+  }
+
+  // Reset: destructive fresh start — defaults + cleared DOM + ONLY this app's own keys.
+  function floveReset(){
+    if (!confirm(T('Clear the whole board and start a new play? This cannot be undone.',
+                   '¿Vaciar todo el tablero y empezar de nuevo? No se puede deshacer.'))) return;
+    // 1) reset in-memory state to fresh defaults
+    state.placed = {}; state.reasons = freshReasons(); state.subs = {}; state.verbs = {};
+    state.subReasons = {}; state.subVerbs = {};
+    state.stage = 1; state.verbsShown = false; state.reasonsShown = false;
+    state.centreFx = 0; state.hideNerve = false; state.hideImmune = false;
+    state.nerveOpen = false; state.immuneOpen = false;
+    armedSub = null; openReasons.clear();
+    document.body.classList.remove('hide-right-icons');
+    // 2) empty ONLY pracsys' own keys — never localStorage.clear() (other apps keep theirs)
+    try{
+      Object.keys(localStorage).forEach(k => { if (k.indexOf('flove.pracsys') === 0) localStorage.removeItem(k); });
+    }catch(_){}
+    // 3) clear DOM selections + rebuild the empty board, return to first step
+    closeDocks();
+    const ss = $('#summarySection'); if (ss) ss.classList.remove('show');
+    buildSlots();
+    renderDeck();
+    setDeckOpen(true);
+    afterChange();      // re-derive the empty summary surfaces (re-writes the empty board)
+    hideStale();
+    toast(T('Board cleared — start placing systems','Tablero vaciado: empieza a colocar sistemas'));
+  }
+
+  // request durable storage on the first user interaction (guarded once)
+  let persistAsked = false;
+  function askPersist(){
+    if (persistAsked) return; persistAsked = true;
+    try{ if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  }
+  ['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, askPersist, { once:false, passive:true }));
+
+  // wire both Update spots + the Reset button (event-delegated for the JS-built surface)
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-flove-update]')){ floveUpdate(); }
+    else if (e.target.closest('[data-flove-reset]')){ floveReset(); }
+  });
+
   // ── boot ────────────────────────────────────────────────────
   // F0 hard local persistence: rebuild the empty board, then rehydrate any saved
   // game from localStorage so a reload / close / reopen continues where it left off.
+  // (This app no longer wipes storage on boot — it HYDRATES; only Reset clears.)
   buildSlots();
   restore();          // fills placed slots from STORAGE_KEY (no-op on a clean start)
   renderDeck();       // hides placed systems from the deck
   // systems start already fanned open (5·1·5), not collapsed behind one card
   setDeckOpen(true);
   afterChange();      // re-renders reasons / verbs / subsystems / links / progress from `state`
+  staleArmed = true;  // arm the stale-dot now that the initial hydrate + render are done
 </script>
 <script src="../flove-appy.js" data-app="Pracsys" data-colour="#e3bb12" defer></script>
 </body>

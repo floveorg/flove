@@ -1284,13 +1284,45 @@
     }
     .phrase-summary:empty { display: none; }
 
-    /* Action buttons rendered as raw HTML — no custom styling, native UA look */
+    /* Action buttons */
     .action-buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
       align-items: center;
     }
+
+    /* The base .btn was near-unstyled (native UA look). Give it an app-token skin
+       so the new Update / Reset buttons (and the existing copy/share/publish) read
+       as flove controls. */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font: inherit; font-weight: 600; line-height: 1;
+      padding: 0.55rem 1rem; border-radius: 60px;
+      border: 2px solid var(--app-accent-soft);
+      background: rgba(255,255,255,0.85); color: #3b5646; cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .btn:hover { border-color: var(--app-accent); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn--primary {
+      background: var(--app-accent); border-color: var(--app-accent);
+      color: var(--app-ink-on-accent);
+    }
+    .btn--primary:hover { filter: brightness(1.05); }
+    /* ghost = quieter variant for Update / Reset */
+    .btn.ghost { background: transparent; }
+    .btn.ghost:hover { background: var(--app-accent-soft); }
+
+    /* ✦ F0 Update / Reset affordances (§10.3a / §13.9) */
+    .update-btn { position: relative; }
+    .stale-dot {
+      display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 50%;
+      background: #e08a2b; box-shadow: 0 0 0 2px rgba(224,138,43,0.25);
+    }
+    .stale-dot[hidden] { display: none; }
+    .reset-wrap { display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .reset-hint { color: #6a7b6c; font-style: italic; font-size: 0.82rem; }
 
     .visually-hidden { display: none; }
 
@@ -1362,6 +1394,10 @@
     .es{display:none}                                  /* default view = .en */
     body:has(#lang-es:checked) .en{display:none}
     body:has(#lang-es:checked) .es{display:inline}
+    /* the F0 Update/Reset markup uses .t-en/.t-es — same CSS-only toggle */
+    .t-es{display:none}
+    body:has(#lang-es:checked) .t-en{display:none}
+    body:has(#lang-es:checked) .t-es{display:inline}
 
     /* ── worldball switcher (🌐 opens the language options) ── */
     .lang{display:inline-block;position:relative;margin:.2rem 0 .6rem}
@@ -1596,6 +1632,10 @@
       <button type="button" class="btn" id="copyInviteBtn"><i class="fas fa-copy"></i> <span class="en" lang="en">Copy summary</span><span class="es" lang="es">Copiar resumen</span></button>
       <button type="button" class="btn" id="shareCardBtn"><i class="fas fa-share-alt"></i> <span class="en" lang="en">Share card</span><span class="es" lang="es">Compartir tarjeta</span></button>
       <button type="button" class="btn btn--primary" id="publishBtn"><i class="fas fa-paper-plane"></i> <span class="en" lang="en">Publish</span><span class="es" lang="es">Publicar</span></button>
+      <!-- ✦ F0 Update / Reset (backend_plan.md §10.3a / §13.9). No summary title row in this app,
+           so per the contract they sit next to the existing summary affordances (minimal placement). -->
+      <button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button>
+      <span class="reset-wrap"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button><small class="reset-hint"><span class="t-en">Clear all and start new play</span><span class="t-es">Borra todo y empieza de nuevo</span></small></span>
     </div>
   </div>
 
@@ -2196,7 +2236,10 @@
    holds a restored checkbox (those panels start hidden). Language radio +
    any ctl/pop control is excluded. */
 (function(){
-  var KEY='flove:'+(location.pathname.split('/').pop().replace(/\.html$/,'').toLowerCase()||'app')+':state';
+  var SLUG=(location.pathname.split('/').pop().replace(/\.html$/,'').toLowerCase()||'app');
+  var KEY='flove:'+SLUG+':state';
+  var VKEY='flove:'+SLUG+':v';   /* schema-version key */
+  var SCHEMA=1;
   function keyOf(el){ var cls=el.className||'';
     if(/ctl|pop/.test(cls)) return null;
     if(el.name==='lang'||/^lang-/.test(el.id||'')) return null;
@@ -2207,12 +2250,34 @@
   function ckey(el){ return el.name+':'+(el.dataset.col||''); }
   function checks(){ return Array.prototype.slice.call(document.querySelectorAll('input[type="checkbox"][data-col]')); }
   function each(fn){ Array.prototype.forEach.call(document.querySelectorAll('input,select,textarea'),fn); }
-  function save(){ try{ var o={};
+
+  /* ── write hardening ── */
+  function warnQuota(){ try{ alert((document.documentElement.lang==='es')
+      ? '⚠️ No se pudo guardar: almacenamiento lleno. Exporta tu resumen con «Copiar resumen» para no perderlo.'
+      : '⚠️ Could not save: storage is full. Export your summary with “Copy summary” so you don’t lose it.'); }catch(_){} }
+  function save(){
+    var o={};
     each(function(el){ if(el.type==='checkbox') return;   /* checkboxes handled below */
       var k=keyOf(el); if(!k) return;
       o[k]=(el.type==='radio')?el.checked:el.value; });
     var c={}; checks().forEach(function(el){ c[ckey(el)]=el.checked; }); o.__checks=c;
-    localStorage.setItem(KEY,JSON.stringify(o)); }catch(_){} }
+    try{ localStorage.setItem(KEY,JSON.stringify(o)); localStorage.setItem(VKEY,String(SCHEMA)); }
+    catch(e){ if(e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014)) warnQuota(); }
+  }
+
+  /* ── one-shot durable-storage request on first interaction ── */
+  var persisted=false;
+  function persistOnce(){ if(persisted) return; persisted=true;
+    try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){} }
+
+  /* ── stale-dot: lit whenever a saved answer is edited in-session ── */
+  /* `replaying` is true while WE dispatch synthetic events (restore / reset),
+     so the dot only reacts to genuine user edits, not our own re-renders. */
+  var replaying=false;
+  function staleDots(){ return Array.prototype.slice.call(document.querySelectorAll('.stale-dot')); }
+  function markStale(){ staleDots().forEach(function(d){ d.hidden=false; }); }
+  function clearStale(){ staleDots().forEach(function(d){ d.hidden=true; }); }
+
   function restore(){ var raw; try{ raw=localStorage.getItem(KEY);}catch(_){return;} if(!raw) return;
     var o; try{ o=JSON.parse(raw);}catch(_){return;} if(!o||typeof o!=='object') return;
     var fire=[];
@@ -2232,10 +2297,59 @@
           if(chip){ chip.classList.add('open'); chip.setAttribute('aria-expanded','true'); } }
       } });
     /* replay native events so the app's own listeners re-derive all UI */
+    replaying=true;
     fire.forEach(function(el){
       var ev=(el.type==='checkbox'||el.type==='radio')?'change':'input';
-      el.dispatchEvent(new Event(ev,{bubbles:true})); }); }
-  function go(){ restore(); document.addEventListener('input',save,true); document.addEventListener('change',save,true); }
+      el.dispatchEvent(new Event(ev,{bubbles:true})); });
+    replaying=false; }
+
+  /* ── UPDATE: re-derive from storage + re-render, then clear every stale-dot ── */
+  function onUpdate(){ restore(); clearStale(); }
+
+  /* ── RESET: clear the in-DOM form + only THIS app's own keys, then re-derive ── */
+  function onReset(){
+    var msg=(document.documentElement.lang==='es')
+      ? 'Esto borra todas tus respuestas y empieza de nuevo. ¿Continuar?'
+      : 'This clears all your answers and starts a new play. Continue?';
+    if(!confirm(msg)) return;
+    /* wipe in-DOM selections (skip language radio + ctl/pop controls) */
+    replaying=true;
+    each(function(el){
+      var cls=el.className||'';
+      if(/ctl|pop/.test(cls)) return;
+      if(el.name==='lang'||/^lang-/.test(el.id||'')) return;
+      if(el.type==='checkbox'||el.type==='radio') el.checked=false;
+      else el.value='';
+      el.dispatchEvent(new Event((el.type==='checkbox'||el.type==='radio')?'change':'input',{bubbles:true}));
+    });
+    replaying=false;
+    /* clear any contenteditable surfaces, just in case */
+    Array.prototype.forEach.call(document.querySelectorAll('[contenteditable=""],[contenteditable="true"]'),function(el){ el.textContent=''; });
+    /* empty ONLY this app's own flove:<slug>* keys — NEVER localStorage.clear() */
+    try{ for(var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i);
+      if(k&&k.indexOf('flove:'+SLUG)===0) localStorage.removeItem(k); } }catch(_){}
+    clearStale();
+  }
+
+  function go(){
+    restore();
+    document.addEventListener('input',save,true);
+    document.addEventListener('change',save,true);
+    /* first user interaction → request durable storage, once */
+    document.addEventListener('pointerdown',persistOnce,{capture:true,once:true});
+    document.addEventListener('keydown',persistOnce,{capture:true,once:true});
+    /* light the stale-dot off the SAME save event stream (not a timer):
+       a genuine user edit to any saved control means the stored copy is now
+       out of date. Skip our own synthetic replays and the lang radio. */
+    function onEdit(e){ if(replaying) return; var t=e.target; if(!t||t.name==='lang'||/^lang-/.test(t.id||'')) return; markStale(); }
+    document.addEventListener('input',onEdit,true);
+    document.addEventListener('change',onEdit,true);
+    /* Update / Reset wiring */
+    document.addEventListener('click',function(e){
+      var u=e.target.closest&&e.target.closest('[data-flove-update]'); if(u){ onUpdate(); return; }
+      var r=e.target.closest&&e.target.closest('[data-flove-reset]'); if(r){ onReset(); }
+    });
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
 })();
 </script>

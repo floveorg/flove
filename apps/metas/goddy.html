@@ -954,7 +954,43 @@
         body:has(.cell-input[data-lvl="2"]:checked) .insights-wrapper,
         body:has(.cell-input[data-lvl="3"]:checked) .insights-wrapper {
             display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
         }
+
+        /* F0 · Update + Reset (§10.3a / §13.9 minimal placement) */
+        .f0-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px 16px;
+        }
+        .btn.ghost {
+            background: transparent;
+            border: 1px solid #d9c9f0;
+            box-shadow: none;
+            text-transform: none;
+            letter-spacing: 0.02em;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 8px 14px;
+            color: #6b6280;
+        }
+        .btn.ghost:hover { background: rgba(255,255,255,0.6); border-color: #b59ed6; color: #2d253b; }
+        .stale-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            margin-left: 4px;
+            border-radius: 50%;
+            background: #e2a23b;
+            box-shadow: 0 0 0 3px rgba(226,162,59,0.25);
+            vertical-align: middle;
+        }
+        .stale-dot[hidden] { display: none; }
+        .reset-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+        .reset-hint { font-size: 0.7rem; color: #8b8398; }
         .insight-btn {
             background: #2d253b;
             color: white;
@@ -1290,6 +1326,13 @@
     <!-- Insights + hint area -->
     <div class="insights-wrapper">
         <button type="button" class="insight-btn" id="insightsBtn"><i class="fas fa-brain"></i> <span class="en" lang="en">Insights</span><span class="es" lang="es">Revelaciones</span></button>
+        <!-- F0 · Update + Reset (backend_plan §10.3a / §13.9). Minimal placement:
+             goddy has no summary title row, so the two affordances live together
+             inside the insights-wrapper (the panel that appears once cells are tapped). -->
+        <div class="f0-controls">
+            <button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button>
+            <span class="reset-wrap"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en en" lang="en">Reset</span><span class="t-es es" lang="es">Reiniciar</span></button><small class="reset-hint"><span class="t-en en" lang="en">Clear all and start new play</span><span class="t-es es" lang="es">Borra todo y empieza de nuevo</span></small></span>
+        </div>
     </div>
     <div class="hint-area" id="hintMessage"></div>
 </div>
@@ -1352,12 +1395,16 @@
             try {
                 localStorage.setItem(STORE_KEY, JSON.stringify(obj));
                 localStorage.setItem(VER_KEY, String(SCHEMA));
-            } catch (_err) {
+            } catch (err) {
                 // QuotaExceededError / storage disabled (private mode): warn,
-                // never crash — Save keeps the matrix (§10.3b).
-                setHint('<i class="fas fa-triangle-exclamation"></i> '
-                    + bx('Could not save locally — use Save to keep your board.',
-                         'No se pudo guardar en local — usa Guardar para conservar tu tablero.'));
+                // never crash — Save/export keeps the matrix (§10.3b).
+                const quota = err && (err.name === 'QuotaExceededError'
+                    || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
+                setHint('<i class="fas fa-triangle-exclamation"></i> ' + (quota
+                    ? bx('Local storage is full — use Save to export and keep your board.',
+                         'El almacenamiento local está lleno — usa Guardar para exportar y conservar tu tablero.')
+                    : bx('Could not save locally — use Save to keep your board.',
+                         'No se pudo guardar en local — usa Guardar para conservar tu tablero.')));
             }
         }
 
@@ -1380,12 +1427,6 @@
                     `input[name="${radioName(key)}"][data-lvl="${lvl}"]`);
                 if (radio) radio.checked = true;   // CSS :has() repaints; no change event
             });
-        }
-
-        function clearMatrix() {
-            try { localStorage.removeItem(STORE_KEY); localStorage.removeItem(VER_KEY); } catch (_) {}
-            document.querySelectorAll('.cell-input[data-lvl="0"]').forEach(r => { r.checked = true; });
-            setHint('<i class="fas fa-eraser"></i> ' + bx('Board cleared.', 'Tablero borrado.'));
         }
 
         // Generate standalone matrix HTML (for save/share)
@@ -1627,10 +1668,72 @@
         document.addEventListener('click', () => setMenu(false));
 
         // ── F0 wiring: persist on every cell change, restore on load ──
+        // Request durable storage once, on the first user interaction (§10.3b).
+        let persistAsked = false;
+        function askPersist() {
+            if (persistAsked) return;
+            persistAsked = true;
+            try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+        }
+
+        // Stale-dot helpers (§10.3a): editing a saved value un-hides the dot;
+        // Update / Reset hide every dot again. Hooked to the EXISTING change
+        // handler, never a timer.
+        function markStale()  { document.querySelectorAll('.stale-dot').forEach(d => d.hidden = false); }
+        function clearStale() { document.querySelectorAll('.stale-dot').forEach(d => d.hidden = true); }
+        // Only count an edit as "staling" if the saved matrix already held data
+        // (so the very first taps that create the board don't flag staleness).
+        function hadSaved() { return Object.keys(loadMatrix()).length > 0; }
+
         document.querySelectorAll('.cell-input').forEach(r =>
-            r.addEventListener('change', saveMatrix));
+            r.addEventListener('change', () => {
+                askPersist();
+                const wasSaved = hadSaved();
+                saveMatrix();
+                if (wasSaved) markStale();   // edited an already-persisted board
+            }));
+
+        // ── F0 · Update — re-derive from storage, then drop the stale flag ──
+        const updateBtn = document.querySelector('[data-flove-update]');
+        if (updateBtn) updateBtn.addEventListener('click', () => {
+            askPersist();
+            // Re-run goddy's existing restore-from-storage + CSS :has() repaint.
+            document.querySelectorAll('.cell-input[data-lvl="0"]').forEach(r => { r.checked = true; });
+            restoreMatrix();
+            clearStale();
+            setHint('<i class="fas fa-rotate"></i> ' + bx('Up to date.', 'Actualizado.'));
+        });
+
+        // ── F0 · Reset — clear-my-data: empty ONLY goddy's own keys ──────────
+        function resetGoddy() {
+            // never localStorage.clear() — only this app's own flove:goddy* keys
+            try {
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const k = localStorage.key(i);
+                    if (k && k.indexOf('flove:goddy') === 0) localStorage.removeItem(k);
+                }
+            } catch (e) {}
+            // clear every in-DOM selection (matrix radios back to level 0)
+            document.querySelectorAll('.cell-input[data-lvl="0"]').forEach(r => { r.checked = true; });
+            document.querySelectorAll('.active, .selected').forEach(el => el.classList.remove('active', 'selected'));
+            document.querySelectorAll('[contenteditable="true"]').forEach(el => { el.textContent = ''; });
+            restoreMatrix();   // re-derive the (now empty) state
+            clearStale();
+            setHint('<i class="fas fa-eraser"></i> ' + bx('Cleared — start a new play.', 'Borrado — empieza una nueva partida.'));
+        }
+        const resetBtn = document.querySelector('[data-flove-reset]');
+        if (resetBtn) resetBtn.addEventListener('click', () => {
+            askPersist();
+            // DESTRUCTIVE → guard
+            const ok = confirm('Clear all cells and start a new play? / ¿Borrar todas las celdas y empezar de nuevo?');
+            if (ok) resetGoddy();
+        });
+
+        // legacy "Clear my data" menu item → same fresh-start path
         const clearBtn = document.getElementById('clearDataBtn');
-        if (clearBtn) clearBtn.addEventListener('click', clearMatrix);
+        if (clearBtn) clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all cells and start a new play? / ¿Borrar todas las celdas y empezar de nuevo?')) resetGoddy();
+        });
         restoreMatrix();   // DOM is ready (script at end of body) → re-derive now
 
         // ── Publish-to-Appy result (read by flove-appy.js on the floating button) ──

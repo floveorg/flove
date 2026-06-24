@@ -3233,6 +3233,41 @@
       .sky-stars--late-1, .sky-stars--late-2, .sky-stars--late-3 { opacity: .9 !important; }
       .sky-aurora--early { opacity: .35 !important; }
     }
+
+    /* ---------- flove F0: Reset + Update affordances (backend_plan §10.3a/§13.9) ---------- */
+    .phrase-buttons__row--flove { gap: 14px; }
+    .btn.ghost {
+      background: transparent !important;
+      border: 1px solid rgba(201,169,255,.28) !important;
+      box-shadow: none !important;
+      opacity: .82;
+    }
+    .btn.ghost:hover {
+      background: rgba(139,92,246,.16) !important;
+      border-color: rgba(201,169,255,.5) !important;
+      opacity: 1;
+    }
+    .reset-wrap { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .reset-hint {
+      font-family: var(--flove-font-display);
+      font-style: italic;
+      font-size: .78rem;
+      color: rgba(243,234,255,.55);
+    }
+    .stale-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      margin-left: 2px;
+      border-radius: 50%;
+      background: #ec4899;
+      box-shadow: 0 0 8px rgba(236,72,153,.7);
+      vertical-align: middle;
+    }
+    .stale-dot[hidden] { display: none; }
+    /* bilingual spans — English base shown, Spanish hidden until a switcher flips :lang */
+    .t-es { display: none; }
+    :lang(es) .t-en, [lang="es"] .t-en { display: none; }
+    :lang(es) .t-es, [lang="es"] .t-es { display: inline; }
   </style>
 </head>
 <body>
@@ -3339,6 +3374,11 @@
         <button class="btn" id="saveStateBtn" type="button">💾 Save</button>
         <button class="btn" id="shareBtn" type="button">↗ Share</button>
         <button class="btn" id="publishBtn" type="button">☁ Publish</button>
+      </div>
+      <div class="phrase-buttons__row phrase-buttons__row--flove">
+        <span class="reset-wrap"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button><small class="reset-hint"><span class="t-en">Clear all and start new play</span><span class="t-es">Borra todo y empieza de nuevo</span></small></span>
+        <span class="spacer"></span>
+        <button class="btn ghost update-btn" type="button" data-flove-update><span class="t-en">Update</span><span class="t-es">Actualizar</span> <span class="stale-dot" hidden aria-label="Out of date"></span></button>
       </div>
     </div>
     <div class="phrase-submenu" id="phraseSubmenu" hidden></div>
@@ -3636,6 +3676,8 @@
 
   function renderPhrase() {
     syncSectionsFromDOM();
+    // an in-session edit reached the live state → mark the saved view stale
+    markStale();
     if (pointsSpan) pointsSpan.textContent = calculatePoints();
 
     if (creativeStep > 0) {
@@ -4139,10 +4181,28 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
   let pendingExtraRealms = null;   // dynamically-added branch realms + values
   let pendingMoreLabels  = null;   // custom realm-option labels
 
+  // schema version — bump if the stored shape changes incompatibly
+  const STORE_VERSION = 1;
+  let storageWarned = false;   // only warn about quota once per session
+
+  // ---------- F0 stale-dot (Update affordance, §10.3a) ----------
+  // `hydrating` is true while boot / Update re-derives state from storage, so
+  // the renders those trigger don't falsely mark the view out-of-date.
+  let hydrating = true;
+  function markStale() {
+    if (hydrating) return;
+    document.querySelectorAll('.stale-dot').forEach(d => d.hidden = false);
+  }
+  function clearStale() {
+    document.querySelectorAll('.stale-dot').forEach(d => d.hidden = true);
+  }
+
   function saveLocal() {
     syncSectionsFromDOM();
+    let payload;
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({
+      payload = JSON.stringify({
+        v: STORE_VERSION,
         sections,
         notes: notesInput.value,
         // branch realms (Person / Place / Object + custom) spawned via More
@@ -4154,8 +4214,19 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
         })),
         // custom realm-option labels added via "Add new"
         moreRealmsLabels
-      }));
-    } catch(e) {}
+      });
+    } catch(e) { return; }
+    try {
+      localStorage.setItem(STORE_KEY, payload);
+    } catch(e) {
+      // QuotaExceededError (or private-mode / disabled storage) — degrade gracefully.
+      const quota = e && (e.name === 'QuotaExceededError' ||
+                          e.code === 22 || e.code === 1014);
+      if (quota && !storageWarned) {
+        storageWarned = true;
+        toast('⚠ storage full — export (💾 → JSON) to keep your work', 4200);
+      }
+    }
   }
   function loadLocal() {
     try {
@@ -4532,6 +4603,70 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
     saveLocal();
     togglePhraseSubmenu('save');
   });
+
+  // ---------- F0 Reset + Update (backend_plan §10.3a) ----------
+  // Reset: fresh start. Destructive → confirm(). Clears in-memory state, tears
+  // down dynamic branch realms, empties ONLY this app's own keys, re-derives an
+  // empty summary, and returns to step-0. Never localStorage.clear().
+  function doReset() {
+    const msg = (document.documentElement.lang === 'es')
+      ? '¿Borrar todos los reinos y notas y empezar de nuevo?'
+      : 'Reset all realms and notes? This clears everything and starts a new play.';
+    if (!confirm(msg)) return;
+    hydrating = true;
+    // empty only realy's own keys (canonical + legacy) — other apps keep theirs
+    try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+    try { localStorage.removeItem(LEGACY_STORE_KEY); } catch(e) {}
+    // tear down spawned branch realms + custom labels, clear DOM selections
+    extraRealms.slice().forEach(r => removeExtraRealm(r.id));
+    moreRealmsLabels = DEFAULT_MORE_REALMS.slice();
+    buildMoreRealmsGrid();
+    notesInput.value = '';
+    creativeStep = 0;
+    initSections();            // resets in-memory sections + re-renders empty summary
+    const r0 = document.getElementById('step-0');
+    if (r0) r0.checked = true; // return to first step
+    hydrating = false;
+    clearStale();
+    toast('reset');
+  }
+
+  // Update: re-derive the live view from stored state (re-run hydrate + render),
+  // rebuilding the realms branches, then hide every stale-dot.
+  function doUpdate() {
+    hydrating = true;
+    // re-read storage into in-memory state + stash dynamic payloads
+    pendingExtraRealms = null;
+    pendingMoreLabels  = null;
+    // tear down current dynamic branches so restoreDynamicState rebuilds cleanly
+    extraRealms.slice().forEach(r => removeExtraRealm(r.id));
+    moreRealmsLabels = DEFAULT_MORE_REALMS.slice();
+    buildMoreRealmsGrid();
+    // mirror the boot sequence so this is a true re-derive (drop unsaved edits)
+    initSections();            // canonical sections back to empty defaults
+    loadLocal();               // canonical values + notes, re-stashes dynamic data
+    if (sections.length) renderSections();
+    restoreDynamicState();     // re-spawn branch realms + refill, land on step-0
+    renderPhrase();
+    hydrating = false;
+    clearStale();
+    toast('updated');
+  }
+
+  // request persistent storage once, on the first user interaction
+  let _persistAsked = false;
+  function enablePersistence() {
+    if (_persistAsked) return;
+    _persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e) {}
+  }
+  ['pointerdown', 'keydown'].forEach(evt =>
+    document.addEventListener(evt, enablePersistence, { once: true }));
+
+  const _resetBtn  = document.querySelector('[data-flove-reset]');
+  if (_resetBtn)  _resetBtn.addEventListener('click', doReset);
+  const _updateBtn = document.querySelector('[data-flove-update]');
+  if (_updateBtn) _updateBtn.addEventListener('click', doUpdate);
   document.getElementById('shareBtn').addEventListener('click', () => {
     buildSharePreview();
     togglePhraseSubmenu('share');
@@ -4574,19 +4709,7 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
         const act = item.dataset.act;
         close();
         if (act === 'reset') {
-          if (confirm('Reset all realms and notes?')) {
-            try { localStorage.removeItem(STORE_KEY); } catch(e) {}
-            try { localStorage.removeItem(LEGACY_STORE_KEY); } catch(e) {}
-            // also tear down any spawned branch realms + custom labels
-            extraRealms.slice().forEach(r => removeExtraRealm(r.id));
-            moreRealmsLabels = DEFAULT_MORE_REALMS.slice();
-            buildMoreRealmsGrid();
-            notesInput.value = '';
-            initSections();
-            const r0 = document.getElementById('step-0');
-            if (r0) r0.checked = true;
-            toast('reset');
-          }
+          doReset();
         } else if (act === 'export') {
           downloadAs('json');
         } else if (act === 'import') {
@@ -4652,11 +4775,14 @@ th{background:#f3eaff;font-size:.78rem;letter-spacing:.6px;text-transform:upperc
   })();
 
   // ---------- start ----------
+  hydrating = true;             // suppress stale-dot during the boot re-derive
   initSections();
   loadLocal();                  // restores canonical values + notes; stashes dynamic data
   if (sections.length) renderSections();
   restoreDynamicState();        // re-spawn branches + custom labels, refill, land on step-0
   renderPhrase();
+  hydrating = false;            // genuine in-session edits may now mark the view stale
+  clearStale();                 // view is freshly derived from storage
   setInterval(saveLocal, 4000);
 })();
 </script>

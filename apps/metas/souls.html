@@ -2115,6 +2115,35 @@
 
   /* centered summary heading */
   .summary-title{ text-align:center; }
+  /* ✦ F0 §13.9 — Reset (left) · ✦ Summary · Update (right) title row */
+  .summary-head{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:.6rem; margin:.2rem 0 .2rem; flex-wrap:wrap;
+  }
+  .summary-head .summary-title{ flex:1 1 auto; margin:0; }
+  .reset-wrap--title, .update-wrap--title{
+    display:flex; flex-direction:column; align-items:center;
+    gap:.15rem; flex:0 0 auto;
+  }
+  .reset-wrap--title{ align-items:flex-start; }
+  .update-wrap--title{ align-items:flex-end; }
+  .reset-hint, .update-hint{
+    font-size:.68rem; line-height:1.1; color:var(--ink-dim); opacity:.6;
+    max-width:9rem;
+  }
+  .reset-hint{ text-align:left; }
+  .update-hint{ text-align:right; }
+  /* out-of-date dot: hidden by default, an ~8px accent dot when shown */
+  .stale-dot{
+    display:none; width:8px; height:8px; margin-left:.1rem; border-radius:50%;
+    background:var(--app-accent); vertical-align:middle;
+  }
+  .stale-dot:not([hidden]){ display:inline-block; }
+  @media (max-width: 559px){
+    .summary-head{ flex-wrap:wrap; }
+    .summary-head .summary-title{ order:-1; flex-basis:100%; }
+    .reset-hint, .update-hint{ max-width:none; }
+  }
   /* summary: three stacked rows (results · lists · time stats), each 2 columns */
   .summary-stack{
     display:flex; flex-direction:column; gap:1rem;
@@ -3095,7 +3124,11 @@
 
   <section class="view" data-view="save-form">
     <span class="step-tag">My portrait</span>
-    <h1 class="summary-title">Summary</h1>
+    <header class="summary-head">
+      <span class="reset-wrap reset-wrap--title"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button><small class="reset-hint"><span class="t-en">Clear all and start new play</span><span class="t-es">Borra todo y empieza de nuevo</span></small></span>
+      <h2 class="summary-title">✦ <span class="t-en">Summary</span><span class="t-es">Resumen</span></h2>
+      <span class="update-wrap update-wrap--title"><button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button><small class="update-hint"><span class="t-en">if you re-edited the form</span><span class="t-es">si has reeditado el formulario</span></small></span>
+    </header>
     <p class="hint">First answers in <em>warm</em>, second answers in <em>rose</em>. <span class="pill-tag">cloud sync coming soon</span></p>
 
     <div class="summary-stack">
@@ -3129,6 +3162,7 @@
           <span class="label-off">✨ Magic</span>
           <span class="label-on">✦ Plain</span>
         </button>
+        <button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button>
         <button class="btn ghost copy-btn" type="button" data-action="copy">⎘ Copy</button>
       </div>
       <div class="action-row action-row--right">
@@ -3350,8 +3384,42 @@
   };
   // track first-character-typed-into-empty per field
   const _wasNonEmpty = {};
+  // ✦ F0 §10.3a — own store keys this file owns (Reset clears ONLY these;
+  // NEVER localStorage.clear() — other apps share this origin).
+  const OWN_KEYS = [STORAGE_KEY];
+  // request durable storage once, on first user interaction (best-effort)
+  let _persistAsked = false;
+  const requestPersist = () => {
+    if (_persistAsked) return; _persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  };
+  let _quotaWarned = false;
   const persist = () => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(_){}
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch(e){
+      // QuotaExceededError (or private-mode write block): warn once, point to export
+      const quota = e && (e.name === 'QuotaExceededError'
+        || e.code === 22 || e.code === 1014);
+      if (quota && !_quotaWarned){
+        _quotaWarned = true;
+        console.warn('[souls] storage full — your latest answers may not be saved. '
+          + 'Use Save (Download) to export your portrait.');
+        try { if (typeof flash === 'function') flash('Storage full · use Save to export'); } catch(_){}
+      }
+    }
+  };
+  // ── stale-dot (out-of-date) helpers · §10.3a ──
+  // Every .stale-dot lights up when an already-persisted item is edited in
+  // session; clicking any [data-flove-update] re-derives + hides them all.
+  const showStale = () => $$('.stale-dot').forEach(d => d.hidden = false);
+  const hideStale = () => $$('.stale-dot').forEach(d => d.hidden = true);
+  // only mark stale once a prior session was actually persisted (avoids
+  // lighting the dot during the very first, never-saved play-through)
+  const markStale = () => {
+    let saved = false;
+    try { saved = !!localStorage.getItem(STORAGE_KEY); } catch(_){}
+    if (saved) showStale();
   };
 
   // ── audio: WebAudio chimes + speech-synthesis (all gated by the Listen toggle) ──
@@ -3457,11 +3525,13 @@
     el.value = state[id] || '';
     _wasNonEmpty[id] = !!(el.value || '').trim();
     el.addEventListener('input', () => {
+      requestPersist();
       state[id] = el.value;
       const nowNonEmpty = !!el.value.trim();
       if (nowNonEmpty && !_wasNonEmpty[id]) logEvent('type', id);
       _wasNonEmpty[id] = nowNonEmpty;
       persist();
+      markStale();   // a persisted answer was re-edited → summary may be out of date
       if (id === 'species'   && typeof syncS2Tree === 'function') syncS2Tree();
       if (id === 's3Species' && typeof syncS3Tree === 'function') syncS3Tree();
       if (id === 'aq1' || id === 'aq2' || id === 'aq3') renderAqNest();
@@ -3494,9 +3564,11 @@
       b.innerHTML = `<span class="pick-icon" aria-hidden="true">${it.icon || '·'}</span><span class="pick-label">${it.label}</span>`;
       b.addEventListener('click', () => {
         if (b.classList.contains('is-locked') || b.classList.contains('is-prev-tier')) return;
+        requestPersist();
         setValue(it.id);
         logEvent('pick', it.id);
         persist();
+        markStale();   // a persisted pick changed → summary may be out of date
         sync();
         refreshGates();
         reflectMirrors();
@@ -4163,8 +4235,10 @@
       input.dataset.key = k;
       input.autocomplete = 'off';
       input.addEventListener('input', () => {
+        requestPersist();
         state[nestKey][k] = input.value;
         persist();
+        markStale();
       });
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
@@ -5410,6 +5484,38 @@
     });
   });
 
+  // ── ✦ F0 §10.3a · Update (re-derive from storage) ──
+  // Re-runs the existing hydrate/restore + summary re-render, then clears the
+  // out-of-date dots. Hooked to BOTH [data-flove-update] buttons (action row
+  // + title row). Re-render = the same hooks goTo('save-form') runs.
+  const renderSummary = () => {
+    if (typeof renderScales    === 'function') renderScales();
+    if (typeof renderTimeStats === 'function') renderTimeStats();
+    if (typeof renderRelatedApps === 'function') renderRelatedApps();
+    reflectMirrors(); refreshCounters();
+  };
+  const floveUpdate = () => {
+    // re-read the persisted snapshot back into `state` (idempotent merge)
+    let raw; try { raw = localStorage.getItem(STORAGE_KEY); } catch(_){ raw = null; }
+    if (raw){
+      let saved; try { saved = JSON.parse(raw); } catch(_){ saved = null; }
+      if (saved && typeof saved === 'object'){
+        Object.keys(state).forEach(k => {
+          if (!(k in saved)) return;
+          const cur = state[k], val = saved[k];
+          if (cur && typeof cur === 'object' && !Array.isArray(cur)
+              && val && typeof val === 'object' && !Array.isArray(val)){
+            Object.assign(cur, val);
+          } else { state[k] = val; }
+        });
+      }
+    }
+    renderSummary();
+    hideStale();
+    flash('Summary updated');
+  };
+  $$('[data-flove-update]').forEach(b => b.addEventListener('click', floveUpdate));
+
   // ── reset ──
   const reset = () => {
     Object.keys(state).forEach(k => {
@@ -5423,17 +5529,40 @@
     state.events = [];
     state.aqNest = { aq1:'', aq2:'', aq3:'' };
     state.cqNest = { cq1:'', cq2:'', cq3:'' };
+    // empty ONLY this app's own store keys — NEVER localStorage.clear(): other
+    // flove apps share this origin and must keep their data (§10.3a).
+    OWN_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
     persist();
+    // clear every in-DOM selection so nothing visual survives the reset
     textFieldIds.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    $$('input[type="checkbox"], input[type="radio"]').forEach(el => {
+      if (el.classList.contains('ui-lang-ctl')) return;   // keep the language choice
+      el.checked = (el.id === 'ui-lang-en') ? el.checked : false;
+    });
+    $$('.is-on, .is-active, .active, .selected').forEach(el =>
+      el.classList.remove('is-on','is-active','active','selected'));
+    $$('[contenteditable="true"]').forEach(el => { el.textContent = ''; });
     Object.keys(_wasNonEmpty).forEach(k => _wasNonEmpty[k] = false);
     refreshS3Channel(); syncSenses(); syncMatter(); buildS4Bio(); syncParticle(); syncImmune();
     syncS2Tree(); syncS3Tree(); syncS2Cat1(); syncS2Cat2(); syncS3Cat();
     setSlide(0);
     refreshGates();
     refreshCounters();
-    goTo('welcome');
+    hideStale();          // a fresh start is never "out of date"
+    goTo('welcome');      // navigate back to the first step
     flash('Fresh start');
   };
+  // guarded reset — DESTRUCTIVE, so confirm() before wiping a session (§10.3a)
+  const floveReset = () => {
+    const es = document.body.matches(':has(#ui-lang-es:checked)');
+    const msg = es
+      ? 'Esto borrará todas tus respuestas y empezará de cero. ¿Continuar?'
+      : 'This will clear all your answers and start over. Continue?';
+    let ok = true;
+    try { ok = window.confirm(msg); } catch(_){ ok = true; }
+    if (ok) reset();
+  };
+  $$('[data-flove-reset]').forEach(b => b.addEventListener('click', floveReset));
   // ── info panel (opened from the menu) ──
   const info = $('#appInfo');
   const toggleInfo = () => {

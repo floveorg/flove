@@ -866,6 +866,39 @@
     margin:1.4rem 0 .6rem;flex-wrap:wrap;
   }
 
+  /* ---- flove F0: Reset / Update affordances (backend_plan §10.3a + §13.9) ---- */
+  /* Bilingual spans (this app drives lang via html[lang], set by setLang). */
+  html[lang="es"] .t-en{display:none}
+  html:not([lang="es"]) .t-es{display:none}
+  /* Summary title row: Reset (left) — h2 — Update (right). */
+  .summary-head{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:.6rem;flex-wrap:wrap;
+  }
+  .summary-head > .std-toggle{flex:1 1 auto;margin:0}
+  .reset-wrap--title,.update-wrap--title{
+    display:flex;flex-direction:column;align-items:flex-start;gap:.15rem;
+    flex:0 0 auto;
+  }
+  .update-wrap--title{align-items:flex-end}
+  .reset-hint,.update-hint{
+    font-size:.66rem;color:var(--muted);max-width:9.5rem;line-height:1.2;
+  }
+  .update-wrap--title .update-hint{text-align:right}
+  .update-btn,.reset-btn{white-space:nowrap}
+  /* Small "out of date" indicator on every Update button. */
+  .stale-dot{
+    display:none;width:.5rem;height:.5rem;border-radius:50%;
+    background:var(--brand,#ff5fdc);margin-left:.35rem;vertical-align:middle;
+    box-shadow:0 0 0 2px rgba(255,95,220,.25);
+  }
+  .stale-dot:not([hidden]){display:inline-block}
+  @media (max-width:520px){
+    .summary-head{flex-direction:column}
+    .update-wrap--title,.reset-wrap--title{align-items:flex-start}
+    .update-wrap--title .update-hint{text-align:left}
+  }
+
   /* Second-play selections row — sits below the first-play triads in the
      summary; each triad shows its second-play order, italic to set it apart. */
   .summary-second-play{
@@ -4741,7 +4774,14 @@ window.tKey = function tKey(k){
       <input type="radio" name="flv-wiz" id="flv-wiz-nova"  class="flv-ctl">
       <input type="radio" name="flv-wiz" id="flv-wiz-lyra"  class="flv-ctl">
 
-      <h2 class="std-toggle" id="std-summary-toggle" role="button" tabindex="0" aria-expanded="false" data-i18n-html="summary.toggle">✦ Summary <span class="std-chev" aria-hidden="true">▸</span></h2>
+      <!-- §13.9 title row: Reset (left) — ✦ Summary — Update (right). The h2
+           keeps its std-toggle behaviour (collapse). New buttons sit beside it
+           and stop their own clicks from toggling the panel (see wiring below). -->
+      <header class="summary-head">
+        <span class="reset-wrap reset-wrap--title"><button class="btn ghost btn-ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button><small class="reset-hint"><span class="t-en">Clear all and start new play</span><span class="t-es">Borra todo y empieza de nuevo</span></small></span>
+        <h2 class="std-toggle" id="std-summary-toggle" role="button" tabindex="0" aria-expanded="false" data-i18n-html="summary.toggle">✦ Summary <span class="std-chev" aria-hidden="true">▸</span></h2>
+        <span class="update-wrap update-wrap--title"><button class="btn ghost btn-ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button><small class="update-hint"><span class="t-en">if you re-edited the form</span><span class="t-es">si has reeditado el formulario</span></small></span>
+      </header>
 
       <!-- Quick stats above the tables: Triads (Stage 1) · Additional perspective · Analisys -->
       <div class="std-timestats-top" id="std-timestats-top" hidden></div>
@@ -4769,6 +4809,8 @@ window.tKey = function tKey(k){
         </div>
 
         <div class="action-row right">
+          <!-- §13.9 Update (re-derive from storage) sits LEFT of Copy. -->
+          <button class="btn ghost btn-ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button>
           <!-- Copy sits with Save/Share/Publish, pinned to the left of the row. -->
           <label class="fbtn copy-btn" for="flv-copy-hint" data-flove-copy="phrase" title="Copy" data-i18n="summary.copy" data-i18n-attr="title:summary.copy">Copy</label>
           <span class="cycle-wrap save-wrap">
@@ -10998,10 +11040,23 @@ window.tKey = function tKey(k){
       secondPlayMs: (typeof secondPlayMs !== 'undefined') ? secondPlayMs : 0,
     };
   }
+  let _quotaWarned = false;
   function keysSave(){
     try {
       localStorage.setItem(KEYS_STATE_KEY, JSON.stringify(keysSnapshot()));
-    } catch (_e) { /* QuotaExceeded / private mode → persist nothing, quietly */ }
+    } catch (e) {
+      // QuotaExceeded → tell the user once and point them to export; private
+      // mode / other write failures stay quiet.
+      const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+      if (quota && !_quotaWarned){
+        _quotaWarned = true;
+        try {
+          alert(curLang() === 'es'
+            ? 'No se ha podido guardar: el almacenamiento del navegador está lleno. Usa “Guardar” en el resumen para exportar tu jugada y no perderla.'
+            : 'Could not save: browser storage is full. Use “Save” in the summary to export your play so you don’t lose it.');
+        } catch (_a) {}
+      }
+    }
   }
   function keysClearSaved(){
     try { localStorage.removeItem(KEYS_STATE_KEY); } catch (_e) {}
@@ -11083,6 +11138,79 @@ window.tKey = function tKey(k){
   // Flush immediately when the tab is hidden / closing so nothing is lost.
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') keysSave(); });
   window.addEventListener('pagehide', keysSave);
+
+  // ====== flove F0: Update / Reset affordances (§10.3a + §13.9) ======
+  // Ask the browser to make our storage durable, once, on first interaction.
+  let _persistAsked = false;
+  function keysAskPersist(){
+    if (_persistAsked) return;
+    _persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  }
+  document.addEventListener('click', keysAskPersist, true);
+  document.addEventListener('input', keysAskPersist, true);
+
+  // Stale indicator: once a snapshot is already persisted, any further edit in
+  // this session means the on-screen summary may be ahead of (or behind) the
+  // stored play. We surface that by un-hiding every .stale-dot. Wired to the
+  // SAME click/input path keys already saves on — not a timer.
+  function keysSetStale(on){
+    document.querySelectorAll('.stale-dot').forEach(d => { d.hidden = !on; });
+  }
+  function keysMaybeStale(){
+    let has = false;
+    try { has = !!localStorage.getItem(KEYS_STATE_KEY); } catch (e) {}
+    if (has) keysSetStale(true);
+  }
+  document.addEventListener('click', keysMaybeStale, true);
+  document.addEventListener('input', keysMaybeStale, true);
+
+  // UPDATE — re-derive the in-memory model from storage + repaint, then clear
+  // every stale dot. Reuses keys' OWN hydrate (keysRestore) + render fns.
+  function keysUpdateFromStore(){
+    keysRestore();
+    try {
+      if (typeof render === 'function') render();
+      if (typeof renderPrelude === 'function') renderPrelude();
+      if (typeof renderSummaryGrid === 'function') renderSummaryGrid();
+      if (typeof renderBottomSummary === 'function') renderBottomSummary();
+      if (typeof renderFpCombos === 'function') renderFpCombos();
+      if (typeof renderCounters === 'function') renderCounters();
+    } catch (e) {}
+    keysSetStale(false);
+  }
+
+  // RESET — destructive. Clear ONLY this app's own keys (never localStorage.clear()),
+  // then reboot from defaults so the deeply-interlinked state objects re-init
+  // cleanly and we land on the first step (intro) with an empty summary.
+  function keysResetPlay(){
+    const ok = confirm(curLang() === 'es'
+      ? '¿Reiniciar? Se borrará toda tu jugada y empezarás de nuevo.'
+      : 'Reset? This clears your whole play and starts a new one.');
+    if (!ok) return;
+    // Remove every flove:keys-advanced* key this app owns — and nothing else.
+    try {
+      const kill = [];
+      for (let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if (k && k.indexOf('flove:keys-advanced') === 0) kill.push(k);
+      }
+      kill.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    } catch (e) {}
+    keysSetStale(false);
+    // Reboot: keysRestore() will find nothing, defaults take over, setUIMode('intro')
+    // returns to the first step with a now-empty summary.
+    try { location.reload(); } catch (e) {}
+  }
+
+  // Delegate clicks for both affordances. Stop the title-row buttons from also
+  // toggling the collapsible ✦ Summary header.
+  document.addEventListener('click', function(ev){
+    const upd = ev.target.closest && ev.target.closest('[data-flove-update]');
+    if (upd){ ev.preventDefault(); ev.stopPropagation(); keysUpdateFromStore(); return; }
+    const rst = ev.target.closest && ev.target.closest('[data-flove-reset]');
+    if (rst){ ev.preventDefault(); ev.stopPropagation(); keysResetPlay(); return; }
+  }, true);
 
   // ============== Boot ==============
   introStart = Date.now();   // start counting intro time (timer stays hidden here)

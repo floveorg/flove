@@ -1028,6 +1028,18 @@
     font-size:.78rem; font-weight:600; margin-right:4px;
   }
   .resume-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; justify-content:flex-end }
+  /* Download menu — CSS-only popover (native <details>) */
+  .dl-menu{ position:relative }
+  .dl-menu > summary{ list-style:none; cursor:pointer }
+  .dl-menu > summary::-webkit-details-marker{ display:none }
+  .dl-menu > summary::marker{ content:"" }
+  .dl-formats{ position:absolute; right:0; bottom:calc(100% + 6px); z-index:30;
+    display:flex; flex-direction:column; gap:2px; min-width:150px;
+    background:var(--paper); border:1px solid var(--line-strong); border-radius:12px;
+    padding:6px; box-shadow:0 12px 32px -10px var(--accent-glow) }
+  .dl-fmt{ text-align:left; background:none; border:0; border-radius:8px; padding:7px 11px;
+    font:inherit; color:var(--ink); cursor:pointer }
+  .dl-fmt:hover{ background:var(--accent-soft); color:var(--accent-deep) }
 
   .card{
     background:#fff; border:1px solid var(--line);
@@ -2671,6 +2683,17 @@
       <div class="resume-actions">
         <button type="button" class="btn ghost" id="copyBtn">📋 Copy</button>
         <button type="button" class="btn ghost" id="saveBtn">💾 Save</button>
+        <details class="dl-menu">
+          <summary class="btn ghost">⬇ Download</summary>
+          <div class="dl-formats">
+            <button type="button" class="dl-fmt" data-flove-save="md">Markdown</button>
+            <button type="button" class="dl-fmt" data-flove-save="json">JSON</button>
+            <button type="button" class="dl-fmt" data-flove-save="xml">XML</button>
+            <button type="button" class="dl-fmt" data-flove-save="html">HTML</button>
+            <button type="button" class="dl-fmt" data-flove-save="csv">CSV</button>
+            <button type="button" class="dl-fmt" data-flove-save="jpg">Image</button>
+          </div>
+        </details>
         <button type="button" class="btn ghost" id="shareBtn">↗ Share</button>
         <button type="button" class="btn primary" id="publishBtn">Publish ✦</button>
       </div>
@@ -3643,6 +3666,83 @@
     return lines.join("\n");
   }
 
+  // ── Export: one summary-model, six formats, the canonical share ladder ──
+  const esc     = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const escAttr = s => esc(s).replace(/"/g, '&quot;');
+  function downloadBlob(body, mime, filename){
+    const blob = new Blob([body], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 80);
+  }
+  function buildModel(){
+    const s = snapshot();
+    const sections = [];
+    const push = (label, items, title) => { const arr = (items||[]).filter(Boolean); if (arr.length) sections.push({ label, title: title||"", items: arr }); };
+    push("Title", [s.title]);
+    push("Description", [s.name]);
+    push("Sector", [s.dealyCat]);
+    push("Modes", s.modes);
+    push("Tags", [s.craft?"crafted":null, s.eco?"ecological":null]);
+    [["Time","time"],["Use","use"],["For","people"],["Contribution","contrib"]].forEach(([lab,k]) =>
+      push(lab, (s[k]||"").split(", "), s.notes[k]));
+    const w = s.worth || {};
+    const raters = WORTH_CATS.map(k => ({ key:k, emoji:"✦", n: w[k]||0,
+      max: $$(`.worth-row[data-cat="${k}"] .worth-bar`).length || 5 }));
+    return { app:"Dealy", version:1, phrase: asText(), sections, raters };
+  }
+  function toMd(m){
+    let s = `# ${m.app}\n\n${m.phrase}\n\n`;
+    m.sections.forEach(sec => { s += `## ${sec.label}${sec.title?` · ${sec.title}`:''}\n`; sec.items.forEach(it => s += `- ${it}\n`); s += '\n'; });
+    if (m.raters.length){ s += `| rater | value |\n|---|---|\n`; m.raters.forEach(r => s += `| ${r.key} | ${r.n}/${r.max} |\n`); }
+    return s;
+  }
+  const toJson = m => JSON.stringify(m, null, 2);
+  function toXml(m){
+    let s = `<?xml version="1.0" encoding="UTF-8"?>\n<dealy version="${m.version}">\n  <phrase>${esc(m.phrase)}</phrase>\n  <sections>\n`;
+    m.sections.forEach(sec => { s += `    <section label="${escAttr(sec.label)}"${sec.title?` title="${escAttr(sec.title)}"`:''}>\n`; sec.items.forEach(it => s += `      <item>${esc(it)}</item>\n`); s += `    </section>\n`; });
+    s += `  </sections>\n  <raters>\n`;
+    m.raters.forEach(r => s += `    <rater key="${escAttr(r.key)}" n="${r.n}" max="${r.max}"/>\n`);
+    s += `  </raters>\n</dealy>\n`;
+    return s;
+  }
+  function toHtml(m){
+    const rows = m.sections.map(sec => `<section><h2>${esc(sec.label)}${sec.title?` · ${esc(sec.title)}`:''}</h2><ul>${sec.items.map(it => `<li>${esc(it)}</li>`).join('')}</ul></section>`).join('');
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(m.app)} · summary</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:1rem}h1{font-weight:600}li{margin:.2rem 0}</style></head><body><h1>${esc(m.app)}</h1><p>${esc(m.phrase)}</p>${rows}</body></html>`;
+  }
+  function toCsv(m){
+    const q = v => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+    const lines = ['section,title,item'];
+    m.sections.forEach(sec => sec.items.forEach(it => lines.push([sec.label, sec.title||'', it].map(q).join(','))));
+    return lines.join('\n') + '\n';
+  }
+  function toJpg(m, cb){
+    const W = 1080, H = 720, canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fffbfa'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#dc2626'; ctx.font = '600 40px Georgia, serif';
+    ctx.fillText(m.app, 48, 72);
+    ctx.fillStyle = '#1a0f0f'; ctx.font = '20px system-ui, sans-serif';
+    const lines = m.sections.flatMap(s => [`${s.label}${s.title?' · '+s.title:''}`, ...s.items.map(i => '  · ' + i)]);
+    const MAX = 20;
+    lines.slice(0, MAX).forEach((ln, i) => ctx.fillText(ln.slice(0,72), 48, 130 + i*28));
+    if (lines.length > MAX) ctx.fillText('…', 48, 130 + MAX*28);
+    canvas.toBlob(cb, 'image/jpeg', 0.92);
+  }
+  $$('[data-flove-save]').forEach(btn => btn.addEventListener('click', () => {
+    const m = buildModel();
+    const dm = btn.closest('.dl-menu'); if (dm) dm.open = false;
+    if (!m.sections.length){ toast("Nothing to download yet"); return; }
+    const fmt = btn.dataset.floveSave, base = "dealy-summary";
+    if (fmt === 'jpg'){ toJpg(m, b => { if (b) downloadBlob(b, 'image/jpeg', base+'.jpg'); else toast("JPG not supported"); }); return; }
+    const f = { md:[toMd(m),'text/markdown'], json:[toJson(m),'application/json'], xml:[toXml(m),'application/xml'], html:[toHtml(m),'text/html'], csv:[toCsv(m),'text/csv'] }[fmt];
+    downloadBlob(f[0], f[1]+';charset=utf-8', `${base}.${fmt}`);
+    toast(`Downloaded ${fmt.toUpperCase()}`);
+  }));
+
   $("#copyBtn").addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(asText()); toast("Copied"); }
     catch(e){ toast("Couldn't copy"); }
@@ -3654,23 +3754,18 @@
   });
 
   $("#shareBtn").addEventListener("click", async () => {
-    const data = { title: "flove · Dealy", text: asText() };
-    try {
-      if (navigator.share){ await navigator.share(data); toast("Shared"); }
-      else { await navigator.clipboard.writeText(asText()); toast("Copied (no share API)"); }
-    } catch(e){ /* user cancelled */ }
+    const text = asText(), title = "flove · Dealy";
+    // Share ladder: standalone HTML file → text-only → clipboard.
+    const htmlFile = new File([toHtml(buildModel())], "dealy-summary.html", { type:"text/html" });
+    if (navigator.canShare && navigator.canShare({ files:[htmlFile] })){
+      try { await navigator.share({ title, text, files:[htmlFile] }); toast("Shared"); return; } catch(e){ /* fall through */ }
+    }
+    if (navigator.share){ try { await navigator.share({ title, text }); toast("Shared"); return; } catch(e){ return; } }
+    try { await navigator.clipboard.writeText(text); toast("Copied (no share API)"); } catch(e){}
   });
 
-  const exportBtn = $("#exportBtn");
-  if (exportBtn) exportBtn.addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(snapshot(), null, 2)], { type:"application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "dealy.json";
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 80);
-    toast("Exported JSON");
-  });
+  // (dead #exportBtn JSON handler removed — superseded by the Download menu,
+  //  which serves all six formats from buildModel().)
   const printBtn = $("#printBtn");
   if (printBtn) printBtn.addEventListener("click", () => window.print());
   const resetBtn = $("#resetBtn");

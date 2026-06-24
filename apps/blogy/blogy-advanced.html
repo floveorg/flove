@@ -1779,6 +1779,29 @@ body:has(#all-pressed:checked) .step-panel:nth-of-type(6){ display: block; }
 .step-panel.is-summary ul{ margin: .4rem 0; padding-left: 22px; color: var(--ink); font-size: 14px; }
 .step-panel.is-summary ul li{ margin-bottom: 4px; }
 
+/* F0 · summary title row — Reset (left) · ✦ Summary · Update (right) */
+.summary-head{
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: .6rem; flex-wrap: wrap; margin-bottom: .4rem;
+}
+.summary-head > h2{ margin: 0; flex: 1 1 auto; text-align: center; }
+.reset-wrap--title, .update-wrap--title{
+  display: inline-flex; flex-direction: column; gap: 2px;
+  flex: 0 0 auto; max-width: 42%;
+}
+.update-wrap--title{ align-items: flex-end; text-align: right; }
+.reset-wrap--title{ align-items: flex-start; text-align: left; }
+.reset-hint, .update-hint{ font-size: 11px; color: var(--ink-soft); line-height: 1.2; }
+/* stale-dot — un-hidden when a persisted item is edited in-session */
+.stale-dot{
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent, #d32f2f); margin-left: 4px; vertical-align: middle;
+  animation: stale-pulse 1.4s ease-in-out infinite;
+}
+.stale-dot[hidden]{ display: none; }
+@keyframes stale-pulse{ 0%,100%{ opacity: 1; } 50%{ opacity: .4; } }
+@media (prefers-reduced-motion: reduce){ .stale-dot{ animation: none; } }
+
 /* Sounds panel — demo audio row (native, zero-JS) + 2-col areas
    Layout contract: 2 columns × 4 items each = 8 unique tiles, no duplicate
    players. Each tile holds ONE glyph + ONE native audio. Tile and audio
@@ -7591,7 +7614,11 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
 
   <!-- ────── SUMMARY (step 4 = paso 5 visualmente) ────── -->
   <section class="step-panel is-summary">
-    <h2>✦ Summary</h2>
+    <header class="summary-head">
+      <span class="reset-wrap reset-wrap--title"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button><small class="reset-hint"><span class="t-en">Clear all and start new play</span><span class="t-es">Borra todo y empieza de nuevo</span></small></span>
+      <h2><span class="t-en">✦ Summary</span><span class="t-es">✦ Resumen</span></h2>
+      <span class="update-wrap update-wrap--title"><button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button><small class="update-hint"><span class="t-en">if you re-edited the form</span><span class="t-es">si has reeditado el formulario</span></small></span>
+    </header>
 
     <!-- INSIGHT panels — Marc wants them ABOVE the phrase. One is
          revealed per cycle state (1..4); state 0 = none. -->
@@ -7649,6 +7676,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
           <span class="label-off"><span class="t-en">Magic</span><span class="t-es">Magia</span></span>
           <span class="label-on"><span class="t-en">Phrase</span><span class="t-es">Frase</span></span>
         </label>
+        <button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden aria-label="Out of date"></span></button>
         <label class="btn ghost copy-btn" for="copy-hint" title="Copy" aria-label="How to copy the phrase" data-flove-copy="phrase"><span class="t-en">Copy</span><span class="t-es">Copiar</span></label>
       </div>
 
@@ -8645,17 +8673,26 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   function toJson(){
     return JSON.stringify({
       phrase: readPhrase(),
-      raters: readRaters(),
+      raters: readRaters().filter(r => r.n > 0),
       picked: pickedEmojis(),
     }, null, 2);
   }
   function toCsv(){
-    const head = 'emoji,key,n,max';
-    const rows = readRaters().map(r => `${r.emoji},${r.key},${r.n},${r.max}`);
-    return [head].concat(rows).join('\n');
+    /* RFC-4180: quote any field containing comma, quote, CR or LF;
+       double internal quotes; CRLF row separator. */
+    const q = v => {
+      const s = String(v == null ? '' : v);
+      return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const rowOf = arr => arr.map(q).join(',');
+    const rows = [rowOf(['emoji', 'key', 'n', 'max'])];
+    readRaters().filter(r => r.n > 0).forEach(r => rows.push(rowOf([r.emoji, r.key, r.n, r.max])));
+    const p = pickedEmojis();
+    if (p.length) rows.push(rowOf(['picked', '', p.join(' '), '']));
+    return rows.join('\r\n');
   }
   function toXml(){
-    const r = readRaters(), p = pickedEmojis();
+    const r = readRaters().filter(x => x.n > 0), p = pickedEmojis();
     let s = `<?xml version="1.0" encoding="UTF-8"?>\n<blogynormal>\n`;
     s += `  <phrase>${esc(readPhrase())}</phrase>\n  <raters>\n`;
     r.forEach(x => s += `    <rater key="${x.key}" emoji="${esc(x.emoji)}" n="${x.n}" max="${x.max}"/>\n`);
@@ -8831,6 +8868,72 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
+  /* ── JPG rasteriser (≥1080px, visible … truncation) ──
+     Synchronous: canvas.toDataURL('image/jpeg') → bytes, so it slots
+     into the sync bundle/zip collector alongside the text formats. */
+  function trunc(ctx, str, maxW){
+    str = String(str == null ? '' : str);
+    if (ctx.measureText(str).width <= maxW) return str;
+    const ell = '…';
+    let lo = 0, hi = str.length;
+    while (lo < hi){
+      const mid = (lo + hi + 1) >> 1;
+      if (ctx.measureText(str.slice(0, mid) + ell).width <= maxW) lo = mid; else hi = mid - 1;
+    }
+    return str.slice(0, lo) + ell;
+  }
+  function toJpgBytes(){
+    const W = 1080, H = 1080;
+    let canvas;
+    try { canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H; }
+    catch(e){ return null; }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#fff7f6'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = ACCENT;
+    ctx.font = '600 48px system-ui, sans-serif';
+    ctx.fillText(trunc(ctx, '✦ ' + PAGE, W - 120), 60, 96);
+    // phrase — wrapped, max 6 lines with … on the last
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = '34px system-ui, sans-serif';
+    const words = readPhrase().split(/\s+/).filter(Boolean);
+    const maxW = W - 120; let line = '', y = 180; const lh = 46; const maxLines = 6; let drawn = 0;
+    for (let i = 0; i < words.length && drawn < maxLines; i++){
+      const test = line ? line + ' ' + words[i] : words[i];
+      if (ctx.measureText(test).width > maxW && line){
+        drawn++;
+        if (drawn === maxLines){ ctx.fillText(trunc(ctx, line + ' …', maxW), 60, y); line = ''; break; }
+        ctx.fillText(line, 60, y); y += lh; line = words[i];
+      } else line = test;
+    }
+    if (line && drawn < maxLines){ ctx.fillText(trunc(ctx, line, maxW), 60, y); y += lh; }
+    // raters
+    y += 30;
+    ctx.font = '30px system-ui, sans-serif';
+    readRaters().filter(r => r.n > 0).forEach(r => {
+      const barX = 220, barW = W - barX - 120, by = y - 22;
+      ctx.fillStyle = '#1a1a1a'; ctx.fillText(r.emoji, 60, y);
+      ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(barX, by, barW, 22);
+      ctx.fillStyle = ACCENT; ctx.fillRect(barX, by, barW * (r.max ? r.n / r.max : 0), 22);
+      ctx.fillStyle = '#333'; ctx.font = '22px system-ui, sans-serif';
+      ctx.fillText(r.n + '/' + r.max, barX + barW + 12, y);
+      ctx.font = '30px system-ui, sans-serif';
+      y += 50;
+    });
+    // picked emojis
+    const picked = pickedEmojis();
+    if (picked.length){ y += 16; ctx.fillStyle = '#1a1a1a'; ctx.font = '34px system-ui, sans-serif';
+      ctx.fillText(trunc(ctx, picked.join(' '), W - 120), 60, y); }
+    // dataURL → bytes (sync)
+    let url;
+    try { url = canvas.toDataURL('image/jpeg', 0.92); } catch(e){ return null; }
+    const b64 = url.slice(url.indexOf(',') + 1);
+    let bin; try { bin = atob(b64); } catch(e){ return null; }
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
   function buildFmtFile(fmt){
     switch (fmt){
       case 'txt':  return { name: `${PAGE}.txt`,  data: toTxt(),  mime: 'text/plain;charset=utf-8' };
@@ -8839,8 +8942,7 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       case 'csv':  return { name: `${PAGE}.csv`,  data: toCsv(),  mime: 'text/csv;charset=utf-8' };
       case 'xml':  return { name: `${PAGE}.xml`,  data: toXml(),  mime: 'application/xml;charset=utf-8' };
       case 'html': return { name: `${PAGE}.html`, data: toHtml(), mime: 'text/html;charset=utf-8' };
-      /* jpg requires canvas rasterisation — skipped in this minimal
-         build; marking JPG silently bundles nothing for it. */
+      case 'jpg':  { const j = toJpgBytes(); return j ? { name: `${PAGE}.jpg`, data: j, mime: 'image/jpeg' } : null; }
       default: return null;
     }
   }
@@ -9404,6 +9506,178 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   lists.forEach(list => new MutationObserver(() => { markDraggable(); applyAll(); }).observe(list, { childList: true }));
 
   applyAll();
+})();
+</script>
+
+<script>
+/* ── F0 · persistence + Update + Reset (backend_plan §10.3a · §13.9) ──
+   blogy-advanced previously had NO summary/item persistence (only the
+   compass display-mode under "blogy-compass-mode"). This block builds a
+   minimal real hydrate path: it snapshots the user's in-DOM selections
+   (rater radios, ⋯-more picker checkboxes, filled textareas) under
+   `flove:blogy:items` + a schema-version key `flove:blogy:v`, rehydrates
+   them on load, and lets the [data-flove-update] buttons re-derive the
+   summary from storage. Reset clears everything (this app's keys only).
+   ──────────────────────────────────────────────────────────────────── */
+(function(){
+  if (window._floveBlogyF0Bound) return;
+  window._floveBlogyF0Bound = true;
+
+  var K_ITEMS = 'flove:blogy:items';
+  var K_VER   = 'flove:blogy:v';
+  var SCHEMA  = '1';
+
+  /* ── hardened storage helpers ── */
+  function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function lsSet(k, v){
+    try { localStorage.setItem(k, v); return true; }
+    catch(e){
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)){
+        try { console.warn('flove:blogy — storage full; use Save/Download to export your work.'); } catch(_){}
+      }
+      return false;
+    }
+  }
+  function lsDel(k){ try { localStorage.removeItem(k); } catch(e){} }
+
+  /* ── snapshot / restore the live selection state ── */
+  function snapshot(){
+    var radios = {};
+    Array.prototype.forEach.call(
+      document.querySelectorAll('input[type="radio"][name^="rate-"]:checked'),
+      function(r){ if (r.id) radios[r.name] = r.id; });
+    var picks = Array.prototype.map.call(
+      document.querySelectorAll('input[id^="pkr-"]:checked'),
+      function(c){ return c.id; });
+    var texts = {};
+    Array.prototype.forEach.call(document.querySelectorAll('textarea'), function(t){
+      if (t.id && t.value && t.value.trim()) texts[t.id] = t.value;
+    });
+    return { v: SCHEMA, radios: radios, picks: picks, texts: texts };
+  }
+  function persistState(){
+    var ok = lsSet(K_ITEMS, JSON.stringify(snapshot()));
+    if (ok) lsSet(K_VER, SCHEMA);
+  }
+  function readState(){
+    var raw = lsGet(K_ITEMS);
+    if (!raw) return null;
+    var data; try { data = JSON.parse(raw); } catch(e){ return null; }
+    if (!data || typeof data !== 'object') return null;
+    if (lsGet(K_VER) !== SCHEMA && data.v !== SCHEMA) return null; // schema drift → ignore
+    return data;
+  }
+  /* hydrate — apply a stored snapshot back onto the DOM */
+  function hydrate(){
+    var data = readState();
+    if (!data) return false;
+    if (data.radios) Object.keys(data.radios).forEach(function(name){
+      var el = document.getElementById(data.radios[name]);
+      if (el && el.name === name) el.checked = true;
+    });
+    if (Array.isArray(data.picks)) data.picks.forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.checked = true;
+    });
+    if (data.texts) Object.keys(data.texts).forEach(function(id){
+      var el = document.getElementById(id);
+      if (el && 'value' in el) el.value = data.texts[id];
+    });
+    return true;
+  }
+
+  /* ── stale-dot helpers ── */
+  function dots(){ return document.querySelectorAll('.stale-dot'); }
+  function showStale(){ Array.prototype.forEach.call(dots(), function(d){ d.hidden = false; }); }
+  function hideStale(){ Array.prototype.forEach.call(dots(), function(d){ d.hidden = true; }); }
+
+  /* ── re-render the live summary (reuses the existing modules) ── */
+  function reRender(){
+    try { if (window.flove && window.flove.counters && window.flove.counters.refresh) window.flove.counters.refresh(); } catch(e){}
+    /* nudge the SVG viz + any CSS-:has() driven mirrors to recompute */
+    try { document.dispatchEvent(new Event('change')); } catch(e){}
+  }
+
+  /* ── persist() once on first interaction (guarded) ── */
+  var persistAsked = false;
+  function askPersist(){
+    if (persistAsked) return;
+    persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  }
+
+  /* ── UPDATE — re-hydrate from storage, re-render, clear every dot ── */
+  function doUpdate(){
+    hydrate();
+    reRender();
+    hideStale();
+  }
+
+  /* ── RESET — destructive, confirm-guarded, bilingual ── */
+  function isEs(){ var es = document.getElementById('ui-lang-es'); return !!(es && es.checked); }
+  function doReset(){
+    var msg = isEs()
+      ? '¿Borrar todo y empezar de nuevo? Esto no se puede deshacer.'
+      : 'Clear everything and start a new play? This cannot be undone.';
+    if (!window.confirm(msg)) return;
+    /* clear in-DOM selections — radios back to their *-0 / -none default,
+       checkboxes off, contenteditable + textareas emptied, active/selected off */
+    Array.prototype.forEach.call(document.querySelectorAll('input[type="radio"][name^="rate-"]'), function(r){
+      r.checked = /-0$/.test(r.id || '');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('input[id^="pkr-"]'), function(c){ c.checked = false; });
+    Array.prototype.forEach.call(document.querySelectorAll('input[id^="rater-show-"]'), function(c){ c.checked = false; });
+    Array.prototype.forEach.call(document.querySelectorAll('textarea'), function(t){ t.value = ''; });
+    Array.prototype.forEach.call(document.querySelectorAll('[contenteditable="true"]'), function(c){ c.textContent = ''; });
+    Array.prototype.forEach.call(document.querySelectorAll('.active, .selected'), function(el){
+      el.classList.remove('active'); el.classList.remove('selected');
+    });
+    /* remove ONLY this app's namespaced keys — never localStorage.clear() */
+    var kill = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++){
+        var key = localStorage.key(i);
+        if (key && (key.indexOf('flove:blogy') === 0 || key.indexOf('flove.blogy') === 0)) kill.push(key);
+      }
+    } catch(e){}
+    kill.forEach(lsDel);
+    /* back to the first step */
+    var first = document.getElementById('step-0');
+    if (first) first.checked = true;
+    reRender();
+    hideStale();
+  }
+
+  /* ── wiring ── */
+  document.addEventListener('click', function(ev){
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    if (t.closest('[data-flove-update]')){ ev.preventDefault(); doUpdate(); return; }
+    if (t.closest('[data-flove-reset]')) { ev.preventDefault(); doReset();  return; }
+  });
+
+  /* stale tracking — if an item changes AFTER something is already
+     persisted, mark the summary out-of-date (event-hooked, not a timer). */
+  function onEdit(ev){
+    askPersist();
+    var t = ev.target;
+    var relevant = t && (
+      (t.matches && (t.matches('input[name^="rate-"]') || t.matches('input[id^="pkr-"]'))) ||
+      (t.tagName === 'TEXTAREA')
+    );
+    if (!relevant) return;
+    var hadState = !!lsGet(K_ITEMS);
+    if (hadState) showStale();   // editing an already-persisted play → out of date
+    persistState();              // keep storage current so Update re-derives
+  }
+  document.addEventListener('change', onEdit);
+  document.addEventListener('input', function(ev){ if (ev.target && ev.target.tagName === 'TEXTAREA') onEdit(ev); });
+
+  /* hydrate on load, then snapshot the (possibly empty) starting state */
+  hydrate();
+  reRender();
+  hideStale();
+  persistState();
 })();
 </script>
 

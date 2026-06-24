@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>✺ flove · Inventary</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link rel="stylesheet" href="../flove.css">
   <style>
     :root {
       /* flove identity overrides — navy Inventary */
@@ -784,6 +783,51 @@
       box-shadow: 0 6px 14px rgba(30, 74, 107, 0.18);
     }
     .btn-with-subs.is-open > .btn { background: var(--app-accent); color: #fff; }
+
+    /* ✦ F0 Update / Reset affordances (backend_plan.md §10.3a / §13.9) */
+    /* Bilingual spans (flove worldball pattern): show one language at a time,
+       driven by <html lang>. App is en today, ready for /translate2 wiring. */
+    .t-es { display: none; }
+    html[lang="es"] .t-en { display: none; }
+    html[lang="es"] .t-es { display: inline; }
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid rgba(47, 127, 214, 0.45);
+      color: var(--app-accent);
+      font-weight: 600;
+    }
+    .btn.ghost:hover { background: var(--app-accent); color: #fff; }
+    .flove-state-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: -1.6rem;
+    }
+    .update-btn { position: relative; }
+    .stale-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-left: 2px;
+      border-radius: 50%;
+      background: #e8a23d;
+      box-shadow: 0 0 0 2px rgba(232, 162, 61, 0.25);
+      vertical-align: middle;
+    }
+    .stale-dot[hidden] { display: none; }
+    .reset-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .reset-hint, .update-hint {
+      color: #5e7c95;
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
 
     .hint-area {
       margin-top: 10px;
@@ -1762,9 +1806,15 @@
 
     <!-- Two rows of pill buttons (diesafe-style): Insights/Creative/Copy + Save/Share/Publish -->
     <div class="action-buttons">
+      <!-- ✦ F0 state row (backend_plan.md §10.3a / §13.9): Reset (left) + Update (right) -->
+      <div class="flove-state-row">
+        <span class="reset-wrap"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="t-en">Reset</span><span class="t-es">Reiniciar</span></button><small class="reset-hint"><span class="t-en">Clear all and start new play</span><span class="t-es">Borra todo y empieza de nuevo</span></small></span>
+        <button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden role="img" aria-label="Out of date"></span></button>
+      </div>
       <div class="row">
         <button class="btn" id="insightsBtn" type="button"><i class="fas fa-brain"></i> Insights</button>
         <button class="btn" id="creativeBtn" type="button"><i class="fas fa-wand-magic-sparkles"></i> Creative</button>
+        <button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden role="img" aria-label="Out of date"></span></button>
         <button class="btn" id="copyBtn" type="button"><i class="far fa-copy"></i> Copy</button>
       </div>
       <div class="row">
@@ -1773,12 +1823,17 @@
           <div class="subitems">
             <button class="subitem" data-group="save" data-action="html" type="button">HTML</button>
             <button class="subitem" data-group="save" data-action="text" type="button">Text</button>
+            <button class="subitem" data-group="save" data-action="md" type="button">MD</button>
+            <button class="subitem" data-group="save" data-action="csv" type="button">CSV</button>
+            <button class="subitem" data-group="save" data-action="xml" type="button">XML</button>
+            <button class="subitem" data-group="save" data-action="jpg" type="button">JPG</button>
             <button class="subitem" data-group="save" data-action="json" type="button">JSON</button>
           </div>
         </div>
         <div class="btn-with-subs" id="shareWrap">
           <button class="btn" id="shareBtn" type="button"><i class="fas fa-share-alt"></i> Share</button>
           <div class="subitems">
+            <button class="subitem" data-group="share" data-action="mobile" type="button">Device</button>
             <button class="subitem" data-group="share" data-action="whatsapp" type="button">WhatsApp</button>
             <button class="subitem" data-group="share" data-action="telegram" type="button">Telegram</button>
             <button class="subitem" data-group="share" data-action="mail" type="button">Mail</button>
@@ -2743,9 +2798,6 @@
 <p style="margin-top:2rem;color:#58738c;font-size:.85rem;">generated ${new Date().toLocaleString()}</p>
 </body></html>`;
     }
-    function jsonData() {
-      return { generated: new Date().toISOString(), items: selectionsByItem() };
-    }
     function downloadBlob(blob, filename) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -2762,10 +2814,74 @@
         case 'mail':     return `mailto:?subject=${encodeURIComponent('inventary snapshot')}&body=${enc}%0A%0A${page}`;
       }
     }
+    // ── Summary-model: the single source every export format reads from ──
+    const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    const escAttr = s => esc(s).replace(/"/g, '&quot;');
+    function buildModel() {
+      const sels = selectionsByItem();
+      const flags = it => ['have','wish','want','need'].filter(k => it[k]);
+      return {
+        app: 'Inventary', version: 1,
+        phrase: plainText(),
+        sections: [{ label: 'Items', title: '', items: sels.map(it => `${it.item} — ${flags(it).join(', ') || '—'}`) }],
+        raters: [],
+        picked: sels
+      };
+    }
+    function toMd(m) {
+      let s = `# ${m.app}\n\n${m.phrase}\n\n`;
+      m.sections.forEach(sec => { s += `## ${sec.label}\n`; sec.items.forEach(it => s += `- ${it}\n`); s += '\n'; });
+      return s;
+    }
+    function toCsv(m) {
+      const q = v => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      const lines = ['item,have,wish,want,need'];
+      m.picked.forEach(it => lines.push([it.item, it.have?'y':'', it.wish?'y':'', it.want?'y':'', it.need?'y':''].map(q).join(',')));
+      return lines.join('\n') + '\n';
+    }
+    function toXml(m) {
+      let s = `<?xml version="1.0" encoding="UTF-8"?>\n<inventary version="${m.version}">\n  <phrase>${esc(m.phrase)}</phrase>\n  <items>\n`;
+      m.picked.forEach(it => { s += `    <item have="${it.have?1:0}" wish="${it.wish?1:0}" want="${it.want?1:0}" need="${it.need?1:0}">${esc(it.item)}</item>\n`; });
+      s += `  </items>\n</inventary>\n`;
+      return s;
+    }
+    function renderJPG(cb) {
+      const W = 720, lh = 22, m = buildModel();
+      const raw = [m.app, '', ...(m.phrase ? m.phrase.split('\n') : []), '', ...m.sections.flatMap(s => s.items.map(i => '· ' + i))];
+      const tmp = document.createElement('canvas').getContext('2d');
+      tmp.font = '14px system-ui';
+      const maxW = W - 56, lines = [];
+      raw.forEach(r => {
+        const words = String(r).split(/\s+/); let line = '';
+        for (const w of words) { const t = line ? line + ' ' + w : w; if (tmp.measureText(t).width > maxW) { lines.push(line); line = w; } else line = t; }
+        lines.push(line);
+      });
+      const H = Math.max(200, 40 + lines.length * lh + 24);
+      const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#eef4fb'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#16324f'; ctx.font = '14px system-ui';
+      lines.forEach((ln, i) => ctx.fillText(ln, 28, 40 + i * lh));
+      canvas.toBlob(cb, 'image/jpeg', 0.92);
+    }
     const subActions = {
-      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html'}), 'inventary_snapshot.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
-      'save:text': () => { downloadBlob(new Blob([plainText()], {type:'text/plain'}), 'inventary_snapshot.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
-      'save:json': () => { downloadBlob(new Blob([JSON.stringify(jsonData(), null, 2)], {type:'application/json'}), 'inventary_snapshot.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
+      'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html;charset=utf-8'}), 'inventary_snapshot.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
+      'save:text': () => { downloadBlob(new Blob([plainText()], {type:'text/plain;charset=utf-8'}), 'inventary_snapshot.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
+      'save:md':   () => { downloadBlob(new Blob([toMd(buildModel())], {type:'text/markdown;charset=utf-8'}), 'inventary_snapshot.md'); setHint('<i class="fas fa-check-circle"></i> Markdown downloaded.'); },
+      'save:csv':  () => { downloadBlob(new Blob([toCsv(buildModel())], {type:'text/csv;charset=utf-8'}), 'inventary_snapshot.csv'); setHint('<i class="fas fa-check-circle"></i> CSV downloaded.'); },
+      'save:xml':  () => { downloadBlob(new Blob([toXml(buildModel())], {type:'application/xml;charset=utf-8'}), 'inventary_snapshot.xml'); setHint('<i class="fas fa-check-circle"></i> XML downloaded.'); },
+      'save:jpg':  () => { renderJPG(blob => { if (!blob) { setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; } downloadBlob(blob, 'inventary_snapshot.jpg'); setHint('<i class="fas fa-check-circle"></i> JPG downloaded.'); }); },
+      'save:json': () => { downloadBlob(new Blob([JSON.stringify(buildModel(), null, 2)], {type:'application/json;charset=utf-8'}), 'inventary_snapshot.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
+      'share:mobile': async () => {
+        const text = plainText() || '(empty)', title = 'Inventary';
+        const htmlFile = new File([buildFullHTML()], 'inventary_snapshot.html', { type: 'text/html' });
+        if (navigator.canShare && navigator.canShare({ files: [htmlFile] })) {
+          try { await navigator.share({ title, text, files: [htmlFile] }); return; } catch(_) {}
+        }
+        if (navigator.share) { try { await navigator.share({ title, text }); return; } catch(_) { return; } }
+        if (navigator.clipboard) { try { await navigator.clipboard.writeText(text); setHint('<i class="fas fa-check-circle"></i> Copied — paste to share.'); return; } catch(_) {} }
+        setHint('<i class="fas fa-info-circle"></i> Share not supported here.');
+      },
       'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
       'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
       'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },
@@ -3280,7 +3396,18 @@
        re-create added rows FIRST, then re-apply selections, then merge
        itemState, then re-render — so the structure exists before values land.
        Defensive: missing/corrupt/old storage is ignored, never throws. */
-    const LS_KEY = 'flove:' + (location.pathname.split('/').pop().replace(/\.html$/, '') || 'app') + ':state';
+    const LS_BASE = 'flove:' + (location.pathname.split('/').pop().replace(/\.html$/, '') || 'app');
+    const LS_KEY = LS_BASE + ':state';
+    const LS_SCHEMA_KEY = LS_BASE + ':schema';
+    const LS_SCHEMA_VERSION = '1';
+
+    // Request durable storage on first interaction, guarded once (§10.3a).
+    let _persistAsked = false;
+    function requestPersist() {
+      if (_persistAsked) return;
+      _persistAsked = true;
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    }
 
     function snapshotState() {
       const added = [];
@@ -3298,22 +3425,53 @@
       return { added, selections, itemState };
     }
 
+    // ✦ Stale-dot helpers (§10.3a): in-session edits to stored data un-hide the
+    //   dot; Update / Reset re-hide every dot. Driven by the edit path, no timer.
+    function markStale() {
+      document.querySelectorAll('.stale-dot').forEach(d => { d.hidden = false; });
+    }
+    function clearStale() {
+      document.querySelectorAll('.stale-dot').forEach(d => { d.hidden = true; });
+    }
+
     let _saveT;
     function saveState() {
       clearTimeout(_saveT);
       _saveT = setTimeout(() => {
-        try { localStorage.setItem(LS_KEY, JSON.stringify(snapshotState())); }
-        catch (_) { /* QuotaExceeded / private mode: never crash (§10.3b) */ }
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(snapshotState()));
+          localStorage.setItem(LS_SCHEMA_KEY, LS_SCHEMA_VERSION);
+        } catch (e) {
+          // QuotaExceeded / private mode: never crash (§10.3b). On quota, nudge
+          // the user toward export (Save) so their work isn't silently lost.
+          if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
+            try { setHint('<span class="t-en">Storage is full — use <b>Save</b> to export your snapshot.</span><span class="t-es">Almacenamiento lleno — usa <b>Save</b> para exportar tu inventario.</span>'); } catch (_) {}
+          }
+        }
       }, 250);
     }
 
+    // Wipe live state back to the page's pristine start (used by Reset and as
+    // the first step of a re-hydrate so Update never duplicates added rows).
+    function clearLiveState() {
+      getRows().forEach(row => {
+        if (row.classList.contains('is-new')) { row.remove(); return; }
+        ['have', 'wish', 'want', 'need'].forEach(t => row.querySelector('.col-' + t)?.classList.remove('selected-' + t));
+        updateRowPriority(row);
+      });
+      Object.keys(itemState).forEach(k => { delete itemState[k]; });
+    }
+
     function restoreState() {
+      // re-hydrate is idempotent: wipe live structure first so re-creating the
+      // stored .is-new rows / selections / itemState doesn't pile up duplicates.
+      clearLiveState();
       let raw = null;
       try { raw = localStorage.getItem(LS_KEY); } catch (_) { return; }
-      if (!raw) return;
+      if (!raw) { renderAllCategories(); return; }
       let data;
-      try { data = JSON.parse(raw); } catch (_) { return; }      // corrupt → ignore
-      if (!data || typeof data !== 'object') return;
+      try { data = JSON.parse(raw); } catch (_) { renderAllCategories(); return; }  // corrupt → ignore
+      if (!data || typeof data !== 'object') { renderAllCategories(); return; }
 
       // (1) re-create dynamically-added rows at the top (newest restored first
       //     so the visible order roughly matches insert-at-top behavior).
@@ -3361,11 +3519,54 @@
     filterByCategory(null);
     updateAllHighlights();
     updateCounts();
+    clearStale();  // a freshly-hydrated page is, by definition, up to date
+
+    // ✦ Update: re-derive from stored state, then clear all stale dots (§10.3a).
+    function onUpdate() {
+      restoreState();
+      filterByCategory(activeCat || null);
+      updateAllHighlights();
+      updateCounts();
+      clearStale();
+    }
+    document.querySelectorAll('[data-flove-update]').forEach(b => b.addEventListener('click', onUpdate));
+
+    // ✦ Reset: destructive — start a new play. Guard with confirm() (§10.3a).
+    function onReset() {
+      const ok = confirm(
+        document.documentElement.lang === 'es'
+          ? '¿Borrar todo y empezar de nuevo? Esto no se puede deshacer.'
+          : 'Clear everything and start a new play? This cannot be undone.'
+      );
+      if (!ok) return;
+      clearLiveState();
+      // Empty ONLY this app's own keys — never localStorage.clear() (§10.3a).
+      try { localStorage.removeItem(LS_KEY); } catch (_) {}
+      try { localStorage.removeItem(LS_SCHEMA_KEY); } catch (_) {}
+      activeCat = 'all';
+      lastSpecificCat = null;
+      filterByCategory(null);
+      updateAllHighlights();
+      updateCounts();
+      renderAllCategories();
+      clearStale();
+    }
+    document.querySelectorAll('[data-flove-reset]').forEach(b => b.addEventListener('click', onReset));
+
     // Persist on any interaction — bubble-phase listeners fire AFTER the app's
     // own click/change handlers mutate the DOM classes and itemState.
-    document.addEventListener('click', saveState, false);
-    document.addEventListener('change', saveState, false);
-    document.addEventListener('input', saveState, false);
+    // Same path marks the stored snapshot stale (un-hides .stale-dot) and asks
+    // for durable storage once, so it's hooked to the real edit flow, no timer.
+    function onEdit(e) {
+      const t = e.target && e.target.closest && e.target.closest('[data-flove-update],[data-flove-reset]');
+      if (t) return;            // Update/Reset themselves manage the dots
+      requestPersist();
+      markStale();
+      saveState();
+    }
+    document.addEventListener('click', onEdit, false);
+    document.addEventListener('change', onEdit, false);
+    document.addEventListener('input', onEdit, false);
   })();
 </script>
 <script src="../../flove-appy.js" data-app="Inventary" data-colour="#2f7fd6" defer></script>

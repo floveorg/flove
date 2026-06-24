@@ -1477,10 +1477,6 @@
       color: #2e2e2e;
     }
 
-    .actions {
-      display: none;
-    }
-
     .magic-active .phrase-list {
       display: none;
     }
@@ -1797,14 +1793,18 @@
         <div class="btn-with-subs" id="saveWrap">
           <button class="btn" id="saveBtn" type="button">💾 <span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
           <div class="subitems">
-            <button class="subitem" data-group="save" data-action="html" type="button">HTML</button>
-            <button class="subitem" data-group="save" data-action="text" type="button"><span class="en" lang="en">Text</span><span class="es" lang="es">Texto</span></button>
-            <button class="subitem" data-group="save" data-action="json" type="button">JSON</button>
+            <button class="subitem" data-group="save" data-action="md"   data-flove-save="md"   type="button">MD</button>
+            <button class="subitem" data-group="save" data-action="json" data-flove-save="json" type="button">JSON</button>
+            <button class="subitem" data-group="save" data-action="xml"  data-flove-save="xml"  type="button">XML</button>
+            <button class="subitem" data-group="save" data-action="html" data-flove-save="html" type="button">HTML</button>
+            <button class="subitem" data-group="save" data-action="jpg"  data-flove-save="jpg"  type="button">JPG</button>
+            <button class="subitem" data-group="save" data-action="csv"  data-flove-save="csv"  type="button">CSV</button>
           </div>
         </div>
         <div class="btn-with-subs" id="shareWrap">
           <button class="btn" id="shareBtn" type="button">📤 <span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></button>
           <div class="subitems">
+            <button class="subitem" data-group="share" data-action="mobile" data-flove-share="mobile" type="button">📱 <span class="en" lang="en">Device</span><span class="es" lang="es">Dispositivo</span></button>
             <button class="subitem" data-group="share" data-action="whatsapp" type="button">WhatsApp</button>
             <button class="subitem" data-group="share" data-action="telegram" type="button">Telegram</button>
             <button class="subitem" data-group="share" data-action="mail" type="button"><span class="en" lang="en">Mail</span><span class="es" lang="es">Correo</span></button>
@@ -2337,38 +2337,107 @@
     Object.values(wraps).forEach(w => w.addEventListener('click', e => e.stopPropagation()));
     document.addEventListener('click', () => closeAllWraps());
 
+    // ====================================================================
+    // SUMMARY-MODEL · single source for the phrase, the on-screen summary
+    // and every export format (§13.12). Build it ONCE, serialize everywhere.
+    // ====================================================================
+    function buildModel() {
+      const fields = getAllTextFields();
+      const items = [];      // [{ key, label, value }] — one per FILLED field
+      fields.forEach(f => {
+        let val = f.value || '';
+        if(f.tagName === 'SELECT') {
+          const opt = f.options[f.selectedIndex];
+          val = opt ? opt.text : '';
+        }
+        val = (val || '').trim();
+        if(!val) return;
+        items.push({ key: f.id, label: getShortLabel(f), value: val });
+      });
+      // saved attachments ride into the model as document items
+      document.querySelectorAll('#docsAttachments .upload-attachment').forEach(att => {
+        const name = att.querySelector('.upload-attachment-name')?.textContent || '';
+        const note = (att.querySelector('.upload-attachment-text')?.textContent || '').replace(/^—\s*/, '');
+        if(!name) return;
+        items.push({ key: 'document', label: T({en:'document', es:'documento'}), value: `📄 ${name}${note ? ' · ' + note : ''}` });
+      });
+      return {
+        app: 'DieSafe',
+        version: 1,
+        phrase: generateMagicPhrase() || '',
+        sections: [{ label: T({en:'Summary', es:'Resumen'}), title: '', items: items.map(it => `${it.label}: ${it.value}`) }],
+        items,                 // structured, for csv/html tables
+        raters: []             // DieSafe has no ratings (no Views)
+      };
+    }
+
+    // ---------- shared serialization helpers (one copy, reused by all formats) ----------
+    const escXml  = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+    const escAttr = s => escXml(s);
+    const safeName = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const SUMMARY_WORD = { en:'summary', es:'resumen', fr:'resume', pt:'resumo', de:'zusammenfassung' };
+    const fileBase = m => `${safeName(m.app)}-${SUMMARY_WORD[curLang()] || 'summary'}`;
+
+    function modelIsEmpty(m) { return !m.items.length && !m.phrase; }
+
+    function toMd(m) {
+      let s = `# ${m.app}\n\n${m.phrase || ''}\n\n`;
+      m.items.forEach(it => { s += `- **${it.label}:** ${it.value}\n`; });
+      return s;
+    }
+    const toJson = m => JSON.stringify(m, null, 2);
+    function toXml(m) {
+      let s = `<?xml version="1.0" encoding="UTF-8"?>\n<flove app="${escAttr(m.app)}" version="${m.version}">\n`;
+      s += `  <phrase>${escXml(m.phrase || '')}</phrase>\n  <items>\n`;
+      m.items.forEach(it => {
+        s += `    <item key="${escAttr(it.key)}" label="${escAttr(it.label)}">${escXml(it.value)}</item>\n`;
+      });
+      s += `  </items>\n</flove>\n`;
+      return s;
+    }
+    function toCsv(m) {
+      const q = v => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+      const lines = ['key,label,value'];
+      m.items.forEach(it => lines.push([it.key, it.label, it.value].map(q).join(',')));
+      return lines.join('\n');
+    }
+    function toJpg(m, cb) {
+      const W = 1080, H = 1080, canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#faf9f6'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#b88a4a'; ctx.font = '600 52px Georgia, serif';
+      ctx.fillText('📄 ' + m.app, 64, 96);
+      ctx.fillStyle = '#1e1e1e'; ctx.font = '24px "Courier New", monospace';
+      const lines = m.items.map(it => `· ${it.label}: ${it.value}`);
+      const MAX = 32, X = 64;
+      lines.slice(0, MAX).forEach((ln, i) => ctx.fillText(ln.slice(0, 78), X, 170 + i * 28));
+      if (lines.length > MAX) ctx.fillText('…', X, 170 + MAX * 28);   // never drop in silence
+      canvas.toBlob(b => cb(b), 'image/jpeg', 0.92);
+    }
+    function toHtmlDoc(m) {
+      const rows = m.items.map(it =>
+        `<tr><td class="k">${escXml(it.label)}</td><td class="v">${escXml(it.value)}</td></tr>`).join('');
+      const genLabel = T({en:'generated', es:'generado'});
+      const heading = T({en:'Summary', es:'Resumen'});
+      return `<!DOCTYPE html>
+<html lang="${curLang()}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escXml(m.app)} · ${escXml(heading)}</title>
+<style>body{font-family:system-ui,sans-serif;padding:2rem;background:#faf9f6;color:#1e1e1e}.card{background:#f6f6f6;border:3px dashed #9a8c7a;border-radius:32px 12px;padding:2rem;max-width:900px;margin:0 auto}h1{font-family:Georgia,serif}p.phrase{font-family:'Courier New',monospace}table{width:100%;border-collapse:collapse}td{padding:8px;border-bottom:1px solid #ccc;vertical-align:top}td.k{font-family:Times,serif;width:160px}td.v{font-family:Consolas,monospace}p.gen{margin-top:2rem;font-size:.85rem;color:#6a5e44}</style></head>
+<body><div class="card"><h1>📄 ${escXml(heading)} · ${escXml(m.app)}</h1>${m.phrase ? `<p class="phrase">✨ ${escXml(m.phrase)}</p>` : ''}<table>${rows}</table><p class="gen">${escXml(genLabel)} ${escXml(new Date().toLocaleString())}</p></div></body></html>`;
+    }
+
     function plainText() {
-      const fields = getAllTextFields();
-      let out = '';
-      fields.forEach(f => {
-        let val = f.value || '';
-        if(f.tagName === 'SELECT') {
-          const opt = f.options[f.selectedIndex];
-          val = opt ? opt.text : '';
-        }
-        if(!val.trim()) return;
-        out += `${getShortLabel(f)}: ${val}\n`;
-      });
-      return out || EMPTY_HINT();
+      const m = buildModel();
+      if(modelIsEmpty(m)) return EMPTY_HINT();
+      return m.items.map(it => `${it.label}: ${it.value}`).join('\n') + '\n';
     }
-    function jsonData() {
-      const fields = getAllTextFields();
-      const data = {};
-      fields.forEach(f => {
-        let val = f.value || '';
-        if(f.tagName === 'SELECT') {
-          const opt = f.options[f.selectedIndex];
-          val = opt ? opt.text : '';
-        }
-        if(val.trim()) data[f.id] = val;
-      });
-      return data;
-    }
-    function downloadBlob(blob, filename) {
+    function downloadBlob(body, mime, filename) {
+      const blob = body instanceof Blob ? body : new Blob([body], { type: mime });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     function shareUrl(target) {
       const txt = `DieSafe · ${plainText().slice(0, 220)}`;
@@ -2380,19 +2449,34 @@
         case 'mail':     return `mailto:?subject=${encodeURIComponent('DieSafe')}&body=${enc}%0A%0A${page}`;
       }
     }
+    // save dispatcher — every format derives from the one model
+    function saveFormat(fmt) {
+      const m = buildModel();
+      if(modelIsEmpty(m)) { setHint(T({en:'Nothing to export yet — add some information first.', es:'Nada que exportar aún — añade información primero.'})); return; }
+      const base = fileBase(m);
+      if(fmt === 'jpg') {
+        toJpg(m, b => { downloadBlob(b, 'image/jpeg', base + '.jpg'); setHint(T({en:'💾 JPG downloaded.', es:'💾 JPG descargado.'})); });
+        return;
+      }
+      const table = {
+        md:   [toMd(m),      'text/markdown;charset=utf-8'],
+        json: [toJson(m),    'application/json;charset=utf-8'],
+        xml:  [toXml(m),     'application/xml;charset=utf-8'],
+        html: [toHtmlDoc(m), 'text/html;charset=utf-8'],
+        csv:  [toCsv(m),     'text/csv;charset=utf-8'],
+      }[fmt];
+      if(!table) return;
+      downloadBlob(table[0], table[1], `${base}.${fmt}`);
+      setHint(T({en:`💾 ${fmt.toUpperCase()} downloaded.`, es:`💾 ${fmt.toUpperCase()} descargado.`}));
+    }
     const subActions = {
-      'save:html': () => {
-        downloadBlob(new Blob([generateShareHTML()], {type:'text/html'}), magicActive ? 'diesafe_magic.html' : 'diesafe_resume.html');
-        setHint(T({en:'💾 HTML downloaded.', es:'💾 HTML descargado.'}));
-      },
-      'save:text': () => {
-        downloadBlob(new Blob([plainText()], {type:'text/plain'}), 'diesafe_resume.txt');
-        setHint(T({en:'💾 Text downloaded.', es:'💾 Texto descargado.'}));
-      },
-      'save:json': () => {
-        downloadBlob(new Blob([JSON.stringify(jsonData(), null, 2)], {type:'application/json'}), 'diesafe_resume.json');
-        setHint(T({en:'💾 JSON downloaded.', es:'💾 JSON descargado.'}));
-      },
+      'save:md':   () => saveFormat('md'),
+      'save:json': () => saveFormat('json'),
+      'save:xml':  () => saveFormat('xml'),
+      'save:html': () => saveFormat('html'),
+      'save:csv':  () => saveFormat('csv'),
+      'save:jpg':  () => saveFormat('jpg'),
+      'share:mobile':   () => shareMobile(),
       'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint(T({en:'📤 Opening WhatsApp…', es:'📤 Abriendo WhatsApp…'})); },
       'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint(T({en:'📤 Opening Telegram…', es:'📤 Abriendo Telegram…'})); },
       'share:mail':     () => { location.href = shareUrl('mail'); setHint(T({en:'📤 Opening Mail…', es:'📤 Abriendo Mail…'})); },
@@ -2400,11 +2484,30 @@
     document.querySelectorAll('.subitem').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const fn = subActions[`${btn.dataset.group}:${btn.dataset.action}`];
+        const key = btn.dataset.floveSave ? `save:${btn.dataset.floveSave}`
+                  : btn.dataset.floveShare ? `share:${btn.dataset.floveShare}`
+                  : `${btn.dataset.group}:${btn.dataset.action}`;
+        const fn = subActions[key];
         if(fn) fn();
         if(btn.dataset.group !== 'publish') closeAllWraps();
       });
     });
+
+    // ---------- SHARE TO MOBILE (Web Share API → clipboard → intents) ----------
+    async function shareMobile() {
+      const m = buildModel();
+      if(modelIsEmpty(m)) { setHint(T({en:'Nothing to share yet — add some information first.', es:'Nada que compartir aún — añade información primero.'})); return; }
+      const title = `flove · ${m.app}`;
+      const html = new File([toHtmlDoc(m)], fileBase(m) + '.html', { type: 'text/html' });
+      if(navigator.canShare && navigator.canShare({ files: [html] })) {
+        try { await navigator.share({ title, text: m.phrase || plainText(), files: [html] }); return; } catch(_) {}
+      }
+      if(navigator.share) {
+        try { await navigator.share({ title, text: m.phrase || plainText() }); return; } catch(_) {}
+      }
+      try { await navigator.clipboard.writeText(m.phrase || plainText()); setHint(T({en:'📋 Copied — paste to share.', es:'📋 Copiado — pega para compartir.'})); }
+      catch(_) { setHint(T({en:'Use WhatsApp / Telegram / Mail below to share.', es:'Usa WhatsApp / Telegram / Correo abajo para compartir.'})); }
+    }
 
     // ---------- COPY (según modo) ----------
     copyBtn.addEventListener('click', async () => {
@@ -2412,15 +2515,7 @@
       if(magicActive) {
         content = magicOutput.textContent.replace(/^✨\s*/, '');
       } else {
-        const fields = getAllTextFields();
-        fields.forEach(f => {
-          let val = f.value || '';
-          if(f.tagName === 'SELECT') {
-            const opt = f.options[f.selectedIndex];
-            val = opt ? opt.text : '';
-          }
-          content += `${getShortLabel(f)}: ${val}\n`;
-        });
+        content = plainText();
       }
       try {
         await navigator.clipboard.writeText(content);
@@ -2429,36 +2524,6 @@
         alert(T({en:'Could not copy', es:'No se pudo copiar'}));
       }
     });
-
-    // ---------- SHARE (exportar HTML según modo) ----------
-    function generateShareHTML() {
-      const lang = curLang();
-      const genLabel = T({en:'generated', es:'generado'});
-      if(magicActive) {
-        const magicText = magicOutput.textContent.replace(/^✨\s*/, '');
-        const heading = T({en:'Magic phrase', es:'Frase mágica'});
-        return `<!DOCTYPE html>
-<html lang="${lang}"><head><meta charset="UTF-8"><title>DieSafe · ${escapeHtml(heading)}</title>
-<style>body{font-family:system-ui;padding:2rem;background:#faf9f6;} .card{background:#f6f6f6;border:3px dashed #9a8c7a;border-radius:32px 12px;padding:2rem;max-width:800px;margin:0 auto;} h1{font-family:Georgia,serif;} p{font-family:'Courier New',monospace;font-size:1.2rem;}</style></head>
-<body><div class="card"><h1>✨ ${escapeHtml(heading)} · DieSafe</h1><p>${escapeHtml(magicText)}</p><p style="margin-top:2rem;">${escapeHtml(genLabel)} ${new Date().toLocaleString()}</p></div></body></html>`;
-      } else {
-        const fields = getAllTextFields();
-        let rows = '';
-        fields.forEach(f => {
-          let val = f.value || '';
-          if(f.tagName === 'SELECT') {
-            const opt = f.options[f.selectedIndex];
-            val = opt ? opt.text : '';
-          }
-          rows += `<tr><td style="padding:8px;border-bottom:1px solid #ccc;font-family:Times,serif;">${escapeHtml(getShortLabel(f))}</td><td style="padding:8px;font-family:Consolas,monospace;">${escapeHtml(val)||'—'}</td></tr>`;
-        });
-        const heading = T({en:'Summary', es:'Resumen'});
-        return `<!DOCTYPE html>
-<html lang="${lang}"><head><meta charset="UTF-8"><title>DieSafe · ${escapeHtml(heading)}</title>
-<style>body{font-family:system-ui;padding:2rem;background:#faf9f6;} .card{background:#f6f6f6;border:3px dashed #9a8c7a;border-radius:32px 12px;padding:2rem;max-width:900px;margin:0 auto;} h1{font-family:Georgia,serif;} table{width:100%;border-collapse:collapse;}</style></head>
-<body><div class="card"><h1>📄 ${escapeHtml(heading)} · DieSafe</h1><table>${rows}</table><p style="margin-top:2rem;">${escapeHtml(genLabel)} ${new Date().toLocaleString()}</p></div></body></html>`;
-      }
-    }
 
     window.addEventListener('beforeunload', stopCurrentRecognition);
     document.querySelectorAll('.mic-btn').forEach(b => b.type = 'button');

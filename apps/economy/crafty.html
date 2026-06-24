@@ -1334,7 +1334,7 @@
 <body>
 
   <div class="flove-bar">
-    <a class="flove-home" href="index.html" aria-label="Back to flove launcher">←</a>
+    <a class="flove-home" href="index.html" aria-label="Back to flove launcher" data-aria-en="Back to flove launcher" data-aria-es="Volver al menú de flove">←</a>
     <span class="flove-mark flove-asterism" aria-hidden="true">✺</span>
     <span class="flove-app-name">Crafty</span>
     <span class="flove-tag"><span class="en" lang="en">crafted contribution</span><span class="es" lang="es">contribución artesana</span></span>
@@ -1654,6 +1654,16 @@
 
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  /* ===================== i18n helpers (translate2) ===================== */
+  // Active language from the worldball radios (en default).
+  const lang = () => { const r = document.querySelector('input[name="lang"]:checked'); return r ? r.id.replace("lang-", "") : "en"; };
+  // Transient strings (toasts, confirm): pick the active language now.
+  const L = (en, es) => (lang() === "es" ? es : en);
+  // Persistent DOM text that must survive a later language switch → bilingual spans.
+  const spanEsc = s => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+  const bi = (en, es) => `<span class="en" lang="en">${spanEsc(en)}</span><span class="es" lang="es">${spanEsc(es)}</span>`;
+
   const STORAGE_KEY = "flove:crafty:v1";
   const ONB_KEY     = "flove:crafty:onb-seen";
 
@@ -1669,10 +1679,10 @@
 
   /* ===================== Onboarding hints ===================== */
   const ONB_HINTS = {
-    1: { title: "Tip — Project",       text: "Name your thing and set a target sale price. Everything else flows from here." },
-    2: { title: "Tip — Contributions", text: "List each pledge. Total value (quantity × unit) feeds the fair-share math automatically." },
-    3: { title: "Tip — Profits",       text: "Three slices, summing to 100%. Use Auto-balance if you go over or under." },
-    4: { title: "Tip — Review",        text: "Read the summary aloud. Tick the confirm box only if everyone agrees." }
+    1: { title: ["Tip — Project", "Consejo — Proyecto"],             text: ["Name your thing and set a target sale price. Everything else flows from here.", "Pon nombre a tu producto y fija un precio de venta objetivo. Todo lo demás parte de ahí."] },
+    2: { title: ["Tip — Contributions", "Consejo — Aportaciones"],   text: ["List each pledge. Total value (quantity × unit) feeds the fair-share math automatically.", "Enumera cada compromiso. El valor total (cantidad × unidad) alimenta el cálculo del reparto justo automáticamente."] },
+    3: { title: ["Tip — Profits", "Consejo — Beneficios"],           text: ["Three slices, summing to 100%. Use Auto-balance if you go over or under.", "Tres partes que suman 100%. Usa Auto-equilibrar si te pasas o te quedas corto."] },
+    4: { title: ["Tip — Review", "Consejo — Revisión"],              text: ["Read the summary aloud. Tick the confirm box only if everyone agrees.", "Lee el resumen en voz alta. Marca la casilla de confirmación solo si todos están de acuerdo."] }
   };
   const onbSeen = new Set(JSON.parse(localStorage.getItem(ONB_KEY) || "[]"));
   $("#onbClose").addEventListener("click", () => {
@@ -1683,8 +1693,8 @@
   function updateOnboarding(step){
     const hint = ONB_HINTS[step];
     if (!hint) return;
-    $("#onbTitle").textContent = hint.title;
-    $("#onbText").textContent  = hint.text;
+    $("#onbTitle").innerHTML = bi(hint.title[0], hint.title[1]);
+    $("#onbText").innerHTML  = bi(hint.text[0],  hint.text[1]);
     $("#onboarding").hidden = onbSeen.has(step);
   }
 
@@ -1711,6 +1721,12 @@
     QA: "--stage-qa", Packaging: "--stage-packaging",
     Logistics: "--stage-logistics", Marketing: "--stage-marketing",
     Sales: "--stage-sales", Support: "--stage-support"
+  };
+  // Spanish display labels for the stage tokens (the token stays English everywhere machine-read).
+  const STAGE_ES = {
+    Design: "Diseño", Sourcing: "Abastecimiento", Manufacturing: "Fabricación",
+    Assembly: "Montaje", QA: "Control de calidad", Packaging: "Embalaje",
+    Logistics: "Logística", Marketing: "Marketing", Sales: "Ventas", Support: "Soporte"
   };
   function stageColor(stage){
     const v = STAGE_VAR[stage] || "--accent";
@@ -1763,12 +1779,12 @@
       ["input","change"].forEach(ev => el.addEventListener(ev, recalc));
     });
 
-    $(".remove",    node).addEventListener("click", () => { node.remove(); refresh(); toast("Removed"); });
+    $(".remove",    node).addEventListener("click", () => { node.remove(); refresh(); toast(L("Removed", "Eliminado")); });
     $(".duplicate", node).addEventListener("click", () => {
       const copy = collectContrib(node);
-      copy.who = copy.who ? copy.who + " (copy)" : "";
+      copy.who = copy.who ? copy.who + L(" (copy)", " (copia)") : "";
       addContrib(copy);
-      toast("Duplicated");
+      toast(L("Duplicated", "Duplicado"));
     });
     $(".move-up",   node).addEventListener("click", () => {
       const prev = node.previousElementSibling;
@@ -1809,11 +1825,11 @@
     const fix    = $("#autoFix");
     if (sum === 100) {
       status.classList.add("is-ok"); status.classList.remove("is-warn");
-      text.textContent = "Slices add up to 100%. Looking good.";
+      text.innerHTML = bi("Slices add up to 100%. Looking good.", "Las partes suman 100%. Todo correcto.");
       fix.hidden = true;
     } else {
       status.classList.remove("is-ok"); status.classList.add("is-warn");
-      text.textContent = `Slices add up to ${sum}% (need 100%).`;
+      text.innerHTML = bi(`Slices add up to ${sum}% (need 100%).`, `Las partes suman ${sum}% (deben ser 100%).`);
       fix.hidden = false;
     }
     return sum;
@@ -1828,7 +1844,7 @@
     $("#opsPct").value      = Math.round(o * k);
     $("#treasuryPct").value = Math.max(0, 100 - Number($("#poolPct").value) - Number($("#opsPct").value));
     refresh();
-    toast("Balanced to 100%");
+    toast(L("Balanced to 100%", "Equilibrado al 100%"));
   });
 
   /* ===================== Refresh (recompute & paint everything) ===================== */
@@ -1868,7 +1884,7 @@
       tr.innerHTML = `
         <td>${r.i}</td>
         <td>${escapeHtml(r.who)}</td>
-        <td><span class="stage-chip" style="--stage-color:${r.color}">${r.stage}</span></td>
+        <td><span class="stage-chip" style="--stage-color:${r.color}">${bi(r.stage, STAGE_ES[r.stage] || r.stage)}</span></td>
         <td class="right">${r.wval.toFixed(2)}</td>
         <td class="right">${(share * 100).toFixed(1)}%</td>
         <td class="right">${payout.toFixed(2)}</td>`;
@@ -1881,7 +1897,7 @@
     const bars = $("#sharesBars");
     bars.innerHTML = "";
     if (!rows.length) {
-      bars.innerHTML = `<div class="shares-empty">No contributions yet — add some on step 2.</div>`;
+      bars.innerHTML = `<div class="shares-empty">${bi("No contributions yet — add some on step 2.", "Aún no hay aportaciones — añade alguna en el paso 2.")}</div>`;
     } else {
       rows.forEach(r => {
         const share = tot > 0 ? (r.wval / tot) : 0;
@@ -1903,10 +1919,13 @@
     $("#statProjected").textContent = totPayout.toFixed(2);
 
     /* Review summary */
-    const name = $("#prodName").value || "Unnamed thing";
+    const nameEn = $("#prodName").value || "Unnamed thing";
+    const nameEs = $("#prodName").value || "Producto sin nombre";
     const desc = $("#desc").value || "";
-    const summary = `${name} targets ${price.toFixed(2)} ${currency}/unit. Contributors receive ${poolPct}%, maintenance ${opsPct}%, development ${trePct}%. ${rows.length} contribution${rows.length===1?"":"s"}; wages pool ${poolAmount.toFixed(2)} ${currency}/unit.`;
-    $("#execSummary").textContent = desc ? summary + " " + desc : summary;
+    const n = rows.length;
+    const summaryEn = `${nameEn} targets ${price.toFixed(2)} ${currency}/unit. Contributors receive ${poolPct}%, maintenance ${opsPct}%, development ${trePct}%. ${n} contribution${n===1?"":"s"}; wages pool ${poolAmount.toFixed(2)} ${currency}/unit.`;
+    const summaryEs = `${nameEs} apunta a ${price.toFixed(2)} ${currency}/unidad. Los aportantes reciben ${poolPct}%, mantenimiento ${opsPct}%, desarrollo ${trePct}%. ${n} aportación${n===1?"":"es"}; fondo salarial ${poolAmount.toFixed(2)} ${currency}/unidad.`;
+    $("#execSummary").innerHTML = bi(desc ? summaryEn + " " + desc : summaryEn, desc ? summaryEs + " " + desc : summaryEs);
     $("#sumContrib").textContent  = rows.length;
     $("#sumValue").textContent    = tot.toFixed(2);
     $("#sumPool").textContent     = poolAmount.toFixed(2);
@@ -2144,9 +2163,9 @@
     const m = buildModel(), fmt = btn.dataset.floveSave, base = fileBase();
     if (fmt === "jpg"){
       toJpg(m, b => {
-        if (!b) { toast("JPG failed"); return; }
+        if (!b) { toast(L("JPG failed", "Falló el JPG")); return; }
         downloadBlob(b, "image/jpeg", base + ".jpg");
-        toast("Exported JPG");
+        toast(L("Exported JPG", "JPG exportado"));
       });
       return;
     }
@@ -2159,7 +2178,7 @@
     }[fmt];
     if (!table) return;
     downloadBlob(table[0], table[1], `${base}.${fmt}`);
-    toast("Exported " + fmt.toUpperCase());
+    toast(L("Exported ", "Exportado ") + fmt.toUpperCase());
   }));
 
   /* ── Share to mobile — Web Share + standalone HTML, guarded, with fallback ladder ── */
@@ -2174,16 +2193,16 @@
         await navigator.share({ title, text: m.phrase, files: [file] }); return;
       }
       if (navigator.share){ await navigator.share({ title, text: m.phrase }); return; }
-      await navigator.clipboard.writeText(m.phrase); toast("Copied — paste to share");
+      await navigator.clipboard.writeText(m.phrase); toast(L("Copied — paste to share", "Copiado — pega para compartir"));
     } catch(_){
-      try { await navigator.clipboard.writeText(m.phrase); toast("Copied — paste to share"); }
-      catch(__){ toast("Sharing not available"); }
+      try { await navigator.clipboard.writeText(m.phrase); toast(L("Copied — paste to share", "Copiado — pega para compartir")); }
+      catch(__){ toast(L("Sharing not available", "Compartir no disponible")); }
     }
   });
 
   $("#printBtn").addEventListener("click", () => window.print());
   $("#resetBtn").addEventListener("click", () => {
-    if (!confirm("Clear all fields and contributions? This can't be undone.")) return;
+    if (!confirm(L("Clear all fields and contributions? This can't be undone.", "¿Borrar todos los campos y aportaciones? No se puede deshacer."))) return;
     try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
     ["prodName","salePrice","desc"].forEach(id => $("#"+id).value = "");
     $("#currency").value = "EUR";
@@ -2192,23 +2211,23 @@
     addContrib({ who: "@you" });
     go(1);
     refresh();
-    toast("Reset done");
+    toast(L("Reset done", "Reiniciado"));
   });
 
   /* ===================== Submit ===================== */
   $("#submitBtn").addEventListener("click", () => {
     refresh();
     if (!$("#consent").checked) {
-      toast("Please confirm the information is correct.");
+      toast(L("Please confirm the information is correct.", "Confirma que la información es correcta."));
       $("#consent").focus();
       return;
     }
     if (checkPool() !== 100) {
-      toast("Profit slices must add up to 100%.");
+      toast(L("Profit slices must add up to 100%.", "Las partes de beneficio deben sumar 100%."));
       go(3);
       return;
     }
-    toast("✓ Submitted (demo)");
+    toast(L("✓ Submitted (demo)", "✓ Enviado (demo)"));
   });
 
   /* ===================== Wire up field changes for live refresh ===================== */

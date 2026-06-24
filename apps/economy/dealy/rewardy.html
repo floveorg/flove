@@ -1479,7 +1479,11 @@
 
   function openModal(card, favName){
     var id = card.dataset.id, p = PEOPLE[id];
-    var mainTerms = card.querySelector('.terms').textContent.replace(/\s+/g,' ').trim();
+    var li = window.curLang || 'en';
+    // read only the visible-language spans so the line isn't "H/wkH/sem"
+    var termsEl = card.querySelector('.terms').cloneNode(true);
+    termsEl.querySelectorAll(li === 'es' ? '.en' : '.es').forEach(function(n){ n.remove(); });
+    var mainTerms = termsEl.textContent.replace(/\s+/g,' ').trim();
     var lines = [];
 
     if(favName){
@@ -1491,7 +1495,10 @@
     }
     lines.push('• Main offer · ' + mainTerms);
     card.querySelectorAll('.offer-item.selected').forEach(function(it){
-      lines.push('• ' + it.dataset.label + ' · ' + it.dataset.info);
+      // static cards carry data-label-en/es; EXTRAS carry plain data-label
+      var lab = it.dataset.label || it.dataset['label' + (li === 'es' ? 'Es' : 'En')] || '';
+      var inf = it.dataset.info  || it.dataset['info'  + (li === 'es' ? 'Es' : 'En')] || '';
+      lines.push('• ' + lab + ' · ' + inf);
     });
     lines.push('');
     mField.value = lines.join('\n');

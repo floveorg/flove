@@ -1136,18 +1136,6 @@
     render();
   }
 
-  /* ---- forward / save tools ---- */
-  var APPS = ['WhatsApp','Telegram','Email','Messages'];
-  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  /* dropdown lists — several types of users, plus groups (group names as items) */
-  var USER_LISTS = [
-    { icon:'★',  name:'Favourite users', users:['Lucía','Marc','Tom','Nadia'] },
-    { icon:'🕘', name:'Recent users',    users:['Sofía','Diego','Emma'] },
-    { icon:'📍', name:'Nearby users',    users:['Pablo','Wei','Aïcha'] },
-    { icon:'👥', name:'Groups',          users:['Vecinos del barrio','Familia flove','Trueque Madrid'] }
-  ];
-
   function closeAllMenus(){
     document.querySelectorAll('.fwd-menu').forEach(function(m){ m.hidden = true; });
     document.querySelectorAll('.fwd-cat.open').forEach(function(c){ c.classList.remove('open'); });
@@ -1156,93 +1144,12 @@
   }
   document.addEventListener('click', closeAllMenus);
 
-  function saveCard(card){
-    var id = card.dataset.id, saved;
-    try{ saved = JSON.parse(localStorage.getItem('rewardy.saved') || '[]'); }catch(_){ saved = []; }
-    if(saved.indexOf(id) < 0) saved.push(id);
-    try{ localStorage.setItem('rewardy.saved', JSON.stringify(saved)); }catch(_){ }
-  }
-
-  /* a category whose submenu of names flies out to its right */
-  function buildCat(icon, name, names, onPick){
-    var cat = document.createElement('div');
-    cat.className = 'fwd-cat';
-    var label = document.createElement('div');
-    label.className = 'fwd-cat-label';
-    label.innerHTML = '<span>' + icon + ' ' + name + '</span><span class="fwd-caret">▸</span>';
-    label.addEventListener('click', function(e){
-      e.stopPropagation();
-      var isOpen = cat.classList.contains('open');
-      cat.parentNode.querySelectorAll('.fwd-cat.open').forEach(function(c){ c.classList.remove('open'); });
-      if(!isOpen) cat.classList.add('open');
-    });
-    var sub = document.createElement('div');
-    sub.className = 'fwd-sub';
-    names.forEach(function(nm){
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'fwd-item'; b.textContent = nm;
-      b.addEventListener('click', function(){ onPick(nm, b); });
-      sub.appendChild(b);
-    });
-    cat.appendChild(label);
-    cat.appendChild(sub);
-    return cat;
-  }
-
   /* card tools — details dropdown (about the user this card belongs to)
      followed by the message button. The dropdown sits BEFORE the message
      button; opening it drops the info boxes DOWNWARD below the buttons.
      Fields shown: Name (link to profile) / Role (with more) / Ratings
      (with more) / Availability (with more). The first row's name is a
      clickable link to that user's profile page. */
-  // buildDetailsRow(icon, label, valueHtml, opts)
-  //   opts.deepHtml  → adds a "more / less" toggle on the right of the
-  //                    title row that reveals a collapsible panel below
-  //   opts.extraHtml → adds an always-visible panel below the value
-  //                    (used for the Name row so the user's deep info
-  //                    is on screen without needing to scroll/click)
-  function buildDetailsRow(icon, label, valueHtml, opts){
-    opts = opts || {};
-    var row = document.createElement('div');
-    row.className = 'details-row';
-    var iconEl = document.createElement('span');
-    iconEl.className = 'd-icon'; iconEl.textContent = icon;
-    var body = document.createElement('div');
-    var head = document.createElement('div');
-    head.className = 'd-head';
-    var lbl = document.createElement('span');
-    lbl.className = 'd-label'; lbl.textContent = label;
-    head.appendChild(lbl);
-    var val = document.createElement('span');
-    val.className = 'd-val'; val.innerHTML = valueHtml || '—';
-    body.appendChild(head);
-    body.appendChild(val);
-    row.appendChild(iconEl);
-    row.appendChild(body);
-
-    if (opts.extraHtml){
-      var extra = document.createElement('div');
-      extra.className = 'd-extra';
-      extra.innerHTML = opts.extraHtml;
-      row.appendChild(extra);
-    }
-    if (opts.deepHtml){
-      var moreBtn = document.createElement('button');
-      moreBtn.type = 'button'; moreBtn.className = 'd-more';
-      moreBtn.textContent = 'more';
-      var deep = document.createElement('div');
-      deep.className = 'd-deep';
-      deep.innerHTML = opts.deepHtml;
-      moreBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        row.classList.toggle('is-open');
-        moreBtn.textContent = row.classList.contains('is-open') ? 'less' : 'more';
-      });
-      head.appendChild(moreBtn);
-      row.appendChild(deep);
-    }
-    return row;
-  }
   function escAttr(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
@@ -1261,68 +1168,6 @@
       (person.interests ? '<p><strong>Into</strong> '           + escAttr(person.interests) + '</p>' : '') +
       (person.motto     ? '<p class="bio-motto">«' + escAttr(person.motto) + '»</p>' : '');
     return info;
-  }
-
-  function buildDetailsMenu(card){
-    var menu = document.createElement('div');
-    menu.className = 'details-menu'; menu.hidden = true;
-    menu.addEventListener('click', function(e){ e.stopPropagation(); });
-    var id = card.dataset.id;
-    var person = PEOPLE[id] || {};
-    var ratings = 'souls ' + (person.s != null ? person.s : '—') +
-                  ' · trust ' + (person.t != null ? person.t : '—') +
-                  ' · deal '  + (person.d != null ? person.d : '—');
-
-    // Deep panels — placeholder content for the demo; collapsible via
-    // the "more / less" toggle on each row.
-    var roleDeep =
-      '<strong>About the role</strong>' +
-      '<ul>' +
-        '<li>Specialty: ' + escAttr(person.role || '—') + '</li>' +
-        '<li>Experience: 3+ years</li>' +
-        '<li>Areas covered: TBD</li>' +
-        '<li>Available: afternoons and weekends</li>' +
-      '</ul>';
-    var ratDeep =
-      '<strong>Ratings breakdown</strong>' +
-      '<ul>' +
-        '<li>🫶 Souls: ' + (person.s != null ? person.s : '—') + ' / 100</li>' +
-        '<li>🤝 Trust: ' + (person.t != null ? person.t : '—') + ' / 100</li>' +
-        '<li>💼 Deal: '  + (person.d != null ? person.d : '—') + ' / 100</li>' +
-        '<li>Recent reviews: coming soon</li>' +
-      '</ul>';
-    var availDeep =
-      '<strong>Availability detail</strong>' +
-      '<ul>' +
-        '<li>Hours: ' + escAttr(person.terms ? person.terms.replace(/<[^>]+>/g, '') : 'flexible') + '</li>' +
-        '<li>Time zone: local</li>' +
-        '<li>Booking lead time: 24 h</li>' +
-        '<li>Holidays: notified separately</li>' +
-      '</ul>';
-
-    // 1) Name — clickable link to the user's profile (no extra panel)
-    var nameLink =
-      '<a class="d-name-link" href="profile.html?id=' + escAttr(id) + '">' +
-        (person.emoji ? person.emoji + ' ' : '') + escAttr(person.name || '') +
-      '</a>';
-    menu.appendChild(buildDetailsRow('👤', 'Name', nameLink));
-
-    // 2) Role + 3) Ratings — keep the "more / less" toggles (now right-
-    //    aligned on the title row).
-    menu.appendChild(buildDetailsRow('📋', 'Role',    escAttr(person.role), { deepHtml: roleDeep }));
-    menu.appendChild(buildDetailsRow('⭐', 'Ratings', escAttr(ratings),     { deepHtml: ratDeep }));
-
-    // 4) Availability — also carries a "more / less" toggle.
-    menu.appendChild(buildDetailsRow('🗓', 'Availability',
-      escAttr(person.terms ? person.terms.replace(/<[^>]+>/g, '') : '—'),
-      { deepHtml: availDeep }));
-
-    // Offers (only when the user actually has any)
-    if (person.offers && person.offers.length){
-      menu.appendChild(buildDetailsRow('🎁', 'Offers',
-        escAttr(person.offers.map(function(o){ return o.l; }).join(' · '))));
-    }
-    return menu;
   }
 
   function buildTools(card){

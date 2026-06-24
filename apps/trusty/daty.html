@@ -5,7 +5,716 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>FLOVE · DATY</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c7a6e' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='9.4' r='2.2'/><path d='M4.6 19.6 a3.4 4 0 0 1 6.8 0'/><circle cx='16' cy='9.4' r='2.2'/><path d='M12.6 19.6 a3.4 4 0 0 1 6.8 0'/><path fill='%232c7a6e' stroke='none' transform='translate(12 5.4) scale(1.25)' d='M0 1.7C-1.8 0-1.8-1.6-0.8-1.6-0.25-1.6 0-1.05 0-0.75 0-1.05 0.25-1.6 0.8-1.6 1.8-1.6 1.8 0 0 1.7Z'/></svg>">
-    <link rel="stylesheet" href="flove.css">
+    <style data-flove-inlined="flove.css">
+/* inlined from apps/flove.css */
+/* ============================================================
+   ✺ flove.css · shared identity layer for all FLOVE demos
+   --------------------------------------------------------------
+   Design intent
+   - One cohesive frame around 13 very different apps.
+   - Each app keeps its own palette by overriding `--app-*` tokens
+     in its local `:root`. This file only paints the common skin.
+   - Two visual primitives identify the family everywhere:
+       1. The ✺ asterism mark (brand)
+       2. The flove-bar at the very top (back to launcher + app name)
+   - A common motion vocabulary (gentle lift, soft fade, wiggle).
+   ============================================================ */
+
+:root {
+  /* The asterism — flove brand mark. Used as logo glyph everywhere. */
+  --flove-mark: "✺";
+
+  /* Per-app overridable accent. Apps redeclare these. */
+  --app-accent:        #6ee7b7;
+  --app-accent-soft:   #a7f3d0;
+  --app-ink-on-accent: #042418;
+
+  /* Family geometry & motion (constant across apps) */
+  --flove-radius-sm: 12px;
+  --flove-radius:    20px;
+  --flove-radius-lg: 28px;
+  --flove-radius-pill: 999px;
+  --flove-ease:    cubic-bezier(.2,.8,.2,1);
+  --flove-fast:    .15s var(--flove-ease);
+  --flove-medium:  .25s var(--flove-ease);
+  --flove-slow:    .4s  var(--flove-ease);
+
+  /* Family typography. Apps may override font-family but should keep these scales. */
+  --flove-font-ui: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --flove-font-display: 'Georgia', 'Times New Roman', serif;
+}
+
+/* ============================================================
+   THE FLOVE BAR — a thin sticky strip at the very top of every
+   app. Holds the back-to-launcher link, the asterism brand,
+   and the app name. Lives ABOVE every app's own header.
+   ============================================================ */
+.flove-bar {
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-family: var(--flove-font-ui);
+  font-size: 13px;
+  letter-spacing: .3px;
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  color: #1a1a1a;
+}
+
+/* Auto dark variant when app body is dark */
+@media (prefers-color-scheme: dark) {
+  .flove-bar.flove-bar--auto {
+    background: rgba(10,12,18,.55);
+    border-bottom-color: rgba(255,255,255,.08);
+    color: #e9ecf3;
+  }
+}
+.flove-bar--dark {
+  background: rgba(10,12,18,.6);
+  border-bottom-color: rgba(255,255,255,.08);
+  color: #e9ecf3;
+}
+
+.flove-bar a.flove-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--flove-radius-pill);
+  transition: background var(--flove-fast), transform var(--flove-fast);
+}
+.flove-bar a.flove-home:hover {
+  background: var(--app-accent-soft);
+  color: var(--app-ink-on-accent);
+  transform: translateX(-2px);
+}
+.flove-bar .flove-mark {
+  font-size: 16px;
+  color: var(--app-accent);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--app-accent) 35%, transparent));
+}
+.flove-bar .flove-app-name {
+  font-weight: 500;
+  opacity: .85;
+}
+.flove-bar .flove-spacer { flex: 1; }
+.flove-bar .flove-tag {
+  font-size: 11px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  opacity: .55;
+}
+
+/* ============================================================
+   ASTERISM ANIMATION — used wherever a `.flove-asterism` lives
+   (launcher hero, footer badges, splash). Subtle slow rotation.
+   ============================================================ */
+.flove-asterism {
+  display: inline-block;
+  font-style: normal;
+  animation: flove-spin 12s linear infinite;
+  transform-origin: center;
+  color: var(--app-accent);
+}
+.flove-asterism.flove-asterism--still { animation: none; }
+@keyframes flove-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   FLOVE FOOTER BADGE — small "back to launcher" pill that any
+   app can drop in at the bottom of the page.
+   ============================================================ */
+.flove-footer-badge {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-family: var(--flove-font-ui);
+  font-size: 12px;
+  letter-spacing: .4px;
+  color: #1a1a1a;
+  text-decoration: none;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: var(--flove-radius-pill);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+  transition: transform var(--flove-fast), box-shadow var(--flove-fast);
+}
+.flove-footer-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+}
+.flove-footer-badge--dark {
+  background: rgba(20,24,32,.7);
+  color: #e9ecf3;
+  border-color: rgba(255,255,255,.08);
+}
+
+/* ============================================================
+   COMMON UTILITIES — kept tiny on purpose so that each app's
+   own bespoke styles still rule. These are opt-in classes.
+   ============================================================ */
+
+/* Soft glass card */
+.flove-card {
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  border: 1px solid rgba(127,127,127,.18);
+  border-radius: var(--flove-radius-lg);
+  padding: 18px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.08);
+}
+
+/* Pill shape for tags / chips / nav items */
+.flove-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--flove-radius-pill);
+  border: 1px solid rgba(127,127,127,.22);
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  transition: transform var(--flove-fast), background var(--flove-fast), border-color var(--flove-fast);
+}
+.flove-pill:hover { transform: translateY(-1px); border-color: var(--app-accent); }
+.flove-pill[aria-pressed="true"], .flove-pill.is-active {
+  background: var(--app-accent);
+  color: var(--app-ink-on-accent);
+  border-color: var(--app-accent);
+}
+
+/* A primary action button — shared shape, app paints color */
+.flove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--flove-radius-pill);
+  border: 1px solid var(--app-accent);
+  background: var(--app-accent);
+  color: var(--app-ink-on-accent);
+  font-weight: 600;
+  font-family: var(--flove-font-ui);
+  cursor: pointer;
+  transition: transform var(--flove-fast), box-shadow var(--flove-fast), filter var(--flove-fast);
+}
+.flove-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px color-mix(in srgb, var(--app-accent) 40%, transparent); }
+.flove-btn:active { transform: translateY(0); filter: brightness(.95); }
+.flove-btn--ghost {
+  background: transparent;
+  color: inherit;
+  border-color: rgba(127,127,127,.3);
+}
+.flove-btn--ghost:hover { border-color: var(--app-accent); color: var(--app-accent); }
+
+/* Tiny floating toast feedback (optional, used by some apps) */
+.flove-toast {
+  position: fixed;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(20,22,30,.92);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: var(--flove-radius-pill);
+  font-size: 13px;
+  font-family: var(--flove-font-ui);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--flove-medium), transform var(--flove-medium);
+  z-index: 999;
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+}
+.flove-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Wiggle on tap, used by playful elements (launcher tiles, brand mark, …) */
+@keyframes flove-wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-3deg); }
+  40% { transform: rotate(3deg); }
+  60% { transform: rotate(-2deg); }
+  80% { transform: rotate(2deg); }
+}
+.flove-wiggle { animation: flove-wiggle .4s ease-out; }
+
+/* Soft float used in the launcher tiles and avatars */
+@keyframes flove-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Reduced motion: disable all flove animations */
+@media (prefers-reduced-motion: reduce) {
+  .flove-asterism, .flove-wiggle { animation: none !important; }
+  *, *::before, *::after { transition-duration: .01ms !important; }
+}
+
+/* Mobile: hide the bottom badge so it doesn't compete with app UI */
+@media (max-width: 480px) {
+  .flove-footer-badge { display: none; }
+  .flove-bar { font-size: 12px; padding: 6px 10px; }
+}
+
+/* ============================================================
+   FLOVE-IO ACTION BAR — emitted by flove-io.js (F0).
+   Sits inside a form, gives the user Copy / Save / Share / Publish
+   over the form's current FloveElement payload.
+   ============================================================ */
+.flove-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 14px;
+  border-radius: var(--flove-radius);
+  background: rgba(127,127,127,.06);
+  border: 1px solid rgba(127,127,127,.18);
+  font-family: var(--flove-font-ui);
+}
+.flove-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(127,127,127,.3);
+  background: rgba(255,255,255,.04);
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: var(--flove-radius-pill);
+  cursor: pointer;
+  transition: transform var(--flove-fast),
+              border-color var(--flove-fast),
+              background var(--flove-fast);
+}
+.flove-action-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--app-accent);
+}
+.flove-action-btn:active { transform: translateY(0); }
+.flove-action-btn--primary {
+  background: var(--app-accent);
+  color: var(--app-ink-on-accent);
+  border-color: var(--app-accent);
+  font-weight: 600;
+}
+.flove-action-btn--primary:hover { filter: brightness(1.05); }
+.flove-action-btn[hidden] { display: none; }
+
+/* Toast variant used by flove-io (slightly tighter, top of footer) */
+.flove-toast--io { bottom: 80px; }
+
+/* ============================================================
+   FLOVE SHELL — feature-driven UI rendered by flove-shell.js.
+   Per-textarea voice + add-another · phrase card · 6-button bar ·
+   insight result · publish modal · format popover.
+   ============================================================ */
+
+/* per-textarea / per-input controls ────────────────────────── */
+.flove-field-wrap {
+  position: relative;
+  display: block;
+}
+.flove-field-wrap > textarea,
+.flove-field-wrap > input {
+  width: 100%;
+  padding-right: 88px;     /* room for the two field buttons */
+}
+.flove-field-tools {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 1;
+}
+.flove-field-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--flove-radius-pill);
+  border: 1px solid rgba(127,127,127,.25);
+  background: rgba(255,255,255,.7);
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--flove-fast), border-color var(--flove-fast),
+              background var(--flove-fast);
+  padding: 0;
+  line-height: 1;
+}
+.flove-field-btn:hover {
+  border-color: var(--app-accent);
+  transform: translateY(-1px);
+}
+.flove-field-btn--voice.is-recording {
+  background: #fb7185;
+  color: #fff;
+  border-color: #fb7185;
+  animation: flove-pulse 1.4s infinite;
+}
+@keyframes flove-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,113,133,.45); }
+  50%      { box-shadow: 0 0 0 8px rgba(251,113,133,0); }
+}
+
+/* phrase card (phrase + 6-button bar + result panel) ────────── */
+.flove-phrase-card {
+  margin: 18px 0;
+  padding: 16px;
+  background: linear-gradient(180deg, var(--app-accent-soft) 0%,
+                                      color-mix(in srgb, var(--app-accent-soft) 30%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
+  border-radius: var(--flove-radius-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  font-family: var(--flove-font-ui);
+}
+.flove-phrase {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--app-ink-on-accent);
+  background: rgba(255,255,255,.6);
+  border-radius: var(--flove-radius);
+  word-break: break-word;
+  min-height: 1.55em;
+}
+.flove-phrase.is-magic {
+  background: linear-gradient(110deg, rgba(255,255,255,.55), rgba(255,255,255,.85));
+  font-style: italic;
+}
+
+/* six-button action bar (overrides the 4-button defaults) ──── */
+.flove-action-bar--six {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  background: rgba(255,255,255,.5);
+  border-radius: var(--flove-radius);
+  border: 1px solid rgba(127,127,127,.18);
+  margin-top: 0;
+}
+.flove-action-bar--six .flove-action-btn {
+  justify-content: center;
+  padding: 10px 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 540px) {
+  .flove-action-bar--six .flove-action-btn span:nth-child(2) { display: none; }
+}
+
+/* result panel (insight, publish progress) ─────────────────── */
+.flove-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(127,127,127,.22);
+  border-radius: var(--flove-radius);
+}
+.flove-result[hidden] { display: none; }
+.flove-result__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-ink-on-accent);
+}
+.flove-result__lede {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(0,0,0,.6);
+}
+.flove-result__body {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.flove-result__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.flove-result__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+}
+.flove-result__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* modal (insight config, publish multi-select) ─────────────── */
+.flove-modal {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  font-family: var(--flove-font-ui);
+}
+.flove-modal__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.flove-modal__panel {
+  position: relative;
+  width: min(540px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: var(--flove-radius-lg);
+  padding: 22px;
+  box-shadow: 0 30px 60px rgba(0,0,0,.3);
+  display: grid;
+  gap: 12px;
+}
+.flove-modal__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.flove-modal__lede {
+  margin: 0;
+  color: #52606d;
+  font-size: .9rem;
+}
+.flove-modal label {
+  display: grid;
+  gap: 4px;
+  font-size: .85rem;
+  color: #52606d;
+}
+.flove-modal input,
+.flove-modal textarea,
+.flove-modal select {
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: var(--flove-radius);
+  font: inherit;
+  background: #fff;
+  color: #1a1a1a;
+}
+.flove-modal__row {
+  display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0,0,0,.06);
+}
+
+/* publish multi-select list ────────────────────────────────── */
+.flove-publish-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.flove-publish-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: var(--flove-radius);
+  background: rgba(0,0,0,.02);
+}
+.flove-publish-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-direction: row;
+  font-size: .92rem;
+}
+.flove-publish-kind {
+  font-size: .72rem;
+  letter-spacing: .3px;
+  color: #6b7280;
+  text-transform: uppercase;
+  background: rgba(0,0,0,.04);
+  border-radius: var(--flove-radius-pill);
+  padding: 2px 8px;
+}
+.flove-publish-add {
+  border: 1px dashed rgba(0,0,0,.15);
+  border-radius: var(--flove-radius);
+  padding: 10px 12px;
+}
+.flove-publish-add summary {
+  cursor: pointer;
+  font-size: .85rem;
+  color: #4b5563;
+}
+.flove-publish-add[open] summary { margin-bottom: 8px; }
+.flove-publish-add label { margin-bottom: 6px; }
+
+/* enhanced flove-bar — center categories + right menu ───────── */
+.flove-bar--enhanced .flove-mark,
+.flove-bar--enhanced .flove-asterism {
+  user-select: none;
+  transition: transform var(--flove-fast);
+}
+.flove-bar--enhanced .flove-mark:hover,
+.flove-bar--enhanced .flove-asterism:hover { transform: rotate(20deg) scale(1.08); }
+
+.flove-categories {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 6px;
+  scroll-snap-type: x proximity;
+  justify-content: center;
+}
+.flove-categories::-webkit-scrollbar { display: none; }
+.flove-cat-chip {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  padding: 4px 12px;
+  font-size: 12px;
+  letter-spacing: .2px;
+  border-radius: var(--flove-radius-pill);
+  border: 1px solid rgba(127,127,127,.25);
+  background: rgba(255,255,255,.5);
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform var(--flove-fast),
+              background var(--flove-fast),
+              border-color var(--flove-fast);
+}
+.flove-cat-chip:hover { border-color: var(--app-accent); transform: translateY(-1px); }
+.flove-cat-chip.is-active {
+  background: var(--app-accent);
+  color: var(--app-ink-on-accent);
+  border-color: var(--app-accent);
+}
+
+.flove-menu-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--flove-radius-pill);
+  border: 1px solid rgba(127,127,127,.22);
+  background: rgba(255,255,255,.5);
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--flove-fast), border-color var(--flove-fast);
+}
+.flove-menu-btn:hover { background: var(--app-accent-soft); border-color: var(--app-accent); }
+.flove-menu-btn[aria-expanded="true"] { background: var(--app-accent); color: var(--app-ink-on-accent); }
+
+.flove-menu {
+  width: min(280px, calc(100vw - 24px));
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: var(--flove-radius);
+  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+  padding: 6px;
+  z-index: 200;
+  font-family: var(--flove-font-ui);
+}
+.flove-menu[hidden] { display: none; }
+.flove-menu__section {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+.flove-menu__section:last-child { border-bottom: 0; }
+.flove-menu__title {
+  margin: 0 8px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #6b7280;
+}
+.flove-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: .9rem;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--flove-radius);
+  cursor: pointer;
+  text-decoration: none;
+}
+.flove-menu__item:hover {
+  background: var(--app-accent-soft);
+  color: var(--app-ink-on-accent);
+}
+
+@media (max-width: 540px) {
+  .flove-categories { gap: 4px; padding: 0 2px; }
+  .flove-cat-chip { padding: 3px 10px; font-size: 11px; }
+}
+
+/* format popover ────────────────────────────────────────────── */
+.flove-popover {
+  z-index: 999;
+  width: 220px;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: var(--flove-radius);
+  box-shadow: 0 14px 30px rgba(0,0,0,.18);
+  padding: 4px;
+  font-family: var(--flove-font-ui);
+}
+.flove-popover__item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--flove-radius);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.flove-popover__item:hover {
+  background: var(--app-accent-soft);
+  color: var(--app-ink-on-accent);
+}
+
+</style>
     <style>
         :root {
             /* flove identity overrides — Daty: green accent on warm canvas */

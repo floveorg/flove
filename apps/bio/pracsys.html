@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FLOVE · PRACSYS</title>
-<meta name="description" content="Lay the eleven biological systems onto the board, give each row a reason, then thread nervous and immune subsystems across the body.">
+<meta name="description" content="Lay the eleven biological systems onto the board, give each row a reason, then thread immune subsystems across the body.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><g fill='none' stroke='%234dd0e1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='16' cy='16' r='11'/><line x1='16' y1='5' x2='16' y2='27'/><line x1='5' y1='16' x2='27' y2='16'/></g></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -261,7 +261,6 @@
     font:700 .6rem/1 var(--font-ui); padding:3px 6px; border-radius:var(--radius-pill);
     cursor:pointer; border:1px solid; white-space:nowrap;
   }
-  .subbadge.nerve{ background:rgba(179,136,255,.18); border-color:var(--nerve); color:var(--nerve); }
   .subbadge.immune{ background:rgba(105,240,174,.16); border-color:var(--immune); color:var(--immune); }
 
   /* ── reasons in the middle column, aligned to a complete left+right pair ── */
@@ -335,25 +334,18 @@
   @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,138,101,.4) } 50%{ box-shadow:0 0 0 6px rgba(255,138,101,0) } }
   .icon-btn.save{ border-color:var(--success); color:var(--success); }
 
-  /* ── parent highlight: Immune & Nervous become clickable once all placed ── */
+  /* ── parent highlight: Immune becomes clickable once all placed ── */
   .slot.is-parent{ cursor:pointer; }
   .slot.parent-immune{
     border-color:var(--immune);
     box-shadow:0 0 0 2px rgba(105,240,174,.45), 0 0 14px rgba(105,240,174,.35);
     animation:glow-im 1.8s ease-in-out infinite;
   }
-  .slot.parent-nerve{
-    border-color:var(--nerve);
-    box-shadow:0 0 0 2px rgba(179,136,255,.45), 0 0 14px rgba(179,136,255,.35);
-    animation:glow-ne 1.8s ease-in-out infinite;
-  }
   @keyframes glow-im{ 0%,100%{ box-shadow:0 0 0 2px rgba(105,240,174,.45), 0 0 10px rgba(105,240,174,.3) } 50%{ box-shadow:0 0 0 2px rgba(105,240,174,.65), 0 0 18px rgba(105,240,174,.5) } }
-  @keyframes glow-ne{ 0%,100%{ box-shadow:0 0 0 2px rgba(179,136,255,.45), 0 0 10px rgba(179,136,255,.3) } 50%{ box-shadow:0 0 0 2px rgba(179,136,255,.65), 0 0 18px rgba(179,136,255,.5) } }
 
   /* once a parent is checked (its fan opened), drop the highlight entirely */
   .slot.parent-open{ animation:none; filter:none; }
-  .slot.parent-immune.parent-open,
-  .slot.parent-nerve.parent-open{ box-shadow:none; border-color:transparent; }
+  .slot.parent-immune.parent-open{ box-shadow:none; border-color:transparent; }
 
   /* ── subsystem chips: the fan anchors to its PARENT slot, by the parent's
         column — left column → fan right · right column → fan left · centre → fan above ── */
@@ -457,7 +449,6 @@
     transition:transform .08s ease, filter var(--fast), box-shadow var(--fast);
   }
   .sub-card:active{ transform:scale(.97); }
-  .sub-card.nerve{ background:rgba(179,136,255,.10); border-color:var(--nerve); color:#e9ddff; }
   .sub-card.immune{ background:rgba(105,240,174,.09); border-color:var(--immune); color:#d6ffe9; }
   .sub-card.is-armed{ box-shadow:0 0 0 2px currentColor; filter:brightness(1.15); }
   .sub-card.is-placed{ opacity:.4; }
@@ -567,7 +558,7 @@
   }
   .verb-toggle.show{ display:inline-flex; }
   .stage-nav .verb-toggle{ margin:0; }          /* sit inline in the nav row, after Back */
-  /* row of SubNervous / SubImmune arrow-hide toggles, above the Back row */
+  /* row of the SubImmune arrow-hide toggle, above the Back row */
   .sub-toggle-row{ display:none; gap:12px; justify-content:center; margin-top:14px; }
   .sub-toggle-row.show{ display:flex; }
   .sub-toggle-row .verb-toggle{ display:inline-flex; margin:0; }
@@ -955,7 +946,6 @@
     <!-- subsystem items fan downward from the two bottom corners; this grows the board -->
     <div class="sub-flow" id="subFlow">
       <div class="sub-col immune" id="immuneList"></div>
-      <div class="sub-col nerve"  id="nervousList"></div>
     </div>
 
     <!-- stage-1 → stage-2 gate (and stage-4 polarities): appear once all are placed -->
@@ -1147,11 +1137,10 @@
   const SYS = Object.fromEntries(SYSTEMS.map(s => [s.id, s]));
   // the active-language label for a system / subsystem definition
   const defLabel = d => d ? T(d.label, d.es || d.label) : '';
-  // display word for a subsystem's kind (nervous / immune)
-  const kindWord = k => k === 'nerve' ? T('nervous', 'nervioso') : T('immune', 'inmunitario');
+  // display word for a subsystem's kind (immune only)
+  const kindWord = () => T('immune', 'inmunitario');
 
-  // ── subsystems (immune = souls.html IMMUNE; nervous removed) ──
-  const NERVOUS_SUBS = [];   // nervous subsystems removed — immune only
+  // ── subsystems (immune = souls.html IMMUNE) ──
   const IMMUNE_SUBS = [
     { id:'adaptative',  label:'Adaptative',  es:'Adaptativo',  icon:'🫀' },
     { id:'neuroimmune', label:'Neuroimmune', es:'Neuroinmune', icon:'🧠' },
@@ -1159,8 +1148,8 @@
     { id:'lymphatic',   label:'Lymphatic',   es:'Linfático',   icon:'💧' }
   ];
   // a subsystem may not land on its own parent system
-  const HOME_OF = { nerve:'nervous', immune:'immune' };
-  const TOTAL_SUBS = NERVOUS_SUBS.length + IMMUNE_SUBS.length;   // 4
+  const HOME_OF = { immune:'immune' };
+  const TOTAL_SUBS = IMMUNE_SUBS.length;   // 4
 
   // 11 slots: 5 in the left column (s0–s4), 1 centre (s5), 5 in the right column (s6–s10)
   // A "row" is a horizontal pair: left s{r} + right s{6+r}, r = 0..4. s5 lives in row 2's centre.
@@ -1187,8 +1176,8 @@
     verbsShown:false,             // stage-4 toggle for the verbs
     reasonsShown:false,           // stage-4 toggle for the reasons + emojis
     centreFx:0,                   // centre-emoji confluence state: 0 off · 1 arrows · 2 +hide right icons
-    hideNerve:false, hideImmune:false,   // hide nervous / immune connector arrows
-    nerveOpen:false, immuneOpen:false
+    hideImmune:false,   // hide immune connector arrows
+    immuneOpen:false
   };
   // stage 2+ locks placements; helpers for the "Next" gates
   const frozen = () => state.stage >= 2;
@@ -1565,8 +1554,8 @@
   }
   // the fan anchors to its parent slot and opens by that slot's column
   function renderSubChips(kind){
-    const col  = kind === 'nerve' ? $('#nervousList') : $('#immuneList');
-    const open = kind === 'immune' ? state.immuneOpen : state.nerveOpen;
+    const col  = $('#immuneList');
+    const open = state.immuneOpen;
     const parent = slotOfSystem(HOME_OF[kind]);
     if (parent) parent.classList.toggle('parent-open', !!open);
     col.innerHTML = '';
@@ -1575,7 +1564,7 @@
     if (open && parent){
       col.classList.add('dir-' + subDir(parent));
       parent.appendChild(col);                 // anchor the fan inside its parent slot
-      const defs = kind === 'nerve' ? NERVOUS_SUBS : IMMUNE_SUBS;
+      const defs = IMMUNE_SUBS;
       defs.forEach(s => {
         if (state.subs[s.id]) return;          // already threaded → hidden from the fan
         const c = makeSubCard(s, kind);
@@ -1586,7 +1575,7 @@
       $('#subFlow').appendChild(col);          // park it back when closed
     }
   }
-  const subDef = (kind, id) => (kind === 'nerve' ? NERVOUS_SUBS : IMMUNE_SUBS).find(s => s.id === id);
+  const subDef = (kind, id) => IMMUNE_SUBS.find(s => s.id === id);
 
   function canPlaceSub(kind, slot){
     if (!slot || !slot.classList.contains('filled')) return false;
@@ -1596,7 +1585,7 @@
   }
   function placeSub(subId, kind, slot){
     if (!canPlaceSub(kind, slot)){
-      toast(kind === 'nerve' ? T('Place it on a system other than Nervous','Colócalo en un sistema que no sea el Nervioso') : T('Place it on a system other than Immune','Colócalo en un sistema que no sea el Inmunitario'));
+      toast(T('Place it on a system other than Immune','Colócalo en un sistema que no sea el Inmunitario'));
       return false;
     }
     state.subs[subId] = { kind, slotId: slot.dataset.slot };
@@ -1660,8 +1649,7 @@
       });
     }
     Object.entries(state.subs).forEach(([subId, rec]) => {
-      // SubNervous / SubImmune toggles hide that kind's arrows
-      if (rec.kind === 'nerve'  && state.hideNerve)  return;
+      // SubImmune toggle hides the immune arrows
       if (rec.kind === 'immune' && state.hideImmune) return;
       const slot = slotEl(rec.slotId); if (!slot) return;
       const parent = slotOfSystem(HOME_OF[rec.kind]); if (!parent) return;
@@ -1671,7 +1659,7 @@
       const y1 = a.top  + a.height/2;
       const x2 = b.left + b.width/2;
       const y2 = b.top  + b.height/2;
-      const colour = rec.kind === 'nerve' ? getCSS('--nerve') : getCSS('--immune');
+      const colour = getCSS('--immune');
       const def = subDef(rec.kind, subId);
 
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1777,7 +1765,7 @@
       || (state.stage >= 4 && state.reasonsShown && !allSubsPlaced());
     document.body.classList.toggle('show-emojis', emojisVisible);
     // parents glow only in stage 4
-    allSlots().forEach(s => s.classList.remove('is-parent','parent-immune','parent-nerve','parent-open'));
+    allSlots().forEach(s => s.classList.remove('is-parent','parent-immune','parent-open'));
     if (state.stage >= 4){
       const im = slotOfSystem('immune');  if (im) im.classList.add('is-parent','parent-immune');
       renderSubChips('immune');   // re-anchor the open immune fan
@@ -1835,14 +1823,14 @@
     if (state.stage === 4){ state.verbsShown = false; state.reasonsShown = false; }   // both collapsed by default in stage 4
     // reset the centre confluence view + arrow-hide toggles when navigating stages
     state.centreFx = 0; document.body.classList.remove('hide-right-icons');
-    state.hideNerve = false; state.hideImmune = false;
+    state.hideImmune = false;
     if (state.stage < 4) closeDocks();
     afterChange();
   }
   function closeDocks(){
-    state.nerveOpen = state.immuneOpen = false;
-    const il = $('#immuneList'), nl = $('#nervousList'), sf = $('#subFlow');
-    [il, nl].forEach(c => {
+    state.immuneOpen = false;
+    const il = $('#immuneList'), sf = $('#subFlow');
+    [il].forEach(c => {
       if (!c) return;
       c.innerHTML = '';
       c.classList.remove('show','dir-left','dir-right','dir-above');
@@ -1853,8 +1841,7 @@
   }
   // click a glowing parent → fan / fold its subtab chips at the bottom corner
   function toggleSubGroup(kind){
-    if (kind === 'immune') state.immuneOpen = !state.immuneOpen;
-    else                   state.nerveOpen  = !state.nerveOpen;
+    state.immuneOpen = !state.immuneOpen;
     renderSubChips(kind);
     armedSub = null;
     save(); drawLinks();
@@ -1905,7 +1892,7 @@
         placed:state.placed, reasons:state.reasons, subs:state.subs, verbs:state.verbs,
         subReasons:state.subReasons, subVerbs:state.subVerbs,
         stage:state.stage, verbsShown:state.verbsShown, reasonsShown:state.reasonsShown,
-        nerveOpen:state.nerveOpen, immuneOpen:state.immuneOpen
+        immuneOpen:state.immuneOpen
       }));
     }catch(e){
       if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)){
@@ -1933,7 +1920,6 @@
     if (typeof o.stage === 'number')   state.stage        = Math.max(1, Math.min(4, o.stage));
     state.verbsShown   = !!o.verbsShown;
     state.reasonsShown = !!o.reasonsShown;
-    state.nerveOpen    = !!o.nerveOpen;
     state.immuneOpen   = !!o.immuneOpen;
     // paint the placed systems into their slots (mirrors placeSystem, minus the
     // per-card renderDeck/afterChange — those run once after the loop)
@@ -2062,8 +2048,7 @@
     // clicking a slot while a subsystem is armed → thread it there
     const slot = e.target.closest('.slot');
     if (slot && armedSub){
-      const kind = NERVOUS_SUBS.some(s => s.id === armedSub) ? 'nerve' : 'immune';
-      placeSub(armedSub, kind, slot);
+      placeSub(armedSub, 'immune', slot);
       return;
     }
     // system cards: deck → first empty slot; placed → unplace (or, once complete, a parent fans its subtabs)
@@ -2078,8 +2063,7 @@
       if (frozen()){
         // placements are locked; only the glowing parents stay interactive (stage 4)
         if (cslot.classList.contains('is-parent')){
-          const sys = state.placed[cslot.dataset.slot];
-          toggleSubGroup(sys === 'immune' ? 'immune' : 'nerve');
+          toggleSubGroup('immune');
         }
         return;
       }
@@ -2148,7 +2132,7 @@
   });
   // middle-stage Next: 2 → 3 (reveal + verbs) · 3 → 4 (reveal subsystems) · 4 → done
   $('#nextBtn2').addEventListener('click', advance);
-  // SubNervous / SubImmune: hide that kind's connector arrows
+  // SubImmune: hide the immune connector arrows
   $('#subImmuneBtn').addEventListener('click', () => { state.hideImmune = !state.hideImmune; afterChange(); });
   // Back one stage
   $('#backBtn').addEventListener('click', () => goStage(state.stage - 1));
@@ -2250,7 +2234,6 @@
   const sysAt   = slotId => { const id = state.placed[slotId]; return id ? SYS[id] : null; };
   // a flat lookup for every subsystem id → { label, kind }
   const SUB_BY_ID = {};
-  NERVOUS_SUBS.forEach(s => SUB_BY_ID[s.id] = { ...s, kind:'nerve'  });
   IMMUNE_SUBS .forEach(s => SUB_BY_ID[s.id] = { ...s, kind:'immune' });
 
   // ── the structured "resume" rows that every export reads ──
@@ -2349,7 +2332,7 @@
     let meta = '';
     if (m.verbs.length) meta += `<div class="sm-line sm-verb">🔗 ${m.verbs.map(escHtml).join(' · ')}</div>`;
     m.arrows.forEach(a => {
-      meta += `<div class="sm-line sm-arrow">↳ ${a.sub.kind === 'immune' ? '🛡' : '🧠'} ${escHtml(defLabel(a.sub))}`
+      meta += `<div class="sm-line sm-arrow">↳ 🛡 ${escHtml(defLabel(a.sub))}`
             + (a.extra.length ? ' · ' + escHtml(a.extra.join(' · ')) : '') + `</div>`;
     });
     return `<div class="sum-cell"><div class="sum-sq${slotId === CENTRE_SLOT ? ' centre' : ''}">`
@@ -2384,19 +2367,18 @@
     const placed = Object.keys(state.placed).length;
     const reasons = REASON_KEYS.filter(k => state.reasons[k] && state.reasons[k].length).length;
     const verbs = Object.values(state.verbs).filter(a => a && a.length).length;
-    const subN = Object.values(state.subs).filter(s => s.kind === 'nerve').length;
     const subI = Object.values(state.subs).filter(s => s.kind === 'immune').length;
     const pairs = summaryRows().filter(r => r.kind === 'pair').map(r => r.title);
     const C = sysAt(CENTRE_SLOT);
     const cLab = C ? defLabel(C) : '';
     return [
       [T('The read','La lectura'), magicOn
-        ? T(`<p>A body breathing as <em>${placed}</em> systems${C?`, gathered at the <em>${cLab.toLowerCase()}</em> centroid`:''} — threaded by <em>${subN}</em> nervous and <em>${subI}</em> immune currents.</p>`,
-            `<p>Un cuerpo que respira como <em>${placed}</em> sistemas${C?`, reunidos en el centroide <em>${cLab.toLowerCase()}</em>`:''} — enhebrado por <em>${subN}</em> corrientes nerviosas y <em>${subI}</em> inmunitarias.</p>`)
-        : T(`<p><strong>${placed}/11</strong> systems placed${C?`, centroid <em>${cLab}</em>`:''}. <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems threaded.</p>`,
-            `<p><strong>${placed}/11</strong> sistemas colocados${C?`, centroide <em>${cLab}</em>`:''}. <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsistemas enhebrados.</p>`)],
-      [T('By the numbers','En cifras'), T(`<p><strong>${placed}/11</strong> systems · <strong>${reasons}/6</strong> reasons · <strong>${verbs}/11</strong> verbs · <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsystems (<em>${subN}</em> nervous · <em>${subI}</em> immune).</p>`,
-        `<p><strong>${placed}/11</strong> sistemas · <strong>${reasons}/6</strong> razones · <strong>${verbs}/11</strong> verbos · <strong>${subN+subI}/${TOTAL_SUBS}</strong> subsistemas (<em>${subN}</em> nerviosos · <em>${subI}</em> inmunitarios).</p>`)],
+        ? T(`<p>A body breathing as <em>${placed}</em> systems${C?`, gathered at the <em>${cLab.toLowerCase()}</em> centroid`:''} — threaded by <em>${subI}</em> immune currents.</p>`,
+            `<p>Un cuerpo que respira como <em>${placed}</em> sistemas${C?`, reunidos en el centroide <em>${cLab.toLowerCase()}</em>`:''} — enhebrado por <em>${subI}</em> corrientes inmunitarias.</p>`)
+        : T(`<p><strong>${placed}/11</strong> systems placed${C?`, centroid <em>${cLab}</em>`:''}. <strong>${subI}/${TOTAL_SUBS}</strong> subsystems threaded.</p>`,
+            `<p><strong>${placed}/11</strong> sistemas colocados${C?`, centroide <em>${cLab}</em>`:''}. <strong>${subI}/${TOTAL_SUBS}</strong> subsistemas enhebrados.</p>`)],
+      [T('By the numbers','En cifras'), T(`<p><strong>${placed}/11</strong> systems · <strong>${reasons}/6</strong> reasons · <strong>${verbs}/11</strong> verbs · <strong>${subI}/${TOTAL_SUBS}</strong> immune subsystems.</p>`,
+        `<p><strong>${placed}/11</strong> sistemas · <strong>${reasons}/6</strong> razones · <strong>${verbs}/11</strong> verbos · <strong>${subI}/${TOTAL_SUBS}</strong> subsistemas inmunitarios.</p>`)],
       [T('The pairs','Los pares'), pairs.length ? `<p>${pairs.map(p => `<em>${escHtml(p)}</em>`).join(' · ')}</p>` : '<p>—</p>'],
       [T('Polarities','Polaridades'), T(`<p>Left column vs right column; and the first three left + first two rows right against the rest — two groupings the <em>Polarities</em> view colours in.</p>`,
         `<p>Columna izquierda frente a columna derecha; y las tres primeras de la izquierda + las dos primeras filas de la derecha frente al resto: dos agrupaciones que colorea la vista <em>Polaridades</em>.</p>`)]
@@ -2576,7 +2558,7 @@ footer a{color:#4dd0e1;text-decoration:none}
     const metaOf = slotId => {
       const mt = slotMeta(slotId); const out = [];
       if (mt.verbs.length) wrap('🔗 ' + mt.verbs.join(' · '), colW, META_FONT).forEach(t => out.push({ c:'#b388ff', t }));
-      mt.arrows.forEach(a => wrap('↳ ' + (a.sub.kind==='immune'?'🛡 ':'🧠 ') + defLabel(a.sub) + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
+      mt.arrows.forEach(a => wrap('↳ 🛡 ' + defLabel(a.sub) + (a.extra.length?' · '+a.extra.join(' · '):''), colW, META_FONT).forEach(t => out.push({ c:'#69f0ae', t })));
       return out;
     };
     const reasonLines = key => { const a = state.reasons[key]||[]; return a.length ? wrap(a.join(' · '), colW, REASON_FONT) : []; };
@@ -2727,8 +2709,8 @@ footer a{color:#4dd0e1;text-decoration:none}
     state.placed = {}; state.reasons = freshReasons(); state.subs = {}; state.verbs = {};
     state.subReasons = {}; state.subVerbs = {};
     state.stage = 1; state.verbsShown = false; state.reasonsShown = false;
-    state.centreFx = 0; state.hideNerve = false; state.hideImmune = false;
-    state.nerveOpen = false; state.immuneOpen = false;
+    state.centreFx = 0; state.hideImmune = false;
+    state.immuneOpen = false;
     armedSub = null; openReasons.clear();
     document.body.classList.remove('hide-right-icons');
     // 2) empty ONLY pracsys' own keys — never localStorage.clear() (other apps keep theirs)

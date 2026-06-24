@@ -793,7 +793,6 @@
     }
 
     /* ---------- Field tools (mic / file / magic) bottom-right ---------- */
-    .field{ position:relative; }    /* (already set above; safe duplicate) */
     .field-tools{
       position:absolute;
       bottom:8px; right:10px;
@@ -974,26 +973,7 @@
       gap:14px;
       margin: 28px 0 6px;   /* 1 row of space above each control row */
     }
-    .more-row.is-revealed{ margin-top: 36px; }   /* extra room after click (the "1 row down" effect) */
 
-    .collapse-x{
-      width:48px; height:48px;
-      border-radius:999px;
-      border:2px solid rgba(255,255,255,.18);
-      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
-      color:#fff;
-      font-size:1.25rem; font-weight:800; line-height:1;
-      cursor:pointer;
-      display:grid; place-items:center;
-      box-shadow: 0 10px 26px hsla(265,84%,62%,.45);
-      transition: transform .25s ease, box-shadow .2s ease, filter .2s ease;
-    }
-    .collapse-x:hover{
-      transform: scale(1.08) rotate(90deg);
-      box-shadow: 0 14px 36px hsla(210,92%,58%,.55);
-      filter: saturate(1.15);
-    }
-    .collapse-x[hidden]{ display:none; }
     .big-more-btn[hidden]{ display:none; }
 
     /* Inline "add a new question" form (appears above q1 when + is clicked) */
@@ -1963,7 +1943,6 @@
     // ===== Extra questions =====
     let nextQId = 4;
     const qsContainer = document.querySelector('.qs');
-    let currentStyle = 'neutral';
 
     // ===== Progressive reveal of the base 3 questions =====
     // data-reveal on the base group = how many of Q1/Q2/Q3 are shown.
@@ -2101,7 +2080,6 @@
     }
     /* ===== Labelers menu (top bar): global tone suggestions ===== */
     function applyGlobalStyle(style){
-      currentStyle = style;
       document.querySelectorAll('.q-group').forEach(g => {
         g.dataset.style = style;
         applyGroupStyle(g, style);
@@ -2260,6 +2238,201 @@
       } else {
         setResumeHint(T({ en:'✨ Fill in at least one answer to remix.', es:'✨ Rellena al menos una respuesta para remezclar.' }));
       }
+    });
+
+    /* ===================================================================
+       §13.12 export surface — ONE summary-model, six format emitters,
+       Web Share. Save → the six downloads. Share → Web Share / clipboard.
+       Every format derives from buildModel(); no per-format DOM re-reading.
+       =================================================================== */
+
+    // ----- Shared escaping (ONE pair, used by BOTH xml and html) -----
+    const escHtml = s => String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
+    const escXml  = s => escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const escAttr = escXml;
+
+    // ----- Filename helpers (§13.12 filename rule, localized) -----
+    const SUMMARY_WORD = { en:'summary', es:'resumen' };
+    const safeName = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const fileBase = m => safeName(m.app) + '-' + (SUMMARY_WORD[uiLang()] || 'summary');
+
+    // ----- Universal download (the family pattern; one copy) -----
+    function downloadBlob(body, mime, filename){
+      const blob = new Blob([body], { type: mime });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ----- THE summary-model: reads form state ONCE -----
+    // Active-language prompt text for one .q (label's active-lang span, else label).
+    function promptText(q){
+      const label = q.querySelector(':scope > label');
+      if (!label) return '';
+      const span = label.querySelector(':scope > .' + uiLang()) ||
+                   label.querySelector(':scope > .en');
+      return ((span || label).textContent || '').replace(/\s+/g, ' ').trim();
+    }
+    function buildModel(){
+      const checked = document.querySelector('input[name="iam"]:checked');
+      const iam = checked ? ((IAM_MAP[uiLang()] || IAM_MAP.en)[checked.value] || checked.value) : '';
+      // "the other gender" rendered to men/women in the active language.
+      const L = LABEL_MAP[uiLang()] || LABEL_MAP.en;
+      let other = L.DEFAULT;
+      if (checked){ const o = [...radios].find(r => r !== checked); other = o ? (L[o.value] || o.value) : L.DEFAULT; }
+
+      // One section listing the answered questions (prompt + answer).
+      const items = [];
+      document.querySelectorAll('.qs .q').forEach(q => {
+        const ta = q.querySelector('textarea');
+        if (!ta) return;
+        const v = ta.value.trim();
+        if (!v) return;                          // only filled items ride
+        items.push(promptText(q) + ' — ' + v);
+      });
+
+      const sectionLabel = T({ en:'Answers', es:'Respuestas' });
+      const sections = items.length ? [{ label: sectionLabel, title: iam, items }] : [];
+      // Live phrase, whitespace-collapsed (active language already shown in DOM).
+      const phrase = (resumePhrase?.innerText || '').replace(/\s+/g, ' ').trim();
+
+      const model = { app:'varyy', version:1, phrase, iam, other, sections, raters:[], picked:items.slice() };
+
+      // §13.9 export extras — present iff the matching toggle is on.
+      const dEl = document.getElementById('add-date');
+      if (dEl && dEl.checked) model.date = new Date().toISOString();
+      const pEl = document.getElementById('add-profile');
+      if (pEl && pEl.checked){
+        const h = (document.getElementById('profile-handle')?.value || '').trim();
+        model.profile = { handle: h };
+      }
+      return model;
+    }
+    // True when there is something worth exporting (parity: empty → disabled).
+    const modelHasContent = m => m.sections.length > 0;
+
+    // ----- Six format emitters, all deriving from the model -----
+    function toMd(m){
+      let s = '# ' + m.app + '\n\n' + m.phrase + '\n\n';
+      m.sections.forEach(sec => {
+        s += '## ' + sec.label + (sec.title ? ' · ' + sec.title : '') + '\n';
+        sec.items.forEach(it => s += '- ' + it + '\n');
+        s += '\n';
+      });
+      if (m.date)    s += '_' + T({ en:'Date', es:'Fecha' }) + ': ' + m.date + '_\n';
+      if (m.profile) s += '_' + T({ en:'Profile', es:'Perfil' }) + ': ' + (m.profile.handle || '') + '_\n';
+      return s;
+    }
+    const toJson = m => JSON.stringify(m, null, 2);
+    function toXml(m){
+      let s = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      s += '<flove app="' + escAttr(m.app) + '" version="' + m.version + '">\n';
+      s += '  <phrase>' + escXml(m.phrase) + '</phrase>\n';
+      if (m.date)    s += '  <date>' + escXml(m.date) + '</date>\n';
+      if (m.profile) s += '  <profile handle="' + escAttr(m.profile.handle || '') + '"/>\n';
+      s += '  <sections>\n';
+      m.sections.forEach(sec => {
+        s += '    <section label="' + escAttr(sec.label) + '"' + (sec.title ? ' title="' + escAttr(sec.title) + '"' : '') + '>\n';
+        sec.items.forEach(it => s += '      <item>' + escXml(it) + '</item>\n');
+        s += '    </section>\n';
+      });
+      s += '  </sections>\n</flove>\n';
+      return s;
+    }
+    function toHtml(m){
+      const rows = m.sections.map(sec =>
+        '<section><h2>' + escHtml(sec.label) + (sec.title ? ' · ' + escHtml(sec.title) : '') + '</h2><ul>'
+        + sec.items.map(it => '<li>' + escHtml(it) + '</li>').join('') + '</ul></section>').join('');
+      const extra = (m.date ? '<p>' + escHtml(T({ en:'Date', es:'Fecha' })) + ': ' + escHtml(m.date) + '</p>' : '')
+                  + (m.profile ? '<p>' + escHtml(T({ en:'Profile', es:'Perfil' })) + ': ' + escHtml(m.profile.handle || '') + '</p>' : '');
+      return '<!doctype html><html lang="' + uiLang() + '"><head><meta charset="utf-8">'
+        + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        + '<title>' + escHtml(m.app) + ' · ' + (SUMMARY_WORD[uiLang()] || 'summary') + '</title>'
+        + '<style>body{font:15px/1.6 system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:1rem}'
+        + 'h1{font-weight:600}li{margin:.2rem 0}</style></head>'
+        + '<body><h1>' + escHtml(m.app) + '</h1><p>' + escHtml(m.phrase) + '</p>' + rows + extra + '</body></html>';
+    }
+    function toCsv(m){
+      const q = v => { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      const lines = ['section,title,item'];
+      m.sections.forEach(sec => sec.items.forEach(it =>
+        lines.push([sec.label, sec.title || '', it].map(q).join(','))));
+      return lines.join('\n');
+    }
+    function toJpg(m, cb){
+      const W = 1080, H = 720, canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#14101f'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#f5b463'; ctx.font = '600 40px Georgia, serif';
+      ctx.fillText(m.app, 48, 72);
+      ctx.fillStyle = '#fff'; ctx.font = '20px system-ui, sans-serif';
+      const lines = m.sections.flatMap(s => [s.label + (s.title ? ' · ' + s.title : ''),
+                                             ...s.items.map(i => '  · ' + i)]);
+      if (m.date)    lines.push(T({ en:'Date', es:'Fecha' }) + ': ' + m.date);
+      if (m.profile) lines.push(T({ en:'Profile', es:'Perfil' }) + ': ' + (m.profile.handle || ''));
+      const MAX = 26;
+      lines.slice(0, MAX).forEach((ln, i) => ctx.fillText(ln.slice(0, 70), 48, 130 + i * 28));
+      if (lines.length > MAX) ctx.fillText('…', 48, 130 + MAX * 28);
+      canvas.toBlob(cb, 'image/jpeg', 0.95);
+    }
+
+    // ----- Save dispatcher: each subitem under #saveWrap is a real download -----
+    function runSave(fmt){
+      const m = buildModel();
+      if (!modelHasContent(m)){
+        setResumeHint(T({ en:'Fill in at least one answer first.', es:'Rellena al menos una respuesta primero.' }));
+        return;
+      }
+      const base = fileBase(m);
+      if (fmt === 'jpg'){ toJpg(m, b => downloadBlob(b, 'image/jpeg', base + '.jpg')); return; }
+      const tbl = {
+        md:   [toMd(m),   'text/markdown'],
+        json: [toJson(m), 'application/json'],
+        xml:  [toXml(m),  'application/xml'],
+        html: [toHtml(m), 'text/html'],
+        csv:  [toCsv(m),  'text/csv'],
+        text: [toMd(m),   'text/markdown'],   // the existing "Text" rung → markdown
+      }[fmt];
+      if (!tbl) return;
+      const ext = fmt === 'text' ? 'md' : fmt;
+      downloadBlob(tbl[0], tbl[1] + ';charset=utf-8', base + '.' + ext);
+    }
+
+    // ----- Web Share (guarded), with the clipboard fallback ladder -----
+    async function shareMobile(){
+      const m = buildModel();
+      if (!modelHasContent(m)){
+        setResumeHint(T({ en:'Fill in at least one answer first.', es:'Rellena al menos una respuesta primero.' }));
+        return;
+      }
+      const title = 'flove · ' + m.app;
+      const file = new File([toHtml(m)], fileBase(m) + '.html', { type: 'text/html' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })){
+        try { await navigator.share({ title, text: m.phrase, files: [file] }); return; } catch (_) {}
+      }
+      if (navigator.share){
+        try { await navigator.share({ title, text: m.phrase }); return; } catch (_) {}
+      }
+      try {
+        await navigator.clipboard.writeText(m.phrase);
+        setResumeHint(T({ en:'Copied — paste to share.', es:'Copiado — pega para compartir.' }));
+      } catch (_) {
+        setResumeHint(T({ en:'Sharing not available.', es:'Compartir no disponible.' }));
+      }
+    }
+
+    // ----- Wire the existing Save subitems to real downloads -----
+    document.querySelectorAll('.subitem[data-group="save"][data-action]').forEach(s => {
+      s.addEventListener('click', () => runSave(s.dataset.action));
+    });
+    // Share-row subitems: WhatsApp / Telegram / Mail open the share sheet
+    // (Web Share → clipboard); the top Share button does the same.
+    document.getElementById('shareBtn')?.addEventListener('click', shareMobile);
+    document.querySelectorAll('.subitem[data-group="share"]').forEach(s => {
+      s.addEventListener('click', shareMobile);
     });
   })();
   </script>

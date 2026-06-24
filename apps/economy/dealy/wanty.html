@@ -1723,12 +1723,16 @@
             <button type="button" class="subitem" data-group="save" data-action="jpg">JPG</button>
             <button type="button" class="subitem" data-group="save" data-action="html">HTML</button>
             <button type="button" class="subitem" data-group="save" data-action="text"><span class="en" lang="en">Text</span><span class="es" lang="es">Texto</span></button>
+            <button type="button" class="subitem" data-group="save" data-action="md">MD</button>
+            <button type="button" class="subitem" data-group="save" data-action="csv">CSV</button>
+            <button type="button" class="subitem" data-group="save" data-action="xml">XML</button>
             <button type="button" class="subitem" data-group="save" data-action="json">JSON</button>
           </div>
         </div>
         <div class="btn-with-subs" id="shareWrap">
           <button type="button" class="btn" id="shareBtn"><i class="fas fa-share-alt"></i> <span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></button>
           <div class="subitems">
+            <button type="button" class="subitem" data-group="share" data-action="mobile"><span class="en" lang="en">Device</span><span class="es" lang="es">Dispositivo</span></button>
             <button type="button" class="subitem" data-group="share" data-action="whatsapp">WhatsApp</button>
             <button type="button" class="subitem" data-group="share" data-action="telegram">Telegram</button>
             <button type="button" class="subitem" data-group="share" data-action="mail">Mail</button>
@@ -2717,11 +2721,54 @@
         case 'mail':     return `mailto:?subject=${encodeURIComponent('Wanty')}&body=${enc}%0A%0A${page}`;
       }
     }
+    // ── Summary-model: the single source every export format reads from ──
+    function buildModel() {
+      return {
+        app: 'Wanty', version: 1,
+        phrase: buildPhrase() || '',
+        sections: filledFields().map(f => ({ label: f.name, title: '', items: f.values })),
+        raters: []
+      };
+    }
+    function toMd(m) {
+      let s = `# ${m.app}\n\n${m.phrase}\n\n`;
+      m.sections.forEach(sec => { s += `## ${sec.label}\n`; sec.items.forEach(it => s += `- ${it}\n`); s += '\n'; });
+      return s;
+    }
+    function toCsv(m) {
+      const q = v => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      const lines = ['section,item'];
+      m.sections.forEach(sec => sec.items.forEach(it => lines.push([sec.label, it].map(q).join(','))));
+      return lines.join('\n') + '\n';
+    }
+    function toXml(m) {
+      let s = `<?xml version="1.0" encoding="UTF-8"?>\n<wanty version="${m.version}">\n  <phrase>${escapeHTML(m.phrase)}</phrase>\n  <sections>\n`;
+      m.sections.forEach(sec => {
+        s += `    <section label="${escapeHTML(sec.label)}">\n`;
+        sec.items.forEach(it => s += `      <item>${escapeHTML(it)}</item>\n`);
+        s += `    </section>\n`;
+      });
+      s += `  </sections>\n</wanty>\n`;
+      return s;
+    }
     const subActions = {
       'save:jpg':  () => { renderJPG(blob => { if (!blob) { setHint('<i class="fas fa-info-circle"></i> JPG export not supported.'); return; } downloadBlob(blob, 'wanty.jpg'); setHint('<i class="fas fa-check-circle"></i> JPG downloaded.'); }); },
       'save:html': () => { downloadBlob(new Blob([buildFullHTML()], {type:'text/html;charset=utf-8'}), 'wanty.html'); setHint('<i class="fas fa-check-circle"></i> HTML downloaded.'); },
       'save:text': () => { downloadBlob(new Blob([buildPhrase() + '\n'], {type:'text/plain;charset=utf-8'}), 'wanty.txt'); setHint('<i class="fas fa-check-circle"></i> Text downloaded.'); },
-      'save:json': () => { const out = {}; filledFields().forEach(f => { out[f.name] = f.values; }); downloadBlob(new Blob([JSON.stringify(out, null, 2)], {type:'application/json;charset=utf-8'}), 'wanty.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
+      'save:md':   () => { downloadBlob(new Blob([toMd(buildModel())], {type:'text/markdown;charset=utf-8'}), 'wanty.md'); setHint('<i class="fas fa-check-circle"></i> Markdown downloaded.'); },
+      'save:csv':  () => { downloadBlob(new Blob([toCsv(buildModel())], {type:'text/csv;charset=utf-8'}), 'wanty.csv'); setHint('<i class="fas fa-check-circle"></i> CSV downloaded.'); },
+      'save:xml':  () => { downloadBlob(new Blob([toXml(buildModel())], {type:'application/xml;charset=utf-8'}), 'wanty.xml'); setHint('<i class="fas fa-check-circle"></i> XML downloaded.'); },
+      'save:json': () => { downloadBlob(new Blob([JSON.stringify(buildModel(), null, 2)], {type:'application/json;charset=utf-8'}), 'wanty.json'); setHint('<i class="fas fa-check-circle"></i> JSON downloaded.'); },
+      'share:mobile': async () => {
+        const text = buildPhrase() || '(empty)', title = 'Wanty';
+        const htmlFile = new File([buildFullHTML()], 'wanty.html', { type: 'text/html' });
+        if (navigator.canShare && navigator.canShare({ files: [htmlFile] })) {
+          try { await navigator.share({ title, text, files: [htmlFile] }); return; } catch(_) {}
+        }
+        if (navigator.share) { try { await navigator.share({ title, text }); return; } catch(_) { return; } }
+        if (navigator.clipboard) { try { await navigator.clipboard.writeText(text); setHint('<i class="fas fa-check-circle"></i> Copied — paste to share.'); return; } catch(_) {} }
+        setHint('<i class="fas fa-info-circle"></i> Share not supported here.');
+      },
       'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> Opening WhatsApp…'); },
       'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> Opening Telegram…'); },
       'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> Opening Mail…'); },

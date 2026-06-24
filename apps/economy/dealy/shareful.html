@@ -2812,12 +2812,21 @@ em{color:#423066}</style></head>
       const title  = "✦ Shareful · Lending Conditions";
       if (action === "print") { window.print(); return; }
       if (action === "mobile" || action === "apps"){
-        if (navigator.share){
-          try { await navigator.share({ title, text }); toast("✓ Shared"); }
-          catch(_) { /* user cancelled */ }
-        } else {
-          toast("Web Share not supported here");
+        // Share ladder: standalone HTML file → text-only → clipboard.
+        const htmlFile = new File([buildHTMLDoc()], "shareful-lending.html", { type: "text/html" });
+        if (navigator.canShare && navigator.canShare({ files: [htmlFile] })){
+          try { await navigator.share({ title, text, files: [htmlFile] }); toast("✓ Shared"); return; }
+          catch(_) { /* cancelled or unsupported → fall through */ }
         }
+        if (navigator.share){
+          try { await navigator.share({ title, text }); toast("✓ Shared"); return; }
+          catch(_) { return; /* user cancelled */ }
+        }
+        if (navigator.clipboard){
+          try { await navigator.clipboard.writeText(text); toast("✓ Copied — paste to share"); return; }
+          catch(_) { /* fall through */ }
+        }
+        toast("Web Share not supported here");
       }
     });
   });

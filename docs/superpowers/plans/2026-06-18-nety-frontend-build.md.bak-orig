@@ -1,0 +1,324 @@
+# nety Frontend Build — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rebuild `apps/nety.html` as a bold "Kinetic Mesh" landing that doubles as the flove access point (registration, invite web, MyNet/permissions, four-facet Verify, stars/stages), and polish the linked pages (profily, sety, new wizy) — all CSS-pure except one inline registration/stars script.
+
+**Architecture:** A single self-contained `nety.html` extended section-by-section, reusing its existing dark Kinetic-Mesh design tokens (Fredoka + Space Mono, `--accent`/`--signal`). All new interactivity is CSS `:has()`/checkbox-driven *except* one small inline script for the registration form + stars/stage progress state. Everything is an interactive **mock** (no backend); the real flovenet/oasis backend is a separate future plan.
+
+**Tech Stack:** Hand-written HTML/CSS/SVG, one vanilla-JS inline `<script>`, Google Fonts (Fredoka, Space Mono). No build step, no dependencies. Verification by rasterizing states to PNG (`convert`/`rsvg`) and reading them.
+
+## Global Constraints
+
+- **Source of truth:** `docs/superpowers/specs/2026-06-18-nety-access-ecosystem-design.md` (this plan implements its §8 page order and §3–§5 sections). Backend realization lives in `…-vs-flovenet-oasis-comparison.md` and is **out of scope here**.
+- **CSS-pure everywhere on `nety.html` EXCEPT one inline `<script>`** covering: registration live outputs + stars/stage progress (accrue → cross stages → reveal passwords/open sections; never deducted). No other JS on nety.
+- **Fonts:** Fredoka (display) + Space Mono (body) only. No Inter/Roboto/Arial. No new color hues on nety beyond existing tokens (`--accent:#8d89ff`, `--signal:#00f7a7`, dark field).
+- **Each linked app keeps its own identity:** profily warm/light (orange `#ff9b5e`, Inter+Fraunces); sety dark-purple; wizy athenea (navy `#0d1430` + gold `#d4af37`).
+- **Accessibility:** full `prefers-reduced-motion` static fallback; visible focus states; `.vh` visually-hidden inputs keep working.
+- **Honesty:** one candid line near Access/Verify marking previews vs live (spec §6).
+- **Workflow:** after each task, render-verify the changed state to PNG and Read it before committing (flove "render to verify" standard). At the end, commit + push to Gitea `localhost:3000/marc/flove` (main), message = prompt + explanation.
+- **All data is mock/illustrative.** Trust weights, CU thresholds, stages are the provisional numbers from spec §4.2/§5.1.
+- **Naming & tier model (spec §2.1) — use verbatim:** two tiered domains — **`nety` = hardware** (resource quota ladder) and **`appy` = data-software** (feature ladder), each `mini → basic → normal → advanced → super`. Stages are **`newbie · known · homie · expert · legend`** (NOT Joined/Contributor/Steward/Patron/Pillar). A **stage = an earned ceiling**; the **tier/mode you browse is your choice** (optionally activatable — a legend can browse mini). **Access gating:** `mini`(`nety`) is **open** (free client + contribute + `profily-mini`, no invite); `basic`(`appy`) is **invite-gated** (register to play & store apps; invites ~3/month, vertical web-of-trust). Profile names: **`profily-mini`** (open) ↔ **`profily`** (full). Advancement is substitutable: share nety hardware **or** give more authentication/trust.
+
+---
+
+## File Structure
+
+- `apps/nety.html` — **modify** (the whole build; one file, extended section by section).
+- `apps/wizy.html` — **create** (new athenea finetuner-agents app).
+- `apps/puzzy/sety.html` — **modify** (back-link, athen-ia Wizard, slider/glyph polish).
+- `apps/profily.html` — **modify** (extended-profile framing, back-link, identity card, Trusts, MyNet/circles, MyWizy entry).
+- No test files: verification is visual rasterization + structural greps (zero-JS check, link resolution).
+
+Verification helper used throughout:
+```bash
+# rasterize a saved HTML/SVG state to PNG for visual review
+cd /home/kdeneon/Documents/flove/apps
+# (use the project's existing convert/rsvg toolchain; fall back to chromium --screenshot if needed)
+```
+
+---
+
+## Task overview (build order — bottom-up)
+
+**`nety.html` (Tasks 1–7), then linked apps (8–10), then wiring (11):**
+
+1. **Kinetic Mesh shell** — background mesh, giant hero, re-skin existing content (CSS-pure).
+2. **The one inline script** — `window.nety` registration + stars/stage state.
+3. **Access** — passport (`profily-mini`), invite-gated registration (`mini→basic`), share-earn, invites, recovery mock.
+4. **Public invite web** — CSS-pure SVG lineage tree + vouch threads + presence glows.
+5. **MyNet & permissions** — f2f panel + coarse private-first pickers; MyWizy reference.
+6. **Verify** — concentric scope rings (Personal/Local/Social/Global), identity ladder, publish gate.
+7. **Stars, stages & tier model** — progress board, the two tier ladders, protected-section unlocks, honesty line, final page order.
+8. **`wizy.html`** — new athenea finetuner-agents app.
+9. **`sety.html`** — back-link, athen-ia Wizard + wizy link, slider/glyph polish.
+10. **`profily.html`** — extended-profile framing, identity card, Trusts, MyNet/circles, MyWizy entry.
+11. **Cross-link pass + Gitea push** — resolve all links, invariant checks, commit/push to main.
+
+> Each task ends with a render-verify (chromium/convert → PNG → Read) before its commit.
+> The flovenet/oasis backend is a **separate future plan** (see end), not built here.
+
+---
+
+### Task 1: Kinetic Mesh shell (background, hero, re-skinned existing content)
+
+Rebuild the existing nety content (hero, 3 demos, stack, phase board, candid note) under the bold Kinetic-Mesh language. No new sections yet — this task proves the aesthetic.
+
+**Files:**
+- Modify: `apps/nety.html` (whole file — keep existing content, restyle; widen `.wrap` ~1100px)
+
+**Interfaces:**
+- Produces: design tokens + classes later tasks reuse — `.passport`, `.glass` (translucent glass card), `.mesh-bg` (fixed background layer), `.sec` (section heading), the orbit-mark SVG, `--accent`/`--signal`/glow shadows. Later tasks add sections inside `.wrap` using these.
+
+- [ ] **Step 1: Add the mesh background + grain layer**
+  Add a fixed full-bleed `.mesh-bg` div: intensified radial gradient-mesh (existing purple/green), 2–3 pure-SVG orbiting node groups at varied radii/speeds (extend existing `.orbit` spin keyframes), faint drifting link-lines, a CSS data-URI grain overlay. `position:fixed; inset:0; pointer-events:none; z-index:0`. Content wrapper gets `position:relative; z-index:1`.
+
+- [ ] **Step 2: Enlarge the hero**
+  Wordmark `NETY` → `font-size:clamp(4.5rem,20vw,11rem)`; orbit-mark scaled up and overlapping; lead on a diagonal axis; CTAs as glowing pills. Add the staggered page-load reveal (`animation-delay`: wordmark→lead→cards→mesh).
+
+- [ ] **Step 3: Re-skin existing sections to glass node-cards**
+  The 3 "What nety is" demo cards → `.glass` (translucent, `backdrop-filter:blur`, glowing border intensifying on hover/expand), connected by faint link-lines. Keep their existing `:has()` expand demos verbatim — only restyle. Stack chips → glowing tokens; phase board pills → luminous; keep the candid note.
+
+- [ ] **Step 4: Reduced-motion fallback**
+  `@media (prefers-reduced-motion: reduce)` → freeze all orbit/drift/reveal animations to static; mesh-bg renders as a still gradient.
+
+- [ ] **Step 5: Render-verify**
+  Save, rasterize the loaded page + one demo expanded to PNG, Read both. Confirm: mesh atmosphere reads, `NETY` is the hero object, glass cards legible, no layout breakage.
+
+- [ ] **Step 6: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): Kinetic Mesh shell — mesh bg, giant hero, glass node-cards"
+  ```
+
+---
+
+### Task 2: The one inline script (registration + stars/stage state)
+
+The single JS the page is allowed. A small state object the later sections bind to.
+
+**Files:**
+- Modify: `apps/nety.html` (add one inline `<script>` before `</body>`)
+
+**Interfaces:**
+- Produces: `window.nety` mock API the Access/Verify/Stars sections call:
+  - `nety.register({invite, handle, displayName})` → `{ok, peerId, handle, inviteLink, error}` (validates non-empty invite; derives a fake `12D3Koo…` peerId + `ed25519:…` pubkey; returns a signed-looking invite link).
+  - `nety.stars` — number (progress); `nety.addStars(n)`, `nety.stage()` → `'NEWBIE'|'KNOWN'|'HOMIE'|'EXPERT'|'LEGEND'` from CU thresholds `[0,10,100,1000,10000]`; `nety.onChange(fn)` to re-render chips/boards.
+  - Never deducts; crossing a threshold flips data-attributes the CSS reads to reveal passwords/sections.
+
+- [ ] **Step 1: Write the state module**
+  Inline `<script>`: an IIFE exposing `window.nety` with `stars=0`, `stage()` computed from thresholds, `addStars`, `register`, `onChange` (array of listeners). All deterministic, no network. Mock peerId via a fixed string + index, not `Math.random()`.
+
+- [ ] **Step 2: Wire DOM hooks**
+  On `addStars`/`register`, update: the passport star/progress chip, `data-stage` on the stars board root (CSS reveals the matching stage), and registration output fields. Listeners fire on every change.
+
+- [ ] **Step 3: Verify in isolation**
+  Temporarily add a debug button calling `nety.addStars(50)`; rasterize before/after to confirm the chip + `data-stage` update and CSS responds. Remove the debug button.
+
+- [ ] **Step 4: Confirm zero other JS**
+  Run: `grep -c '<script' apps/nety.html` → Expected: `1`.
+
+- [ ] **Step 5: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): single inline script — registration + stars/stage state"
+  ```
+
+---
+
+### Task 3: Access section — passport, registration, share-earn, invites, recovery mock
+
+Implements spec §3.1–§3.3, §3.7. The bridge's visible start.
+
+**Files:**
+- Modify: `apps/nety.html` (new `<section id="access">` after the demos)
+
+**Interfaces:**
+- Consumes: `window.nety` (Task 2), `.glass`/`.passport` styles (Task 1).
+- Produces: `#access` anchor; a `[data-stars]` chip the Verify/Stars sections reuse.
+
+- [ ] **Step 0: Onboarding "first steps" strip** — CSS-pure, always-visible, right under the hero (per spec §3 / page order §8). A numbered strip walking the full on-ramp: 1·what nety is → 2·run/contribute (open) → 3·your `profily-mini` appears → 4·get an invite **or** verify yourself → 5·register into `appy` (play & store). Each step links to its section (`#access`, etc.); checkbox-dismissible; completed steps dim via `:has()`. Zero JS.
+- [ ] **Step 1: Passport = `profily-mini`** — glowing card showing **@handle / mock peerId**, your **hardware contribution** (resources shared → Global), **live presence** badge (LIVE/RECENT/REACHABLE/DARK), and your **stage** (`newbie`→`legend`) badge, plus the live star/progress chip. Label it **`profily-mini`** (open, from running nety); note "full **`profily`** → in appy". This is the seed of the full profily.
+- [ ] **Step 2: Registration form + entry paths** — frame it as **crossing `mini`(`nety`, open) → `basic`(`appy`)**, showing the **four paths in** (§3.1 A–D): **A** invite code · **B** authenticate yourself (Telegram/email/phone/biometrics tabs) · **C** earn points (share hardware / approved content) · **D** curator admission (+ further auth). Fields invite-code OR auth panel, @handle, display-name, "generate keypair"; on submit call `nety.register`, echo live outputs (validated handle, peerId, signed invite link); empty/invalid invite + no auth → blocked state. (The script's one job.)
+- [ ] **Step 3: Share-resources → earn** — reuse the existing demo-3 role+meter pattern; "share" calls `nety.addStars(...)`; note higher stages unlock further resources + donation directing (§5.2).
+- [ ] **Step 3b: Publishing & moderation queue** — publish options (static page / post / file) gated behind ≥Telegram; published items render in a CSS-pure **pending → curator review → live** queue state; **approved → live credits points** (`nety.addStars`), pending/rejected give nothing. Note volunteer curators (§3.8) review it; real mechanism deferred.
+- [ ] **Step 4: Invites** — CSS `:has()` reveal of a signed invite token; show single-use vs multi-use (multi-use shows "validate each registrant" + 72h pending note); revoke/disown controls (visual).
+- [ ] **Step 5: Recovery mock** — self-backup prompt + social-quorum visual + "rotated · in probation" badge (§3.7); illustrative only.
+- [ ] **Step 6: Render-verify** — rasterize blank form, filled+submitted (outputs shown), invites revealed; Read all. Confirm live outputs echo typed input.
+- [ ] **Step 7: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): Access — passport, registration, share-earn, invites, recovery mock"
+  ```
+
+---
+
+### Task 4: Public invite web (CSS-pure SVG)
+
+Implements spec §3.4.
+
+**Files:**
+- Modify: `apps/nety.html` (new `<section id="invite-web">`)
+
+**Interfaces:**
+- Consumes: orbit/link-line SVG vocabulary (Task 1).
+- Produces: `#invite-web` anchor.
+
+- [ ] **Step 1: SVG node-graph** — single-parent **lineage tree as solid links** + **vouch edges as fainter overlaid threads**; "you" highlighted; parent→invitees traced.
+- [ ] **Step 2: Presence glows** — four-state node badge LIVE/RECENT/REACHABLE/DARK (distinct glow/animation per state).
+- [ ] **Step 3: Branch spotlight** — `:has()`/hover dims other branches, highlights the hovered one.
+- [ ] **Step 4: Caption** — note invites are public/traceable for flagging (§3.4), distinct from owner-private scores.
+- [ ] **Step 5: Render-verify** — rasterize default + a branch spotlighted + each presence state; Read. Confirm four presence states are visually distinct.
+- [ ] **Step 6: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): public invite web — lineage tree + vouch threads + presence"
+  ```
+
+---
+
+### Task 5: MyNet & permissions (f2f panel + coarse pickers)
+
+Implements spec §3.5–§3.6 (nety's coarse half; circle-level detail lives in profily).
+
+**Files:**
+- Modify: `apps/nety.html` (new `<section id="mynet">`)
+
+**Interfaces:**
+- Consumes: `.glass` styles.
+- Produces: `#mynet` anchor.
+
+- [ ] **Step 1: f2f MyNet panel** — add / in-circle toggles (checkbox/`:has()`); note f2f substrate (lower) vs custom circles (apps).
+- [ ] **Step 2: Coarse permission pickers** — per-area (content/resources/profile/scores/interaction) radio groups: **public / all-MyNet / private**, **default private** (private-first). Note named-circle rules live in profily.
+- [ ] **Step 3: MyWizy reference** — a card pointing to wizy.html (athen-ia finetuner; tunes connectivity + apps), built in Task 8.
+- [ ] **Step 4: Render-verify** — rasterize; confirm the three access axes (invite web ≠ MyNet ≠ permissions) read as visually distinct.
+- [ ] **Step 5: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): MyNet f2f panel + coarse private-first permission pickers"
+  ```
+
+---
+
+### Task 6: Verify — concentric scope rings
+
+Implements spec §4 + §4.4 (the four-facet ring visualization).
+
+**Files:**
+- Modify: `apps/nety.html` (new `<section id="verify">`)
+
+**Interfaces:**
+- Consumes: identity-ladder checkboxes; `nety.addStars` (vouches earn stars).
+- Produces: `#verify` anchor.
+
+- [ ] **Step 1: Concentric rings** — nested SVG rings Personal(core)→Local→Social→Global; each arc fills/glows by a (mock) score via `stroke-dasharray` or conic-gradient mask.
+- [ ] **Step 2: Identity ladder feeds Personal** — rungs social→Telegram→phone→biometrics as `:has()` toggles; linking a rung fills the Personal ring; **Telegram marked as the publish gate**.
+- [ ] **Step 3: Activity on Global ring** — presence pulse (LIVE/RECENT/REACHABLE/DARK) on the outer ring (Activity inside Global).
+- [ ] **Step 4: "What each tier unlocks" + publish gate** — show "Publish a static page" locked until Telegram rung linked, then unlocked.
+- [ ] **Step 5: Score-visibility note** — own rings exact; others' per-permission (illustrative).
+- [ ] **Step 6: Render-verify** — rasterize default + Telegram-linked (publish unlocks) + a presence state on Global; Read. Confirm rings read as concentric scopes.
+- [ ] **Step 7: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): Verify — concentric scope rings + identity ladder + publish gate"
+  ```
+
+---
+
+### Task 7: Stars, stages & the tier model board (+ honesty line, footer)
+
+Implements spec §5 + §2.1 (tier model) + §6 honesty.
+
+**Files:**
+- Modify: `apps/nety.html` (new `<section id="stars">` + the candid line; finalize footer/page order per §8)
+
+**Interfaces:**
+- Consumes: `nety.stars`/`nety.stage()`/`data-stage`.
+- Produces: completes the page.
+
+- [ ] **Step 1: Progress board** — current stage (`newbie`→`legend`), next CU threshold, progress chip bound to `nety.stars`.
+- [ ] **Step 2: Tier-model board (§2.1)** — render the **two ladders** side by side: **`appy` (data-software) feature ladder** — `mini` `nety`(resources) → `basic` `profily`+apps (play & store) → `normal` `sety` (data mgmt) → `advanced` `MyWizy` → `super` (open); and the **`nety` (hardware) quota ladder** (same resource types, rising quota). Mark **stage = earned ceiling, tier/mode = your choice** (a `legend` can browse `mini`; show the current ceiling + a free mode picker). Show the **`mini` open / `basic` invite-gated** boundary. CSS-pure (radio/`:has()`), driven by the same `data-stage`.
+- [ ] **Step 3: Protected-section cards** — locked → password revealed → "open" when `data-stage` reaches the card's stage; lower stages show the stage still required (nothing deducted). Note cross-layer rewards (further apps + donation directing).
+- [ ] **Step 4: "Leaving the mesh ↑" divider** + link up to `apps/index.html`.
+- [ ] **Step 5: Honesty line** — one candid `.candid`-styled line: previews vs live (spec §6 wording).
+- [ ] **Step 6: Page order** — confirm §8 order: nav→hero→demos→Access→invite-web→MyNet&perms→Verify→Stars→Unlock→Stack→phases→footer.
+- [ ] **Step 7: Render-verify** — rasterize with a stage reached (password revealed/section opened) by driving `nety.addStars`; Read. Confirm stage logic: crossing reveals exactly that stage's sections, lower stay locked, nothing deducted; tier-model board shows ceiling + free mode picker.
+- [ ] **Step 8: Commit**
+  ```bash
+  git add apps/nety.html && git commit -m "feat(nety): stars/stage board + tier model + honesty line + final order"
+  ```
+
+---
+
+### Task 8: wizy.html — new athenea finetuner-agents app
+
+Implements spec §10.3.
+
+**Files:**
+- Create: `apps/wizy.html`
+
+- [ ] **Step 1: Scaffold** — self-contained page in athenea identity (navy `#0d1430` + gold `#d4af37`, owl mark favicon), mirroring sety's structure (cards, segmented controls, `<output>` sliders + the same light slider JS sety uses).
+- [ ] **Step 2: Agents** — configure/tune the athen-ia agents (Summaries, Suggestions, Offers, Matches, Polarities, Reminders) + per-agent strength/temperature sliders.
+- [ ] **Step 3: Framing** — note Wizy (the app, general) vs MyWizy (your instance, tunes connectivity + apps); MyWizy depth deferred. Links: from sety's Wizard + nety; back-link to nety.
+- [ ] **Step 4: Render-verify** — rasterize; confirm athenea identity distinct from nety/sety.
+- [ ] **Step 5: Commit**
+  ```bash
+  git add apps/wizy.html && git commit -m "feat(wizy): new athenea athen-ia finetuner-agents app"
+  ```
+
+---
+
+### Task 9: sety.html improvements
+
+Implements spec §10.2.
+
+**Files:**
+- Modify: `apps/puzzy/sety.html`
+
+- [ ] **Step 1: Back-link** — ecosystem back-link to nety + small "account" breadcrumb.
+- [ ] **Step 2: athen-ia Wizard** — brand the existing "Wizard" section as **athen-ia finetuner agents**, make it prominent (named agents, on/off + tuning, athenea accent), link out to `wizy.html`.
+- [ ] **Step 3: Slider thumbs** — bump range-slider thumbs to ~24–28px touch targets.
+- [ ] **Step 4: Shape glyphs** — add tiny glyphs to the shape selector (List/Rainbow/Circle/Sphere3D/Torus4D).
+- [ ] **Step 5: Render-verify + commit**
+  ```bash
+  git add apps/puzzy/sety.html && git commit -m "feat(sety): athen-ia Wizard + wizy link + slider/glyph polish"
+  ```
+
+---
+
+### Task 10: profily.html improvements
+
+Implements spec §10.1.
+
+**Files:**
+- Modify: `apps/profily.html`
+
+- [ ] **Step 1: Extended-profile framing + back-link** — frame as the *extended* profile vs nety's basic card; add "← mesh" ecosystem link.
+- [ ] **Step 2: Manage-identity card** — group the scattered SuperUser badge + sub-avatar/identity controls into one card.
+- [ ] **Step 3: Actionable Trusts** — "add a trust" affordance + note more trusts raise tier/earn stars/promote (§4–§5).
+- [ ] **Step 4: Stars/tier reflection** — small stars-balance/tier element so the two layers feel continuous.
+- [ ] **Step 5: Custom MyNet + circles + permissions** — surface the custom MyNet layer: connections, named circles (rings + tags), circle-level permissions (the fine controls nety delegates up).
+- [ ] **Step 6: MyWizy entry + Apps grid** — MyWizy entry point linking to wizy; tighten the "Apps played" grid to rhyme with nety's node-cards.
+- [ ] **Step 7: Render-verify + commit**
+  ```bash
+  git add apps/profily.html && git commit -m "feat(profily): extended-profile framing, MyNet/circles, Trusts, MyWizy"
+  ```
+
+---
+
+### Task 11: Cross-link pass + push
+
+**Files:**
+- Modify: any of the four files for link fixes.
+
+- [ ] **Step 1: Resolve all cross-links** — nety ↔ profily ↔ sety ↔ wizy ↔ apps/index. Run: `grep -nE 'href="(\./|\.\./)' apps/nety.html apps/wizy.html apps/puzzy/sety.html apps/profily.html` and eyeball each target exists.
+- [ ] **Step 2: Final invariant checks** — `grep -c '<script' apps/nety.html` == 1; reduced-motion block present; `.vh` inputs intact.
+- [ ] **Step 3: Push to Gitea**
+  ```bash
+  git push http://marc:<token>@localhost:3000/marc/flove main
+  ```
+  (token from `/home/kdeneon/token-gitea.md`; message already in commits.)
+
+---
+
+## Deferred to a future plan (NOT this round)
+
+The entire **backend realization** — flovenet-native implementation (4 derived facets, native circles via OR-Set CRDT + forward-secret group keys, native invite/lineage module, presence, follows-as-mirror, native AI) and the **oasis add-on** (SSB federation bridge, "42" pluggable engine) — is specified in `…-vs-flovenet-oasis-comparison.md` and becomes its own plan. The MyWizy inference-engine details (local vs shared-mesh, pluggable backend) are explicitly further-spec-later.
+
+## Out of scope (per spec §13)
+
+Real auth/keypair crypto/backend/persisted stars (all mock, reset on reload); persisting unlock state into `apps/index.html`; finalizing trust-score weights; abuse adjudication flow; new fonts/hues on nety; profily/sety internal refactors beyond the listed items.

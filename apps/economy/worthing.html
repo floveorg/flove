@@ -1087,6 +1087,18 @@
   .btn:focus-visible{ outline: 2px solid #000; outline-offset: 3px }
   .btn:disabled{ opacity:.45; cursor:not-allowed; pointer-events:none }
 
+  /* F0 (§13.9): Update + Reset affordances */
+  .update-wrap, .reset-wrap{ display:inline-flex; align-items:center }
+  .stale-dot{
+    display:inline-block; width:.5rem; height:.5rem; margin-left:.1rem;
+    border-radius:50%; background:#c0392b; box-shadow:0 0 0 2px rgba(0,0,0,.25);
+    vertical-align:middle;
+  }
+  .stale-dot[hidden]{ display:none }
+  .update-hint, .reset-hint{
+    font:400 .62rem/1.2 system-ui, sans-serif; opacity:.7; margin-left:.3rem; max-width:11rem;
+  }
+
   /* Clearly highlighted when a button is "checked":
      - Views / Save / Publish while their dropdown is open (aria-expanded="true")
      - Share gets a temporary .checked class on click
@@ -1868,7 +1880,14 @@
             </div>
             <button class="btn" type="button" id="insightBtn"><span class="en" lang="en">💡 Insights</span><span class="es" lang="es">💡 Ideas</span></button>
             <button class="btn" type="button" id="creativeBtn"><span class="en" lang="en">✨ Magic</span><span class="es" lang="es">✨ Magia</span></button>
-            <button class="btn" type="button" id="copyBtn"><span class="en" lang="en">📋 Copy</span><span class="es" lang="es">📋 Copiar</span></button>
+            <button class="btn" type="button" id="copyBtn" data-flove-copy="phrase"><span class="en" lang="en">📋 Copy</span><span class="es" lang="es">📋 Copiar</span></button>
+            <!-- F0 (§13.9): Update re-hydrates from storage; Reset clears this app's own keys -->
+            <span class="update-wrap">
+              <button class="btn ghost update-btn" type="button" data-flove-update><span class="en" lang="en">⟳ Update</span><span class="es" lang="es">⟳ Actualizar</span> <span class="stale-dot" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
+            </span>
+            <span class="reset-wrap">
+              <button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button>
+            </span>
           </div>
           <div class="action-row">
             <div class="btn-popup-wrap">
@@ -1883,7 +1902,7 @@
               </div>
               <button class="btn" type="button" id="saveBtn" aria-haspopup="true" aria-expanded="false"><span class="en" lang="en">💾 Save</span><span class="es" lang="es">💾 Guardar</span></button>
               <div class="popup-menu right" id="saveBelow" hidden role="menu" aria-label="App" data-aria-en="App" data-aria-es="App">
-                <button class="btn" type="button" id="downloadAppBtn"><span class="en" lang="en">📦 Download App</span><span class="es" lang="es">📦 Descargar app</span></button>
+                <button class="btn" type="button" id="downloadAppBtn" data-flove-share="apps"><span class="en" lang="en">📦 Download App</span><span class="es" lang="es">📦 Descargar app</span></button>
               </div>
             </div>
             <button class="btn" type="button" id="shareBtn" data-flove-share="mobile"><span class="en" lang="en">🔗 Share</span><span class="es" lang="es">🔗 Compartir</span></button>
@@ -1959,13 +1978,19 @@
              copied:'📋 Copied to clipboard', copyFail:'Copy unavailable in this context',
              saved:'💾 Saved ', shareCopied:'🔗 Share text copied', shareFail:'Share unavailable here',
              publishedAs:'📡 Published as ', sentTo:'🚀 Sent to ', vizView:v=>'✨ '+v+' view',
-             notePh:n=>'Note for '+n+'…', addNote:n=>'Add note for '+n, del:n=>'Delete '+n },
+             notePh:n=>'Note for '+n+'…', addNote:n=>'Add note for '+n, del:n=>'Delete '+n,
+             updated:'⟳ Refreshed from saved', resetDone:'↺ Cleared — fresh start',
+             resetConfirm:'Clear everything and start a new play? This cannot be undone.',
+             quotaWarn:'⚠ Storage full — export your summary to keep it' },
         es:{ untitled:'Sin título', nothing:'(aún sin puntuar)', empty:'aún nada....',
              everything:'⌬ Todo desplegado', menuSoon:'☰ Menú muy pronto',
              copied:'📋 Copiado al portapapeles', copyFail:'Copia no disponible aquí',
              saved:'💾 Guardado ', shareCopied:'🔗 Texto para compartir copiado', shareFail:'Compartir no disponible aquí',
              publishedAs:'📡 Publicado como ', sentTo:'🚀 Enviado a ', vizView:v=>'✨ vista '+v,
-             notePh:n=>'Nota para '+n+'…', addNote:n=>'Añadir nota para '+n, del:n=>'Eliminar '+n }
+             notePh:n=>'Nota para '+n+'…', addNote:n=>'Añadir nota para '+n, del:n=>'Eliminar '+n,
+             updated:'⟳ Recargado desde lo guardado', resetDone:'↺ Borrado — empieza de nuevo',
+             resetConfirm:'¿Borrar todo y empezar de nuevo? Esto no se puede deshacer.',
+             quotaWarn:'⚠ Almacenamiento lleno — exporta tu resumen para conservarlo' }
       };
       const curLangCode = () => { const r = document.querySelector('input[name="lang"]:checked'); return r ? r.id.replace('lang-','') : 'en'; };
       const labelsNow = () => LABELS_I18N[curLangCode()] || LABELS_I18N.en;
@@ -2389,15 +2414,8 @@
 
       // Copy summary to clipboard
       document.getElementById('copyBtn')?.addEventListener('click', async () => {
-        const labels = labelsNow();
-        const title = nameInput.value.trim() || t().untitled;
-        let txt = 'Worthing — ' + title + '\n';
-        GROUPS.forEach(g => {
-          const inp = document.querySelector('input[name="'+g+'"]:checked');
-          const v = inp ? inp.value : '—';
-          const note = document.querySelector('.sub-card[data-name="'+g+'"] .note input')?.value || '';
-          txt += '· ' + labels[g] + ': ' + v + (note ? '  — ' + note : '') + '\n';
-        });
+        // single source: the same text the TXT export builds (parity §13.12)
+        const txt = asTxt();
         try {
           await navigator.clipboard.writeText(txt);
           showToast(t().copied);
@@ -2418,13 +2436,28 @@
         saveBtn.setAttribute('aria-expanded', String(willOpen));
       });
 
+      // Single summary-model (§13.12): the ONE source for phrase, Views, and all exports.
+      // `items` is the canonical ordered list (standard criteria + custom categories);
+      // `scores`/`notes` are kept as keyed maps for the existing export shapes. Filled
+      // items only — empty fields are omitted so every format stays in parity.
       function collectData(){
-        const data = { name: nameInput.value.trim(), scores: {}, notes: {} };
+        const L = labelsNow();
+        const data = { name: nameInput.value.trim(), scores: {}, notes: {}, items: [] };
         GROUPS.forEach(g => {
           const inp = document.querySelector('input[name="'+g+'"]:checked');
-          if (inp) data.scores[g] = +inp.value;
-          const note = document.querySelector('.sub-card[data-name="'+g+'"] .note input')?.value;
+          const score = inp ? +inp.value : null;
+          const note = document.querySelector('.sub-card[data-name="'+g+'"] .note input')?.value.trim() || '';
+          if (score != null) data.scores[g] = score;
           if (note) data.notes[g] = note;
+          if (score != null || note) data.items.push({ key:g, label:L[g], score, note });
+        });
+        // Custom categories carry their own label (user-typed) and live note input
+        customCats.forEach(c => {
+          const score = valueOfKey(c.key);
+          const note = c.card?.querySelector('.note input')?.value.trim() || '';
+          if (score != null) data.scores[c.key] = score;
+          if (note) data.notes[c.key] = note;
+          if (score != null || note) data.items.push({ key:c.key, label:c.name, score, note });
         });
         return data;
       }
@@ -2439,27 +2472,25 @@
       }
       function asTxt(){
         const d = collectData();
-        const L = labelsNow();
         let s = 'Worthing — ' + (d.name || t().untitled) + '\n';
-        GROUPS.forEach(g => {
-          const v = d.scores[g] != null ? d.scores[g] : '—';
-          const note = d.notes[g] ? '  — ' + d.notes[g] : '';
-          s += '· ' + L[g] + ': ' + v + note + '\n';
+        d.items.forEach(it => {
+          const v = it.score != null ? it.score : '—';
+          const note = it.note ? '  — ' + it.note : '';
+          s += '· ' + it.label + ': ' + v + note + '\n';
         });
         return s;
       }
       function asMd(){
         const d = collectData();
-        const L = labelsNow();
         // keep a stray pipe or newline in a name/note from breaking the table
         const oneLine = x => String(x).replace(/\r?\n+/g, ' ');
         const cell = x => oneLine(x).replace(/\|/g, '\\|');
         const head = curLangCode() === 'es' ? '| Criterio | Nota | Comentario |' : '| Criterion | Score | Note |';
         let s = '# Worthing — ' + oneLine(d.name || t().untitled) + '\n\n';
         s += head + '\n|---|---|---|\n';
-        GROUPS.forEach(g => {
-          const v = d.scores[g] != null ? d.scores[g] : '—';
-          s += '| ' + cell(L[g]) + ' | ' + v + ' | ' + cell(d.notes[g] || '') + ' |\n';
+        d.items.forEach(it => {
+          const v = it.score != null ? it.score : '—';
+          s += '| ' + cell(it.label) + ' | ' + v + ' | ' + cell(it.note || '') + ' |\n';
         });
         return s;
       }
@@ -2472,43 +2503,51 @@
         const nm = safeName(collectData().name || '');
         return nm ? 'worthing-' + nm + '-' + summaryWord() : 'worthing-' + summaryWord();
       }
+      // The phrase — single source for Share text, the HTML export, and the JPG.
+      // Same filled item set as every other format (parity §13.12).
+      function buildPhrase(){
+        const d = collectData();
+        const parts = d.items.filter(it => it.score != null).map(it => it.label[0] + it.score);
+        return (d.name || t().untitled) + ' · ' + (parts.length ? parts.join(' ') : t().nothing);
+      }
       // XML — well-formed, every value escaped; element/attr names stay English
       function asXml(){
-        const d = collectData(); const L = labelsNow();
+        const d = collectData();
         let s = '<?xml version="1.0" encoding="UTF-8"?>\n<worthing name="' + escAttr(d.name || '') + '">\n';
-        GROUPS.forEach(g => {
-          const v = d.scores[g];
-          s += '  <criterion key="' + escAttr(g) + '" label="' + escAttr(L[g]) + '"'
-             + (v != null ? ' score="' + v + '"' : '') + '>' + esc(d.notes[g] || '') + '</criterion>\n';
+        d.items.forEach(it => {
+          s += '  <criterion key="' + escAttr(it.key) + '" label="' + escAttr(it.label) + '"'
+             + (it.score != null ? ' score="' + it.score + '"' : '') + '>' + esc(it.note || '') + '</criterion>\n';
         });
         return s + '</worthing>\n';
       }
       // CSV — RFC-4180 quoting; headers stay English
       function asCsv(){
-        const d = collectData(); const L = labelsNow();
-        const q = v => { const x = String(v); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+        const d = collectData();
+        const q = v => { const x = String(v); return /[",\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
         const lines = ['key,criterion,score,note'];
-        GROUPS.forEach(g => lines.push([g, L[g], d.scores[g] != null ? d.scores[g] : '', d.notes[g] || ''].map(q).join(',')));
-        return lines.join('\n');
+        d.items.forEach(it => lines.push([it.key, it.label, it.score != null ? it.score : '', it.note || ''].map(q).join(',')));
+        return lines.join('\r\n');
       }
       // HTML — standalone doc, inline style, every user value escaped (no injection)
       function asHtml(){
-        const d = collectData(); const L = labelsNow();
+        const d = collectData();
         const es = curLangCode() === 'es';
-        const rows = GROUPS.map(g => '<tr><td>' + esc(L[g]) + '</td><td>'
-          + (d.scores[g] != null ? d.scores[g] : '—') + '</td><td>' + esc(d.notes[g] || '') + '</td></tr>').join('');
+        const rows = d.items.map(it => '<tr><td>' + esc(it.label) + '</td><td>'
+          + (it.score != null ? it.score : '—') + '</td><td>' + esc(it.note || '') + '</td></tr>').join('');
         return '<!doctype html><html lang="' + curLangCode() + '"><head><meta charset="utf-8">'
           + '<meta name="viewport" content="width=device-width,initial-scale=1">'
           + '<title>' + esc(d.name || 'Worthing') + ' · ' + summaryWord() + '</title>'
           + '<style>body{font:15px/1.6 system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:1rem}'
           + 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:.4rem .6rem;text-align:left}</style></head>'
-          + '<body><h1>' + esc(d.name || 'Worthing') + '</h1><table><thead><tr><th>'
+          + '<body><h1>' + esc(d.name || 'Worthing') + '</h1>'
+          + '<p class="phrase">' + esc(buildPhrase()) + '</p>'
+          + '<table><thead><tr><th>'
           + (es ? 'Criterio' : 'Criterion') + '</th><th>' + (es ? 'Nota' : 'Score') + '</th><th>'
           + (es ? 'Comentario' : 'Note') + '</th></tr></thead><tbody>' + rows + '</tbody></table></body></html>';
       }
       // JPG — visual-only canvas, ≥1080px, visible … when it overflows (never silent)
       function asJpg(){
-        const d = collectData(); const L = labelsNow();
+        const d = collectData();
         const W = 1080, H = 720, canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
@@ -2516,12 +2555,13 @@
         ctx.fillStyle = '#f7d24a'; ctx.font = '600 40px Georgia, serif';
         ctx.fillText(('Worthing — ' + (d.name || '')).slice(0, 40), 48, 72);
         ctx.fillStyle = '#fff'; ctx.font = '22px system-ui, sans-serif';
-        const lines = GROUPS.map(g => {
-          const v = d.scores[g] != null ? d.scores[g] : '—';
-          return L[g] + ': ' + v + (d.notes[g] ? '  — ' + d.notes[g] : '');
+        const clip = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+        const lines = d.items.map(it => {
+          const v = it.score != null ? it.score : '—';
+          return it.label + ': ' + v + (it.note ? '  — ' + it.note : '');
         });
         const MAX = 18;
-        lines.slice(0, MAX).forEach((ln, i) => ctx.fillText(String(ln).slice(0, 72), 48, 140 + i * 30));
+        lines.slice(0, MAX).forEach((ln, i) => ctx.fillText(clip(ln, 72), 48, 140 + i * 30));
         if (lines.length > MAX) ctx.fillText('…', 48, 140 + MAX * 30);
         canvas.toBlob(b => {
           if (!b) { showToast('JPG ✗'); return; }
@@ -2536,7 +2576,7 @@
       document.querySelectorAll('.fmt-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const fmt = btn.dataset.floveSave, base = fileBase();
-          if      (fmt === 'json') downloadBlob(JSON.stringify(collectData(), null, 2), 'application/json', base + '.json');
+          if      (fmt === 'json') { const d = collectData(); downloadBlob(JSON.stringify({ name:d.name, items:d.items }, null, 2), 'application/json', base + '.json'); }
           else if (fmt === 'txt')  downloadBlob(asTxt(),  'text/plain',      base + '.txt');
           else if (fmt === 'md')   downloadBlob(asMd(),   'text/markdown',   base + '.md');
           else if (fmt === 'xml')  downloadBlob(asXml(),  'application/xml', base + '.xml');
@@ -2550,13 +2590,7 @@
       // Share — copy a short summary to clipboard and highlight briefly
       const shareBtn = document.getElementById('shareBtn');
       shareBtn?.addEventListener('click', async () => {
-        const d = collectData();
-        const L = labelsNow();
-        let s = (d.name || t().untitled) + ' · ';
-        const parts = GROUPS
-          .map(g => d.scores[g] != null ? L[g][0] + d.scores[g] : null)
-          .filter(Boolean);
-        s += parts.length ? parts.join(' ') : t().nothing;
+        const s = buildPhrase();
         // §13.12 share ladder: Web Share + standalone HTML (guarded) → text → clipboard
         const title = 'flove · worthing';
         try {
@@ -2684,8 +2718,8 @@
       });
 
       let customCatCount = 0;
-      function addNewCategory(){
-        const name = addCatInput.value.trim();
+      function addNewCategory(presetName){
+        const name = (presetName != null ? String(presetName) : addCatInput.value).trim();
         if (!name) { addCatInput.focus(); return }
         customCatCount++;
         const key = 'custom' + customCatCount;
@@ -2847,13 +2881,15 @@
           }
           updateAddCatMaxState();
           refresh();
+          if (typeof onEdit === 'function') onEdit();
         };
 
         addCatInput.value = '';
         addCatInput.focus();
+        return entry;
       }
 
-      addCatSave?.addEventListener('click', addNewCategory);
+      addCatSave?.addEventListener('click', () => addNewCategory());
       addCatInput?.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); addNewCategory() }
         else if (e.key === 'Escape') {
@@ -2862,10 +2898,147 @@
         }
       });
 
+      // ────────────────────────────────────────────────────────────────
+      // F0 (backend_plan §10.3a + §13.9): namespaced persistence + Update/Reset
+      // ────────────────────────────────────────────────────────────────
+      const SCHEMA = 1;
+      const KEY      = 'worthing.v' + SCHEMA;       // this app's ONLY data key
+      const KEY_VER  = 'worthing.schema';           // schema-version sentinel
+      const OWN_KEYS = [KEY, KEY_VER];              // never touch keys we don't own
+
+      const store = {
+        // best-effort durable storage, asked once on first interaction
+        _persisted: false,
+        persist(){
+          if (this._persisted) return; this._persisted = true;
+          try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+        },
+        save(){
+          try {
+            const d = collectData();           // single summary-model → one snapshot
+            localStorage.setItem(KEY_VER, String(SCHEMA));
+            localStorage.setItem(KEY, JSON.stringify({ name: d.name, items: d.items }));
+          } catch(e){
+            if (e && (e.name === 'QuotaExceededError' || e.code === 22)){
+              showToast(t().quotaWarn);
+            }
+          }
+        },
+        read(){
+          let raw = null;
+          try { raw = localStorage.getItem(KEY); } catch(e){ return null; }
+          if (!raw) return null;
+          try {
+            const o = JSON.parse(raw);                          // defensive parse
+            if (!o || typeof o !== 'object') return null;
+            if (!Array.isArray(o.items)) o.items = [];
+            return o;
+          } catch(e){ return null; }                            // corrupt → ignore
+        },
+        clear(){ OWN_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e){} }); }
+      };
+
+      // Re-build the live DOM from a saved snapshot (the "hydrate/restore" fn).
+      function hydrate(snap){
+        if (!snap) return;
+        hydrating = true;
+        if (typeof snap.name === 'string') nameInput.value = snap.name;
+        (snap.items || []).forEach(it => {
+          if (!it || typeof it.key !== 'string') return;
+          if (GROUPS.includes(it.key)){
+            if (it.score != null){
+              const r = document.querySelector('input[name="'+it.key+'"][value="'+(+it.score)+'"]');
+              if (r){ r.checked = true; }
+            }
+            if (it.note){
+              const card = document.querySelector('.sub-card[data-name="'+it.key+'"]');
+              const ni = card?.querySelector('.note input');
+              if (ni){ ni.value = it.note; card.classList.add('note-open'); }
+            }
+          } else {
+            // custom category — recreate it, then set its score + note
+            const entry = addNewCategory(it.label || it.key);
+            if (entry){
+              if (it.score != null){
+                const r = document.querySelector('input[name="'+entry.key+'"][value="'+(+it.score)+'"]');
+                if (r) r.checked = true;
+              }
+              if (it.note){
+                const ni = entry.card?.querySelector('.note input');
+                if (ni){ ni.value = it.note; entry.card.classList.add('note-open'); }
+              }
+            }
+          }
+        });
+        hydrating = false;
+        refresh();
+      }
+
+      // Stale dot: lit when an already-persisted play is edited in-session;
+      // cleared by Update (re-sync) or Reset. Hooked to the edit/save path, no timer.
+      const staleDots = () => document.querySelectorAll('.stale-dot');
+      function markStale(){ staleDots().forEach(d => d.hidden = false); }
+      function clearStale(){ staleDots().forEach(d => d.hidden = true); }
+
+      // Every score/name/note/add/delete change persists + marks stale (once loaded)
+      let loaded = false, hydrating = false;
+      function onEdit(){
+        store.persist();
+        if (loaded && !hydrating){ markStale(); store.save(); }
+      }
+      // radios + note inputs anywhere in the app (built-in sub-cards live in .board,
+      // custom cards in .add-cat-section — delegate at <main> so both are covered,
+      // including cards added later). The lang radios live in <header>, so they're
+      // outside <main> and won't trip this.
+      const editRoot = document.querySelector('main') || document.body;
+      editRoot.addEventListener('change', e => {
+        if (e.target.matches('input[type=radio]') && e.target.name !== 'lang') onEdit();
+      });
+      editRoot.addEventListener('input', e => {
+        if (e.target.matches('.note input')) onEdit();
+      });
+      nameInput.addEventListener('input', onEdit);
+
+      // UPDATE — re-run hydrate from storage + re-render, then drop the stale dot
+      document.querySelector('[data-flove-update]')?.addEventListener('click', () => {
+        const snap = store.read();
+        if (snap){
+          hydrating = true;   // suppress save-thrash while we tear down + rebuild
+          // wipe current custom cats, reset standard radios, then rehydrate cleanly
+          customCats.slice().forEach(c => c.card.querySelector('.del')?.click());
+          document.querySelectorAll('.board input[type=radio]:checked').forEach(r => r.checked = false);
+          document.querySelectorAll('.sub-card .note input').forEach(i => i.value = '');
+          hydrate(snap);      // hydrate() sets hydrating=false on the way out
+        }
+        clearStale();
+        showToast(t().updated);
+      });
+
+      // RESET — destructive, confirm()-guarded, bilingual; clears ONLY our own keys
+      document.querySelector('[data-flove-reset]')?.addEventListener('click', () => {
+        if (!confirm(t().resetConfirm)) return;
+        hydrating = true;              // suppress save-thrash during teardown
+        customCats.slice().forEach(c => c.card.querySelector('.del')?.click());
+        document.querySelectorAll('.board input[type=radio]:checked').forEach(r => r.checked = false);
+        document.querySelectorAll('.sub-card .note input').forEach(i => { i.value = ''; });
+        document.querySelectorAll('.sub-card.note-open, .added-cat.note-open').forEach(n => n.classList.remove('note-open'));
+        nameInput.value = '';
+        hydrating = false;
+        store.clear();                 // NEVER localStorage.clear() — origin is shared
+        clearStale();
+        refresh();
+        // back to the first step (top of the board)
+        document.querySelector('.board')?.scrollIntoView({ behavior:'smooth', block:'start' });
+        showToast(t().resetDone);
+      });
+
       // Re-localize the JS-built bits (resume echo, charts) when language flips
       window.__worthRelabel = refresh;
 
-      refresh();
+      // boot: hydrate from storage if present, then arm edit listeners
+      const _boot = store.read();
+      if (_boot) hydrate(_boot); else refresh();
+      loaded = true;
     })();
   </script>
 

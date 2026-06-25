@@ -1295,6 +1295,13 @@
     .btn.ghost { background: transparent; }
     .btn.ghost:hover { background: var(--app-accent-soft); }
 
+    /* ✦ Save / Export menu (§13.12) — collapsible, flows below the action buttons */
+    .save-menu { margin-top: 0.6rem; }
+    .save-menu > summary { list-style: none; display: inline-flex; }
+    .save-menu > summary::-webkit-details-marker { display: none; }
+    .save-menu__list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+    .save-menu .save-fmt { font-size: 0.85rem; padding: 0.4rem 0.85rem; }
+
     /* ✦ F0 Update / Reset affordances (§10.3a / §13.9) */
     .update-btn { position: relative; }
     .stale-dot {
@@ -1614,6 +1621,18 @@
       <button class="btn ghost update-btn" type="button" data-flove-update><span class="en" lang="en">Update</span><span class="es" lang="es">Actualizar</span> <span class="stale-dot" hidden role="img" aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
       <span class="reset-wrap"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button><small class="reset-hint"><span class="en" lang="en">Clear all and start new play</span><span class="es" lang="es">Borra todo y empieza de nuevo</span></small></span>
     </div>
+    <details class="save-menu">
+      <summary class="btn"><i class="fas fa-download"></i> <span class="en" lang="en">Save / Export</span><span class="es" lang="es">Guardar / Exportar</span></summary>
+      <div class="save-menu__list">
+        <button type="button" class="btn save-fmt" data-fmt="md">Markdown</button>
+        <button type="button" class="btn save-fmt" data-fmt="json">JSON</button>
+        <button type="button" class="btn save-fmt" data-fmt="xml">XML</button>
+        <button type="button" class="btn save-fmt" data-fmt="html">HTML</button>
+        <button type="button" class="btn save-fmt" data-fmt="csv">CSV</button>
+        <button type="button" class="btn save-fmt" data-fmt="jpg">JPG</button>
+        <button type="button" class="btn save-fmt" data-fmt="share"><i class="fas fa-share-alt"></i> <span class="en" lang="en">Share to device</span><span class="es" lang="es">Compartir al dispositivo</span></button>
+      </div>
+    </details>
   </div>
 
 </div> <!-- end wrap -->
@@ -1868,6 +1887,121 @@
       const b = activeText(phraseSummaryEl);
       return b ? `${a}\n\n${b}` : a;
     }
+
+    // ===== Export surface (§13.12) — one model, every format serializes from it =====
+    const escAttr = s => esc(s).replace(/"/g, '&quot;');
+    const mdEsc   = s => String(s == null ? '' : s).replace(/([\\`*_{}\[\]()#+\-!|])/g, '\\$1');
+    const csvQ    = v => { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    function downloadBlob(body, mime, filename){
+      const blob = new Blob([body], { type: mime });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    // The single export model: friend + per-category selections (bilingual labels +
+    // free-text nuance) + the derived role-affinity percentages the bars draw.
+    function getModel(){
+      const sections = GROUPS.map(group => ({
+        group,
+        items:  getSelectedByGroup(group).map(getLabelPair),   // [{en,es}]
+        nuance: getExtraInfo(group),
+      })).filter(s => s.items.length || s.nuance);
+      const raters = rows.map(row => ({
+        key:  row.dataset.col,
+        role: colToRole[row.dataset.col] || { en: row.dataset.col, es: row.dataset.col },
+        pct:  parseInt((row.querySelector('.pct').textContent || '0'), 10) || 0,
+      }));
+      return { app: 'myfamily', version: 1, friend: friendNameInput.value.trim(),
+               points: activeText(grandTotalSpan), sections, raters };
+    }
+    // Flat key/value list shared by csv / md / xml — same model the JSON serializes
+    // (active-language label text), so every format carries the SAME items (parity).
+    function flatFields(){
+      const m = getModel(), li = curLang(), out = [];
+      out.push(['friend', m.friend || '']);
+      m.sections.forEach(s => {
+        const items = s.items.map(p => p[li] || p.en).join('; ');
+        out.push([s.group, items + (s.nuance ? ' — ' + s.nuance : '')]);
+      });
+      m.raters.forEach(r => out.push(['affinity:' + (r.role[li] || r.role.en), r.pct + '%']));
+      return out;
+    }
+    const buildJSON = () => JSON.stringify(getModel(), null, 2);
+    function buildCSV(){
+      const rows2 = [['field', 'value']].concat(flatFields());
+      return rows2.map(r => r.map(csvQ).join(',')).join('\r\n') + '\r\n';
+    }
+    function buildXML(){
+      let out = '<?xml version="1.0" encoding="UTF-8"?>\n<myfamily>\n';
+      out += '  <phrase>' + esc(getFullPhraseText().replace(/\s+/g, ' ').trim()) + '</phrase>\n';
+      out += flatFields().map(([k, v]) => `  <field name="${escAttr(k)}">${esc(v)}</field>`).join('\n');
+      out += '\n</myfamily>\n';
+      return out;
+    }
+    function buildMarkdown(){
+      let out = `# MyFamily\n\n${getFullPhraseText().replace(/\s+/g, ' ').trim()}\n\n`;
+      out += `## ${tx({ en: 'Details', es: 'Detalles' })}\n\n| ${tx({ en: 'field', es: 'campo' })} | ${tx({ en: 'value', es: 'valor' })} |\n| --- | --- |\n`;
+      out += flatFields().map(([k, v]) => `| ${mdEsc(k)} | ${mdEsc(v)} |`).join('\n') + '\n';
+      return out;
+    }
+    function buildHTML(){
+      const rowsH = flatFields().map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('');
+      return `<!doctype html><html lang="${curLang()}"><head><meta charset="utf-8">`
+        + `<meta name="viewport" content="width=device-width,initial-scale=1"><title>MyFamily</title>`
+        + `<style>body{font:15px/1.6 system-ui,sans-serif;max-width:680px;margin:2rem auto;padding:1rem;color:#163}`
+        + `h1{font-family:Georgia,serif;color:#34b36b}table{border-collapse:collapse;width:100%}`
+        + `th,td{border:1px solid #d6ece0;padding:.3rem .55rem;text-align:left}th{width:34%;color:#2a8a5e}</style></head>`
+        + `<body><h1>MyFamily</h1><p>${esc(getFullPhraseText().replace(/\s+/g, ' ').trim())}</p><table>${rowsH}</table></body></html>`;
+    }
+    function renderJPG(cb){
+      const W = 720, H = 560, canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f1faf5'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#34b36b'; ctx.font = '700 32px Georgia, serif';
+      ctx.fillText('MyFamily', 24, 50);
+      ctx.fillStyle = '#163'; ctx.font = '500 15px system-ui';
+      const lines = [getFullPhraseText().replace(/\s+/g, ' ').trim()].concat(flatFields().map(([k, v]) => `${k}: ${v}`));
+      const maxRows = Math.floor((H - 110) / 24);
+      lines.slice(0, maxRows).forEach((ln, i) => ctx.fillText(ln.slice(0, 74), 24, 90 + i * 24));
+      if (lines.length > maxRows){
+        ctx.fillStyle = '#2a8a5e';
+        ctx.fillText(tx({ en: `… +${lines.length - maxRows} more`, es: `… +${lines.length - maxRows} más` }), 24, 90 + maxRows * 24);
+      }
+      ctx.fillStyle = 'rgba(52,179,107,.5)'; ctx.font = 'italic 12px system-ui';
+      ctx.fillText('flove · myfamily', 24, H - 20);
+      canvas.toBlob(cb, 'image/jpeg', 0.92);
+    }
+    // Web Share: summary text + standalone HTML file, guarded by canShare({files}).
+    async function shareToDevice(){
+      const text  = getFullPhraseText() + '\n\n' + tx({ en: '📊 Bond profile:', es: '📊 Perfil del vínculo:' }) + '\n' + getPercentagesSummary();
+      const title = tx({ en: 'MyFamily · Your friend bond', es: 'MyFamily · Tu vínculo' });
+      if (navigator.share){
+        try {
+          const file = new File([buildHTML()], 'myfamily.html', { type: 'text/html' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ title, text, files: [file] });
+          else await navigator.share({ title, text, url: location.href });
+          return;
+        } catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      navigator.clipboard?.writeText(text + '\n\n' + location.href).catch(() => {});
+    }
+    // Wire the Save menu (the format buttons) + route share-to-device.
+    document.querySelectorAll('.save-fmt').forEach(b => b.addEventListener('click', () => {
+      const fmt = b.dataset.fmt;
+      if (fmt === 'share') { shareToDevice(); return; }
+      if (fmt === 'jpg')   { renderJPG(blob => { if (blob) downloadBlob(blob, 'image/jpeg', 'myfamily.jpg'); }); return; }
+      const map = {
+        md:   [buildMarkdown(), 'text/markdown'],
+        json: [buildJSON(),     'application/json'],
+        xml:  [buildXML(),      'application/xml'],
+        html: [buildHTML(),     'text/html'],
+        csv:  [buildCSV(),      'text/csv'],
+      }[fmt];
+      if (map) downloadBlob(map[0], map[1] + ';charset=utf-8', 'myfamily.' + fmt);
+    }));
 
     // Attach listeners
     allChecks.forEach(r => r.addEventListener('change', recalcAll));

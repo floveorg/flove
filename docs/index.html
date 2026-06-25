@@ -2605,8 +2605,8 @@
     .search-go:active { transform: scale(.96); }
     .menu-divider { height: 1px; margin: 5px 4px; background: var(--whole-line); list-style: none; }
     .menu-section-title { padding: 6px 10px 3px; font-size: 0.62rem; letter-spacing: 1.6px; text-transform: uppercase; color: var(--whole-mut); font-weight: 700; list-style: none; }
-    .menu-list li > a, .menu-list li > label[for] { display: block; font: inherit; font-size: 0.85rem; padding: 7px 11px; border-radius: 8px; color: var(--whole-ink); text-decoration: none; cursor: pointer; transition: background .15s, color .15s; }
-    .menu-list li > a:hover, .menu-list li > label[for]:hover { background: var(--app-accent-soft); color: var(--whole-ink); }
+    .menu-list li > a, .menu-list li > label[for], .menu-list li > button { display: block; width: 100%; text-align: left; background: transparent; border: 0; font: inherit; font-size: 0.85rem; padding: 7px 11px; border-radius: 8px; color: var(--whole-ink); text-decoration: none; cursor: pointer; transition: background .15s, color .15s; }
+    .menu-list li > a:hover, .menu-list li > label[for]:hover, .menu-list li > button:hover { background: var(--app-accent-soft); color: var(--whole-ink); }
     .menu-list li.is-hidden { display: none; }
     .advmenu-backdrop, .about-backdrop { position: fixed; inset: 0; z-index: 95; display: none; cursor: default; }
     body:has(#advmenu-state:checked) .advmenu-backdrop { display: block; }
@@ -2863,6 +2863,7 @@
       <li class="menu-divider" role="separator" aria-hidden="true"></li>
       <li class="menu-section-title"><span class="en" lang="en">Main</span><span class="es" lang="es">Principal</span></li>
       <li class="m-item"><label for="about-docs-state" tabindex="0"><span class="en" lang="en">About Docs</span><span class="es" lang="es">Acerca de Docs</span></label></li>
+      <li class="m-item"><button type="button" id="dl-table" data-tip="Download the page contents as structured JSON" data-tip-en="Download the page contents as structured JSON" data-tip-es="Descargar los contenidos de la página como JSON estructurado"><span class="en" lang="en">Download table</span><span class="es" lang="es">Descargar tabla</span></button></li>
 
       <li class="menu-divider" role="separator" aria-hidden="true"></li>
       <li class="menu-section-title">Flove</li>
@@ -4252,6 +4253,68 @@
     ["advmenu-state","about-state","about-docs-state"].forEach(id => {
       const el = document.getElementById(id); if (el && el.checked) el.checked = false;
     });
+  });
+})();
+
+// ── "Descargar tabla" — download the page contents as structured JSON ──
+//    Built from the DOM at click time, so it always mirrors the live page and
+//    the active language. Vocabulary mirrors the markup: section → folders → files.
+(function(){
+  const btn = document.getElementById("dl-table");
+  if (!btn) return;
+  const lang = () => ((document.getElementById("lang-es")||{}).checked ? "es" : "en");
+  // localized text of an element carrying .en/.es sibling spans (fallback: textContent)
+  const locText = (el) => {
+    if (!el) return "";
+    const s = el.querySelector("." + lang());
+    return ((s ? s.textContent : el.textContent) || "").replace(/\s+/g, " ").trim();
+  };
+  const fileType = (a) => {
+    const icon = a.querySelector(".ff-icon");
+    if (!icon) return "";
+    return (Array.from(icon.classList).find(c => c.startsWith("ff-") && c !== "ff-icon") || "").replace("ff-", "");
+  };
+  function collect(){
+    const sections = Array.from(document.querySelectorAll("section.section")).map(sec => {
+      const folders = Array.from(sec.querySelectorAll(".floveall-list")).map(list => {
+        const block = list.closest(".folder-block");
+        const grp = list.closest(".floveall-group");
+        let name = "";
+        if (block && block.querySelector(".folder-name")) name = block.querySelector(".folder-name").textContent.trim();
+        else if (grp && grp.querySelector(":scope > summary")) name = grp.querySelector(":scope > summary").textContent.replace(/\d+\s*$/, "").trim();
+        const files = Array.from(list.querySelectorAll(".ff-item")).map(a => ({
+          name: (a.querySelector(".ff-name")?.textContent || "").trim(),
+          type: fileType(a),
+          size: (a.querySelector(".ff-size")?.textContent || "").trim(),
+          url: a.getAttribute("href") || ""
+        }));
+        return { name: name, files: files };
+      }).filter(f => f.files.length);
+      return {
+        step: Number(sec.dataset.step) || null,
+        id: sec.id,
+        short: sec.dataset.short || "",
+        title: locText(sec.querySelector(".section-title")) || sec.dataset.title || "",
+        intro: locText(sec.querySelector(".intro-title")) || null,
+        folders: folders
+      };
+    });
+    return {
+      doc: (document.title || "FLOVE DOCS").trim(),
+      source: location.href.split("#")[0],
+      lang: lang(),
+      sections: sections
+    };
+  }
+  btn.addEventListener("click", () => {
+    const data = collect();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "flove-docs-" + data.lang + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const ms = document.getElementById("advmenu-state"); if (ms) ms.checked = false;   // close the menu
   });
 })();
 

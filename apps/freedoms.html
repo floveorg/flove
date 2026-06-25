@@ -1735,6 +1735,39 @@
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow);
     }
+    /* ✦ F0 §13.9 — Reset (left) · ✦ Summary · Update (right) title row */
+    .summary-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: .6rem; margin: 0 0 .9rem; flex-wrap: wrap;
+    }
+    .summary-head .summary-title {
+      flex: 1 1 auto; margin: 0; text-align: center;
+      font-family: var(--font-display);
+      font-size: 1.2rem; font-weight: 700; color: var(--ink);
+    }
+    .reset-wrap--title, .update-wrap--title {
+      display: flex; flex-direction: column; gap: .15rem; flex: 0 0 auto;
+    }
+    .reset-wrap--title { align-items: flex-start; }
+    .update-wrap--title { align-items: flex-end; }
+    .reset-hint, .update-hint {
+      font-size: .68rem; line-height: 1.1; color: var(--ink-soft); opacity: .75;
+      max-width: 9rem;
+    }
+    .reset-hint { text-align: left; }
+    .update-hint { text-align: right; }
+    .summary-head .btn.ghost { padding: .4rem .8rem; }
+    /* out-of-date dot: hidden by default, an ~8px accent dot when shown */
+    .stale-dot {
+      display: none; width: 8px; height: 8px; margin-left: .25rem;
+      border-radius: 50%; background: var(--accent); vertical-align: middle;
+    }
+    .stale-dot:not([hidden]) { display: inline-block; }
+    @media (max-width: 559px) {
+      .summary-head .summary-title { order: -1; flex-basis: 100%; }
+      .reset-hint, .update-hint { max-width: none; }
+    }
+
     .sentence {
       display: block;
       font-family: var(--font-display);
@@ -1749,7 +1782,7 @@
       min-height: 3em;
     }
     .sentence:empty::before {
-      content: "This Resume composes itself as you work. Click any of the five core categories — Economy, Legal, Media, Military, Politics — then press + Add standard to start declaring the freedoms a society should defend. Love the ones that matter most; relations between categories show as lines across the board.";
+      content: "This Summary composes itself as you work. Click any of the five core categories — Economy, Legal, Media, Military, Politics — then press + Add standard to start declaring the freedoms a society should defend. Love the ones that matter most; relations between categories show as lines across the board.";
       color: var(--muted); font-style: italic;
       display: block;
     }
@@ -1995,7 +2028,7 @@
       should defend and how they hold up under <em>Economy</em>, <em>Legal</em>,
       <em>Media</em>, <em>Military</em>, and <em>Politics</em>. Drag the icons to
       rearrange, add standards inside each category, draw relations between them, and
-      love the ones that matter most. The Resume composes a living summary as you work.</span><span class="es" lang="es"><strong>Freedoms</strong> es un taller para trazar las libertades que una sociedad
+      love the ones that matter most. The Summary composes a living digest as you work.</span><span class="es" lang="es"><strong>Freedoms</strong> es un taller para trazar las libertades que una sociedad
       debería defender y cómo se sostienen ante la <em>Economía</em>, lo <em>Legal</em>,
       los <em>Medios</em>, el <em>Ejército</em> y la <em>Política</em>. Arrastra los iconos para
       reordenarlos, añade estándares dentro de cada categoría, traza relaciones entre ellos y
@@ -2141,6 +2174,13 @@
 
   <!-- SUMMARY (standard flove composer pattern) -->
   <section class="summary-section">
+    <!-- ✦ F0 §13.9 — Reset (left) · ✦ Summary · Update (right) title row -->
+    <header class="summary-head">
+      <span class="reset-wrap reset-wrap--title"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button><small class="reset-hint"><span class="en" lang="en">Clear all and start anew</span><span class="es" lang="es">Borra todo y empieza de nuevo</span></small></span>
+      <h2 class="summary-title">✦ <span class="en" lang="en">Summary</span><span class="es" lang="es">Resumen</span></h2>
+      <span class="update-wrap update-wrap--title"><button class="btn ghost update-btn" type="button" data-flove-update>Update <span class="stale-dot" hidden role="img" aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button><small class="update-hint"><span class="en" lang="en">if you re-edited the board</span><span class="es" lang="es">si has reeditado el tablero</span></small></span>
+    </header>
+
     <output id="summaryPhrase" class="sentence"></output>
 
     <div class="ic-row">
@@ -2309,14 +2349,49 @@
       return `${prefix}-${Date.now().toString(36)}-${stdKeyCounter}`;
     }
 
-    function rowHTML(text, stdKey, hasInfo) {
-      const key = stdKey || nextStdKey('seed');
+    // ---------- ✦ Persistent per-category standards model (source of truth) ----------
+    // catStandards[cat] = [{ key, text, level }] — the ordered list of standards
+    // (seed + user-added) for a category, each carrying its own heart level. This
+    // outlives every category switch (renderStandardsPanel rebuilds the panel DOM
+    // from here, not from a transient view), which is what fixes the in-session
+    // data-loss bug AND lets reload restore the full board. Per-standard rich meta
+    // (desc/note/related/comments) continues to live in standardData keyed by the
+    // SAME `key`, so the two stores stay joined.
+    const catStandards = {};   // cat -> [{ key, text, level }]
+    // Lazily seed a category's list from its coreStandards on first access, so the
+    // five built-in mains (and any custom cat created with seed lines) get their
+    // starting rows exactly once. Returns the (now-existing) array.
+    function ensureCatStandards(cat) {
+      if (!catStandards[cat]) {
+        catStandards[cat] = (coreStandards[cat] || []).map(text => {
+          const key = nextStdKey('seed');
+          // Mirror seed text into standardData so meta/comments can attach later.
+          if (!standardData[key]) {
+            standardData[key] = { name: text, desc: '', note: '', related: [], cat, comments: [], created: new Date() };
+          }
+          return { key, text, level: 0 };
+        });
+      }
+      return catStandards[cat];
+    }
+
+    function rowHTML(item) {
+      // Accepts a { key, text, level } record (the persistent model entry). A bare
+      // string is still tolerated for any legacy caller (seeds it on the fly).
+      const rec = (typeof item === 'string')
+        ? { key: nextStdKey('seed'), text: item, level: 0 }
+        : item;
+      const key   = rec.key || nextStdKey('seed');
+      const text  = rec.text || '';
+      const level = parseInt(rec.level || 0, 10) || 0;
+      const data  = standardData[key] || {};
+      const hasInfo = !!((data.desc || '').trim() || (data.note || '').trim());
       const cls = hasInfo ? 'check-title has-info' : 'check-title';
       return `
         <div class="check-row" data-std-key="${key}">
-          <span class="${cls}">${text}</span>
+          <span class="${cls}">${escapeHtml(text)}</span>
           <button class="check-delete row-delete" type="button" title="Delete" aria-label="Delete" data-aria-en="Delete" data-aria-es="Eliminar"><span class="micon">delete</span></button>
-          <span class="heart-btn" data-level="0" title="Tap to fill — 6th tap resets" role="button" aria-label="Love level" data-aria-en="Love level" data-aria-es="Nivel de amor">favorite</span>
+          <span class="heart-btn" data-level="${level}" title="Tap to fill — 6th tap resets" role="button" aria-label="Love level" data-aria-en="Love level" data-aria-es="Nivel de amor">favorite</span>
           <button class="comment-btn" type="button" title="Add comment" aria-label="Add comment" data-aria-en="Add comment" data-aria-es="Añadir comentario"><span class="micon">chat_bubble</span></button>
           <div class="check-detail" hidden></div>
           <div class="comments-thread"></div>
@@ -2367,15 +2442,28 @@
     }
 
     // Right-col standards list HTML for any category.
-    // Custom categories no longer fall back to placeholder rows — they show
-    // only what was seeded (if anything) plus the "Add standard" button.
+    // ✦ Renders from the persistent catStandards model (seed + user-added rows,
+    // each with its stored heart level) so a standard added in one category and
+    // its loves SURVIVE switching categories away and back. Comment threads are
+    // re-injected from standardData by rerenderStandardsComments() right after
+    // this HTML is mounted (see renderStandardsPanel).
     function buildStandardsHTML(category) {
-      const standards = coreStandards[category] || [];
+      const list = ensureCatStandards(category);
       return `
         <fieldset class="checks slot-checks" data-cat="${category}">
-          ${standards.map(rowHTML).join('')}
+          ${list.map(rowHTML).join('')}
           <button class="btn add add-standard" type="button" data-cat="${category}" title="Add a standard"><span class="micon">add</span> <span class="en" lang="en">New standard</span><span class="es" lang="es">Nuevo estándar</span></button>
         </fieldset>`;
+    }
+    // Re-paint comment threads for every row just rendered in the standards panel
+    // (the model holds comments in standardData; the rebuilt panel DOM starts with
+    // empty threads). Called after renderStandardsPanel mounts the fieldset.
+    function rerenderStandardsComments() {
+      if (!standardsBody) return;
+      standardsBody.querySelectorAll('.check-row[data-std-key]').forEach(row => {
+        const list = standardData[row.dataset.stdKey]?.comments;
+        if (list && list.length) rerenderComments(row);
+      });
     }
 
     // ---------- Nested sub-categories under a main tab ----------
@@ -2627,6 +2715,7 @@
       if (!standardsBody) return;
       if (standardsPanel) standardsPanel.hidden = false;
       standardsBody.innerHTML = buildStandardsHTML(cat);
+      rerenderStandardsComments();
       const isMain = isMainCat(cat);
       setStandardsHeader(isMain ? 'default' : 'custom', cat);
       if (standardsCatBadge) {
@@ -2659,6 +2748,13 @@
       }
       catInfoPanel.innerHTML = html;
       catInfoPanel.classList.remove('hidden');
+      // ✦ Re-paint this category's own comment thread from the model (the freshly
+      // built panel starts with an empty thread) so cat-level comments survive a
+      // category switch AND a reload.
+      const host = catInfoPanel.querySelector('.cat-comments-host');
+      if (host && (standardData[host.dataset.stdKey]?.comments || []).length) {
+        rerenderComments(host);
+      }
     }
 
     function activateCategory(cat, sourceTab) {
@@ -2689,6 +2785,7 @@
           delete catNotes[cat];
           delete catRelated[cat];
           delete coreStandards[cat];
+          delete catStandards[cat];
           tab.remove();
           clearActivePanels();
           drawRelations();
@@ -2764,6 +2861,7 @@
       delete catNotes[cat];
       delete catRelated[cat];
       delete coreStandards[cat];
+      delete catStandards[cat];
       delete standardData[`cat-${cat}`];
       hiddenLinks.delete(cat);
       Object.keys(catRelated).forEach(k => {
@@ -2994,6 +3092,7 @@
           delete catNotes[cat];
           delete catRelated[cat];
           delete coreStandards[cat];
+          delete catStandards[cat];
           delete standardData[`cat-${cat}`];
           // Also drop any relations pointing at the deleted cat
           Object.keys(catRelated).forEach(k => {
@@ -3013,7 +3112,16 @@
       const row = del.closest('.check-row');
       if (!row) return;
       const key = row.dataset.stdKey;
-      if (key) delete standardData[key];
+      if (key) {
+        delete standardData[key];
+        // ✦ Drop it from the persistent per-category model too, so the deletion
+        // sticks across a category switch and a reload.
+        for (const cat in catStandards) {
+          const arr = catStandards[cat];
+          const i = arr ? arr.findIndex(r => r.key === key) : -1;
+          if (i >= 0) { arr.splice(i, 1); break; }
+        }
+      }
       row.remove();
       updatePhrase();
     });
@@ -3025,7 +3133,23 @@
       e.preventDefault();
       e.stopPropagation();
       const current = parseInt(heart.dataset.level || '0', 10);
-      heart.dataset.level = String((current + 1) % 6);
+      const next = (current + 1) % 6;
+      heart.dataset.level = String(next);
+      // ✦ Mirror a STANDARD row's heart back into the persistent model so the
+      // love survives a category switch + reload. Only the row's own heart
+      // (a direct child of .check-row, not a comment-heart or cat-info heart)
+      // maps to a catStandards entry.
+      const row = heart.closest('.check-row');
+      if (row && !heart.classList.contains('comment-heart') &&
+          !heart.classList.contains('cat-action')) {
+        const key = row.dataset.stdKey;
+        if (key) {
+          for (const cat in catStandards) {
+            const rec = (catStandards[cat] || []).find(r => r.key === key);
+            if (rec) { rec.level = next; break; }
+          }
+        }
+      }
       updatePhrase();
     }, true);
 
@@ -3114,13 +3238,18 @@
       const related = standardRelated.getValues();
       const key     = nextStdKey('std');
       standardData[key] = {
-        name: text, desc, note, related,
+        name: text, desc, note, related, comments: [],
         cat: standardTargetCat,
         mainCat,
         created: new Date()
       };
+      // ✦ Write into the persistent per-category model FIRST (source of truth),
+      // then mount the matching live row. The model entry is what survives a
+      // category switch and a reload.
+      const rec = { key, text, level: 0 };
+      ensureCatStandards(standardTargetCat).push(rec);
       const tpl = document.createElement('template');
-      tpl.innerHTML = rowHTML(text, key, !!(desc || note)).trim();
+      tpl.innerHTML = rowHTML(rec).trim();
       const row = tpl.content.firstChild;
       const addBtn = standardTargetFieldset.querySelector('.add-standard');
       standardTargetFieldset.insertBefore(row, addBtn);
@@ -3462,7 +3591,12 @@
         .reduce((s, arr) => s + (arr ? arr.length : 0), 0);
       const out = document.getElementById('summaryPhrase');
       if (!total && !hearts && !subs && !relCount) {
-        out.textContent = '';
+        // Board is pristine. ✦ F0: if a prior summary is stored, storage wins —
+        // re-derive it in the active language instead of blanking (this covers
+        // first load AND language switches). Reset removes the key first, so a
+        // post-reset pristine board correctly shows the empty placeholder.
+        const stored = (typeof readF0 === 'function') ? readF0() : null;
+        out.textContent = stored ? phraseFromModel(stored) : '';
         return;
       }
       const es = (window.curLang && window.curLang() === 'es');
@@ -3481,10 +3615,399 @@
           `${relCount} cross-relation${relCount === 1 ? '' : 's'}, ` +
           `${hearts} love-point${hearts === 1 ? '' : 's'} cast.`;
       }
+      // ✦ F0 — updatePhrase() is the universal edit funnel (every mutation
+      // calls it). Persist the canonical model here, but only after load.
+      persistF0();
     }
+
+    // ============================================================
+    //   ✦ F0 §10.3a / §13.9 — persist · Update · Reset (inline, no flove.js)
+    //   State model (schema v2): the FULL interactive board. The persisted
+    //   payload carries (a) the buildModel() summary snapshot — so the phrase
+    //   surface keeps working exactly as before — PLUS (b) a `board` block that
+    //   captures everything needed to RECONSTRUCT the live board on reload:
+    //     • per-category standards model (catStandards: text + heart level)
+    //     • per-standard rich meta (standardData: desc/note/related/comments)
+    //     • custom/nested categories (label/icon/parent/note) + relations
+    //       (catRelated) + which cats have their links hidden (hiddenLinks)
+    //     • the SortableJS slot order (which main/top-level cat sits in which
+    //       slot — tl/tr/center/bl/br)
+    //   On reload restoreBoard() rebuilds by calling the app's REAL render/add
+    //   functions (renderStandardsPanel, renderNestedSubs, drawRelations, the
+    //   same tab-creation path as saveCategory) — never raw innerHTML — so
+    //   SortableJS + every delegated listener stay wired. Storage wins; nav and
+    //   search are NOT restored; language is untouched.
+    //   Back-compat: a schema-v1 payload (phrase-only, no `board`) still loads —
+    //   forward-migrated as "no board to restore, just keep the phrase".
+    // ============================================================
+    const F0_KEY = 'flove:freedoms:items';   // the model + board snapshot
+    const F0_VER = 'flove:freedoms:v';        // schema version
+    const F0_SCHEMA = 2;
+    // Reset clears ONLY these keys — NEVER localStorage.clear() (other flove
+    // apps share this origin, and translate2-lang must survive).
+    const F0_OWN_KEYS = [F0_KEY, F0_VER];
+
+    let _f0Ready = false;     // true once the initial load/derive has run
+    let _f0QuotaWarned = false;
+
+    // The five frozen slots, in DOM order. Used to snapshot/restore which cat
+    // sits where (the SortableJS-managed order).
+    const F0_SLOT_KEYS = ['tl', 'tr', 'center', 'bl', 'br'];
+
+    // Snapshot the full board into a serializable `board` object.
+    function serializeBoard(){
+      // Standards model — make sure every cat on the grid has been seeded so its
+      // rows are captured even if its panel was never opened this session.
+      const allCats = [...new Set(
+        [...document.querySelectorAll('.category-grid .category-tab')].map(t => t.dataset.cat)
+      )].filter(Boolean);
+      allCats.forEach(ensureCatStandards);
+      const stds = {};
+      Object.keys(catStandards).forEach(cat => {
+        stds[cat] = (catStandards[cat] || []).map(r => ({
+          key: r.key, text: r.text, level: parseInt(r.level || 0, 10) || 0
+        }));
+      });
+      // Per-standard rich meta (desc/note/related/comments) keyed by the SAME
+      // stdKey, plus the `cat-*` comment hosts. Strip Date objects to plain ISO.
+      const meta = {};
+      Object.keys(standardData).forEach(key => {
+        const d = standardData[key] || {};
+        meta[key] = {
+          name: d.name || '', desc: d.desc || '', note: d.note || '',
+          related: Array.isArray(d.related) ? d.related : [],
+          comments: Array.isArray(d.comments) ? d.comments : [],
+          cat: d.cat || null, mainCat: d.mainCat || null
+        };
+      });
+      // Categories: label/icon/parent/note for every NON-main cat (the five
+      // mains are static markup). prettyCatName for custom cats reads catLabels.
+      const cats = allCats
+        .filter(c => !isMainCat(c))
+        .map(c => ({
+          cat: c,
+          label: catLabels[c] || c,
+          icon: catIcons[c] || 'label',
+          parent: catParents[c] || null,
+          note: catNotes[c] || ''
+        }));
+      // Relations (provider cat -> [{cat, note}]) for EVERY cat that has any.
+      const relations = {};
+      Object.keys(catRelated).forEach(c => {
+        const arr = (catRelated[c] || []).filter(r => r && r.cat);
+        if (arr.length) relations[c] = arr.map(r => ({ cat: r.cat, note: r.note || '' }));
+      });
+      // Slot order: which cat element currently lives in each of the 5 slots.
+      const slotOrder = {};
+      F0_SLOT_KEYS.forEach(sk => {
+        const tab = document.querySelector(`.slot[data-slot="${sk}"] > .category-tab`);
+        slotOrder[sk] = tab ? (tab.dataset.cat || null) : null;
+      });
+      return {
+        standards: stds,
+        meta,
+        cats,
+        relations,
+        hiddenLinks: [...hiddenLinks],
+        slotOrder
+      };
+    }
+
+    // Persist the current model + board. No-op until the page has finished
+    // loading its prior state, so the initial empty updatePhrase() can't wipe
+    // storage.
+    function persistF0(){
+      if (!_f0Ready) return;
+      try {
+        const m = buildModel();
+        m.schema = F0_SCHEMA;
+        m.board  = serializeBoard();
+        localStorage.setItem(F0_KEY, JSON.stringify(m));
+        localStorage.setItem(F0_VER, String(F0_SCHEMA));
+      } catch (err) {
+        if (err && err.name === 'QuotaExceededError' && !_f0QuotaWarned) {
+          _f0QuotaWarned = true;
+          const T = window.t || ((en) => en);
+          showToast(T('Storage full — changes may not be saved',
+                      'Almacenamiento lleno — puede que no se guarden los cambios'));
+        }
+      }
+    }
+
+    // Read the stored model (or null). Version-tolerant + forward-migrating:
+    //   • a v2 payload has a `board` block → fully restorable
+    //   • a v1 payload (phrase-only, no `board`) is accepted unchanged — its
+    //     .stats/.sections still drive phraseFromModel(); migrateF0() simply
+    //     leaves `board` undefined so restoreBoard() treats it as "nothing to
+    //     rebuild, just the phrase". Unknown/extra fields are ignored, so a
+    //     future fuller schema can't crash this reader.
+    function readF0(){
+      let raw = null;
+      try { raw = localStorage.getItem(F0_KEY); } catch (_) { return null; }
+      if (!raw) return null;
+      try {
+        const m = JSON.parse(raw);
+        if (!m || typeof m !== 'object') return null;
+        return migrateF0(m);
+      } catch (_) { return null; }
+    }
+
+    // Forward-migrate any stored payload to the shape the rest of the F0 layer
+    // expects. v1 (no `board`) passes through as a phrase-only model. v2 keeps
+    // its `board`. Never throws — a malformed `board` is dropped to null.
+    function migrateF0(m){
+      const ver = parseInt(m.schema || m.version || 1, 10) || 1;
+      if (ver < 2 || !m.board || typeof m.board !== 'object') {
+        // v1 forward-migration: nothing to reconstruct, summary phrase only.
+        m.board = null;
+      }
+      return m;
+    }
+
+    // ✦ Rebuild the entire live board from a stored v2 `board` block, using the
+    // app's real render/add functions so SortableJS + delegated listeners stay
+    // wired. Order matters: (1) recreate custom/nested categories into the maps
+    // + the grid, (2) restore the standards model (rows + hearts) + per-standard
+    // meta, (3) place mains/top-level cats into their stored slots, (4) restore
+    // relations + hidden-links, (5) re-render nested trees + relation lines. The
+    // active category and any open panels are intentionally NOT restored — the
+    // board reopens at "step 1" (pick a category), exactly like a fresh load.
+    function restoreBoard(board){
+      if (!board || typeof board !== 'object') return false;
+      let touched = false;
+      // (1) Per-standard meta first, so rowHTML's has-info check + comments are
+      // available the moment any panel renders.
+      const meta = (board.meta && typeof board.meta === 'object') ? board.meta : {};
+      Object.keys(meta).forEach(key => {
+        const d = meta[key] || {};
+        standardData[key] = {
+          name: d.name || '', desc: d.desc || '', note: d.note || '',
+          related: Array.isArray(d.related) ? d.related : [],
+          comments: Array.isArray(d.comments) ? d.comments : [],
+          cat: d.cat || null, mainCat: d.mainCat || null,
+          created: new Date()
+        };
+        touched = true;
+      });
+      // (2) Recreate custom/nested categories into the maps. We register every
+      // cat's label/icon/parent/note BEFORE creating tabs, so parent lookups and
+      // nested rendering resolve. Process is order-independent: top-level customs
+      // get a tab here; nested subs are drawn by renderNestedSubs in step (5).
+      const cats = Array.isArray(board.cats) ? board.cats : [];
+      cats.forEach(spec => {
+        if (!spec || !spec.cat || isMainCat(spec.cat)) return;
+        const c = spec.cat;
+        catLabels[c]  = spec.label || c;
+        catIcons[c]   = spec.icon || 'label';
+        catParents[c] = spec.parent || null;
+        catNotes[c]   = spec.note || '';
+        touched = true;
+      });
+      // (3) Standards model (rows + heart levels). Replace any lazily-seeded
+      // arrays so the stored order + loves win.
+      const stds = (board.standards && typeof board.standards === 'object') ? board.standards : {};
+      Object.keys(stds).forEach(cat => {
+        const arr = Array.isArray(stds[cat]) ? stds[cat] : [];
+        catStandards[cat] = arr.map(r => ({
+          key: r.key || nextStdKey('seed'),
+          text: r.text || '',
+          level: parseInt(r.level || 0, 10) || 0
+        }));
+        touched = true;
+      });
+      // (4) Relations + hidden-links.
+      const rels = (board.relations && typeof board.relations === 'object') ? board.relations : {};
+      Object.keys(rels).forEach(c => {
+        const arr = Array.isArray(rels[c]) ? rels[c] : [];
+        catRelated[c] = arr.filter(r => r && r.cat).map(r => ({ cat: r.cat, note: r.note || '' }));
+        touched = true;
+      });
+      if (Array.isArray(board.hiddenLinks)) {
+        board.hiddenLinks.forEach(c => { if (c) hiddenLinks.add(c); });
+      }
+      // (5) Create the GRID tabs for top-level custom cats (mirrors the
+      // top-level branch of saveCategory: a plain .category-tab with title +
+      // delete badge), then place mains + top-level customs into their stored
+      // slots, then draw nested trees + relations.
+      const order = (board.slotOrder && typeof board.slotOrder === 'object') ? board.slotOrder : {};
+      // First, build any missing top-level custom tab off-grid.
+      cats.forEach(spec => {
+        if (!spec || !spec.cat || isMainCat(spec.cat)) return;
+        if (spec.parent) return;                       // nested → drawn by renderNestedSubs
+        const c = spec.cat;
+        if (document.querySelector(`.category-grid .category-tab[data-cat="${c}"]`)) return;
+        const tab = document.createElement('div');
+        tab.className = 'category-tab';
+        tab.dataset.cat = c;
+        tab.dataset.title = catLabels[c] || c;
+        const titleSpan = document.createElement('span');
+        titleSpan.className = (catNotes[c] || '').trim() ? 'cat-title has-info' : 'cat-title';
+        titleSpan.textContent = catLabels[c] || c;
+        tab.appendChild(titleSpan);
+        ensureCatTabTools(tab);
+        ensureCatDeleteBadge(tab);
+        // Park in any empty slot for now; the slotOrder pass below moves it home.
+        const allSlots = document.querySelectorAll('.slot');
+        let park = [...allSlots].find(s => !s.querySelector('.category-tab')) || allSlots[2];
+        park.appendChild(tab);
+      });
+      // Place each cat into its stored slot (SortableJS observes these slot
+      // containers; appendChild is the same primitive the initial layout uses).
+      F0_SLOT_KEYS.forEach(sk => {
+        const wantCat = order[sk];
+        if (!wantCat) return;
+        const slotEl = document.querySelector(`.slot[data-slot="${sk}"]`);
+        const tab = document.querySelector(`.category-grid .category-tab[data-cat="${wantCat}"]`);
+        if (slotEl && tab && tab.parentElement !== slotEl) slotEl.appendChild(tab);
+      });
+      // Draw nested sub-cat trees under their main ancestors.
+      if (typeof renderAllNestedSubs === 'function') renderAllNestedSubs();
+      return touched;
+    }
+
+    // Compose a localized phrase from a stored model's stats, in the CURRENT
+    // language (language is untouched by load — we re-derive in active lang).
+    function phraseFromModel(m){
+      const st = (m && m.stats) || {};
+      const cats = st.categories || 0, std = st.standards || 0, love = st.hearts || 0;
+      const names = (m && m.sections || []).map(s => s.label).filter(Boolean);
+      const es = (window.curLang && window.curLang() === 'es');
+      const lines = [];
+      if (es) {
+        lines.push(`Freedoms — ${cats} categorías${names.length ? ': ' + names.join(', ') : ''}.`);
+        lines.push(`${std} estándar${std === 1 ? '' : 'es'} en todas las categorías.`);
+        lines.push(`Total de amor en corazones: ${love}.`);
+      } else {
+        lines.push(`Freedoms — ${cats} categories${names.length ? ': ' + names.join(', ') : ''}.`);
+        lines.push(`${std} standard${std === 1 ? '' : 's'} across all categories.`);
+        lines.push(`Heart love total: ${love}.`);
+      }
+      return lines.join('\n');
+    }
+
+    // Note: re-derive-on-load (storage wins) and language-switch re-derivation
+    // both flow through updatePhrase(): on a pristine board it restores the
+    // stored phrase in the active language instead of blanking. So there is no
+    // separate load handler here — calling updatePhrase() at init does it.
+
+    // ── Update: mark out-of-date on edit, clear + re-persist on click ──
+    const updateBtn = document.querySelector('[data-flove-update]');
+    const staleDot  = updateBtn ? updateBtn.querySelector('.stale-dot') : null;
+    function markStaleF0(){ if (staleDot) staleDot.hidden = false; }
+    if (updateBtn) {
+      updateBtn.addEventListener('click', () => {
+        persistF0();
+        if (staleDot) staleDot.hidden = true;
+        const T = window.t || ((en) => en);
+        showToast(T('Summary updated', 'Resumen actualizado'));
+      });
+    }
+
+    // ── Reset: confirm-guarded, clears in-DOM standards/loves + ONLY the
+    //    flove:freedoms:* keys, re-derives an empty summary, back to step 1 ──
+    const resetBtn = document.querySelector('[data-flove-reset]');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        const es = (window.curLang && window.curLang() === 'es');
+        const msg = es
+          ? '¿Borrar todos los estándares declarados, el amor y el resumen guardado y empezar de nuevo?'
+          : 'Clear all declared standards, love and the saved summary, and start anew?';
+        if (!window.confirm(msg)) return;
+        // Clear only our own keys — never localStorage.clear().
+        F0_OWN_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+        // True blank slate: tear down EVERY custom/nested user category (any cat
+        // that is not one of the five frozen mains), reusing the app's own
+        // cat-delete sequence so the maps, tabs, nested trees and dangling
+        // relations all go together. Snapshot the keys first (we mutate as we go).
+        const customCats = [...document.querySelectorAll('.category-grid .category-tab')]
+          .map(t => t.dataset.cat)
+          .filter(c => c && !isMainCat(c));
+        customCats.forEach(cat => {
+          const tab = document.querySelector(`.category-grid .category-tab[data-cat="${cat}"]`);
+          const formerParent = catParents[cat] || null;
+          delete catLabels[cat];
+          delete catIcons[cat];
+          delete catParents[cat];
+          delete catNotes[cat];
+          delete catRelated[cat];
+          delete coreStandards[cat];
+          delete catStandards[cat];
+          delete standardData[`cat-${cat}`];
+          hiddenLinks.delete(cat);
+          // Drop any relations pointing at the removed cat.
+          Object.keys(catRelated).forEach(k => {
+            catRelated[k] = (catRelated[k] || []).filter(r => r.cat !== cat);
+          });
+          if (tab) tab.remove();
+          const refreshRoot = formerParent ? findMainAncestor(formerParent) : null;
+          if (refreshRoot) renderNestedSubs(refreshRoot);
+        });
+        // Rebuild every main's nested tree from the now-empty catParents map so
+        // no stale sub-tab survives, whatever order the deletions ran in.
+        if (typeof renderAllNestedSubs === 'function') renderAllNestedSubs();
+        // Clear in-DOM live state: declared standard rows + heart levels.
+        document.querySelectorAll('.slot-checks .check-row').forEach(r => r.remove());
+        // Heart fill is driven purely by the data-level attr (CSS selectors),
+        // so zeroing it is the full visual + state reset.
+        document.querySelectorAll('.heart-btn').forEach(h => { h.dataset.level = '0'; });
+        // ✦ Wipe the persistent standards model entirely (custom cats are already
+        // gone; this also drops every user-added row + heart on the five mains).
+        // The mains lazily re-seed fresh from coreStandards on their next render.
+        Object.keys(catStandards).forEach(k => { delete catStandards[k]; });
+        // Drop every per-standard meta/comment entry too (the cat-comment hosts
+        // keyed `cat-*` go with their deleted categories above; what remains are
+        // standard-row entries, all now obsolete).
+        Object.keys(standardData).forEach(k => { delete standardData[k]; });
+        // Drop any relations left on the five main cats too.
+        Object.keys(catRelated).forEach(k => { delete catRelated[k]; });
+        // Collapse any open category panel — back to step 1 (pick a category).
+        if (typeof clearActivePanels === 'function') clearActivePanels();
+        document.querySelectorAll('.category-tab.is-active')
+          .forEach(t => t.classList.remove('is-active'));
+        if (staleDot) staleDot.hidden = true;
+        // Re-derive the summary. With every user standard, love, relation and
+        // custom category gone, only the five seed mains remain → the board is
+        // pristine, updatePhrase shows the empty placeholder, and persistF0
+        // (now armed) re-stores the empty model.
+        updatePhrase();
+        if (typeof drawRelations === 'function') requestAnimationFrame(drawRelations);
+        const T = window.t || ((en) => en);
+        showToast(T('Reset — start anew', 'Reiniciado — empieza de nuevo'));
+      });
+    }
+
+    // Mark stale on every in-session edit (updatePhrase is the funnel; we
+    // listen at the board level so we don't re-wrap every handler).
+    ['click', 'input', 'change'].forEach(evt =>
+      document.addEventListener(evt, (e) => {
+        if (!_f0Ready) return;
+        if (e.target.closest('[data-flove-update]') ||
+            e.target.closest('[data-flove-reset]')) return;
+        if (e.target.closest('.summary-section') &&
+            !e.target.closest('.check-row')) return;
+        markStaleF0();
+      }, true)
+    );
+
+    // ✦ F0 — reload restore. First reconstruct the FULL board from any stored
+    // v2 snapshot (custom/nested cats, per-cat standards + hearts, relations,
+    // slot order, comments) using the app's real render/add functions; a v1
+    // (phrase-only) payload migrates to board=null and skips this harmlessly.
+    // Then updatePhrase() restores the summary phrase (storage wins on the now-
+    // still-pristine board — no category panel is auto-opened), persistF0()
+    // inside it stays a no-op until armed below.
+    (function f0LoadBoard(){
+      const stored = readF0();
+      if (stored && stored.board) {
+        try { restoreBoard(stored.board); } catch (_) { /* never block boot */ }
+      }
+    })();
     updatePhrase();
     renderAllNestedSubs();
     requestAnimationFrame(drawRelations);
+    // Arm persistence only AFTER the initial render, so neither the load above
+    // nor any pre-arm updatePhrase() can overwrite the stored snapshot.
+    _f0Ready = true;
 
     // ---------- Summary composer actions ----------
     const ioResult     = document.getElementById('ioResult');
@@ -3664,31 +4187,20 @@
     // a per-category heart rater (n = summed love, max = rows × 5).
     function buildModel(){
       const tabs = [...document.querySelectorAll('.category-grid .category-tab')];
-      // Group the live standard rows by the cat of their host slot-checks.
-      const rowsByCat = {};
-      document.querySelectorAll('.slot-checks[data-cat]').forEach(sc => {
-        const c = sc.dataset.cat; if (!c) return;
-        rowsByCat[c] = rowsByCat[c] || [];
-        sc.querySelectorAll('.check-row').forEach(row => {
-          const text = row.querySelector('.check-title')?.textContent.trim();
-          if (!text) return;
-          rowsByCat[c].push({ text, heart: parseInt(row.querySelector('.heart-btn')?.dataset.level || '0', 10) });
-        });
-      });
       const sections = [], raters = [], picked = [];
       let totalRows = 0, totalHearts = 0;
       tabs.forEach(tab => {
         const cat = tab.dataset.cat; if (!cat) return;
         const label = prettyCatName(cat);
-        const liveRows = rowsByCat[cat];
-        // Active cat shows live rows; inactive cats fall back to their seed list.
-        const items = (liveRows && liveRows.length)
-          ? liveRows.map(r => r.text)
-          : (coreStandards[cat] || []).slice();
+        // ✦ Read from the persistent per-category model — this covers EVERY
+        // category on the board (active or not), so inactive cats keep both
+        // their full row list AND their stored heart loves in the summary.
+        const recs  = ensureCatStandards(cat);
+        const items = recs.map(r => r.text);
         if (!items.length) return;
         sections.push({ label, title: '', items });
         items.forEach(it => picked.push(it));
-        const love = (liveRows || []).reduce((s, r) => s + r.heart, 0);
+        const love = recs.reduce((s, r) => s + (parseInt(r.level || 0, 10) || 0), 0);
         const max  = items.length * 5;
         raters.push({ key: cat, emoji: '❤', n: love, max });
         totalRows  += items.length;

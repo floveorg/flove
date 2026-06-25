@@ -1371,6 +1371,39 @@
     .section-nav .nav-btn.next .glyph{ transition:transform var(--fast); }
     .section-nav .nav-btn.next:hover:not([disabled]) .glyph{ transform:translateX(3px); }
 
+    /* ✦ F0 §13.9 — Reset / Update action-row at the top of the Summary body */
+    .summary-f0-row{
+      display:flex; align-items:flex-start; gap:.6rem;
+      margin:0 0 .9rem; flex-wrap:wrap;
+    }
+    .summary-f0-row .f0-spacer{ flex:1 1 auto; }
+    .summary-f0-row .reset-wrap,
+    .summary-f0-row .update-wrap{
+      display:flex; flex-direction:column; gap:.15rem; flex:0 0 auto;
+    }
+    .summary-f0-row .reset-wrap{ align-items:flex-start; }
+    .summary-f0-row .update-wrap{ align-items:flex-end; }
+    .summary-f0-row .reset-hint,
+    .summary-f0-row .update-hint{
+      font-size:.72rem; line-height:1.15; color:var(--muted);
+      max-width:12rem;
+    }
+    .summary-f0-row .reset-hint{ text-align:left; }
+    .summary-f0-row .update-hint{ text-align:right; }
+    /* out-of-date dot: hidden by default, a small sage dot when shown */
+    .stale-dot{
+      display:inline-block; width:8px; height:8px; margin-left:.15rem;
+      border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 0 3px var(--accent-glow);
+      vertical-align:middle;
+    }
+    .stale-dot[hidden]{ display:none; }
+    @media (max-width:520px){
+      .summary-f0-row .reset-hint,
+      .summary-f0-row .update-hint{ max-width:none; }
+    }
+
     /* result panel emitted by Insight / Creative — between IC and SSP rows */
     .io-result{
       margin:.7rem 0 0;
@@ -2429,12 +2462,22 @@
     </div>
   </details>
 
-  <!-- ===== 4 · Declaration ===== -->
-  <details class="card emphasis" data-step="5">
-    <summary class="card-summary"><h2><span class="en" lang="en">Declaration</span><span class="es" lang="es">Declaración</span></h2></summary>
+  <!-- ===== 5 · Summary (the readable declaration — canonical §13.9 surface) ===== -->
+  <details class="card emphasis is-summary" data-step="5">
+    <summary class="card-summary"><h2>✦ <span class="en" lang="en">Summary</span><span class="es" lang="es">Resumen</span></h2></summary>
     <div class="card-body">
       <button class="section-close" type="button" aria-label="Collapse section" data-aria-en="Collapse section" data-aria-es="Contraer la sección">✕</button>
-      <p id="sentence" class="sentence"></p>
+
+      <!-- ✦ F0 §13.9 — Reset (left) · Update (right) action-row.
+           The card title lives in the collapsible <summary>, so the two
+           affordances ride a minimal row at the top of the body instead. -->
+      <div class="summary-f0-row">
+        <span class="reset-wrap"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button><small class="reset-hint"><span class="en" lang="en">Clear all and start fresh</span><span class="es" lang="es">Borra todo y empieza de nuevo</span></small></span>
+        <span class="f0-spacer"></span>
+        <span class="update-wrap"><button class="btn ghost update-btn" type="button" data-flove-update>↻ <span class="en" lang="en">Update</span><span class="es" lang="es">Actualizar</span> <span class="stale-dot" hidden role="img" aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button><small class="update-hint"><span class="en" lang="en">if you re-edited the form</span><span class="es" lang="es">si has reeditado el formulario</span></small></span>
+      </div>
+
+      <p id="sentence" class="sentence" data-flove-phrase></p>
 
       <!-- First row: Insight / Creative / Copy — left-aligned -->
       <section class="ic-row">
@@ -3224,8 +3267,11 @@
     showToast(L("Saved · ", "Guardado · ") + fmt.toUpperCase());
   }
 
-  /* ---- Import a previously-saved trusty JSON (accepts legacy `evidence`) ---- */
-  function importData(d){
+  /* ---- Import a previously-saved trusty JSON (accepts legacy `evidence`) ----
+     opts.silent suppresses the toast (used by the F0 auto-restore on load,
+     which must be quiet — the file-open path keeps the confirmation toast). */
+  function importData(d, opts){
+    opts = opts || {};
     const set = (sel, val) => { const el = $(sel); if(el && val != null) el.value = val; };
     set("#youName", d.you);
     if(d.relationship || d.context){
@@ -3262,7 +3308,7 @@
       if(note && s.note != null){ note.value = s.note; note.dispatchEvent(new Event("input", {bubbles:true})); }
     });
     buildSentence();
-    showToast(L("Loaded saved declaration", "Declaración guardada cargada"));
+    if(!opts.silent) showToast(L("Loaded saved declaration", "Declaración guardada cargada"));
   }
 
   /* Share: file + summary via Web Share API → text-only → mailto. */
@@ -3602,6 +3648,128 @@
     if(bClose) bClose.addEventListener("click", hideResult);
   }
 
+  /* ============================================================
+     ✦ F0 · local persistence + Update + Reset (backend_plan.md §10.3a/b · §13.9)
+     ------------------------------------------------------------
+     State model: collectData() is the single source of truth (the same JS
+     object that feeds every export). We serialize it to localStorage on every
+     edit and re-derive via importData() on load (storage wins; navigation /
+     open-card state is NOT restored; language stays untouched — it has its own
+     translate2-lang key). Reset clears ONLY this app's own flove:trusty:* keys
+     — NEVER localStorage.clear(), because every flove app shares this origin.
+     ============================================================ */
+  const F0_STORE_KEY = 'flove:trusty:items';
+  const F0_VER_KEY   = 'flove:trusty:v';
+  const F0_PREFIX    = 'flove:trusty:';
+  const F0_SCHEMA    = 1;
+
+  // best-effort durable storage, asked once on first edit
+  let _f0PersistAsked = false;
+  function f0AskPersist(){
+    if(_f0PersistAsked) return; _f0PersistAsked = true;
+    try{ navigator.storage?.persist?.(); }catch(_){}
+  }
+
+  function f0Save(){
+    f0AskPersist();
+    try{
+      localStorage.setItem(F0_STORE_KEY, JSON.stringify(collectData()));
+      localStorage.setItem(F0_VER_KEY, String(F0_SCHEMA));
+    }catch(err){
+      // QuotaExceededError / storage disabled (private mode): warn, never crash —
+      // Save/export (§10.3b) keeps the declaration.
+      const quota = err && (err.name === "QuotaExceededError"
+        || err.name === "NS_ERROR_DOM_QUOTA_REACHED" || err.code === 22);
+      showToast(quota
+        ? L("Local storage is full — use Save to keep your declaration.",
+            "El almacenamiento local está lleno — usa Guardar para conservar tu declaración.")
+        : L("Could not save locally — use Save to keep your declaration.",
+            "No se pudo guardar en local — usa Guardar para conservar tu declaración."));
+    }
+  }
+
+  function f0Load(){
+    let raw = null;
+    try{ raw = localStorage.getItem(F0_STORE_KEY); }catch(_){ return null; }
+    if(!raw) return null;
+    try{
+      const obj = JSON.parse(raw);                    // defensive parse
+      return (obj && typeof obj === "object") ? obj : null;
+    }catch(_){ return null; }                          // corrupt → ignore
+  }
+  // true when storage already holds a non-trivial declaration (so the very
+  // first keystrokes that create it don't flag staleness)
+  function f0HadSaved(){ const d = f0Load(); return !!(d && (d.you || (d.scopes && d.scopes.length))); }
+
+  // stale-dot helpers (§10.3a): editing a persisted declaration lights the dot;
+  // Update / Reset clear it. Hooked to the existing edit funnel, never a timer.
+  function f0MarkStale(){  $$(".stale-dot").forEach(d => d.hidden = false); }
+  function f0ClearStale(){ $$(".stale-dot").forEach(d => d.hidden = true); }
+
+  /* Clear every in-DOM selection back to the empty form (used by Reset). */
+  function f0ClearDom(){
+    ["youName","relationship","context","limit","checkin","fallback","pledge"]
+      .forEach(id => { const el = $("#" + id); if(el) el.value = ""; });
+    // scope checkboxes off (fires change so the detail panels collapse + lists refresh)
+    $$(".scope:checked").forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event("change", {bubbles:true})); });
+    // scope detail fields (notes / ranges / dates / undefined)
+    $$(".scope-detail").forEach(p => {
+      p.querySelectorAll('.chip-note').forEach(n => n.value = "");
+      p.querySelectorAll('.scope-from, .scope-to').forEach(d => d.value = "");
+      p.querySelectorAll('.scope-undef:checked').forEach(u => { u.checked = false; u.dispatchEvent(new Event("change", {bubbles:true})); });
+      p.querySelectorAll('.scope-confidence, .scope-potential-range').forEach(r => { r.value = r.defaultValue || r.getAttribute("value") || 50; r.dispatchEvent(new Event("input", {bubbles:true})); });
+    });
+    // signal checkboxes off + their notes
+    $$(".signal:checked").forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event("change", {bubbles:true})); });
+    $$(".signal-note").forEach(n => n.value = "");
+    buildSentence();
+  }
+
+  function initF0(){
+    // 1 · re-derive from storage on load (storage wins; nav/cards not restored)
+    const saved = f0Load();
+    if(saved) importData(saved, {silent:true});
+    f0ClearStale();
+
+    // 2 · persist on every edit; light the stale-dot if a saved declaration existed
+    const onEdit = (e)=>{
+      if(!e.target.matches("input, select, textarea")) return;
+      const wasSaved = f0HadSaved();
+      f0Save();
+      if(wasSaved) f0MarkStale();
+    };
+    ["input","change"].forEach(evt => document.addEventListener(evt, onEdit));
+
+    // 3 · Update — re-derive from storage, then drop the stale flag (no polling)
+    const updateBtn = document.querySelector("[data-flove-update]");
+    if(updateBtn) updateBtn.addEventListener("click", ()=>{
+      f0AskPersist();
+      const d = f0Load();
+      if(d) importData(d, {silent:true});
+      f0ClearStale();
+      showToast(L("Up to date", "Actualizado"));
+    });
+
+    // 4 · Reset — confirm-guarded; clears in-DOM + ONLY flove:trusty:* keys,
+    //     re-derives empty, returns to step 1 (Who/Scope are open by default)
+    const resetBtn = document.querySelector("[data-flove-reset]");
+    if(resetBtn) resetBtn.addEventListener("click", ()=>{
+      const ok = confirm(L("Clear everything and start a new declaration?",
+                           "¿Borrar todo y empezar una nueva declaración?"));
+      if(!ok) return;
+      try{
+        for(let i = localStorage.length - 1; i >= 0; i--){
+          const k = localStorage.key(i);
+          if(k && k.indexOf(F0_PREFIX) === 0) localStorage.removeItem(k);
+        }
+      }catch(_){}
+      f0ClearDom();
+      f0ClearStale();
+      hideResult();
+      showToast(L("Cleared — start a fresh declaration", "Borrado — empieza una declaración nueva"));
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", ()=>{
     // Honor a saved language BEFORE the first render so the JS-generated
     // text (people tree, conditions, scopes, signals, sentence) starts in
@@ -3626,6 +3794,7 @@
     renderConditions();
     initDisplay();
     initLangRerender();
+    initF0();   // ✦ F0 — restore from storage + wire Update/Reset (after all renders)
   });
 
   /* When the worldball flips the language, re-localize the JS-generated text.

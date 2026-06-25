@@ -2113,7 +2113,7 @@
       <header class="summary-head">
         <span class="reset-wrap reset-wrap--title"><button class="btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button><small class="reset-hint"><span class="en" lang="en">Clear all and start new play</span><span class="es" lang="es">Borra todo y empieza de nuevo</span></small></span>
         <h2 class="summary-title"><span class="lead-ico" aria-hidden="true">✦</span> <span class="en" lang="en">Invitation</span><span class="es" lang="es">Invitación</span></h2>
-        <span class="update-wrap update-wrap--title"><button class="btn ghost update-btn" type="button" data-flove-update><span class="en" lang="en">Update</span><span class="es" lang="es">Actualizar</span> <span class="stale-dot" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button><small class="update-hint"><span class="en" lang="en">if you re-edited the form</span><span class="es" lang="es">si has reeditado el formulario</span></small></span>
+        <span class="update-wrap update-wrap--title"><button class="btn ghost update-btn" type="button" data-flove-update><span class="en" lang="en">Update</span><span class="es" lang="es">Actualizar</span> <span class="stale-dot" hidden role="img" aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button><small class="update-hint"><span class="en" lang="en">if you re-edited the form</span><span class="es" lang="es">si has reeditado el formulario</span></small></span>
       </header>
       <output id="clause" class="clause"></output>
 
@@ -2492,8 +2492,17 @@
       const titleInput = document.createElement('input');
       titleInput.type = 'text';
       titleInput.className = 'duplicate-title';
-      titleInput.placeholder = 'Title or clause for this one…';
-      titleInput.setAttribute('aria-label', 'Title or clause for this one');
+      // i18n: carry both languages so the worldball (applyLang) can switch this
+      // dynamically-created input too; seed the initial text from the active lang.
+      titleInput.dataset.phEn = 'Title or clause for this one…';
+      titleInput.dataset.phEs = 'Título o cláusula para esta…';
+      titleInput.dataset.ariaEn = 'Title or clause for this one';
+      titleInput.dataset.ariaEs = 'Título o cláusula para esta';
+      {
+        const li = document.documentElement.lang === 'es' ? 'Es' : 'En';
+        titleInput.placeholder = titleInput.dataset['ph' + li];
+        titleInput.setAttribute('aria-label', titleInput.dataset['aria' + li]);
+      }
       titleWrap.appendChild(titleInput);
 
       stack.appendChild(titleWrap);
@@ -2532,16 +2541,6 @@
       if (offer || rec) list.push({offer, rec});
     });
     return list;
-  }
-
-  function collectCheckedNames(prefix){
-    const vals = [];
-    document.querySelectorAll(`input[name^="${prefix}_"]`).forEach(inp => {
-      if ((inp.type === 'checkbox' && inp.checked) || (inp.type === 'radio' && inp.checked)) {
-        vals.push(inp.value);
-      }
-    });
-    return vals;
   }
 
   /* Translate a canonical (English) option value into the active language for the
@@ -2638,6 +2637,24 @@
     if (notes){
       chunks.push(`${L('Notes','Notas')}: ${notes}`);
       sections.push({ label: L('Notes','Notas'), title:'', items:[notes] });
+    }
+
+    // §13.12 parity: user-added free-text must round-trip too.
+    // — duplicate-block titles typed above each cloned section
+    // — quick chips saved via the add-area (+ → Save) panels
+    const extras = [];
+    document.querySelectorAll('.duplicate-title').forEach(inp => {
+      const v = (inp.value || '').trim();
+      if (v) extras.push(v);
+    });
+    document.querySelectorAll('.saved-chip > span:first-child').forEach(sp => {
+      const v = (sp.textContent || '').trim();
+      if (v) extras.push(v);
+    });
+    if (extras.length){
+      chunks.push(`${L('Added','Añadido')}: ${extras.join(' ; ')}.`);
+      sections.push({ label: L('Added','Añadido'), title:'', items: extras });
+      extras.forEach(v => picked.push(v));
     }
 
     return {

@@ -1808,6 +1808,42 @@
     }
     .btn.solid:hover{ filter:brightness(1.06); box-shadow:0 14px 30px var(--accent-glow); }
 
+    /* ── Save format menu (export dropdown) ── */
+    .save-wrap{ position:relative; display:inline-flex; }
+    .open-file-input{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .save-menu{
+      position:absolute; bottom:calc(100% + 8px); left:0;
+      min-width:230px;
+      background:#fff;
+      border:1px solid var(--line-strong);
+      border-radius:var(--radius);
+      box-shadow:0 22px 50px rgba(60,40,20,.18);
+      padding:6px;
+      z-index:60;
+      animation:fadeSlide .2s var(--ease);
+    }
+    .save-menu[hidden]{ display:none; }
+    .save-item{
+      display:flex; align-items:center; gap:.55rem;
+      width:100%;
+      padding:.55rem .7rem;
+      background:transparent; border:0;
+      color:var(--ink); font:inherit; font-size:.9rem; text-align:left;
+      border-radius:var(--radius-sm);
+      cursor:pointer;
+      transition:background var(--fast), color var(--fast);
+    }
+    .save-item:hover{ background:var(--accent-soft); color:var(--accent-deep); }
+    .save-item .save-ext{
+      margin-left:auto; font-size:.78rem; color:var(--muted);
+      font-family:var(--font-display); font-style:italic;
+    }
+    .save-item:hover .save-ext{ color:var(--accent-deep); }
+    .save-sep{
+      display:block; height:1px; margin:.3rem .2rem;
+      background:var(--line-strong);
+    }
+
     /* CSS-only ripple on press */
     .btn::after{
       content:""; position:absolute; left:50%; top:50%;
@@ -2420,7 +2456,21 @@
 
       <!-- Second row: Save / Share / Publish — right-aligned -->
       <section class="ssp-row">
-        <button class="btn ghost" id="btnSave"    type="button" title="Download a local copy (JSON + TXT)" data-title-en="Download a local copy (JSON + TXT)" data-title-es="Descargar una copia local (JSON + TXT)">💾 <span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
+        <div class="save-wrap">
+          <button class="btn ghost" id="btnSave" type="button" aria-haspopup="true" aria-expanded="false" title="Download a copy (md · json · xml · html · jpg · csv)" data-title-en="Download a copy (md · json · xml · html · jpg · csv)" data-title-es="Descargar una copia (md · json · xml · html · jpg · csv)">💾 <span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
+          <div class="save-menu" id="saveMenu" role="menu" hidden>
+            <button class="save-item" type="button" role="menuitem" data-fmt="md">📝 <span class="en" lang="en">Markdown</span><span class="es" lang="es">Markdown</span> <span class="save-ext">.md</span></button>
+            <button class="save-item" type="button" role="menuitem" data-fmt="json">🧩 <span class="en" lang="en">Data</span><span class="es" lang="es">Datos</span> <span class="save-ext">.json</span></button>
+            <button class="save-item" type="button" role="menuitem" data-fmt="xml">🗂️ <span class="en" lang="en">XML</span><span class="es" lang="es">XML</span> <span class="save-ext">.xml</span></button>
+            <button class="save-item" type="button" role="menuitem" data-fmt="html">🌐 <span class="en" lang="en">Web page</span><span class="es" lang="es">Página web</span> <span class="save-ext">.html</span></button>
+            <button class="save-item" type="button" role="menuitem" data-fmt="jpg">🖼️ <span class="en" lang="en">Image</span><span class="es" lang="es">Imagen</span> <span class="save-ext">.jpg</span></button>
+            <button class="save-item" type="button" role="menuitem" data-fmt="csv">📊 <span class="en" lang="en">Spreadsheet</span><span class="es" lang="es">Hoja de cálculo</span> <span class="save-ext">.csv</span></button>
+            <button class="save-item" type="button" role="menuitem" data-fmt="txt">📄 <span class="en" lang="en">Plain text</span><span class="es" lang="es">Texto plano</span> <span class="save-ext">.txt</span></button>
+            <span class="save-sep" aria-hidden="true"></span>
+            <button class="save-item" type="button" role="menuitem" id="btnOpen">📂 <span class="en" lang="en">Open a saved file…</span><span class="es" lang="es">Abrir un archivo guardado…</span></button>
+          </div>
+        </div>
+        <input type="file" id="openFile" accept=".json,application/json" aria-hidden="true" tabindex="-1" class="open-file-input">
         <button class="btn"       id="btnShare"   type="button" title="Share your declaration" data-title-en="Share your declaration" data-title-es="Compartir tu declaración">📤 <span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></button>
         <button class="btn solid" id="btnPublish" type="button" title="Print or save as PDF" data-title-en="Print or save as PDF" data-title-es="Imprimir o guardar como PDF">📰 <span class="en" lang="en">Publish</span><span class="es" lang="es">Publicar</span></button>
         <noscript><span class="muted"><span class="en" lang="en">Enable JavaScript for Save/Share/Publish helpers. The form itself is fully usable without JS.</span><span class="es" lang="es">Activa JavaScript para los botones Guardar/Compartir/Publicar. El formulario en sí es totalmente usable sin JS.</span></span></noscript>
@@ -2951,9 +3001,19 @@
     });
   }
 
-  /* Save: download JSON + TXT summary */
-  function saveFile(){
-    const data = {
+  /* ============================================================
+     §13.12 EXPORT + SHARE — ONE summary-model, six real downloads.
+     `collectData()` is the single source of truth (also serialized to
+     JSON, and re-read on import). The same model feeds md/xml/html/csv/jpg
+     so every format round-trips the SAME content. JSON keys / XML elements /
+     CSV headers stay ENGLISH; the human sentence + labels follow curLang().
+     ONE shared esc/escAttr serves BOTH xml + html so hostile input comes
+     out whole + inert in every text format.
+     ============================================================ */
+
+  /* The single summary-model behind every export + the JSON save. */
+  function collectData(){
+    return {
       me: "I",
       you: $("#youName").value,
       relationship: $("#relationship")?.value || "",
@@ -2978,41 +3038,252 @@
         fallback: $("#fallback")?.value || "",
         pledge: $("#pledge")?.value || ""
       },
-      evidence: $$(".signal:checked").map(cb => {
+      /* renamed evidence → signals (UI word is "Signals"); import accepts both */
+      signals: $$(".signal:checked").map(cb => {
         const row = cb.closest(".signal-row");
         return {
           value: cb.value,
+          label: signalLabelByValue(cb.value),
           note: row?.querySelector(".signal-note")?.value || ""
         };
       }),
       sentence: $("#sentence").textContent.trim(),
       savedAt: new Date().toISOString()
     };
-
-    const stamp = new Date().toISOString().replace(/[:.]/g,"-");
-    const dl = (name, content, type="text/plain")=>{
-      const blob = new Blob([content], {type});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
-    };
-
-    dl(`trusty_${stamp}.json`, JSON.stringify(data, null, 2), "application/json");
-    dl(`trusty_${stamp}.txt`, data.sentence + "\n");
   }
 
-  /* Share: Web Share API if available; fallback to mailto */
-  async function shareIt(){
-    const text = $("#sentence").textContent.trim();
-    const title = L("Trusty: partial trust declaration", "Trusty: declaración de confianza parcial");
-    if(navigator.share){
-      try{
-        await navigator.share({title, text});
-        return;
-      }catch(e){/* fall through */}
+  /* shared escapers — used by BOTH xml and html exporters */
+  const tEsc     = s => String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+  const tEscAttr = s => tEsc(s).replace(/"/g, "&quot;");
+
+  function downloadBlob(content, mime, filename){
+    const blob = new Blob([content], { type:mime + ";charset=utf-8" });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  const trustyTitle = () => L("Trusty · partial trust declaration", "Trusty · declaración de confianza parcial");
+
+  /* Bilingual section labels for the human-facing formats (active language). */
+  function modelSections(d){
+    const secs = [];
+    if(d.you || d.relationship || d.context){
+      const items = [];
+      if(d.you) items.push(L("With", "Con") + ": " + d.you + (d.relationship ? " (" + d.relationship + ")" : ""));
+      if(d.context) items.push(L("Context", "Contexto") + ": " + d.context);
+      secs.push({ label:L("Who", "Quién"), items });
     }
+    if(d.scopes.length){
+      secs.push({ label:L("Scopes", "Ámbitos"), items:d.scopes.map(s => {
+        const win = s.undefinedWindow ? L("open-ended", "sin plazo")
+                  : [s.fromDate, s.toDate].filter(Boolean).join(" → ");
+        return `${s.label} · ${s.confidence}%${win ? " · " + win : ""}${s.note ? " — " + s.note : ""}`;
+      })});
+    }
+    const conds = [];
+    if(d.conditions.limit)    conds.push(L("Limit", "Límite") + ": " + d.conditions.limit);
+    if(d.conditions.checkin)  conds.push(L("Check-in", "Revisión") + ": " + d.conditions.checkin);
+    if(d.conditions.fallback) conds.push(L("Fallback", "Plan B") + ": " + d.conditions.fallback);
+    if(d.conditions.pledge)   conds.push(L("Mutual pledge", "Compromiso mutuo") + ": " + d.conditions.pledge);
+    if(conds.length) secs.push({ label:L("Conditions", "Condiciones"), items:conds });
+    if(d.signals.length){
+      secs.push({ label:L("Signals", "Señales"), items:d.signals.map(s =>
+        s.label + (s.note ? " — " + s.note : ""))});
+    }
+    return secs;
+  }
+
+  // ---- Markdown ----
+  function summaryMd(d){
+    const lines = [`# ✺ ${trustyTitle()}`, "", d.sentence, ""];
+    modelSections(d).forEach(sec => {
+      lines.push(`## ${sec.label}`);
+      sec.items.forEach(it => lines.push(`- ${it}`));
+      lines.push("");
+    });
+    return lines.join("\n").trim() + "\n";
+  }
+
+  // ---- JSON (round-trips collectData) ----
+  function summaryJson(d){ return JSON.stringify(d, null, 2); }
+
+  // ---- XML (well-formed, every value escaped) ----
+  function summaryXml(d){
+    const secs = modelSections(d).map(sec => {
+      const items = sec.items.map(it => `    <item>${tEsc(it)}</item>`).join("\n");
+      return `  <section label="${tEscAttr(sec.label)}">\n${items}\n  </section>`;
+    }).join("\n");
+    return `<?xml version="1.0" encoding="UTF-8"?>\n`
+      + `<declaration app="trusty">\n`
+      + `  <sentence>${tEsc(d.sentence)}</sentence>\n`
+      + (secs ? secs + "\n" : "")
+      + `</declaration>`;
+  }
+
+  // ---- CSV (RFC-4180) ----
+  function summaryCsv(d){
+    const q = v => { const s = String(v ?? ""); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+    const lines = ["section,item"];
+    modelSections(d).forEach(sec => {
+      sec.items.forEach(it => lines.push([sec.label, it].map(q).join(",")));
+    });
+    return lines.join("\r\n");
+  }
+
+  // ---- HTML (standalone, self-styled) ----
+  function summaryHtml(d){
+    const ACC = "#5a8f7b", DEEP = "#3f6e5c", PAPER = "#fffaf2", INK = "#2a2620";
+    const cards = modelSections(d).map(sec =>
+      `<div class="card"><div class="lbl">${tEsc(sec.label)}</div>`
+      + (sec.items.length ? `<ul>${sec.items.map(it => `<li>${tEsc(it)}</li>`).join("")}</ul>` : "")
+      + `</div>`
+    ).join("");
+    const css = `
+      *{box-sizing:border-box}
+      body{margin:0;min-height:100vh;padding:40px 18px;font-family:'Inter',system-ui,Segoe UI,sans-serif;
+        background:linear-gradient(180deg,#eef6ea,${PAPER});color:${INK};display:flex;justify-content:center}
+      .frame{max-width:720px;width:100%;padding:14px;border-radius:28px;
+        background:linear-gradient(135deg,${ACC},${DEEP});box-shadow:0 24px 60px rgba(63,110,92,.28)}
+      .mat{background:${PAPER};border-radius:20px;padding:26px 24px}
+      h1{font-family:Georgia,serif;text-align:center;font-size:1.7rem;margin:0 0 .8rem;color:${DEEP}}
+      .phrase{font-style:italic;font-size:1.05rem;line-height:1.6;padding:1rem 1.1rem;margin:0 0 1.2rem;
+        border:1px dashed ${ACC};border-radius:14px;background:rgba(255,255,255,.7)}
+      .card{border-left:4px solid ${ACC};background:rgba(90,143,123,.06);border-radius:12px;
+        padding:.7rem .9rem;margin:.5rem 0}
+      .lbl{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:${DEEP};margin-bottom:.25rem}
+      ul{list-style:none;padding:0;margin:0;font-size:.92rem}
+      li{padding:.06rem 0;line-height:1.4}
+      li::before{content:'· ';color:${ACC}}
+    `;
+    return `<!doctype html><html lang="${tEscAttr(curLang())}"><head><meta charset="utf-8">`
+      + `<meta name="viewport" content="width=device-width,initial-scale=1">`
+      + `<title>✺ ${tEsc(trustyTitle())}</title><style>${css}</style></head>`
+      + `<body><div class="frame"><div class="mat">`
+      + `<h1>✺ ${tEsc(trustyTitle())}</h1>`
+      + `<p class="phrase">${tEsc(d.sentence)}</p>`
+      + cards
+      + `</div></div></body></html>`;
+  }
+
+  // ---- JPG (canvas, visual-only, ≥1080px wide, … truncation) ----
+  function downloadSummaryJpg(d){
+    const W = 1200, PAD = 56, lineH = 30, gap = 18, titleH = 80;
+    const secs = modelSections(d);
+    let bodyH = titleH + 70;
+    secs.forEach(sec => { bodyH += 34 + sec.items.length * lineH + gap; });
+    const H = Math.max(700, bodyH + PAD * 2);
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, "#eef6ea"); grad.addColorStop(1, "#fffaf2");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    const fit = (s, max) => { s = String(s||""); return s.length > max ? s.slice(0, max - 1) + "…" : s; };
+    ctx.fillStyle = "#3f6e5c";
+    ctx.font = "600 38px Georgia, serif";
+    ctx.fillText("✺ " + trustyTitle(), PAD, PAD + 38);
+    ctx.fillStyle = "#2a2620";
+    ctx.font = "italic 22px Inter, system-ui, sans-serif";
+    ctx.fillText(fit(d.sentence, 90), PAD, PAD + titleH + 30);
+    let y = PAD + titleH + 90;
+    secs.forEach(sec => {
+      ctx.fillStyle = "#5a8f7b";
+      ctx.font = "600 18px Inter, system-ui, sans-serif";
+      ctx.fillText(fit(sec.label, 70).toUpperCase(), PAD, y);
+      y += 30;
+      ctx.fillStyle = "#2a2620";
+      ctx.font = "18px Inter, system-ui, sans-serif";
+      sec.items.forEach(it => { ctx.fillText("· " + fit(it, 80), PAD + 16, y); y += lineH; });
+      y += gap;
+    });
+    canvas.toBlob(blob => {
+      if(!blob){ showToast(L("JPG export failed", "Error al exportar JPG")); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "trusty-" + (curLang()==="es"?"resumen":"summary") + ".jpg";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }, "image/jpeg", 0.92);
+  }
+
+  /* Export one chosen format. */
+  function exportAs(fmt){
+    const d = collectData();
+    if(!d.sentence){ showToast(L("Nothing to save yet", "Aún no hay nada que guardar")); return; }
+    const base = "trusty-" + (curLang()==="es"?"resumen":"summary") + ".";
+    if(fmt === "md")        downloadBlob(summaryMd(d),   "text/markdown",   base + "md");
+    else if(fmt === "json") downloadBlob(summaryJson(d), "application/json", base + "json");
+    else if(fmt === "xml")  downloadBlob(summaryXml(d),  "application/xml",  base + "xml");
+    else if(fmt === "html") downloadBlob(summaryHtml(d), "text/html",        base + "html");
+    else if(fmt === "csv")  downloadBlob(summaryCsv(d),  "text/csv",         base + "csv");
+    else if(fmt === "txt")  downloadBlob(d.sentence + "\n", "text/plain",    base + "txt");
+    else if(fmt === "jpg")  { downloadSummaryJpg(d); return; }
+    showToast(L("Saved · ", "Guardado · ") + fmt.toUpperCase());
+  }
+
+  /* ---- Import a previously-saved trusty JSON (accepts legacy `evidence`) ---- */
+  function importData(d){
+    const set = (sel, val) => { const el = $(sel); if(el && val != null) el.value = val; };
+    set("#youName", d.you);
+    if(d.relationship || d.context){
+      // reveal the relationship + context fields if present
+      const addBtn = $("#addFieldsBtn"), fields = $("#extraFields");
+      if(fields?.hasAttribute("hidden") && addBtn){ addBtn.click(); }
+    }
+    set("#relationship", d.relationship);
+    set("#context", d.context);
+    set("#limit", d.conditions?.limit);
+    set("#checkin", d.conditions?.checkin);
+    set("#fallback", d.conditions?.fallback);
+    set("#pledge", d.conditions?.pledge);
+    // scopes
+    (d.scopes || []).forEach(s => {
+      const cb = document.querySelector(`.scope[value="${s.value}"]`);
+      if(cb && !cb.checked){ cb.checked = true; cb.dispatchEvent(new Event("change", {bubbles:true})); }
+      const panel = document.querySelector(`.scope-detail[data-scope="${s.value}"]`);
+      if(!panel) return;
+      const note = panel.querySelector(".chip-note");          if(note && s.note != null) note.value = s.note;
+      const conf = panel.querySelector(".scope-confidence");   if(conf && s.confidence != null){ conf.value = s.confidence; conf.dispatchEvent(new Event("input", {bubbles:true})); }
+      const pot  = panel.querySelector(".scope-potential-range"); if(pot && s.potential != null){ pot.value = s.potential; pot.dispatchEvent(new Event("input", {bubbles:true})); }
+      const undef = panel.querySelector(".scope-undef");        if(undef){ undef.checked = !!s.undefinedWindow; undef.dispatchEvent(new Event("change", {bubbles:true})); }
+      const from = panel.querySelector(".scope-from");          if(from && s.fromDate) from.value = s.fromDate;
+      const to   = panel.querySelector(".scope-to");            if(to && s.toDate) to.value = s.toDate;
+    });
+    // signals — accept new `signals` key OR legacy `evidence`
+    const sigList = d.signals ?? d.evidence ?? [];
+    sigList.forEach(s => {
+      const cb = document.querySelector(`.signal[value="${s.value}"]`);
+      if(cb && !cb.checked){ cb.checked = true; cb.dispatchEvent(new Event("change", {bubbles:true})); }
+      const row = cb?.closest(".signal-row");
+      const note = row?.querySelector(".signal-note");
+      if(note && s.note != null){ note.value = s.note; note.dispatchEvent(new Event("input", {bubbles:true})); }
+    });
+    buildSentence();
+    showToast(L("Loaded saved declaration", "Declaración guardada cargada"));
+  }
+
+  /* Share: file + summary via Web Share API → text-only → mailto. */
+  async function shareIt(){
+    const d = collectData();
+    const text = (d.sentence || "").trim();
+    const title = L("Trusty: partial trust declaration", "Trusty: declaración de confianza parcial");
+    if(!text){ showToast(L("Nothing to share yet", "Nada que compartir aún")); return; }
+    // 1) file + text share
+    try{
+      const file = new File([summaryHtml(d)], "trusty-" + (curLang()==="es"?"resumen":"summary") + ".html", { type:"text/html" });
+      if(navigator.canShare?.({ files:[file] })){
+        await navigator.share({ title, text, files:[file] });
+        return;
+      }
+    }catch(_){/* cancelled or unsupported → fall through */}
+    // 2) text-only share
+    try{
+      if(navigator.share){ await navigator.share({ title, text }); return; }
+    }catch(_){/* cancelled → fall through */}
+    // 3) mailto fallback
     const body = encodeURIComponent(text + L("\n\n— Sent from Trusty", "\n\n— Enviado desde Trusty"));
     window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${body}`;
   }
@@ -3020,7 +3291,39 @@
   function publishIt(){ window.print(); }
 
   function bindActions(){
-    $("#btnSave").addEventListener("click", saveFile);
+    const saveBtn  = $("#btnSave");
+    const saveMenu = $("#saveMenu");
+    const openFile = $("#openFile");
+
+    const closeSaveMenu = () => {
+      saveMenu.hidden = true;
+      saveBtn.setAttribute("aria-expanded", "false");
+    };
+    saveBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const open = !saveMenu.hidden;
+      if(open){ closeSaveMenu(); }
+      else{ saveMenu.hidden = false; saveBtn.setAttribute("aria-expanded", "true"); }
+    });
+    saveMenu.querySelectorAll(".save-item[data-fmt]").forEach(b => {
+      b.addEventListener("click", ()=>{ exportAs(b.dataset.fmt); closeSaveMenu(); });
+    });
+    $("#btnOpen").addEventListener("click", ()=>{ closeSaveMenu(); openFile.click(); });
+    openFile.addEventListener("change", ()=>{
+      const f = openFile.files?.[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{ importData(JSON.parse(reader.result)); }
+        catch(_){ showToast(L("Couldn't read that file", "No se pudo leer ese archivo")); }
+        openFile.value = "";
+      };
+      reader.readAsText(f);
+    });
+    document.addEventListener("click", (e)=>{
+      if(!e.target.closest(".save-wrap")) closeSaveMenu();
+    });
+
     $("#btnShare").addEventListener("click", shareIt);
     $("#btnPublish").addEventListener("click", publishIt);
   }

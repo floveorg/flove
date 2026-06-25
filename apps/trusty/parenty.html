@@ -1061,6 +1061,11 @@ body:has(#lang-es:checked) .es{display:inline}
 <div class="topmenu" id="topmenu" hidden role="menu" aria-labelledby="topmenuBtn">
   <button type="button" class="topmenu__item" data-act="reset"   role="menuitem">⟲ <span class="en" lang="en">Reset all</span><span class="es" lang="es">Reiniciar todo</span></button>
   <button type="button" class="topmenu__item" data-act="export"  role="menuitem">📦 <span class="en" lang="en">Export JSON</span><span class="es" lang="es">Exportar JSON</span></button>
+  <button type="button" class="topmenu__item" data-act="md"      role="menuitem">📝 <span class="en" lang="en">Export Markdown</span><span class="es" lang="es">Exportar Markdown</span></button>
+  <button type="button" class="topmenu__item" data-act="xml"     role="menuitem">🔖 <span class="en" lang="en">Export XML</span><span class="es" lang="es">Exportar XML</span></button>
+  <button type="button" class="topmenu__item" data-act="csv"     role="menuitem">📊 <span class="en" lang="en">Export CSV</span><span class="es" lang="es">Exportar CSV</span></button>
+  <button type="button" class="topmenu__item" data-act="html"    role="menuitem">🌐 <span class="en" lang="en">Export HTML</span><span class="es" lang="es">Exportar HTML</span></button>
+  <button type="button" class="topmenu__item" data-act="jpg"     role="menuitem">🖼 <span class="en" lang="en">Export JPG</span><span class="es" lang="es">Exportar JPG</span></button>
   <button type="button" class="topmenu__item" data-act="import"  role="menuitem">📥 <span class="en" lang="en">Import JSON</span><span class="es" lang="es">Importar JSON</span></button>
   <div class="topmenu__sep" role="separator"></div>
   <button type="button" class="topmenu__item" data-act="print"   role="menuitem">🖨 <span class="en" lang="en">Print</span><span class="es" lang="es">Imprimir</span></button>
@@ -1648,21 +1653,103 @@ body:has(#lang-es:checked) .es{display:inline}
     return sentenceText() + (chips.length ? '\n\n' + t('notesHeading') + '\n• ' + chips.join('\n• ') : '');
   };
 
+  // ===== Export surface (§13.12) — every format serializes from collectState() =====
+  const L = (en, es) => (LANG() === 'es' ? es : en);
+  const esc     = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const escAttr = s => esc(s).replace(/"/g, '&quot;');
+  const mdEsc   = s => String(s == null ? '' : s).replace(/([\\`*_{}\[\]()#+\-!|])/g, '\\$1');
+  const csvQ    = v => { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  function downloadBlob(body, mime, filename){
+    const blob = new Blob([body], { type: mime });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  // Flat key/value list shared by csv / md / xml — same model the JSON export
+  // serializes, so every format round-trips the SAME items (parity).
+  function flatFields(){
+    const d = collectState();
+    const rows = [];
+    Object.keys(d).filter(k => k[0] !== '_').forEach(k => {
+      rows.push([k, Array.isArray(d[k]) ? d[k].join('; ') : String(d[k])]);
+    });
+    (d._notes || []).forEach(n => { if (n.chips && n.chips.length) rows.push(['note: ' + (n.section || ''), n.chips.join('; ')]); });
+    return rows;
+  }
+  const buildJSON = () => JSON.stringify(collectState(), null, 2);
+  function buildCSV(){
+    const rows = [['field', 'value']].concat(flatFields());
+    return rows.map(r => r.map(csvQ).join(',')).join('\r\n') + '\r\n';
+  }
+  function buildXML(){
+    let out = '<?xml version="1.0" encoding="UTF-8"?>\n<parenty>\n';
+    out += '  <phrase>' + esc(sentenceText()) + '</phrase>\n';
+    out += flatFields().map(([k, v]) => `  <field name="${escAttr(k)}">${esc(v)}</field>`).join('\n');
+    out += '\n</parenty>\n';
+    return out;
+  }
+  function buildMarkdown(){
+    let out = `# Parenty\n\n${sentenceText()}\n\n`;
+    out += `## ${L('Details', 'Detalles')}\n\n| ${L('field', 'campo')} | ${L('value', 'valor')} |\n| --- | --- |\n`;
+    out += flatFields().map(([k, v]) => `| ${mdEsc(k)} | ${mdEsc(v)} |`).join('\n') + '\n';
+    const chips = allChips();
+    if (chips.length) out += `\n## ${t('notesHeading')}\n\n` + chips.map(c => `- ${mdEsc(c)}`).join('\n') + '\n';
+    return out;
+  }
+  function buildHTML(){
+    const rows  = flatFields().map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('');
+    const chips = allChips();
+    const notes = chips.length ? `<h2>${esc(t('notesHeading'))}</h2><ul>${chips.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : '';
+    return `<!doctype html><html lang="${LANG()}"><head><meta charset="utf-8">`
+      + `<meta name="viewport" content="width=device-width,initial-scale=1"><title>Parenty</title>`
+      + `<style>body{font:15px/1.6 system-ui,sans-serif;max-width:680px;margin:2rem auto;padding:1rem;color:#1a0f08}`
+      + `h1{font-family:Georgia,serif;color:#ff6b3a}table{border-collapse:collapse;width:100%}`
+      + `th,td{border:1px solid #e7dccd;padding:.3rem .55rem;text-align:left}th{width:34%;color:#a06a48}</style></head>`
+      + `<body><h1>Parenty</h1><p>${esc(sentenceText())}</p><table>${rows}</table>${notes}</body></html>`;
+  }
+  function renderJPG(cb){
+    const W = 720, H = 560, canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff7ef'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ff6b3a'; ctx.font = '700 32px Georgia, serif';
+    ctx.fillText('Parenty', 24, 50);
+    ctx.fillStyle = '#1a0f08'; ctx.font = '500 15px system-ui';
+    const lines = [sentenceText()].concat(flatFields().map(([k, v]) => `${k}: ${v}`));
+    const maxRows = Math.floor((H - 110) / 24);
+    lines.slice(0, maxRows).forEach((ln, i) => ctx.fillText(ln.slice(0, 74), 24, 90 + i * 24));
+    if (lines.length > maxRows){
+      ctx.fillStyle = '#a0673a';
+      ctx.fillText(L(`… +${lines.length - maxRows} more`, `… +${lines.length - maxRows} más`), 24, 90 + maxRows * 24);
+    }
+    ctx.fillStyle = 'rgba(255,107,58,.5)'; ctx.font = 'italic 12px system-ui';
+    ctx.fillText('flove · parenty', 24, H - 20);
+    canvas.toBlob(cb, 'image/jpeg', 0.92);
+  }
+  // Web Share API: summary text + standalone HTML file, guarded by canShare({files}).
+  async function shareToDevice(){
+    const text = fullText();
+    if (navigator.share){
+      try {
+        const file = new File([buildHTML()], 'parenty.html', { type: 'text/html' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ title: t('shareTitle'), text, files: [file] });
+        else await navigator.share({ title: t('shareTitle'), text, url: location.href });
+        return;
+      } catch (err) { if (err && err.name === 'AbortError') return; }
+    }
+    navigator.clipboard?.writeText(text).then(() => flash(t('copiedShare')));
+  }
+
   document.getElementById('btnCopy').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(fullText()); flash(t('copied')); }
     catch(_) { flash(t('copyFail')); }
   });
-  document.getElementById('btnShare').addEventListener('click', () => {
-    const text = fullText();
-    if (navigator.share) navigator.share({ title:t('shareTitle'), text }).catch(()=>{});
-    else navigator.clipboard?.writeText(text).then(() => flash(t('copiedShare')));
-  });
+  document.getElementById('btnShare').addEventListener('click', shareToDevice);
   document.getElementById('btnPublish').addEventListener('click', () => window.print());
   document.getElementById('btnSave').addEventListener('click', () => {
-    const blob = new Blob([fullText()], {type:'text/plain'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'parenty.txt';
-    document.body.appendChild(a); a.click(); a.remove();
+    downloadBlob(fullText(), 'text/plain;charset=utf-8', 'parenty.txt');
     flash(t('savedTxt'));
   });
   document.getElementById('btnInsight').addEventListener('click', () => {
@@ -1753,11 +1840,22 @@ body:has(#lang-es:checked) .es{display:inline}
         updateScene();
         phrase(); flash(t('reset'));
       } else if (act === 'export') {
-        const blob = new Blob([JSON.stringify(collectState(), null, 2)], {type:'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = 'parenty.json';
-        document.body.appendChild(a); a.click(); a.remove();
+        downloadBlob(buildJSON(), 'application/json;charset=utf-8', 'parenty.json');
         flash(t('exported'));
+      } else if (act === 'md') {
+        downloadBlob(buildMarkdown(), 'text/markdown;charset=utf-8', 'parenty.md');
+        flash(t('exported'));
+      } else if (act === 'xml') {
+        downloadBlob(buildXML(), 'application/xml;charset=utf-8', 'parenty.xml');
+        flash(t('exported'));
+      } else if (act === 'csv') {
+        downloadBlob(buildCSV(), 'text/csv;charset=utf-8', 'parenty.csv');
+        flash(t('exported'));
+      } else if (act === 'html') {
+        downloadBlob(buildHTML(), 'text/html;charset=utf-8', 'parenty.html');
+        flash(t('exported'));
+      } else if (act === 'jpg') {
+        renderJPG(b => { if (b){ downloadBlob(b, 'image/jpeg', 'parenty.jpg'); flash(t('exported')); } else flash(t('importFail')); });
       } else if (act === 'import') {
         importFile.click();
       } else if (act === 'print') {

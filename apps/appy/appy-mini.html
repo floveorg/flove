@@ -190,7 +190,7 @@ body{
 .top-bar-dropdown{
   position:absolute; top:calc(100% + .55rem); left:0;
   min-width:140px; border-radius:12px;
-  background:rgba(250,250,253,24,.97);
+  background:rgba(250,250,253,.97);
   border:1px solid rgba(141,137,255,.25);
   box-shadow:0 8px 32px -6px rgba(0,0,0,.6), 0 0 18px -6px rgba(141,137,255,.18);
   padding:.35rem;
@@ -1598,7 +1598,6 @@ body{
   .expandable-card:not(.open) .ec-body{ max-height:0; opacity:0; }
   .ec-chevron{ transition:none !important; }
   .btn:hover{ transform:none; }
-  .path-card:hover{ transform:none; }
   .tab-panel.active{ animation:none !important; }
   .top-bar,.candid,.tabs-wrap,.foot{ animation:none !important; opacity:1; }
   .about-reveal.open{ animation:none !important; }
@@ -1608,15 +1607,10 @@ body{
   .pbadge.LIVE::before{ animation:none !important; }
   .foot .dot{ animation:none !important; }
   .bee-mark .wing-left,.bee-mark .wing-right{ animation:none !important; }
-  .stage-detail-row{ transition:none !important; }
-  .stage-detail-row:not(.open){ max-height:0; opacity:0; }
-  .stage-detail-row.open{ max-height:320px; opacity:1; }
   .feat-feats-collapse{ transition:none !important; }
   .feat-rung-clickable:not(.feat-expanded) .feat-feats-collapse{ max-height:0; opacity:0; }
   .feat-rung-clickable.feat-expanded .feat-feats-collapse{ max-height:200px; opacity:1; }
-  .invite-credits-flash{ animation:none !important; }
   .feat-rung-clickable:hover{ transform:none; }
-  #stat-ways-panel{ transition:none !important; }
   .profile-card-expand{ transition:none !important; }
   .profile-card:not(.open) .profile-card-expand{ max-height:0; opacity:0; }
   .profile-card.open .profile-card-expand{ max-height:900px; opacity:1; }
@@ -1765,6 +1759,7 @@ body:has(#lang-es:checked) .es{display:inline}
 .flex-col{flex-direction:column}
 .flex-wrap{flex-wrap:wrap}
 .flex-none{flex:none}
+.flex-1{flex:1 1 0%}
 .grid-2{display:grid;grid-template-columns:1fr 1fr}
 .grid-5{display:grid;grid-template-columns:repeat(5,1fr)}
 .items-center{align-items:center}
@@ -2150,8 +2145,11 @@ body:has(#lang-es:checked) .es{display:inline}
           </div>
         </div>
 
-        <!-- Export profile — download everything added in this section as JSON -->
-        <button type="button" class="btn signal w-100 justify-center mt-12 pad-btn-lg fz-80" onclick="exportProfile()"><span class="en" lang="en">⤓ Export profile · JSON</span><span class="es" lang="es">⤓ Exportar perfil · JSON</span></button>
+        <!-- Data out — Get settings (settings JSON · publish standards deferred) left of Export profile -->
+        <div class="d-flex gap-9 mt-12">
+          <button type="button" class="btn ghost flex-none justify-center pad-btn-sm fz-62" onclick="getSettings()" aria-label="Download settings JSON" data-aria-en="Download settings JSON" data-aria-es="Descargar ajustes JSON"><span class="en" lang="en">⚙ Settings</span><span class="es" lang="es">⚙ Ajustes</span></button>
+          <button type="button" class="btn signal flex-1 justify-center pad-btn-lg fz-80" onclick="exportProfile()"><span class="en" lang="en">⤓ Export profile · JSON</span><span class="es" lang="es">⤓ Exportar perfil · JSON</span></button>
+        </div>
         <div id="export-profile-msg" class="mt-4 fz-60 muted text-center" aria-live="polite"></div>
 
       </div>
@@ -2927,6 +2925,31 @@ function downloadBlob(body, mime, filename){
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Get settings — download the user's preferences/config as JSON.
+// Settings-only sibling of exportProfile(); the full publish/share standards are deferred.
+function getSettings(){
+  const esEl = document.getElementById('lang-es');
+  const model = {
+    kind: 'flove-settings',
+    version: 1,
+    exported: new Date().toISOString(),
+    handle: state.handle,
+    language: (esEl && esEl.checked) ? 'es' : 'en',
+    presence: state.activity,
+    chatEphemeral: state.chatEphemeral,
+    visibility: Object.assign({}, state.permissions),
+    resources: Object.assign({}, state.resources),
+    resourcePreset: state.resourcePreset,
+    curatorMode: state.curatorMode,
+  };
+  const json  = JSON.stringify(model, null, 2);
+  const slug  = (state.handle || 'profile').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const fname = slug + '-settings.json';
+  downloadBlob(json, 'application/json;charset=utf-8', fname);
+  const msg = document.getElementById('export-profile-msg');
+  if (msg) msg.textContent = 'Saved ' + fname + ' · ' + json.length + ' bytes ✓';
 }
 
 // Export profile — serialise everything added in the Profile section to JSON
@@ -4090,12 +4113,8 @@ function render() {
     if (tog2 && tog2 !== tog) tog2.classList.toggle('on', state.linkedIdentities.includes(id));
   });
 
-  // Trust tab — rings
+  // Trust tab — rings (facet ⭐ totals are rendered by renderRingCircles above)
   updateRings();
-  document.getElementById('tr-p').textContent = state.facets.personal;
-  document.getElementById('tr-l').textContent = state.facets.local;
-  document.getElementById('tr-s').textContent = state.facets.social;
-  document.getElementById('tr-g').textContent = state.facets.global;
 
   // Extend profile — 5-bar identity scale + open step's form + saved entries
   renderIdentityScale();

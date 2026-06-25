@@ -1233,6 +1233,50 @@
     .phrase-panel.is-expanded .phrase-title::after {
       transform: translateY(-58%) rotate(90deg);
     }
+
+    /* ── ✦ F0 §13.9 — Reset (left) · 📄 Summary (center) · Update (right) ── */
+    .phrase-title { justify-content: space-between; gap: .6rem; }
+    .phrase-title .summary-toggle { flex: 1 1 auto; text-align: center; }
+    .reset-wrap--title, .update-wrap--title {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+    }
+    .reset-wrap--title { justify-content: flex-start; }
+    .update-wrap--title { justify-content: flex-end; padding-right: 1.4rem; }
+    .f0-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid #b0a78a;
+      background: transparent;
+      color: #6a5e44;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: .02em;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .f0-btn:hover { border-color: var(--app-accent); color: var(--app-accent); }
+    .f0-btn:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 2px; }
+    .stale-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--app-accent);
+      box-shadow: 0 0 0 3px rgba(184,138,74,.25);
+      vertical-align: middle;
+    }
+    .stale-dot[hidden] { display: none; }
+    @media (max-width: 600px) {
+      .phrase-title .summary-toggle { order: -1; flex-basis: 100%; }
+      .update-wrap--title { padding-right: 0; }
+    }
+
     .phrase-actions {
       display: flex;
       flex-direction: column;
@@ -1769,10 +1813,14 @@
     </div>
   </section>
 
-  <!-- RESUME PANEL (wavy border) -->
+  <!-- SUMMARY PANEL (wavy border) -->
   <section class="phrase-panel" id="phrasePanel">
+    <!-- ✦ F0 §13.9 — Reset (left) · 📄 Summary toggle (center) · Update (right) title row.
+         The Reset/Update controls stopPropagation so they never trigger the panel collapse. -->
     <div class="phrase-title">
-      <span>📄 <span class="en" lang="en">Summary</span><span class="es" lang="es">Resumen</span></span>
+      <span class="reset-wrap reset-wrap--title"><button class="f0-btn reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button></span>
+      <span class="summary-toggle">📄 <span class="en" lang="en">Summary</span><span class="es" lang="es">Resumen</span></span>
+      <span class="update-wrap update-wrap--title"><button class="f0-btn update-btn" type="button" data-flove-update><span class="en" lang="en">Update</span><span class="es" lang="es">Actualizar</span> <span class="stale-dot" hidden role="img" aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button></span>
     </div>
 
     <!-- Magic output (combined phrase) -->
@@ -1952,28 +2000,38 @@
       docsSaveBtn.addEventListener('click', () => {
         if(!pendingFile) return;
         const note = docsInput.value.trim();
-        const row = document.createElement('div');
-        row.className = 'upload-attachment';
-        row.innerHTML = `
-          <span>📄</span>
-          <span class="upload-attachment-name"></span>
-          <span class="upload-attachment-text"></span>
-          <button type="button" class="upload-attachment-del" data-aria-en="Remove" data-aria-es="Quitar">✕</button>`;
-        row.querySelector('.upload-attachment-del').setAttribute('aria-label', T({en:'Remove', es:'Quitar'}));
-        row.querySelector('.upload-attachment-name').textContent = pendingFile.name;
-        if(note) row.querySelector('.upload-attachment-text').textContent = '— ' + note;
-        row.querySelector('.upload-attachment-del').addEventListener('click', () => {
-          row.remove();
-          updatePhrasePanel();
-        });
-        docsAttachList.appendChild(row);
+        addAttachmentRow(pendingFile.name, note);
         // free the field for the next upload
         docsInput.value = '';
         pendingFile = null;
         docsFileInput.value = '';
         docsSaveBtn.hidden = true;
         updatePhrasePanel();
+        markEdited();
       });
+    }
+
+    // Build one attachment row (shared by the Save handler and F0 hydration).
+    // markEditedOnDelete=true wires the delete button to persist; false (during
+    // hydration) leaves persistence to the caller so we don't re-write mid-load.
+    function addAttachmentRow(name, note, markEditedOnDelete) {
+      if(!docsAttachList) return;
+      const row = document.createElement('div');
+      row.className = 'upload-attachment';
+      row.innerHTML = `
+        <span>📄</span>
+        <span class="upload-attachment-name"></span>
+        <span class="upload-attachment-text"></span>
+        <button type="button" class="upload-attachment-del" data-aria-en="Remove" data-aria-es="Quitar">✕</button>`;
+      row.querySelector('.upload-attachment-del').setAttribute('aria-label', T({en:'Remove', es:'Quitar'}));
+      row.querySelector('.upload-attachment-name').textContent = name;
+      if(note) row.querySelector('.upload-attachment-text').textContent = '— ' + note;
+      row.querySelector('.upload-attachment-del').addEventListener('click', () => {
+        row.remove();
+        updatePhrasePanel();
+        if(markEditedOnDelete !== false) markEdited();
+      });
+      docsAttachList.appendChild(row);
     }
 
     // ---------- VOICE RECORDING ----------
@@ -2024,6 +2082,7 @@
           }
         }
         updatePhrasePanel();
+        markEdited();
       };
 
       recognition.onerror = () => stopCurrentRecognition();
@@ -2167,13 +2226,136 @@
       return div.innerHTML;
     }
 
-    // listener actualización
+    // listener actualización — live summary + F0 persistence (persist + stale-dot)
     document.querySelectorAll('input, textarea, select').forEach(el => {
-      el.addEventListener('input', updatePhrasePanel);
+      // skip the worldball language radios: switching language is not an edit
+      if(el.name === 'lang') return;
+      el.addEventListener('input', () => { updatePhrasePanel(); markEdited(); });
+      // SELECT fires 'change' not 'input' in some engines — cover both
+      if(el.tagName === 'SELECT') el.addEventListener('change', () => { updatePhrasePanel(); markEdited(); });
     });
 
-    // inicializar tabla
+    // ====================================================================
+    // ✦ F0 §10.3a · persistence trio — Persist · Re-derive on load · Update/Reset
+    // DieSafe is DOM-controlled: the form fields ARE the state. We serialize
+    // every field value (by id) plus the saved document attachments, hydrate
+    // them back on load (storage wins), and expose Update (clear stale) + Reset
+    // (confirm-guarded wipe of ONLY flove:diesafe:* — never localStorage.clear()).
+    // ====================================================================
+    const STORE_KEY = 'flove:diesafe:items';
+    const VER_KEY   = 'flove:diesafe:v';
+    const SCHEMA    = 1;
+    const OWN_KEYS  = [STORE_KEY, VER_KEY];
+    let _hydrating  = false;   // guard: don't persist while writing values back in
+    let _quotaWarned = false;
+
+    function collectState() {
+      const fields = {};
+      getAllTextFields().forEach(f => {
+        const v = (f.value || '').trim();
+        if(v) fields[f.id] = f.value;   // keep raw value (untrimmed) for fidelity
+      });
+      const attachments = [];
+      document.querySelectorAll('#docsAttachments .upload-attachment').forEach(att => {
+        const name = att.querySelector('.upload-attachment-name')?.textContent || '';
+        const note = (att.querySelector('.upload-attachment-text')?.textContent || '').replace(/^—\s*/, '');
+        if(name) attachments.push({ name, note });
+      });
+      return { fields, attachments };
+    }
+
+    function persistState() {
+      if(_hydrating) return;
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(collectState()));
+        localStorage.setItem(VER_KEY, String(SCHEMA));
+      } catch(err) {
+        const quota = err && (err.name === 'QuotaExceededError'
+          || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
+        if(!_quotaWarned) {
+          _quotaWarned = true;
+          setHint(quota
+            ? T({en:'⚠️ Local storage is full — use Save to export and keep your plan.',
+                 es:'⚠️ El almacenamiento local está lleno — usa Guardar para exportar y conservar tu plan.'})
+            : T({en:'⚠️ Could not save locally — use Save to keep your plan.',
+                 es:'⚠️ No se pudo guardar en local — usa Guardar para conservar tu plan.'}));
+        }
+      }
+    }
+
+    function markStale()  { document.querySelectorAll('.stale-dot').forEach(d => d.hidden = false); }
+    function clearStale() { document.querySelectorAll('.stale-dot').forEach(d => d.hidden = true); }
+
+    // one funnel for every real in-session edit: persist + light the stale dot
+    function markEdited() { persistState(); markStale(); }
+
+    function hydrateState() {
+      let raw = null;
+      try { raw = localStorage.getItem(STORE_KEY); } catch(_) { return; }
+      if(!raw) return;
+      let data;
+      try { data = JSON.parse(raw); } catch(_) { return; }   // corrupt → ignore
+      if(!data || typeof data !== 'object') return;
+      _hydrating = true;
+      try {
+        const fields = data.fields || {};
+        Object.keys(fields).forEach(id => {
+          const el = document.getElementById(id);
+          if(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+            el.value = fields[id];
+          }
+        });
+        if(Array.isArray(data.attachments)) {
+          data.attachments.forEach(a => { if(a && a.name) addAttachmentRow(a.name, a.note || '', false); });
+        }
+      } finally {
+        _hydrating = false;
+      }
+    }
+
+    // re-derive on load: storage wins, then refresh the live summary
+    hydrateState();
     updatePhrasePanel();
+    clearStale();   // a fresh hydrate is in-sync; no pending edits
+
+    // ── Update: re-derive the summary from current state, clear the stale dot ──
+    const updateBtn = document.querySelector('[data-flove-update]');
+    if(updateBtn) {
+      updateBtn.addEventListener('click', (e) => {
+        e.stopPropagation();   // don't toggle the collapsible panel
+        persistState();        // flush latest DOM into storage
+        updatePhrasePanel();   // re-derive summary from storage-backed DOM
+        clearStale();
+      });
+    }
+
+    // ── Reset: confirm-guarded wipe of in-DOM fields + ONLY flove:diesafe:* ──
+    const resetBtn = document.querySelector('[data-flove-reset]');
+    if(resetBtn) {
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();   // don't toggle the collapsible panel
+        const ok = window.confirm(T({
+          en:'Reset DieSafe? This clears every field and saved document on this device. This cannot be undone.',
+          es:'¿Reiniciar DieSafe? Esto borra todos los campos y documentos guardados en este dispositivo. No se puede deshacer.'}));
+        if(!ok) return;
+        // clear in-DOM selections
+        getAllTextFields().forEach(f => {
+          if(f.tagName === 'SELECT') f.selectedIndex = 0; else f.value = '';
+        });
+        if(docsAttachList) docsAttachList.innerHTML = '';
+        // clear ONLY our own keys (other flove apps share this origin)
+        try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_) {}
+        // re-derive an empty summary, collapse back to step 1, clear stale
+        if(magicActive) setMagicMode(false);
+        updatePhrasePanel();
+        clearStale();
+        if(phrasePanel) phrasePanel.classList.remove('is-expanded');
+        const titleEl = phrasePanel && phrasePanel.querySelector('.phrase-title');
+        if(titleEl) titleEl.setAttribute('aria-expanded', 'false');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setHint(T({en:'↺ Cleared — a fresh plan.', es:'↺ Borrado — un plan nuevo.'}));
+      });
+    }
 
     // ---------- TOGGLE MAGIC ----------
     function setMagicMode(active) {

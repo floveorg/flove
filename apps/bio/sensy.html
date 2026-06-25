@@ -120,6 +120,45 @@
   /* utility: spacing (replaces inline style) */
   .mt8{margin-top:8px}
 
+  /* ── ✦ F0 §13.9 — Reset (left) · ✦ Summary · Update (right) title row ── */
+  .summary-head{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:.6rem;margin:0 0 .6rem;flex-wrap:wrap;
+  }
+  .summary-head .summary-title{
+    flex:1 1 auto;margin:0;text-align:center;
+    font:700 1.1rem/1 FrauncesAlt, ui-serif, Georgia, serif;color:var(--brand);
+  }
+  .reset-wrap--title,.update-wrap--title{
+    display:flex;flex-direction:column;gap:.15rem;flex:0 0 auto;
+  }
+  .reset-wrap--title{align-items:flex-start}
+  .update-wrap--title{align-items:flex-end}
+  .reset-hint,.update-hint{
+    font-size:.68rem;line-height:1.15;color:var(--muted);opacity:.75;max-width:9rem;
+  }
+  .reset-hint{text-align:left}
+  .update-hint{text-align:right}
+  .ghost-btn{
+    display:inline-flex;align-items:center;gap:.3rem;
+    background:var(--fx);border:1px solid var(--stroke);color:var(--ink);
+    padding:.4rem .7rem;border-radius:12px;cursor:pointer;
+    font:600 .8rem/1 system-ui,Roboto,Arial,sans-serif;letter-spacing:.02em;
+    transition:border-color .18s ease, transform .14s ease;
+  }
+  .ghost-btn:hover{border-color:#34345a;transform:translateY(-1px)}
+  .ghost-btn:focus-visible{outline:2px solid #3aa9ff;outline-offset:2px}
+  /* out-of-date dot: hidden by default, an ~8px accent dot when shown */
+  .stale-dot{
+    display:inline-block;width:8px;height:8px;margin-left:.1rem;border-radius:50%;
+    background:var(--accent);vertical-align:middle;
+  }
+  .stale-dot[hidden]{display:none}
+  @media (max-width:559px){
+    .summary-head .summary-title{order:-1;flex-basis:100%}
+    .reset-hint,.update-hint{max-width:none}
+  }
+
   /* utility: visually hidden but accessible */
   .visually-hidden{
     position:absolute;width:1px;height:1px;padding:0;margin:-1px;
@@ -237,8 +276,13 @@
 
 
       <!-- ====== CONTINUOUS SUMMARY (no JS; with editable inserts) ====== -->
-      <section class="summary">
-        <h2><span class="en" lang="en">REVIEW MESSAGE</span><span class="es" lang="es">REVISAR MENSAJE</span></h2>
+      <section class="summary is-summary">
+        <!-- ✦ F0 §13.9 — Reset (left) · ✦ Summary · Update (right) title row -->
+        <header class="summary-head">
+          <span class="reset-wrap reset-wrap--title"><button class="ghost-btn reset-btn" type="button" data-flove-reset>↺ <span class="en" lang="en">Reset</span><span class="es" lang="es">Reiniciar</span></button><small class="reset-hint"><span class="en" lang="en">Clear all and start a new message</span><span class="es" lang="es">Borra todo y empieza un mensaje nuevo</span></small></span>
+          <h2 class="summary-title">✦ <span class="en" lang="en">Summary</span><span class="es" lang="es">Resumen</span></h2>
+          <span class="update-wrap update-wrap--title"><button class="ghost-btn update-btn" type="button" data-flove-update><span class="en" lang="en">Update</span><span class="es" lang="es">Actualizar</span> <span class="stale-dot" hidden role="img" aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button><small class="update-hint"><span class="en" lang="en">if you re-edited the form</span><span class="es" lang="es">si has reeditado el formulario</span></small></span>
+        </header>
 
         <p class="line">
           <span class="dim"></span>
@@ -314,6 +358,151 @@
       applyLang();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  })();
+  </script>
+
+  <script>
+  // ── F0 · local persistence + Update + Reset (backend_plan §10.3a/b · §13.9) ──
+  // sensy is a CSS-live app: the checkboxes/radios ARE the source of truth and the
+  // REVIEW MESSAGE summary repaints purely via CSS sibling selectors. So there is
+  // no frozen snapshot to go stale (like goddy). What was missing is durability:
+  // we persist on every edit and re-derive the form from storage on load
+  // (storage wins — never "first value wins"). Update re-reads storage into the
+  // DOM and clears the stale flag; Reset clears ONLY this app's own keys.
+  (function(){
+    "use strict";
+    const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+
+    const STORE_KEY = 'flove:sensy:items';
+    const VER_KEY   = 'flove:sensy:v';
+    const SCHEMA    = 1;
+
+    // The 18 option checkboxes that drive the summary (NOT the lang radios).
+    const CHECK_IDS = [
+      'intro_nomess',
+      'tgt_eyes','tgt_breast','tgt_nbreast','with_eyes','with_hand',
+      's_smell','s_taste','s_hear',
+      'inc_prev','inc_convo','inc_about','inc_comfy','inc_else','inc_trust',
+      'ann_please','ann_would','ann_why'
+    ];
+    // Free-text surfaces, persisted by document order.
+    const textareas = () => $$('form textarea');
+    const footNotes = () => $$('.summary .foot-note');
+
+    // ── snapshot the live DOM into a plain object ──────────────────
+    function snapshot(){
+      const checks = {};
+      CHECK_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) checks[id] = !!el.checked;
+      });
+      return {
+        checks,
+        texts: textareas().map(t => t.value),
+        notes: footNotes().map(n => n.textContent)
+      };
+    }
+
+    // ── persistence ────────────────────────────────────────────────
+    let quotaWarned = false;
+    function save(){
+      askPersist();
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
+        localStorage.setItem(VER_KEY, String(SCHEMA));
+      } catch (err) {
+        const quota = err && (err.name === 'QuotaExceededError'
+          || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
+        if (!quotaWarned && quota) { quotaWarned = true; /* never crash — silent best-effort */ }
+      }
+    }
+    function load(){
+      let raw = null;
+      try { raw = localStorage.getItem(STORE_KEY); } catch (_) { return null; }
+      if (!raw) return null;
+      try {
+        const obj = JSON.parse(raw);
+        return (obj && typeof obj === 'object') ? obj : null;
+      } catch (_) { return null; }   // corrupt → ignore
+    }
+    function hadSaved(){
+      try { return !!localStorage.getItem(STORE_KEY); } catch (_) { return false; }
+    }
+
+    // ── re-derive the DOM from a snapshot (storage wins on load) ────
+    function restore(obj){
+      if (!obj) return;
+      if (obj.checks){
+        CHECK_IDS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && typeof obj.checks[id] === 'boolean') el.checked = obj.checks[id];
+        });
+      }
+      if (Array.isArray(obj.texts)){
+        const ts = textareas();
+        obj.texts.forEach((v, i) => { if (ts[i] && typeof v === 'string') ts[i].value = v; });
+      }
+      if (Array.isArray(obj.notes)){
+        const ns = footNotes();
+        obj.notes.forEach((v, i) => { if (ns[i] && typeof v === 'string') ns[i].textContent = v; });
+      }
+    }
+
+    // ── durable storage request (once, best-effort) ────────────────
+    let persistAsked = false;
+    function askPersist(){
+      if (persistAsked) return; persistAsked = true;
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) {}
+    }
+
+    // ── stale-dot (§10.3a) — lights when an already-saved form is edited ──
+    function markStale(){  $$('.stale-dot').forEach(d => d.hidden = false); }
+    function clearStale(){ $$('.stale-dot').forEach(d => d.hidden = true); }
+
+    function onEdit(){
+      const wasSaved = hadSaved();
+      save();
+      if (wasSaved) markStale();   // edited an already-persisted message
+    }
+
+    // Hook the ACTUAL edit paths: checkbox toggles, textarea typing, note typing.
+    CHECK_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', onEdit);
+    });
+    textareas().forEach(t => t.addEventListener('input', onEdit));
+    footNotes().forEach(n => n.addEventListener('input', onEdit));
+
+    // ── F0 · Update — re-derive from storage, then drop the stale flag ──
+    const updateBtn = document.querySelector('[data-flove-update]');
+    if (updateBtn) updateBtn.addEventListener('click', () => {
+      askPersist();
+      restore(load());   // CSS repaints the summary automatically
+      clearStale();
+    });
+
+    // ── F0 · Reset — clear-my-data: empty ONLY sensy's own keys ─────────
+    function resetSensy(){
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.indexOf('flove:sensy:') === 0) localStorage.removeItem(k);
+        }
+      } catch (_) {}
+      CHECK_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+      textareas().forEach(t => { t.value = ''; });
+      footNotes().forEach(n => { n.textContent = ''; });
+      clearStale();   // CSS repaints the now-empty summary
+    }
+    const resetBtn = document.querySelector('[data-flove-reset]');
+    if (resetBtn) resetBtn.addEventListener('click', () => {
+      askPersist();
+      // DESTRUCTIVE → guard
+      if (confirm('Clear all and start a new message? / ¿Borrar todo y empezar un mensaje nuevo?')) resetSensy();
+    });
+
+    // ── on load: storage wins (re-derive), never first-value-wins ───────
+    restore(load());   // script at end of body → DOM ready
   })();
   </script>
 </body>

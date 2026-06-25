@@ -292,8 +292,6 @@
     }
 
     /* ── Summary line ── */
-    .summary-spacer{height:calc(2lh + 8px)}
-    @supports not (height: 1lh){ .summary-spacer{height:3rem} }
     .summary-line{
       margin-top:0;padding:.6rem .8rem;border-top:1px solid #2a2a3a;color:var(--muted)
     }
@@ -1071,8 +1069,6 @@
     // ── Locked Crumble: defaultly checked + static. Every attempt to
     //    toggle it amplifies the rain & button intensity instead. ──
     const crumbleCb  = document.getElementById('cb-crumble');
-    const crumbleBtn = document.querySelector('summary.node:has(#cb-crumble) .title') ||
-                       document.querySelector('summary.node .title');
     let crumbleTries = 0;
     function escalateCrumble(e){
       crumbleTries++;
@@ -1196,15 +1192,16 @@
       );
     }
 
+    const esc = s => (s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
     function buildFullHTML(){
       const d = getFormData();
-      const li = arr => arr.map(x => `<li>${(x||'').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</li>`).join('');
-      return `<!doctype html><html><head><meta charset="utf-8"><title>Crumbler · ${d.name||''}</title>
+      const li = arr => arr.map(x => `<li>${esc(x)}</li>`).join('');
+      return `<!doctype html><html><head><meta charset="utf-8"><title>Crumbler · ${esc(d.name)}</title>
 <style>body{background:#0b0b0f;color:#eaeaf0;font-family:system-ui;padding:24px;max-width:680px;margin:auto}
 h1{color:#00ff88;font-family:Georgia,serif} h2{color:#a0a3ad;font-size:.9rem;text-transform:uppercase;letter-spacing:.08em}
 ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
-<body><h1>Crumbler · ${d.name||'—'}</h1>
-<p>${summaryText().replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</p>
+<body><h1>Crumbler · ${esc(d.name) || '—'}</h1>
+<p>${esc(summaryText())}</p>
 <h2>${window.floveTx ? window.floveTx('Selected','Seleccionado') : 'Selected'}</h2><ul>${li(d.items)}</ul></body></html>`;
     }
 
@@ -1341,9 +1338,10 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
       e.stopPropagation(); fireRipple(magicBtn);
       // Clear and randomly select 3–6 checkboxes
       const all = [...document.querySelectorAll('#crumbleBlock input[type="checkbox"]')];
-      all.forEach(cb => { cb.checked = false; });
+      all.forEach(cb => { if (cb.id !== 'cb-crumble') cb.checked = false; });
+      const pool = all.filter(cb => cb.id !== 'cb-crumble');
       const target = 3 + Math.floor(Math.random() * 4);
-      const shuffled = all.slice().sort(() => Math.random() - 0.5).slice(0, target);
+      const shuffled = pool.slice().sort(() => Math.random() - 0.5).slice(0, target);
       shuffled.forEach(cb => {
         cb.checked = true;
         cb.dispatchEvent(new Event('change', { bubbles: true }));

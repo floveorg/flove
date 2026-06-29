@@ -1562,7 +1562,13 @@ body{
 .upload-head{ font-weight:700; font-size:.9rem; }
 .upload-sub{ font-weight:400; color:var(--muted); font-size:.74rem; }
 .upload-sub code, .played-empty code{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.72rem; background:var(--panel); padding:.05rem .3rem; border-radius:.25rem; }
-.rainbow-row{ display:flex; gap:2px; margin-top:.5rem; }
+.rainbow-row{ display:flex; gap:2px; margin-top:.5rem; align-items:flex-start; }
+/* each app is a cell so its multi-upload chip can sit directly below the button */
+.rb-cell{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:.22rem; }
+.rb-cell .rb{ flex:none; width:100%; }
+.rb-count{ display:none; font-family:"Space Mono",monospace; font-size:.5rem; font-weight:700; letter-spacing:.04em;
+  text-align:center; border:1px solid currentColor; border-radius:999px; padding:.08rem .25rem; line-height:1.25; opacity:.92; }
+.rb-count.show{ display:block; }
 .rb{ flex:1 1 0; min-width:0; aspect-ratio:1/1; border:none; border-radius:9px; cursor:pointer;
   background:var(--c); opacity:.5; color:#fff; font-weight:700; font-size:.62rem; line-height:1.1;
   display:flex; align-items:center; justify-content:center; text-align:center; padding:.25rem;
@@ -2084,13 +2090,13 @@ body:has(#lang-es:checked) .es{display:inline}
             <span class="en" lang="en">Upload summary here</span><span class="es" lang="es">Sube aquí un resumen</span>
           </button>
           <div class="rainbow-row d-none" role="group" aria-label="App upload buttons" data-aria-en="App upload buttons" data-aria-es="Botones para subir apps">
-            <button type="button" class="rb appc-goddy" data-app="Goddy"     onclick="pickApp('Goddy',this)">Goddy</button>
-            <button type="button" class="rb appc-souls" data-app="Souls"     onclick="pickApp('Souls',this)">Souls</button>
-            <button type="button" class="rb appc-pracsys" data-app="Pracsys"   onclick="pickApp('Pracsys',this)">Pracsys</button>
-            <button type="button" class="rb appc-myfamily" data-app="Myfamily"  onclick="pickApp('Myfamily',this)">Myfamily</button>
-            <button type="button" class="rb appc-inventary" data-app="Inventary" onclick="pickApp('Inventary',this)">Inventary</button>
-            <button type="button" class="rb appc-realy" data-app="Realy"     onclick="pickApp('Realy',this)">Realy</button>
-            <button type="button" class="rb appc-keys" data-app="Keys"      onclick="pickApp('Keys',this)">Keys</button>
+            <div class="rb-cell"><button type="button" class="rb appc-goddy" data-app="Goddy"     onclick="pickApp('Goddy',this)">Goddy</button><span class="rb-count" data-count="Goddy" aria-live="polite"></span></div>
+            <div class="rb-cell"><button type="button" class="rb appc-souls" data-app="Souls"     onclick="pickApp('Souls',this)">Souls</button><span class="rb-count" data-count="Souls" aria-live="polite"></span></div>
+            <div class="rb-cell"><button type="button" class="rb appc-pracsys" data-app="Pracsys"   onclick="pickApp('Pracsys',this)">Pracsys</button><span class="rb-count" data-count="Pracsys" aria-live="polite"></span></div>
+            <div class="rb-cell"><button type="button" class="rb appc-myfamily" data-app="Myfamily"  onclick="pickApp('Myfamily',this)">Myfamily</button><span class="rb-count" data-count="Myfamily" aria-live="polite"></span></div>
+            <div class="rb-cell"><button type="button" class="rb appc-inventary" data-app="Inventary" onclick="pickApp('Inventary',this)">Inventary</button><span class="rb-count" data-count="Inventary" aria-live="polite"></span></div>
+            <div class="rb-cell"><button type="button" class="rb appc-realy" data-app="Realy"     onclick="pickApp('Realy',this)">Realy</button><span class="rb-count" data-count="Realy" aria-live="polite"></span></div>
+            <div class="rb-cell"><button type="button" class="rb appc-keys" data-app="Keys"      onclick="pickApp('Keys',this)">Keys</button><span class="rb-count" data-count="Keys" aria-live="polite"></span></div>
           </div>
           <input type="file" id="app-file" accept=".json,application/json" hidden onchange="handleAppFile(this)" aria-hidden="true">
           <div class="upload-msg" id="upload-msg" role="status" aria-live="polite"></div>
@@ -4449,6 +4455,7 @@ switchTab('profile');
   const RAINBOW = {Goddy:'#e23b3b',Souls:'#ef7d1a',Pracsys:'#e3bb12',Myfamily:'#34b36b',Inventary:'#2f7fd6',Realy:'#5a4fd0',Keys:'#9b51e0'};
   const escHtml = s => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
   let pending = null;
+  const uploadCount = {};                  // app → times its summary has been uploaded (re-uploads allowed + counted)
 
   // Apps row: flash the tile, then open the app preview
   window.appJump = function(e, el){
@@ -4503,13 +4510,31 @@ switchTab('profile');
     }
     const ap = escHtml(app);
     const reader = new FileReader();
-    reader.onload = e => { addPlayedApp(app, file.name, e.target.result, btn);
+    reader.onload = e => {
+      const n = uploadCount[app] = (uploadCount[app] || 0) + 1;   // same app can be uploaded again
+      addPlayedApp(app, file.name, e.target.result, btn);
       awardPoints(30, 'social');                    // played app uploaded · +30
       refreshUploadUI();
-      msg.innerHTML = bx(ap + ' added to Played apps ✓', ap + ' añadido a Apps jugadas ✓'); msg.className = 'upload-msg ok'; if (window.applyLang) applyLang(); };
+      updateUploadChip(app, n);
+      msg.innerHTML = n > 1
+        ? bx(ap + ' re-uploaded ✓ · now ×' + n, ap + ' resubido ✓ · ahora ×' + n)
+        : bx(ap + ' added to Played apps ✓', ap + ' añadido a Apps jugadas ✓');
+      msg.className = 'upload-msg ok'; if (window.applyLang) applyLang(); };
     reader.onerror = () => { msg.innerHTML = bx('Could not read ' + fn + '.', 'No se pudo leer ' + fn + '.'); msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); };
     reader.readAsText(file);
   };
+
+  // multi-upload chip — once an app is uploaded more than once, show "×N" below its button
+  function updateUploadChip(app, n){
+    const chip = document.querySelector('.rb-count[data-count="' + app + '"]');
+    if (!chip || n < 2) return;
+    chip.textContent = '×' + n;
+    chip.style.color = RAINBOW[app] || '';
+    chip.classList.add('show');
+    const t = app + ' uploaded ' + n + ' times';
+    chip.setAttribute('title', t);
+    chip.setAttribute('aria-label', t);
+  }
 
   function addPlayedApp(app, fname, raw, btn){
     if (btn) btn.classList.add('played');                       // rainbow button → full colour

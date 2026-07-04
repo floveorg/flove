@@ -6822,6 +6822,7 @@ window.tKey = function tKey(k){
         if (typeof renderFpCombos === 'function') renderFpCombos();
       }
       if (typeof renderCounters === 'function') renderCounters();
+      if (typeof window.renderMoreInfo === 'function') window.renderMoreInfo();
     } catch (_e) {}
   }
   window.setLang = setLang;
@@ -7506,15 +7507,30 @@ window.tKey = function tKey(k){
     });
 
     // ── inline "More info": the about copy, revealed below (no modal) ──
+    // Bilingual: the box follows the active UI language and re-renders live when
+    // the worldball switches it (via window.renderMoreInfo, called from setLang).
     const moreBtn = $('#intro-more');
     const moreBox = $('#intro-more-box');
-    const ABOUT = { h:'ⓘ About keys',
-      body:['<b>keys</b> is a simple game for ordering ideas. You flip one, order its cards however you feel they should go, and (if you wish) record a short <em>why</em> behind that order.',
-            'The Keys belong to you: the order you choose and the reason you give become the artifact.',
-            'The more you tell your real views, the more you could learn about them with our tools at the end.',
-            'We designed it for you to enjoy it fully, so you have to be willing to take your time in the second and third stages of the <b>Master</b> mode (the one we recommend to do first, before playing it more normally).'] };
+    const ABOUT = {
+      en: { h:'ⓘ About keys',
+        body:['<b>keys</b> is a simple game for ordering ideas. You flip one, order its cards however you feel they should go, and (if you wish) record a short <em>why</em> behind that order.',
+              'The Keys belong to you: the order you choose and the reason you give become the artifact.',
+              'The more you tell your real views, the more you could learn about them with our tools at the end.',
+              'We designed it for you to enjoy it fully, so you have to be willing to take your time in the second and third stages of the <b>Master</b> mode (the one we recommend to do first, before playing it more normally).'] },
+      es: { h:'ⓘ Acerca de Claves',
+        body:['<b>Claves</b> es un juego sencillo para ordenar ideas. Volteas uno, ordenas sus cartas como sientas que deben ir y (si quieres) anotas un breve <em>porqué</em> detrás de ese orden.',
+              'Las Claves te pertenecen: el orden que eliges y la razón que das se convierten en el artefacto.',
+              'Cuanto más cuentes tu visión real, más podrás aprender sobre ella con nuestras herramientas al final.',
+              'Lo diseñamos para que lo disfrutes plenamente, así que has de estar dispuesto a tomarte tu tiempo en la segunda y la tercera etapa del modo <b>Maestro</b> (el que recomendamos hacer primero, antes de jugarlo de forma más normal).'] }
+    };
+    const aboutCopy = () => ABOUT[(window.I18N && window.I18N.lang === 'es') ? 'es' : 'en'];
     if (moreBtn && moreBox){
-      let built = false;
+      const build = () => {
+        const a = aboutCopy();
+        moreBox.innerHTML = `<h4>${a.h}</h4>` + a.body.map(p => `<p>${p}</p>`).join('');
+      };
+      // Called by setLang while the box is open so a live switch re-skins it.
+      window.renderMoreInfo = () => { if (!moreBox.hidden) build(); };
       moreBtn.addEventListener('click', () => {
         const open = moreBox.hidden;
         moreBox.hidden = !open;
@@ -7522,11 +7538,9 @@ window.tKey = function tKey(k){
         const ip = document.getElementById('intro-panda');   // hide the (celebrating) panda
         if (ip) ip.style.display = open ? 'none' : '';
         if (open){
-          if (!built){
-            moreBox.innerHTML = `<h4>${ABOUT.h}</h4>` + ABOUT.body.map(p => `<p>${p}</p>`).join('');
-            built = true;
-          }
-          speakIfListening([ABOUT.h, ...ABOUT.body].join('. '));
+          build();   // rebuild each open so it always matches the current language
+          const a = aboutCopy();
+          speakIfListening([a.h, ...a.body].join('. '));
         } else {
           stopSpeak();
         }

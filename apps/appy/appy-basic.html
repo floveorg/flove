@@ -4518,12 +4518,12 @@ switchTab('profile');
     f.value = '';
     f.click();
   };
-  // default = big button; once an app is played, show the rainbow bars instead
+  // big button stays available (accepts any *-summary.json); rainbow shortcuts appear once an app is played
   function refreshUploadUI(){
     const big = document.getElementById('upload-big');
     const row = document.querySelector('.rainbow-row');
     const has = document.querySelectorAll('#played-grid .app-card').length > 0;
-    if (big) big.style.display = has ? 'none' : '';
+    if (big) big.style.display = '';                 // always available — accepts any app
     if (row) row.style.display = has ? '' : 'none';
   }
 
@@ -4535,13 +4535,15 @@ switchTab('profile');
     const fn = escHtml(file.name);
     const matches = a => { const t = a.toLowerCase(); return base === t || base === t + '-summary' || base.startsWith(t); };
     let app = pending.name, btn = pending.btn;
-    if (app === '*'){                               // big button — detect the app from the filename
+    if (app === '*'){                               // big button — accept any *-summary.json
       app = Object.keys(RAINBOW).find(matches);
-      if (!app){
-        msg.innerHTML = bx('“' + fn + '” doesn’t match any app. Expected e.g. Goddy-summary.json.', '«' + fn + '» no coincide con ninguna app. Se esperaba p. ej. Goddy-summary.json.');
-        msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); return;
+      if (app){
+        btn = document.querySelector('.rb[data-app="' + app + '"]');
+      } else {
+        const m = base.replace(/-summary$/, '').replace(/[-_]+/g, ' ').trim();
+        if (!m){ msg.innerHTML = bx('“' + fn + '” isn’t a valid summary.', '«' + fn + '» no es un resumen válido.'); msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); return; }
+        app = m.replace(/\b\w/g, ch => ch.toUpperCase());
       }
-      btn = document.querySelector('.rb[data-app="' + app + '"]');
     } else if (!matches(app)){
       const ap0 = escHtml(app);
       msg.innerHTML = bx('“' + fn + '” doesn’t match ' + ap0 + '. Expected ' + ap0 + '-summary.json.', '«' + fn + '» no coincide con ' + ap0 + '. Se esperaba ' + ap0 + '-summary.json.');

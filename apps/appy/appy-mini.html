@@ -1628,6 +1628,13 @@ a.top-menu-item{ text-decoration:none; display:block; }
 /* Export row — "Export:" label + two buttons */
 .export-row{ display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
 .export-label{ font-weight:700; font-size:.78rem; letter-spacing:.02em; color:var(--ink); }
+.export-info-btn{ flex:none; width:1.55rem; height:1.55rem; border-radius:999px; border:1px solid var(--line); background:var(--card);
+  color:var(--muted); font-size:.9rem; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:color .16s, border-color .16s; }
+.export-info-btn:hover{ color:var(--accent); border-color:var(--accent); }
+.export-info-btn[aria-expanded="true"]{ color:var(--accent); border-color:var(--accent); }
+.export-info{ margin-top:.55rem; font-size:.68rem; line-height:1.55; color:var(--muted); border-left:2px solid var(--accent);
+  padding-left:.6rem; max-width:52ch; animation:reveal-up .28s cubic-bezier(.22,1,.36,1) both; }
+.export-info strong{ color:var(--ink); }
 .appbtn{ position:relative; overflow:hidden; flex:1 1 0; min-width:0; aspect-ratio:1/1; border-radius:9px; cursor:pointer;
   text-decoration:none; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.18rem;
   background:linear-gradient(150deg, color-mix(in srgb, var(--c) 82%, #fff), var(--c));
@@ -1643,6 +1650,9 @@ a.top-menu-item{ text-decoration:none; display:block; }
 .appbtn:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
 .appbtn.zap{ animation:appzap .24s ease; }
 @keyframes appzap{ 0%{ transform:scale(1); } 45%{ transform:scale(.88); } 100%{ transform:scale(1.1); } }
+/* Play-apps start slightly dimmed; a tile lights to full once its app is uploaded (played) below */
+#play-apps .appbtn{ opacity:.6; transition:opacity .3s ease, transform .18s cubic-bezier(.2,.9,.25,1), box-shadow .25s; }
+#play-apps .appbtn:hover, #play-apps .appbtn:focus-visible, #play-apps .appbtn.played{ opacity:1; }
 
 /* --- flashier Played cards + rainbow flash --- */
 .app-card{ position:relative; animation:cardpop .38s cubic-bezier(.2,.9,.25,1) both; }
@@ -2120,6 +2130,11 @@ body:has(#lang-es:checked) .es{display:inline}
           <span class="export-label"><span class="en" lang="en">Export:</span><span class="es" lang="es">Exportar:</span></span>
           <button type="button" class="btn signal pad-btn-lg fz-70" onclick="exportProfile()"><span class="en" lang="en">⤓ Played apps</span><span class="es" lang="es">⤓ Apps jugadas</span></button>
           <button type="button" class="btn ghost pad-btn-lg fz-70" onclick="getSettings()" aria-label="Download settings JSON" data-aria-en="Download settings JSON" data-aria-es="Descargar ajustes JSON"><span class="en" lang="en">⚙ Settings</span><span class="es" lang="es">⚙ Ajustes</span></button>
+          <button type="button" class="export-info-btn" id="export-info-btn" aria-expanded="false" aria-controls="export-info" onclick="toggleExportInfo(this)" title="About exporting" aria-label="About exporting" data-aria-en="About exporting" data-aria-es="Sobre la exportación">ⓘ</button>
+        </div>
+        <div class="export-info" id="export-info" role="region" aria-label="About exporting" data-aria-en="About exporting" data-aria-es="Sobre la exportación" hidden>
+          <span class="en" lang="en">You can export your full profile and played apps here, for later <strong>analyzing</strong> and <strong>networking</strong> of them — in a private way like now (i.e. wizy agent integration that consults external public and/or related databases), and/or in a more automatically networked and public way (see nety).</span>
+          <span class="es" lang="es">Puedes exportar aquí tu perfil completo y tus apps jugadas, para <strong>analizarlas</strong> y <strong>conectarlas</strong> más tarde — de forma privada como ahora (p. ej. la integración del agente wizy que consulta bases de datos externas públicas y/o relacionadas), y/o de una forma más automáticamente conectada y pública (ver nety).</span>
         </div>
         <div id="export-profile-msg" class="mt-4 fz-60 muted text-center" aria-live="polite"></div>
 
@@ -4507,18 +4522,18 @@ switchTab('profile');
     const reader = new FileReader();
     reader.onload = e => {
       const prev = uploadCount[app] || 0;
-      if (prev >= 5){                               // cap: at most 5 uploads of the same app
-        msg.innerHTML = bx(ap + ' already uploaded 5× — that’s the max.', ap + ' ya subido 5× — es el máximo.');
+      if (prev >= 10){                              // cap: at most 10 uploads of the same app
+        msg.innerHTML = bx(ap + ' already uploaded 10× — that’s the max.', ap + ' ya subido 10× — es el máximo.');
         msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); return;
       }
-      const n = uploadCount[app] = prev + 1;        // same app can be re-uploaded, up to 5
+      const n = uploadCount[app] = prev + 1;        // same app can be re-uploaded, up to 10
       addPlayedApp(app, file.name, e.target.result, btn);
       awardPoints(30, 'social');                    // played app uploaded · +30
       refreshUploadUI();
       updateUploadChip(app, n);
       updateCardCount(app, n);                       // note the amount on the played-apps card
       msg.innerHTML = n > 1
-        ? bx(ap + ' re-uploaded ✓ · now ×' + n + (n === 5 ? ' (max)' : ''), ap + ' resubido ✓ · ahora ×' + n + (n === 5 ? ' (máx)' : ''))
+        ? bx(ap + ' re-uploaded ✓ · now ×' + n + (n === 10 ? ' (max)' : ''), ap + ' resubido ✓ · ahora ×' + n + (n === 10 ? ' (máx)' : ''))
         : bx(ap + ' added to Played apps ✓', ap + ' añadido a Apps jugadas ✓');
       msg.className = 'upload-msg ok'; if (window.applyLang) applyLang(); };
     reader.onerror = () => { msg.innerHTML = bx('Could not read ' + fn + '.', 'No se pudo leer ' + fn + '.'); msg.className = 'upload-msg err'; if (window.applyLang) applyLang(); };
@@ -4553,6 +4568,8 @@ switchTab('profile');
 
   function addPlayedApp(app, fname, raw, btn){
     if (btn) btn.classList.add('played');                       // rainbow button → full colour
+    const playTile = document.querySelector('#play-apps .appbtn[data-app="' + app + '"]');
+    if (playTile) playTile.classList.add('played');             // Play-apps logo → full opacity once played
     const empty = document.getElementById('played-empty'); if (empty) empty.remove();
     const grid = document.getElementById('played-grid');
     let pretty;
@@ -4601,6 +4618,16 @@ switchTab('profile');
   window.addEventListener('storage', function(e){ if (window.floveAppy && e.key === floveAppy.KEY) ingestAppy(); });
   window.addEventListener('focus', ingestAppy);
 })();
+</script>
+<script>
+/* --- Export info toggle — reveal/hide the "about exporting" note under the Export row --- */
+window.toggleExportInfo = function(btn){
+  const panel = document.getElementById('export-info');
+  if (!panel) return;
+  const open = panel.hasAttribute('hidden');
+  if (open) panel.removeAttribute('hidden'); else panel.setAttribute('hidden', '');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+};
 </script>
 <script>
 /* --- user chips: played-app colour dots + click-through profile card --- */

@@ -23,9 +23,13 @@ mkdir -p "$TARGET"
 git archive --format=tar HEAD | tar -x -C "$TARGET"
 
 # Things that make no sense inside a downloaded local copy.
-rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" \
+rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/build-blog.sh" \
        "$TARGET/.gitignore" "$TARGET/.htmlvalidate.json" \
        "$TARGET/CNAME" "$TARGET/.nojekyll"
+
+# The blog (Hugo output /blog + its source blog-src/) is web-only — not bundled
+# into the offline download.
+rm -rf "$TARGET/blog" "$TARGET/blog-src"
 
 # ── Package-only launcher (generated, not tracked — keeps the served root clean).
 # start-flove.sh: self-locating local server that opens the language gate.

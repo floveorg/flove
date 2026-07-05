@@ -4,10 +4,10 @@
 #
 # Source of truth = the COMMITTED site (git archive HEAD), so the package is
 # exactly what flove.org serves: no .git, no CI config, no gitignored dev cruft.
-# The package-only launcher (START-FLOVE.sh) is NOT tracked in the repo — it's
-# GENERATED here and sits at the zip ROOT beside the flove/ folder, so the
-# unzipped download has just two things: START-FLOVE.sh (run this) and flove/.
-# Commit your site changes BEFORE running this, then commit flove.zip.
+# The package-only launchers (START-FLOVE-LINUX.sh / -MAC.command / -WINDOWS.bat)
+# are NOT tracked in the repo — they're GENERATED here and sit at the zip ROOT
+# beside the flove/ folder. The Linux script creates its own menu/Desktop icon on
+# first run (so no .desktop is shipped). Commit site changes BEFORE running this.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -42,18 +42,18 @@ if [ -f "$TARGET/launch.html" ]; then
   sed -i 's#/launch\.html#/START.html#g' "$TARGET/manifest.webmanifest" "$TARGET/sw.js" 2>/dev/null || true
 fi
 
-# ── Package-only launcher (generated, not tracked). Lives at the ZIP ROOT next to
-# flove/, so the unzipped folder shows just two things: START-FLOVE.sh (run this)
-# and flove/ (everything else). It serves the flove/ folder on localhost:8642 and
+# ── Package-only launchers (generated, not tracked), one per desktop OS, at the
+# ZIP ROOT next to flove/. Each serves the flove/ folder on localhost:8642 and
 # opens START.html. Needs python3 (preinstalled on Linux & macOS).
-cat > "$STAGE/START-FLOVE.sh" <<'SH'
+cat > "$STAGE/START-FLOVE-LINUX.sh" <<'SH'
 #!/usr/bin/env bash
-# START-FLOVE.sh — run this. Starts a local server for the flove/ folder beside
-# this script and opens flove/START.html at http://localhost:8642. Self-locating,
-# so it works wherever you unzip flove.zip.
+# START-FLOVE-LINUX.sh — run this. Serves the flove/ folder beside this script and
+# opens flove/START.html at http://localhost:8642. On first run it also drops a flove
+# icon into your applications menu (and Desktop), so next time you launch from there.
 set -uo pipefail
 
-HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+SELF="$(readlink -f "$0")"
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
 ROOT="$HERE/flove"                      # web root = the flove/ folder next to this script
 PORT=8642
 ENTRY="START.html"
@@ -61,6 +61,32 @@ URL="http://localhost:${PORT}/${ENTRY}"
 
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/${PORT}") 2>/dev/null; }
 opener() { xdg-open "$1" >/dev/null 2>&1 || open "$1" >/dev/null 2>&1 & }
+
+# Create a real menu/desktop icon that points back to this very script.
+make_icon() {
+  local apps="$HOME/.local/share/applications"
+  mkdir -p "$apps" 2>/dev/null || return 0
+  cat > "$apps/flove-localhost.desktop" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=flove (localhost)
+Comment=Serve flove on localhost and open it
+Exec="$SELF"
+Icon=$ROOT/images/flove-icon.svg
+Terminal=false
+StartupNotify=true
+Categories=Network;
+EOF
+  chmod +x "$apps/flove-localhost.desktop" 2>/dev/null || true
+  update-desktop-database "$apps" >/dev/null 2>&1 || true
+  if [ -d "$HOME/Desktop" ]; then
+    cp "$apps/flove-localhost.desktop" "$HOME/Desktop/" 2>/dev/null || true
+    chmod +x "$HOME/Desktop/flove-localhost.desktop" 2>/dev/null || true
+    gio set "$HOME/Desktop/flove-localhost.desktop" metadata::trusted true 2>/dev/null || true
+  fi
+}
+make_icon
 
 if ! port_open; then
   cd "$ROOT" || { command -v notify-send >/dev/null && notify-send "flove" "No encuentro la carpeta flove/"; exit 1; }
@@ -72,17 +98,16 @@ fi
 if port_open; then
   opener "$URL"                          # localhost: reliable storage + secure context
 else
-  # No server (no python3? port blocked?) → open the file directly (degraded file://).
   command -v notify-send >/dev/null && notify-send "flove" \
     "Sin servidor local — abriendo el fichero directo (file://), modo degradado."
   opener "$ROOT/${ENTRY}"
 fi
 SH
-chmod +x "$STAGE/START-FLOVE.sh"
+chmod +x "$STAGE/START-FLOVE-LINUX.sh"
 
 # macOS double-click launcher (.command opens in Terminal). readlink -f isn't
 # portable on macOS, so locate the folder the simple way; use `open`.
-cat > "$STAGE/START-FLOVE.command" <<'CMD'
+cat > "$STAGE/START-FLOVE-MAC.command" <<'CMD'
 #!/usr/bin/env bash
 # START-FLOVE.command — macOS: serves the flove/ folder beside this file and opens
 # flove/START.html at http://localhost:8642. Double-click it (needs python3).
@@ -101,10 +126,10 @@ if ! port_open; then
 fi
 if port_open; then open "$URL"; else open "$ROOT/START.html"; fi
 CMD
-chmod +x "$STAGE/START-FLOVE.command"
+chmod +x "$STAGE/START-FLOVE-MAC.command"
 
 # Windows launcher. Tries python / py; if neither, opens the file directly.
-cat > "$STAGE/START-FLOVE.bat" <<'BAT'
+cat > "$STAGE/START-FLOVE-WINDOWS.bat" <<'BAT'
 @echo off
 REM START-FLOVE.bat - serves the flove\ folder and opens START.html on localhost:8642
 setlocal
@@ -127,26 +152,9 @@ echo Python not found - opening the file directly ^(some features may be limited
 start "" START.html
 BAT
 
-# Linux double-click launcher (some file managers won't run a .sh on double-click).
-cat > "$STAGE/Open-flove.desktop" <<'DESKTOP'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=flove (localhost)
-Name[es]=flove (localhost)
-Comment=Serve the flove folder on localhost and open START.html
-Comment[es]=Sirve la carpeta flove en localhost y abre START.html
-Exec=bash -c 'p="$1"; p="${p#file://}"; p="$(python3 -c "import sys,urllib.parse as u; print(u.unquote(sys.argv[1]))" "$p")"; exec "$(dirname "$p")/START-FLOVE.sh"' flove %k
-Icon=flove/images/flove-icon.svg
-Terminal=false
-StartupNotify=true
-Categories=Network;
-DESKTOP
-chmod +x "$STAGE/Open-flove.desktop"
-
 rm -f "$ROOT/flove.zip"
 ( cd "$STAGE" && zip -rqX "$ROOT/flove.zip" \
-    START-FLOVE.sh START-FLOVE.command START-FLOVE.bat Open-flove.desktop flove )
+    START-FLOVE-LINUX.sh START-FLOVE-MAC.command START-FLOVE-WINDOWS.bat flove )
 rm -rf "$STAGE"
 
 echo "built $ROOT/flove.zip ($(du -h "$ROOT/flove.zip" | cut -f1))"

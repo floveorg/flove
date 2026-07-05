@@ -908,6 +908,7 @@ body:has(.bubbles-view:target) .flove-foot {
   <div class="go-local" id="goLocal" role="status" aria-live="polite">
     <p class="go-local-lead" id="installLead">Install <b>flove</b> — it lives on your device and works offline.</p>
     <ol class="go-local-steps" id="installSteps"></ol>
+    <p class="go-local-again" id="runHint" style="opacity:.9"></p>
     <a class="go-local-again" href="flove.zip" download>or download the files (.zip) ↻</a>
   </div>
 </main>
@@ -1024,6 +1025,30 @@ body:has(.bubbles-view:target) .flove-foot {
     var deferred = null;
     var ua = navigator.userAgent || '';
     var isiOS = /iP(hone|ad|od)/.test(ua);
+
+    // Detect the OS so the download panel highlights only the launcher you need.
+    function detectOS(){
+      var uad = navigator.userAgentData;
+      var p = (uad && uad.platform) || navigator.platform || '';
+      if (/Android/i.test(ua)) return 'android';
+      if (/iP(hone|ad|od)/i.test(ua)) return 'ios';
+      if (/Win/i.test(p) || /Windows/i.test(ua)) return 'windows';
+      if (/Mac/i.test(p) || /Macintosh/i.test(ua)) return 'mac';
+      if (/Linux/i.test(p) || /Linux/i.test(ua)) return 'linux';
+      return 'unknown';
+    }
+    var LAUNCHER = {
+      windows: 'START-FLOVE-WINDOWS.bat', mac: 'START-FLOVE-MAC.command',
+      linux: 'START-FLOVE-LINUX.sh', android: 'START-FLOVE-MOBILE.html', ios: 'START-FLOVE-MOBILE.html'
+    };
+    (function(){
+      var hint = document.getElementById('runHint'); if (!hint) return;
+      var os = detectOS(), file = LAUNCHER[os];
+      if (!file) { hint.textContent = 'After unzipping, run the launcher for your system.'; return; }
+      var tail = (os === 'android' || os === 'ios') ? ' — opens flove offline' : ' on localhost:8642';
+      hint.innerHTML = 'You’re on <b>' + os.charAt(0).toUpperCase() + os.slice(1) +
+                       '</b> — after unzipping, run <b>' + file + '</b>' + tail + '.';
+    })();
     var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                        navigator.standalone === true;
 

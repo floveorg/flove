@@ -82,7 +82,7 @@ Name[es]=Abrir flove (localhost)
 Comment=Sirve esta carpeta flove en localhost y abre el selector de idioma
 Comment[es]=Sirve esta carpeta flove en localhost y abre el selector de idioma
 Exec=bash -c 'p="$1"; p="${p#file://}"; p="$(python3 -c "import sys,urllib.parse as u; print(u.unquote(sys.argv[1]))" "$p")"; exec "$(dirname "$p")/start-flove.sh"' flove %k
-Icon=flove-icon.svg
+Icon=images/flove-icon.svg
 Terminal=false
 StartupNotify=true
 Categories=Network;

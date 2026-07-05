@@ -11,7 +11,9 @@ home de **https://flove.org**.
 .
 ├── index.html          # home de flove.org (Docs · Apps · Download)
 ├── launch.html         # selector de idioma EN/ES — página por defecto en local
-├── flove-icon.svg      # icono clásico de flove
+├── manifest.webmanifest # metadatos PWA (instalar como app)
+├── sw.js               # service worker (offline completo) — GENERADO por build-sw.mjs
+├── build-sw.mjs        # regenera sw.js con la lista de precache + versión
 ├── flove.zip           # paquete local que reparte el botón "Download / Go local"
 ├── build-flove-zip.sh  # construye flove.zip desde `git archive HEAD`
 ├── blog/               # repo APARTE (marc/blog) anidado + gitignored — NO es de flove
@@ -20,10 +22,14 @@ home de **https://flove.org**.
 │   ├── flove.css · flove.js
 │   └── */ · *.html     # las apps
 ├── docs/               # teoría / "Whole" paso a paso (docs/index.html sí se sirve)
-├── images/             # logos, pandas y demás assets
+│   ├── README.md       # este archivo
+│   └── LICENSE         # CC BY-SA 4.0
+├── images/             # logos, pandas, assets
+│   ├── flove-icon.svg  # icono clásico de flove
+│   └── icons/          # PNGs de la app (192·512·maskable) para instalar
 ├── others/             # tarjetas, experimentos sueltos
+├── apple-touch-icon.png # icono home-screen de iOS
 ├── CNAME · .nojekyll   # config de GitHub Pages (dominio + sin Jekyll)
-├── LICENSE             # CC BY-SA 4.0
 └── .gitignore · .htmlvalidate.json
 ```
 

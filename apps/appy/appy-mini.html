@@ -1653,6 +1653,20 @@ a.top-menu-item{ text-decoration:none; display:block; }
 /* Play-apps start slightly dimmed; a tile lights to full once its app is uploaded (played) below */
 #play-apps .appbtn{ opacity:.6; transition:opacity .3s ease, transform .18s cubic-bezier(.2,.9,.25,1), box-shadow .25s; }
 #play-apps .appbtn:hover, #play-apps .appbtn:focus-visible, #play-apps .appbtn.played{ opacity:1; }
+/* Played-app icons — the app's own logo, fully coloured, with an upload-count badge */
+.played-icons{ display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.7rem; }
+.played-icon{ position:relative; display:flex; flex-direction:column; align-items:center; gap:.22rem; width:54px;
+  animation:cardpop .38s cubic-bezier(.2,.9,.25,1) both; }
+.played-icon .pi-mark{ position:relative; width:100%; aspect-ratio:1/1; border-radius:12px; padding:22%; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center; color:#fff; font-family:"Fredoka",sans-serif; font-weight:700; font-size:1.1rem;
+  background:linear-gradient(150deg, color-mix(in srgb, var(--c) 82%, #fff), var(--c));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), 0 4px 12px -4px var(--c); }
+.played-icon .pi-mark svg{ width:100%; height:100%; display:block; stroke:#fff; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
+.played-icon .pi-name{ font-size:.54rem; font-weight:700; color:var(--c); letter-spacing:.01em; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.played-icon .pi-count{ position:absolute; top:-6px; right:-6px; min-width:1.2rem; height:1.2rem; padding:0 .3rem; box-sizing:border-box;
+  display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:var(--c); color:#fff;
+  font-family:"Space Mono",monospace; font-size:.56rem; font-weight:700; line-height:1; box-shadow:0 1px 5px -1px rgba(0,0,0,.45); border:1.5px solid var(--card); }
+@media (prefers-reduced-motion: reduce){ .played-icon{ animation:none !important; } }
 
 /* --- flashier Played cards + rainbow flash --- */
 .app-card{ position:relative; animation:cardpop .38s cubic-bezier(.2,.9,.25,1) both; }
@@ -2101,8 +2115,9 @@ body:has(#lang-es:checked) .es{display:inline}
           </div>
           <input type="file" id="app-file" accept=".json,application/json" hidden onchange="handleAppFile(this)" aria-hidden="true">
           <div class="upload-msg" id="upload-msg" role="status" aria-live="polite"></div>
-          <!-- uploaded summaries render here -->
-          <!-- info cards intentionally hidden — adding an app just lights its button + shows the ✓ message -->
+          <!-- played apps show here as fully-coloured app icons + upload-count badge -->
+          <div class="played-icons" id="played-icons" role="list" aria-label="Played apps" data-aria-en="Played apps" data-aria-es="Apps jugadas"></div>
+          <!-- info cards intentionally hidden — adding an app lights its icon + shows the ✓ message -->
           <div class="played-grid d-none" id="played-grid"></div>
         </section>
 
@@ -4566,10 +4581,37 @@ switchTab('profile');
     chip.setAttribute('title', t); chip.setAttribute('aria-label', t);
   }
 
+  // Played-app icon — the app's own logo (cloned from its Play-apps tile), fully coloured, with an upload-count badge
+  function appColor(app){
+    const t = document.querySelector('#play-apps .appbtn[data-app="' + app + '"]');
+    if (t){ const c = getComputedStyle(t).getPropertyValue('--c').trim(); if (c) return c; }
+    return RAINBOW[app] || 'var(--accent)';
+  }
+  function renderPlayedIcon(app, n){
+    const wrap = document.getElementById('played-icons');
+    if (!wrap) return;
+    let tile = wrap.querySelector('.played-icon[data-app="' + app + '"]');
+    if (!tile){
+      tile = document.createElement('div');
+      tile.className = 'played-icon'; tile.dataset.app = app; tile.setAttribute('role', 'listitem');
+      tile.style.setProperty('--c', appColor(app));
+      const mark = document.createElement('div'); mark.className = 'pi-mark';
+      const src = document.querySelector('#play-apps .appbtn[data-app="' + app + '"] svg');
+      if (src) mark.appendChild(src.cloneNode(true)); else mark.textContent = app.charAt(0).toUpperCase();
+      const name = document.createElement('span'); name.className = 'pi-name'; name.textContent = app;
+      const cnt = document.createElement('span'); cnt.className = 'pi-count';
+      tile.append(mark, cnt, name); wrap.appendChild(tile);
+    }
+    tile.querySelector('.pi-count').textContent = '×' + n;
+    const t = app + ' — uploaded ' + n + (n === 1 ? ' time' : ' times');
+    tile.setAttribute('title', t); tile.setAttribute('aria-label', t);
+  }
+
   function addPlayedApp(app, fname, raw, btn){
     if (btn) btn.classList.add('played');                       // rainbow button → full colour
     const playTile = document.querySelector('#play-apps .appbtn[data-app="' + app + '"]');
     if (playTile) playTile.classList.add('played');             // Play-apps logo → full opacity once played
+    renderPlayedIcon(app, uploadCount[app] || 1);               // show the coloured app icon + upload count below
     const empty = document.getElementById('played-empty'); if (empty) empty.remove();
     const grid = document.getElementById('played-grid');
     let pretty;

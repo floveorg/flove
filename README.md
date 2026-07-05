@@ -14,9 +14,8 @@ home de **https://flove.org**.
 ├── flove-icon.svg      # icono clásico de flove
 ├── flove.zip           # paquete local que reparte el botón "Download / Go local"
 ├── build-flove-zip.sh  # construye flove.zip desde `git archive HEAD`
-├── build-blog.sh       # construye el blog Hugo (blog/_src/) → /blog
-├── blog/               # blog: salida estática servida (flove.org/blog/) …
-│   └── _src/           # …y su fuente Hugo (hugo.toml · content/posts/ · tema flovelite)
+├── blog/               # salida estática del blog (la sirve flove.org/blog/)
+│                       #   la FUENTE Hugo vive aparte: repo marc/flove-blog
 ├── apps/               # índice de demos + las apps (puzzy, appy, blogy, metas, …)
 │   ├── index.html      # índice de demos
 │   ├── flove.css · flove.js
@@ -46,8 +45,10 @@ Trabajas en local contra Gitea. Cuando toca sacar todo a producción, el pase de
 publicación reconstruye lo derivado y luego refleja a GitHub:
 
 ```bash
-./build-blog.sh                       # blog-src/ → /blog (si cambió el blog)
-./build-flove-zip.sh                  # sitio → flove.zip (la descarga)
+# 1) blog (si cambió): desde el repo aparte marc/flove-blog
+(cd ../flove-blog && ./build-blog.sh publish)   # construye → copia a ./blog
+# 2) descarga
+./build-flove-zip.sh                  # sitio → flove.zip
 git add blog flove.zip && git commit  # commitea lo reconstruido
 git push origin main                  # a Gitea
 # …luego el reflejo a GitHub / flove.org  (skill update-web)
@@ -87,25 +88,15 @@ git add flove.zip && git commit
 
 ## Blog (`/blog`)
 
-Blog Hugo, tema propio **`flovelite`** (una hoja de estilo, sin JS, claro/oscuro).
-Requiere [Hugo extended](https://gohugo.io/installation/)
-(`snap install hugo --channel=extended`).
+Aquí solo vive la **salida** `blog/` (HTML ya construido) que sirve
+`flove.org/blog/`. La **fuente Hugo** (tema propio `flovelite`, posts, borradores)
+está en un repo aparte y privado: **`marc/flove-blog`** — así los borradores no
+se sirven nunca.
 
-```bash
-./build-blog.sh serve     # previsualiza en http://localhost:1313/ (con borradores)
-./build-blog.sh           # construye blog-src/ → /blog (minificado)
-```
-
-Todo el blog vive bajo una sola carpeta `blog/`:
-
-- **`blog/_src/`** = fuente Hugo (config, posts en `content/posts/`, tema). Se versiona.
-- **`blog/`** (raíz) = salida estática ya construida; es lo que sirve
-  `flove.org/blog/`. Commitea `/blog` tras reconstruir; `build-blog.sh` regenera
-  los HTML sin tocar `_src/`.
+- Escribir/publicar posts → en el repo `flove-blog` (ver su README).
+- Publicar en la web: `(cd ../flove-blog && ./build-blog.sh publish)` copia el
+  HTML a este `blog/`; luego commit + push + update-web.
 - El blog **no** va en `flove.zip` (la descarga es solo las apps, offline).
-
-Nuevo post: crea `blog/_src/content/posts/mi-post.md` con front-matter
-(`title`, `date`, `tags`), escribe, `./build-blog.sh`, commit.
 
 ## Licencia
 

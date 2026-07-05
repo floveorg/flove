@@ -2,87 +2,70 @@
 
 Sitio del proyecto **flove** — _slow it · flow it · love it._
 
+Página única por app, HTML/CSS/JS sin frameworks. `index.html` en la raíz es el
+home de **https://flove.org**.
+
 ## Estructura del repo
 
 ```
 .
-├── apps/              # Sitio raíz: launcher lite + 13 demos HTML
-│   ├── index.html     # = home (antes launcher_lite.html)
-│   ├── launcher.html  # launcher completo
-│   ├── explorer.html  # explorador de archivos (antes index.html)
-│   ├── flove.css
-│   └── *.html         # las 13 demos
-├── blog/              # Hugo (tema Ananke como submódulo)
-│   ├── hugo.toml
-│   ├── content/posts/
-│   └── themes/ananke/ # submódulo
-├── docs/              # ⚠ ignorada por git (4 GB) — taxonomía FloveAll
-├── context/           # ⚠ ignorada por git (291 MB) — theory pack
-├── .gitlab-ci.yml     # build + deploy a GitLab Pages
-└── .gitignore
+├── index.html          # home de flove.org (Docs · Apps · Download)
+├── launch.html         # selector de idioma EN/ES — página por defecto en local
+├── flove-icon.svg      # icono clásico de flove
+├── flove.zip           # paquete local que reparte el botón "Download / Go local"
+├── build-flove-zip.sh  # construye flove.zip desde `git archive HEAD`
+├── apps/               # índice de demos + las apps (puzzy, appy, blogy, metas, …)
+│   ├── index.html      # índice de demos
+│   ├── flove.css · flove.js
+│   └── */ · *.html     # las apps
+├── docs/               # teoría / "Whole" paso a paso (docs/index.html sí se sirve)
+├── images/             # logos, pandas y demás assets
+├── others/             # tarjetas, experimentos sueltos
+├── CNAME · .nojekyll   # config de GitHub Pages (dominio + sin Jekyll)
+├── LICENSE             # CC BY-SA 4.0
+└── .gitignore · .htmlvalidate.json
 ```
 
 ## Cómo se publica
 
-GitLab Pages compila en cada push a `main`:
+**Gitea es la fuente de verdad; GitHub Pages sirve el sitio.**
 
-1. Copia `apps/*` → `public/`
-2. Compila Hugo `blog/` → `public/blog/`
-3. Sirve `public/` en el dominio (https://flove.org/).
+1. Trabajas y commiteas contra Gitea: `localhost:3000/marc/flove` (rama `main`).
+2. Para publicar, reflejas `main` a GitHub `floveorg/flove` (skill `update-web`).
+3. GitHub Pages sirve esa rama tal cual (estático, `.nojekyll` desactiva Jekyll)
+   en **https://flove.org** (dominio vía `CNAME`).
 
-URLs resultantes:
+No hay build en CI: lo que está commiteado _es_ lo que se sirve.
 
-| URL                 | Origen                           |
-|---------------------|----------------------------------|
-| `flove.org/`        | `apps/index.html` (lite home)    |
-| `flove.org/launcher.html` | `apps/launcher.html`        |
-| `flove.org/whole.html`    | `apps/whole.html`           |
-| `flove.org/blog/`   | Hugo build                       |
+## Descarga / uso local ("Go local")
 
-## Previsualización local
+El botón **Download / Go local** del home reparte `flove.zip` — todo flove,
+para usarlo sin conexión:
 
-**Sitio estático (apps/):**
+1. Descomprímelo.
+2. Doble clic en el lanzador **flove-localhost.desktop**.
+3. `start-flove.sh` sirve la carpeta en `localhost:8642` y abre `launch.html`
+   (selector de idioma). Elige idioma y listo.
+
+El lanzador (`start-flove.sh` + `flove-localhost.desktop`) **se genera al
+construir el zip** — no se versiona, para mantener limpia la raíz servida y que
+ninguna ruta de máquina acabe en git.
+
+## Trabajo local (dev)
+
+Previsualizar el sitio:
 
 ```bash
-cd apps && python3 -m http.server 8000
+cd flove && python3 -m http.server 8000
 # → http://localhost:8000/
 ```
 
-**Blog Hugo:**
+Reconstruir el paquete de descarga (tras commitear tus cambios):
 
 ```bash
-# instala hugo extended si no lo tienes:
-#   sudo snap install hugo --channel=extended
-# o:  https://gohugo.io/installation/
-cd blog && hugo server -D
-# → http://localhost:1313/blog/
+./build-flove-zip.sh          # → flove.zip
+git add flove.zip && git commit
 ```
-
-**Build de prueba (mismo que CI):**
-
-```bash
-mkdir -p public && cp -r apps/. public/
-hugo --source blog --destination ../public/blog --minify
-# luego: cd public && python3 -m http.server 8000
-```
-
-## Cómo añadir un post
-
-```bash
-cd blog
-hugo new posts/mi-post.md
-# edita content/posts/mi-post.md, pon `draft: false`, commit & push.
-```
-
-## Configurar GitLab + dominio
-
-1. Crear repo vacío en GitLab y `git remote add origin <url>` + `git push -u origin main`.
-2. GitLab → **Deploy → Pages → New Domain** → `flove.org`.
-3. En el DNS de tu registrador:
-   - `A` raíz → IP que indique GitLab
-   - `CNAME www` → `<usuario>.gitlab.io`
-   - `TXT _gitlab-pages-verification-code` → token que da GitLab
-4. Marcar "Force HTTPS" y esperar a Let's Encrypt.
 
 ## Licencia
 
@@ -91,11 +74,3 @@ Todo el contenido de este repositorio (texto, código, diseños) está bajo
 Ver [`LICENSE`](./LICENSE) para los términos completos.
 
 Atribución sugerida: `flove · Marc (marcflove) · flove.org · CC BY-SA 4.0`.
-
-## Notas
-
-- `docs/` y `context/` están en `.gitignore` por tamaño. Si necesitas
-  publicar parte de `docs/`, mueve esa subcarpeta a `apps/docs/` o
-  ajusta `.gitignore` y `.gitlab-ci.yml`.
-- El tema Ananke se actualiza con:
-  `git submodule update --remote blog/themes/ananke`.

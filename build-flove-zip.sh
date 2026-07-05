@@ -23,7 +23,7 @@ mkdir -p "$TARGET"
 git archive --format=tar HEAD | tar -x -C "$TARGET"
 
 # Things that make no sense inside a downloaded local copy.
-rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" \
+rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/publish-lowai.sh" \
        "$TARGET/.gitignore" "$TARGET/.htmlvalidate.json" \
        "$TARGET/CNAME" "$TARGET/.nojekyll"
 

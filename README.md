@@ -14,6 +14,9 @@ home de **https://flove.org**.
 ├── flove-icon.svg      # icono clásico de flove
 ├── flove.zip           # paquete local que reparte el botón "Download / Go local"
 ├── build-flove-zip.sh  # construye flove.zip desde `git archive HEAD`
+├── build-blog.sh       # construye el blog Hugo (blog-src/) → /blog
+├── blog/               # salida estática del blog — la sirve flove.org/blog/
+├── blog-src/           # fuente Hugo del blog (tema 'flovelite' + posts)
 ├── apps/               # índice de demos + las apps (puzzy, appy, blogy, metas, …)
 │   ├── index.html      # índice de demos
 │   ├── flove.css · flove.js
@@ -36,6 +39,21 @@ home de **https://flove.org**.
    en **https://flove.org** (dominio vía `CNAME`).
 
 No hay build en CI: lo que está commiteado _es_ lo que se sirve.
+
+### Publicar (web + descarga + blog)
+
+Trabajas en local contra Gitea. Cuando toca sacar todo a producción, el pase de
+publicación reconstruye lo derivado y luego refleja a GitHub:
+
+```bash
+./build-blog.sh                       # blog-src/ → /blog (si cambió el blog)
+./build-flove-zip.sh                  # sitio → flove.zip (la descarga)
+git add blog flove.zip && git commit  # commitea lo reconstruido
+git push origin main                  # a Gitea
+# …luego el reflejo a GitHub / flove.org  (skill update-web)
+```
+
+Así la web, la **descarga** (flove.zip) y el **blog** salen a la vez y coherentes.
 
 ## Descarga / uso local ("Go local")
 
@@ -66,6 +84,25 @@ Reconstruir el paquete de descarga (tras commitear tus cambios):
 ./build-flove-zip.sh          # → flove.zip
 git add flove.zip && git commit
 ```
+
+## Blog (`/blog`)
+
+Blog Hugo, tema propio **`flovelite`** (una hoja de estilo, sin JS, claro/oscuro).
+Requiere [Hugo extended](https://gohugo.io/installation/)
+(`snap install hugo --channel=extended`).
+
+```bash
+./build-blog.sh serve     # previsualiza en http://localhost:1313/ (con borradores)
+./build-blog.sh           # construye blog-src/ → /blog (minificado)
+```
+
+- **`blog-src/`** = fuente (config, posts en `content/posts/`, tema). Se versiona.
+- **`/blog`** = salida estática ya construida; es lo que sirve `flove.org/blog/`.
+  Commitea `/blog` tras reconstruir.
+- El blog **no** va en `flove.zip` (la descarga es solo las apps, offline).
+
+Nuevo post: crea `blog-src/content/posts/mi-post.md` con front-matter
+(`title`, `date`, `tags`), escribe, `./build-blog.sh`, commit.
 
 ## Licencia
 

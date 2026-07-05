@@ -152,9 +152,45 @@ echo Python not found - opening the file directly ^(some features may be limited
 start "" START.html
 BAT
 
+# Mobile: phones can't run a launcher, so this is an HTML page that opens the
+# downloaded flove/START.html directly (file://, offline — degraded, no server).
+cat > "$STAGE/START-FLOVE-MOBILE.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flove · mobile</title>
+<meta http-equiv="refresh" content="1; url=flove/START.html">
+<style>
+  html,body{height:100%;margin:0}
+  body{display:grid;place-items:center;text-align:center;padding:24px;
+       font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       color:#1a1820;background:#fffdfb}
+  img{width:72px;height:72px}
+  h1{font-size:1.3rem;margin:.6rem 0 .2rem}
+  p{color:#6a6478;margin:.2rem 0 1.2rem;max-width:30ch}
+  a.btn{display:inline-block;padding:.7rem 1.4rem;border-radius:999px;font-weight:650;
+        text-decoration:none;color:#1a1820;background:linear-gradient(90deg,#ff3344,#ff8a3a,#ffd633)}
+  small{display:block;margin-top:1rem;color:#9a94a8;max-width:32ch}
+</style>
+</head>
+<body>
+  <div>
+    <img src="flove/images/flove-icon.svg" alt="flove">
+    <h1>Opening flove…</h1>
+    <p>Running the downloaded files on your phone — offline.</p>
+    <a class="btn" href="flove/START.html">Open flove</a>
+    <small>If it doesn't remember your progress, that's the offline-file limit on phones — for full flove, install it from flove.org.</small>
+  </div>
+</body>
+</html>
+HTML
+
 rm -f "$ROOT/flove.zip"
 ( cd "$STAGE" && zip -rqX "$ROOT/flove.zip" \
-    START-FLOVE-LINUX.sh START-FLOVE-MAC.command START-FLOVE-WINDOWS.bat flove )
+    START-FLOVE-LINUX.sh START-FLOVE-MAC.command START-FLOVE-WINDOWS.bat \
+    START-FLOVE-MOBILE.html flove )
 rm -rf "$STAGE"
 
 echo "built $ROOT/flove.zip ($(du -h "$ROOT/flove.zip" | cut -f1))"

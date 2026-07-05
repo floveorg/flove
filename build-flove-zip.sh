@@ -27,9 +27,9 @@ rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/build-blog.sh" 
        "$TARGET/.gitignore" "$TARGET/.htmlvalidate.json" \
        "$TARGET/CNAME" "$TARGET/.nojekyll"
 
-# The blog (Hugo output /blog + its source blog-src/) is web-only — not bundled
-# into the offline download.
-rm -rf "$TARGET/blog" "$TARGET/blog-src"
+# The blog (built /blog + its nested source blog/_src/) is web-only — not
+# bundled into the offline download.
+rm -rf "$TARGET/blog"
 
 # ── Package-only launcher (generated, not tracked — keeps the served root clean).
 # start-flove.sh: self-locating local server that opens the language gate.

@@ -14,9 +14,9 @@ home de **https://flove.org**.
 ├── flove-icon.svg      # icono clásico de flove
 ├── flove.zip           # paquete local que reparte el botón "Download / Go local"
 ├── build-flove-zip.sh  # construye flove.zip desde `git archive HEAD`
-├── build-blog.sh       # construye el blog Hugo (blog-src/) → /blog
-├── blog/               # salida estática del blog — la sirve flove.org/blog/
-├── blog-src/           # fuente Hugo del blog (tema 'flovelite' + posts)
+├── build-blog.sh       # construye el blog Hugo (blog/_src/) → /blog
+├── blog/               # blog: salida estática servida (flove.org/blog/) …
+│   └── _src/           # …y su fuente Hugo (hugo.toml · content/posts/ · tema flovelite)
 ├── apps/               # índice de demos + las apps (puzzy, appy, blogy, metas, …)
 │   ├── index.html      # índice de demos
 │   ├── flove.css · flove.js
@@ -96,12 +96,15 @@ Requiere [Hugo extended](https://gohugo.io/installation/)
 ./build-blog.sh           # construye blog-src/ → /blog (minificado)
 ```
 
-- **`blog-src/`** = fuente (config, posts en `content/posts/`, tema). Se versiona.
-- **`/blog`** = salida estática ya construida; es lo que sirve `flove.org/blog/`.
-  Commitea `/blog` tras reconstruir.
+Todo el blog vive bajo una sola carpeta `blog/`:
+
+- **`blog/_src/`** = fuente Hugo (config, posts en `content/posts/`, tema). Se versiona.
+- **`blog/`** (raíz) = salida estática ya construida; es lo que sirve
+  `flove.org/blog/`. Commitea `/blog` tras reconstruir; `build-blog.sh` regenera
+  los HTML sin tocar `_src/`.
 - El blog **no** va en `flove.zip` (la descarga es solo las apps, offline).
 
-Nuevo post: crea `blog-src/content/posts/mi-post.md` con front-matter
+Nuevo post: crea `blog/_src/content/posts/mi-post.md` con front-matter
 (`title`, `date`, `tags`), escribe, `./build-blog.sh`, commit.
 
 ## Licencia

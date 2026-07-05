@@ -520,9 +520,9 @@ body.downloaded .go-local{
 :root:has(#s0:checked) .btn-apps .btn-text[data-st~="0"], :root:has(#s1:checked) .btn-apps .btn-text[data-st~="1"], :root:has(#s3:checked) .btn-apps .btn-text[data-st~="3"] { opacity:1; width:5ch;  animation: typeIn 1s   steps(5,  end) forwards; }
 :root:has(#s2:checked) .btn-apps .btn-text[data-st~="2"] { opacity:1; width:8ch;  animation: typeIn 1.6s steps(8,  end) forwards; }
 :root:has(#s4:checked) .btn-apps .btn-text[data-st~="4"] { opacity:1; width:3ch;  animation: typeIn .6s  steps(3,  end) forwards; }
-:root:has(#s0:checked) .btn-both .btn-text[data-st~="0"], :root:has(#s1:checked) .btn-both .btn-text[data-st~="1"], :root:has(#s3:checked) .btn-both .btn-text[data-st~="3"] { opacity:1; width:9ch;  animation: typeIn 1.7s steps(9, end) forwards; }
-:root:has(#s2:checked) .btn-both .btn-text[data-st~="2"] { opacity:1; width:8ch;  animation: typeIn 1.6s steps(8, end) forwards; }
-:root:has(#s4:checked) .btn-both .btn-text[data-st~="4"] { opacity:1; width:8ch;  animation: typeIn 1.6s steps(8, end) forwards; }
+:root:has(#s0:checked) .btn-both .btn-text[data-st~="0"], :root:has(#s1:checked) .btn-both .btn-text[data-st~="1"], :root:has(#s3:checked) .btn-both .btn-text[data-st~="3"] { opacity:1; width:7ch;  animation: typeIn 1.4s steps(7, end) forwards; }
+:root:has(#s2:checked) .btn-both .btn-text[data-st~="2"] { opacity:1; width:7ch;  animation: typeIn 1.4s steps(7, end) forwards; }
+:root:has(#s4:checked) .btn-both .btn-text[data-st~="4"] { opacity:1; width:7ch;  animation: typeIn 1.4s steps(7, end) forwards; }
 
 /* press bloom: fuzzy rainbow flood while a button is held */
 .press-bloom {
@@ -891,25 +891,24 @@ body:has(.bubbles-view:target) .flove-foot {
         <span class="btn-hint">browse all the apps</span>
       </a>
     </div>
-    <a class="btn btn-both" href="flove.zip" download role="button" onclick="document.body.classList.add('downloaded')">
+    <!-- Install flove as an app (PWA). Falls back to the .zip download when JS
+         is off or the browser can't install; JS intercepts to run the install. -->
+    <a class="btn btn-both" id="installBtn" href="flove.zip" download role="button">
       <span class="btn-cycle">
-        <span class="btn-text" data-st="0 1 3">Download</span>
-        <span class="btn-text" data-st="2">Go local</span>
-        <span class="btn-text" data-st="4">Go local</span>
+        <span class="btn-text" data-st="0 1 3">Install</span>
+        <span class="btn-text" data-st="2">Get&nbsp;app</span>
+        <span class="btn-text" data-st="4">Install</span>
       </span>
-      <span class="btn-hint">get the whole thing, run it offline</span>
+      <span class="btn-hint">install flove as an app</span>
     </a>
   </nav>
 
-  <!-- After Download: keep the CTAs above and add a small how-to below (no icon). -->
+  <!-- Install panel: appears when the browser can't show the native install
+       prompt (Firefox / iOS), or after the user asks how. Filled by JS. -->
   <div class="go-local" id="goLocal" role="status" aria-live="polite">
-    <p class="go-local-lead">Downloading <b>flove.zip</b> — your whole flove, offline.</p>
-    <ol class="go-local-steps">
-      <li>Unzip it</li>
-      <li>Double-click the <b>flove</b> launcher icon</li>
-      <li>It opens locally — done</li>
-    </ol>
-    <a class="go-local-again" href="flove.zip" download>download again ↻</a>
+    <p class="go-local-lead" id="installLead">Install <b>flove</b> — it lives on your device and works offline.</p>
+    <ol class="go-local-steps" id="installSteps"></ol>
+    <a class="go-local-again" href="flove.zip" download>or download the files (.zip) ↻</a>
   </div>
 </main>
 
@@ -1011,6 +1010,58 @@ body:has(.bubbles-view:target) .flove-foot {
       navigator.serviceWorker.register('/sw.js').catch(function(){});
     });
   }
+</script>
+<script>
+  // "Install" button → install flove as an app (PWA). The button's href=flove.zip
+  // is only a no-JS fallback; here we take over the click and run the real install,
+  // or show per-browser steps when the native prompt isn't available.
+  (function(){
+    var btn   = document.getElementById('installBtn');
+    var lead  = document.getElementById('installLead');
+    var steps = document.getElementById('installSteps');
+    if (!btn || !lead || !steps) return;
+
+    var deferred = null;
+    var ua = navigator.userAgent || '';
+    var isiOS = /iP(hone|ad|od)/.test(ua);
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       navigator.standalone === true;
+
+    function reveal(){ document.body.classList.add('downloaded'); }
+    function setSteps(list){
+      steps.innerHTML = list.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+    }
+
+    window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred = e; });
+    window.addEventListener('appinstalled', function(){
+      deferred = null;
+      lead.innerHTML = 'flove is installed — find it with your apps 🌈';
+      setSteps([]); reveal();
+    });
+
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();               // href=.zip is a no-JS fallback only
+      if (isStandalone){
+        lead.textContent = 'flove is already installed — open it from your apps.';
+        setSteps([]); reveal(); return;
+      }
+      if (deferred){                     // Chrome / Android: native install dialog
+        deferred.prompt();
+        deferred.userChoice.then(function(){ deferred = null; });
+        return;
+      }
+      if (isiOS){                        // iOS Safari: manual Add to Home Screen
+        lead.innerHTML = 'Install <b>flove</b> on your iPhone or iPad:';
+        setSteps(['Tap the <b>Share</b> button', 'Choose <b>Add to Home Screen</b>', 'flove joins your other apps']);
+      } else {                           // Firefox / other: point to a Chromium browser
+        lead.innerHTML = 'To install <b>flove</b> as an app:';
+        setSteps(['Open this page in <b>Chrome</b>, Edge or Brave',
+                  'Use the install icon in the address bar (or menu → <b>Install</b>)',
+                  'Or grab the raw files just below']);
+      }
+      reveal();
+    });
+  })();
 </script>
 </body>
 </html>

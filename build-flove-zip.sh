@@ -23,13 +23,14 @@ mkdir -p "$TARGET"
 git archive --format=tar HEAD | tar -x -C "$TARGET"
 
 # Things that make no sense inside a downloaded local copy.
-rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/build-blog.sh" \
+rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" \
        "$TARGET/.gitignore" "$TARGET/.htmlvalidate.json" \
        "$TARGET/CNAME" "$TARGET/.nojekyll"
 
-# The blog (built /blog + its nested source blog/_src/) is web-only — not
-# bundled into the offline download.
-rm -rf "$TARGET/blog"
+# Web-only — kept on the live site but NOT bundled into the offline download:
+# the blog (separate repo, gitignored so not even in the archive) and these
+# standalone extras.
+rm -rf "$TARGET/blog" "$TARGET/others/ephemerall" "$TARGET/others/anim-form.html"
 
 # ── Package-only launcher (generated, not tracked — keeps the served root clean).
 # start-flove.sh: self-locating local server that opens the language gate.

@@ -14,8 +14,7 @@ home de **https://flove.org**.
 ├── flove-icon.svg      # icono clásico de flove
 ├── flove.zip           # paquete local que reparte el botón "Download / Go local"
 ├── build-flove-zip.sh  # construye flove.zip desde `git archive HEAD`
-├── blog/               # salida estática del blog (la sirve flove.org/blog/)
-│                       #   la FUENTE Hugo vive aparte: repo marc/flove-blog
+├── blog/               # repo APARTE (marc/blog) anidado + gitignored — NO es de flove
 ├── apps/               # índice de demos + las apps (puzzy, appy, blogy, metas, …)
 │   ├── index.html      # índice de demos
 │   ├── flove.css · flove.js
@@ -45,16 +44,17 @@ Trabajas en local contra Gitea. Cuando toca sacar todo a producción, el pase de
 publicación reconstruye lo derivado y luego refleja a GitHub:
 
 ```bash
-# 1) blog (si cambió): desde el repo aparte marc/flove-blog
-(cd ../flove-blog && ./build-blog.sh publish)   # construye → copia a ./blog
-# 2) descarga
-./build-flove-zip.sh                  # sitio → flove.zip
-git add blog flove.zip && git commit  # commitea lo reconstruido
-git push origin main                  # a Gitea
+# 1) blog (si cambió): repo aparte, publica directo a floveorg/blog
+(cd blog && ./build-blog.sh publish)   # build + push → live en flove.org/blog
+# 2) web + descarga (este repo)
+./build-flove-zip.sh                   # sitio → flove.zip (sin blog/ephemerall/anim-form)
+git add flove.zip && git commit        # commitea lo reconstruido
+git push origin main                   # a Gitea
 # …luego el reflejo a GitHub / flove.org  (skill update-web)
 ```
 
-Así la web, la **descarga** (flove.zip) y el **blog** salen a la vez y coherentes.
+El blog se publica solo (a `floveorg/blog`); la web + descarga van por Gitea →
+`update-web` → `floveorg/flove`.
 
 ## Descarga / uso local ("Go local")
 
@@ -86,16 +86,15 @@ Reconstruir el paquete de descarga (tras commitear tus cambios):
 git add flove.zip && git commit
 ```
 
-## Blog (`/blog`)
+## Blog (`flove.org/blog`)
 
-Aquí solo vive la **salida** `blog/` (HTML ya construido) que sirve
-`flove.org/blog/`. La **fuente Hugo** (tema propio `flovelite`, posts, borradores)
-está en un repo aparte y privado: **`marc/flove-blog`** — así los borradores no
-se sirven nunca.
+El blog es un **repo aparte y privado — `marc/blog`** (Hugo, tema `flovelite`),
+que vive **anidado en `flove/blog`** (gitignored, no forma parte de este repo).
+Se sirve en `flove.org/blog/` desde **GitHub `floveorg/blog`**; el `publish`
+construye y empuja el HTML allí directamente.
 
-- Escribir/publicar posts → en el repo `flove-blog` (ver su README).
-- Publicar en la web: `(cd ../flove-blog && ./build-blog.sh publish)` copia el
-  HTML a este `blog/`; luego commit + push + update-web.
+- Escribir/publicar posts, borradores privados → en `flove/blog` (ver su README).
+- Los borradores (`draft:true`) viven solo en Gitea y **nunca** se sirven.
 - El blog **no** va en `flove.zip` (la descarga es solo las apps, offline).
 
 ## Licencia

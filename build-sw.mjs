@@ -42,7 +42,11 @@ const files = tracked.filter(p => {
 
 // Version hash from file contents → bumps whenever any cached file changes,
 // which triggers the worker's activate cleanup + re-cache on next publish.
+// Bump SW_REV when the worker's *logic* changes (not just cached files), so
+// existing installs get a new cache name and drop the stale one on activate.
+const SW_REV = 2;
 const hash = createHash('sha256');
+hash.update('rev' + SW_REV);
 for (const p of files.sort()) hash.update(p).update(readFileSync(`${ROOT}${p}`));
 const VERSION = 'flove-' + hash.digest('hex').slice(0, 10);
 
@@ -75,6 +79,34 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== location.origin) return;
+
+  const isPage = req.mode === 'navigate' ||
+    (req.headers.get('accept') || '').includes('text/html');
+
+  if (isPage) {
+    // Pages: NETWORK-FIRST so an online visit always shows the latest content;
+    // fall back to cache (then the gate) only when offline. Prevents the
+    // "I published but still see the old page" service-worker trap.
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req);
+        if (res && res.ok && res.type === 'basic') {
+          const cache = await caches.open(VERSION);
+          cache.put(req, res.clone());
+        }
+        return res;
+      } catch (err) {
+        const cached = await caches.match(req, { ignoreSearch: true });
+        if (cached) return cached;
+        const gate = await caches.match('/launch.html');
+        if (gate) return gate;
+        throw err;
+      }
+    })());
+    return;
+  }
+
+  // Assets (css/js/img/…): CACHE-FIRST for speed; fill the cache on a miss.
   e.respondWith((async () => {
     const cached = await caches.match(req, { ignoreSearch: true });
     if (cached) return cached;
@@ -86,11 +118,6 @@ self.addEventListener('fetch', (e) => {
       }
       return res;
     } catch (err) {
-      // Offline and uncached: for a page navigation, fall back to the gate.
-      if (req.mode === 'navigate') {
-        const gate = await caches.match('/launch.html');
-        if (gate) return gate;
-      }
       throw err;
     }
   })());

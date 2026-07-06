@@ -312,10 +312,11 @@ body {
 .get-opt{
   display:flex; flex-direction:column; align-items:center; gap:.15rem;
   min-width:5.2rem; padding:.7rem .6rem; border-radius:14px;
-  text-decoration:none; color:var(--ink);
+  text-decoration:none; color:var(--ink); font:inherit; cursor:pointer;
   border:1px solid var(--line); background:rgba(255,255,255,.6);
   transition: transform .14s ease, border-color .2s ease, background .2s ease;
 }
+.get-opt[hidden]{ display:none; }   /* 📥 install tile: shown only when installable */
 .get-opt:hover, .get-opt:focus-visible{ transform:translateY(-2px); border-color:var(--accent); background:#fff; outline:none; }
 .get-ic{ font-size:1.5rem; line-height:1 }
 .get-lbl{ font-family:'Inter',sans-serif; font-weight:600; font-size:.8rem; letter-spacing:.05em }
@@ -982,6 +983,12 @@ body:has(#lang-es:checked) .es{display:inline}
             <span class="get-lbl"><span class="en" lang="en">DESKTOP</span><span class="es" lang="es">ESCRITORIO</span></span>
             <span class="get-fmt">.zip</span>
           </a>
+          <!-- Native PWA install — revealed by JS only where the browser supports it. -->
+          <button type="button" class="get-opt" id="pwaInstall" hidden>
+            <span class="get-ic" aria-hidden="true">📥</span>
+            <span class="get-lbl"><span class="en" lang="en">APP</span><span class="es" lang="es">APP</span></span>
+            <span class="get-fmt">install</span>
+          </button>
         </div>
       </details>
     </div>
@@ -1095,6 +1102,26 @@ body:has(#lang-es:checked) .es{display:inline}
       navigator.serviceWorker.register('/sw.js').catch(function(){});
     });
   }
+</script>
+<script>
+  // Native PWA install — the 📥 tile in the Apps popover. It stays hidden until the
+  // browser fires beforeinstallprompt (Chrome/Edge/Android/desktop Chromium); on
+  // browsers that can't install this way (Firefox, iOS) it never shows. No download —
+  // one tap installs the live site as an app (own icon, own window, works offline).
+  (function(){
+    var tile = document.getElementById('pwaInstall');
+    if (!tile) return;
+    var deferred = null;
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault(); deferred = e; tile.hidden = false;
+    });
+    tile.addEventListener('click', function(){
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function(){ deferred = null; tile.hidden = true; });
+    });
+    window.addEventListener('appinstalled', function(){ deferred = null; tile.hidden = true; });
+  })();
 </script>
 <script>
   // translate2 engine — switches the page language, translates option/placeholder/

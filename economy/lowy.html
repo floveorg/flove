@@ -1,0 +1,753 @@
+<!-- lowy.html · economy/ · flove
+     A calm almanac of low-living: simple living, low tech, low consumption, LowAI
+     and their kin — plus an open Pack of survival blueprints and a deck of advice.
+     Single file, offline, low-ink. CSS-only navigation; JS only for dynamic UI. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="lowy — an almanac of simple living, low tech, low consumption and LowAI, with an open pack of low-tech survival blueprints and everyday advice for a simpler life.">
+<meta name="keywords" content="simple living, low tech, low consumption, LowAI, degrowth, appropriate technology, GVCS, permaculture, frugality, small web">
+<title>lowy — the low-living almanac</title>
+
+<style>
+  :root{
+    --paper:#f2e8d5; --paper-2:#ece0c9; --ink:#2c2318; --ink-soft:#5c5040;
+    --rule:#cbb994; --clay:#a24a2b; --leaf:#5c7a35; --gold:#b98a2e;
+    --card:#f7efdd; --shadow:rgba(60,44,20,.14);
+    --serif:Iowan Old Style,"Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:64rem;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#181410; --paper-2:#1f1a13; --ink:#e9dcc2; --ink-soft:#b3a488;
+      --rule:#4a3d28; --clay:#d17a55; --leaf:#9cbb6a; --gold:#d7ab5a;
+      --card:#211a12; --shadow:rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#181410; --paper-2:#1f1a13; --ink:#e9dcc2; --ink-soft:#b3a488;
+    --rule:#4a3d28; --clay:#d17a55; --leaf:#9cbb6a; --gold:#d7ab5a;
+    --card:#211a12; --shadow:rgba(0,0,0,.4);
+  }
+  :root[data-theme="light"]{
+    --paper:#f2e8d5; --paper-2:#ece0c9; --ink:#2c2318; --ink-soft:#5c5040;
+    --rule:#cbb994; --clay:#a24a2b; --leaf:#5c7a35; --gold:#b98a2e;
+    --card:#f7efdd; --shadow:rgba(60,44,20,.14);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:17px; line-height:1.6;
+  }
+  h1,h2,h3,h4{font-family:var(--serif); font-weight:600; line-height:1.15; margin:0 0 .4em}
+  h1{font-size:2.5rem} h2{font-size:1.8rem} h3{font-size:1.25rem}
+  a{color:var(--clay); text-decoration-thickness:1px; text-underline-offset:2px}
+  a:hover{color:var(--leaf)}
+  p{margin:0 0 1em}
+  small{color:var(--ink-soft)}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 1.25rem}
+  .label{font-family:var(--sans); text-transform:uppercase; letter-spacing:.12em;
+    font-size:.72rem; color:var(--ink-soft)}
+  hr{border:0; border-top:1px solid var(--rule); margin:2rem 0}
+
+  /* ---- CSS-only tab navigation ---- */
+  .tab-radio{position:absolute; opacity:0; pointer-events:none}
+  header.topbar{
+    position:sticky; top:0; z-index:20; background:var(--paper-2);
+    border-bottom:2px solid var(--ink); box-shadow:0 1px 0 var(--rule);
+  }
+  .topbar .wrap{display:flex; align-items:center; gap:.5rem 1.2rem; flex-wrap:wrap;
+    padding-top:.55rem; padding-bottom:.55rem}
+  .brand{font-family:var(--serif); font-weight:700; font-size:1.5rem; letter-spacing:.02em;
+    margin-right:auto; color:var(--ink); text-decoration:none}
+  .brand b{color:var(--clay)}
+  nav.tabs{display:flex; gap:.35rem; flex-wrap:wrap}
+  nav.tabs label{
+    cursor:pointer; padding:.28rem .7rem; border:1px solid transparent; border-radius:2px;
+    font-size:.95rem; color:var(--ink-soft); white-space:nowrap;
+  }
+  nav.tabs label:hover{color:var(--ink); border-color:var(--rule)}
+  .theme-btn{cursor:pointer; background:none; border:1px solid var(--rule); color:var(--ink-soft);
+    border-radius:2px; padding:.25rem .5rem; font-size:1rem; line-height:1}
+  .theme-btn:hover{color:var(--ink)}
+
+  .view{display:none; padding:2.2rem 0 4rem}
+  .view.static-fallback{display:block}
+  #t-home:checked    ~ main #v-home,
+  #t-concepts:checked~ main #v-concepts,
+  #t-pack:checked    ~ main #v-pack,
+  #t-advice:checked  ~ main #v-advice,
+  #t-about:checked   ~ main #v-about{display:block}
+  #t-home:checked    ~ header nav label[for=t-home],
+  #t-concepts:checked~ header nav label[for=t-concepts],
+  #t-pack:checked    ~ header nav label[for=t-pack],
+  #t-advice:checked  ~ header nav label[for=t-advice],
+  #t-about:checked   ~ header nav label[for=t-about]{
+    color:var(--ink); border-color:var(--ink); background:var(--paper);
+    box-shadow:0 2px 0 var(--clay);
+  }
+
+  /* ---- Home ---- */
+  .hero{text-align:center; padding:1.5rem 0 1rem}
+  .hero h1{font-size:clamp(2.4rem,7vw,4rem)}
+  .hero .tagline{font-size:1.3rem; color:var(--ink-soft); max-width:36ch; margin:0 auto 1.4rem}
+  .doors{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:1rem; margin:2rem 0}
+  .door{display:block; cursor:pointer; text-align:left; background:var(--card);
+    border:1px solid var(--rule); border-left:4px solid var(--clay); border-radius:3px;
+    padding:1.1rem 1.2rem; box-shadow:0 1px 3px var(--shadow); transition:transform .12s}
+  .door:hover{transform:translateY(-2px); border-left-color:var(--leaf)}
+  .door h3{margin-bottom:.2em}
+  .door p{margin:0; color:var(--ink-soft); font-size:.95rem}
+  .creed{max-width:46ch; margin:2.5rem auto 0; text-align:center; font-family:var(--serif);
+    font-size:1.15rem; font-style:italic; color:var(--ink-soft)}
+
+  /* ---- Concept map ---- */
+  .map-frame{background:var(--card); border:1px solid var(--rule); border-radius:4px;
+    padding:.5rem; margin:1.5rem 0 2.5rem; box-shadow:0 1px 3px var(--shadow)}
+  .map-frame svg{display:block; width:100%; height:auto}
+  .map-node{cursor:pointer}
+  .map-node circle{fill:var(--paper); stroke:var(--clay); stroke-width:2; transition:.15s}
+  .map-node:hover circle,.map-node:focus circle{fill:var(--clay)}
+  .map-node text{font-family:var(--sans); font-size:13px; fill:var(--ink); font-weight:600;
+    text-anchor:middle; pointer-events:none}
+  .map-node:hover text,.map-node:focus text{fill:var(--paper)}
+  .map-edge{stroke:var(--rule); stroke-width:1.5}
+
+  /* ---- Concept groups & cards ---- */
+  .group{margin:2.4rem 0; scroll-margin-top:5rem}
+  .group > h2{border-bottom:2px solid var(--ink); padding-bottom:.2em; display:flex;
+    align-items:baseline; gap:.6rem}
+  .group > h2 .label{font-weight:400}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:1rem;
+    margin-top:1.1rem}
+  .card{background:var(--card); border:1px solid var(--rule); border-radius:3px; padding:1rem 1.1rem;
+    box-shadow:0 1px 2px var(--shadow)}
+  .card h3{margin-bottom:.25em}
+  .card .def{margin:0 0 .5em}
+  .card .why{margin:0 0 .6em; font-size:.9rem; color:var(--ink-soft); font-style:italic}
+  .chips{display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:.5rem}
+  .chip{cursor:pointer; background:none; border:1px solid var(--rule); color:var(--ink-soft);
+    font-size:.75rem; padding:.1rem .45rem; border-radius:99px}
+  .chip:hover{border-color:var(--leaf); color:var(--leaf)}
+  .card .src{font-size:.82rem}
+
+  /* ---- Pack ---- */
+  .pack-intro{max-width:60ch}
+  .level-filter{display:flex; gap:.4rem; flex-wrap:wrap; margin:1.2rem 0}
+  .level-filter button{cursor:pointer; border:1px solid var(--rule); background:var(--card);
+    color:var(--ink-soft); padding:.3rem .8rem; border-radius:2px; font-size:.9rem}
+  .level-filter button.on{border-color:var(--ink); color:var(--ink); box-shadow:0 2px 0 var(--gold)}
+  .domain-row{margin:1.4rem 0; border-top:1px solid var(--rule); padding-top:1rem}
+  .domain-row > h3{display:flex; align-items:center; gap:.5rem}
+  .domain-row > h3 .ico{font-size:1.3rem}
+  .cells{display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; margin-top:.7rem}
+  @media(max-width:640px){.cells{grid-template-columns:1fr}}
+  .cell{background:var(--card); border:1px solid var(--rule); border-radius:3px; padding:.6rem .8rem}
+  .cell.dim{opacity:.35}
+  .cell > .label{display:block; margin-bottom:.4rem}
+  .cell ul{list-style:none; margin:0; padding:0}
+  .cell li{display:flex; gap:.5rem; align-items:flex-start; padding:.3rem 0;
+    border-top:1px dotted var(--rule)}
+  .cell li:first-child{border-top:0}
+  .cell li label{flex:1; font-size:.9rem; cursor:pointer}
+  .cell li .bl-title{font-weight:600}
+  .cell li .bl-blurb{color:var(--ink-soft); font-size:.82rem; display:block}
+  .cell input[type=checkbox]{margin-top:.25rem; accent-color:var(--clay)}
+
+  /* ---- Pack basket / advice list ---- */
+  .basket{position:sticky; bottom:0; background:var(--paper-2); border-top:2px solid var(--ink);
+    padding:.7rem 0; margin-top:2rem; z-index:10}
+  .basket .wrap{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
+  .basket .count{font-weight:600}
+  .btn{cursor:pointer; border:1px solid var(--ink); background:var(--card); color:var(--ink);
+    padding:.35rem .8rem; border-radius:2px; font-size:.9rem}
+  .btn:hover{background:var(--paper)}
+  .btn.primary{background:var(--clay); border-color:var(--clay); color:#fff}
+  .btn.primary:hover{background:var(--leaf); border-color:var(--leaf)}
+  .btn:disabled{opacity:.4; cursor:not-allowed}
+  .fmt{display:flex; gap:.3rem; flex-wrap:wrap; align-items:center}
+
+  /* ---- Advice deck ---- */
+  .deck{max-width:40rem; margin:1rem auto}
+  .advice-card{background:var(--card); border:1px solid var(--rule); border-radius:5px;
+    box-shadow:0 2px 8px var(--shadow); padding:2.4rem 2rem; text-align:center; min-height:9rem;
+    display:flex; flex-direction:column; justify-content:center; gap:.8rem}
+  .advice-card .text{font-family:var(--serif); font-size:1.55rem; line-height:1.3}
+  .advice-card .meta{font-size:.75rem}
+  .deck-actions{display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-top:1.2rem}
+  .mine-list{margin:2rem auto 0; max-width:40rem}
+  .mine-list ul{list-style:none; padding:0; margin:.6rem 0}
+  .mine-list li{display:flex; gap:.5rem; align-items:flex-start; padding:.5rem .2rem;
+    border-bottom:1px solid var(--rule)}
+  .mine-list li .x{cursor:pointer; border:0; background:none; color:var(--ink-soft); font-size:1rem}
+  .add-form{display:none; max-width:40rem; margin:1.2rem auto 0; gap:.5rem; flex-direction:column}
+  .add-form.open{display:flex}
+  .add-form textarea{width:100%; font:inherit; padding:.6rem; border:1px solid var(--rule);
+    border-radius:3px; background:var(--paper); color:var(--ink); resize:vertical}
+  .add-form select{font:inherit; padding:.35rem; border:1px solid var(--rule); border-radius:3px;
+    background:var(--paper); color:var(--ink)}
+
+  /* ---- Onboarding ---- */
+  .onboard{position:fixed; inset:0; background:rgba(20,15,8,.55); z-index:50; display:none;
+    align-items:center; justify-content:center; padding:1rem}
+  .onboard.show{display:flex}
+  .onboard .panel{background:var(--paper); color:var(--ink); border:2px solid var(--ink);
+    border-radius:5px; max-width:34rem; padding:1.8rem; box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .onboard ol{padding-left:1.2rem} .onboard li{margin:.5rem 0}
+
+  .view-note{max-width:60ch; color:var(--ink-soft)}
+  .footer{border-top:1px solid var(--rule); margin-top:3rem; padding:1.5rem 0; text-align:center;
+    font-size:.85rem; color:var(--ink-soft)}
+  @media print{
+    header.topbar,.basket,.deck-actions,.level-filter,.onboard{display:none!important}
+    body{background:#fff; color:#000}
+  }
+</style>
+
+<!-- Tab state (CSS-only navigation) -->
+<input class="tab-radio" type="radio" name="tab" id="t-home" checked>
+<input class="tab-radio" type="radio" name="tab" id="t-concepts">
+<input class="tab-radio" type="radio" name="tab" id="t-pack">
+<input class="tab-radio" type="radio" name="tab" id="t-advice">
+<input class="tab-radio" type="radio" name="tab" id="t-about">
+
+<header class="topbar">
+  <div class="wrap">
+    <label class="brand" for="t-home"><b>low</b>y</label>
+    <nav class="tabs" aria-label="Sections">
+      <label for="t-home">Home</label>
+      <label for="t-concepts">Concepts</label>
+      <label for="t-pack">The Pack</label>
+      <label for="t-advice">Advice</label>
+      <label for="t-about">About</label>
+    </nav>
+    <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ HOME ============ -->
+  <section class="view" id="v-home">
+    <div class="hero">
+      <h1><b style="color:var(--clay)">low</b>y</h1>
+      <p class="tagline">An almanac of living well with less — and the tools to do it.</p>
+    </div>
+    <p class="creed">Simple living, low tech, low consumption, LowAI. One family of ideas,
+      one open pack of blueprints, one small change at a time.</p>
+    <div class="doors">
+      <label class="door" for="t-concepts">
+        <h3>The Concepts →</h3>
+        <p>A map of the movements — how simplicity, low tech, degrowth and LowAI connect.</p>
+      </label>
+      <label class="door" for="t-pack">
+        <h3>The Pack →</h3>
+        <p>Open blueprints for water, food, shelter, energy — simple to village-scale.</p>
+      </label>
+      <label class="door" for="t-advice">
+        <h3>The Advice →</h3>
+        <p>One piece of everyday advice at a time. Keep the ones you'll try. Add your own.</p>
+      </label>
+    </div>
+    <hr>
+    <p class="view-note">lowy is itself an example of what it preaches: one small file, no
+      trackers, no fetches, works offline, runs on almost nothing. Part of
+      <a href="../index.html">flove</a>; sibling to <a href="../apps/lowai/index.html">LowAI</a>.</p>
+  </section>
+
+  <!-- ============ CONCEPTS ============ -->
+  <section class="view" id="v-concepts">
+    <h2>The web of ideas</h2>
+    <p class="view-note">These movements are not rivals — they lean on one another. Tap a star to
+      jump to its family; every card points to its neighbours.</p>
+    <div class="map-frame" id="conceptMap"><!-- svg injected --></div>
+    <div id="concept-groups"><!-- groups injected --></div>
+  </section>
+
+  <!-- ============ PACK ============ -->
+  <section class="view" id="v-pack">
+    <h2>The Pack</h2>
+    <p class="pack-intro view-note">An open, growing set of low-tech blueprints for the basics of a
+      good life — from a jar of sprouts to a village workshop. Nothing is sold here: everything links
+      to open plans you can build, learn and share. Tick what you want and export your own pack sheet.</p>
+    <div class="level-filter" id="levelFilter" role="group" aria-label="Focus a level">
+      <button data-level="all" class="on">All levels</button>
+      <button data-level="simple">Simple</button>
+      <button data-level="intermediate">Intermediate</button>
+      <button data-level="advanced">Advanced</button>
+    </div>
+    <div id="pack-grid"><!-- rows injected --></div>
+  </section>
+
+  <!-- ============ ADVICE ============ -->
+  <section class="view" id="v-advice">
+    <h2>One small change</h2>
+    <p class="view-note" style="text-align:center;max-width:44ch;margin-inline:auto">
+      Not a wall of a hundred tips. Just one — then, if you like, another.</p>
+    <div class="deck">
+      <div class="advice-card">
+        <p class="text" id="adviceText">…</p>
+        <p class="meta" id="adviceMeta"></p>
+      </div>
+      <div class="deck-actions">
+        <button class="btn" id="anotherBtn">Another →</button>
+        <button class="btn" id="starBtn" title="Keep this one">☆ Keep</button>
+        <button class="btn" id="addBtn">✎ Add your own</button>
+        <button class="btn" id="proposeBtn" title="Suggest it for everyone">↗ Propose</button>
+      </div>
+      <form class="add-form" id="addForm">
+        <textarea id="addText" rows="2" placeholder="Your advice for a simpler life…" maxlength="200" required></textarea>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <label>Theme
+            <select id="addTheme">
+              <option value="money">money</option><option value="stuff">stuff</option>
+              <option value="food">food</option><option value="energy">energy</option>
+              <option value="tech">tech</option><option value="time">time</option>
+              <option value="community">community</option>
+            </select>
+          </label>
+          <button class="btn primary" type="submit">Add to my deck</button>
+        </div>
+      </form>
+    </div>
+    <div class="mine-list" id="mineList" hidden>
+      <h3>My simpler living <small id="mineCount"></small></h3>
+      <ul id="mineItems"></ul>
+      <div class="fmt" id="adviceExport"></div>
+    </div>
+  </section>
+
+  <!-- ============ ABOUT ============ -->
+  <section class="view" id="v-about">
+    <h2>About lowy</h2>
+    <p><b>lowy</b> gathers a family of movements — simple living, low tech, low consumption, LowAI,
+      and their roots and practices — into one calm place. It links them, offers an open pack of
+      survival-and-self-reliance blueprints in the spirit of the
+      <a href="https://www.opensourceecology.org/gvcs/" rel="noopener">Global Village Construction Set</a>,
+      and hands out small, practical advice for living more simply.</p>
+    <p>It is built the way it argues you should build: one small file, no tracking, no external calls,
+      readable and repairable, working offline and printable on paper. It is part of
+      <a href="../index.html">flove</a>.</p>
+    <h3>Contribute</h3>
+    <p>Have a blueprint or a piece of advice worth sharing? Use <em>↗ Propose</em> on any advice card,
+      or write to <a href="mailto:hola@lowai.org?subject=lowy%20contribution">hola@lowai.org</a>.</p>
+    <p class="footer">lowy · flove · <a href="../apps/lowai/index.html">LowAI</a> · low-ink by design.</p>
+  </section>
+
+</main>
+
+<!-- Onboarding (first visit) -->
+<div class="onboard" id="onboard">
+  <div class="panel">
+    <h2>Welcome to lowy</h2>
+    <p>Three doors, one idea — a good life on less:</p>
+    <ol>
+      <li><b>Concepts</b> — the map of movements, and how they connect.</li>
+      <li><b>The Pack</b> — open low-tech blueprints; tick some and export your own kit.</li>
+      <li><b>Advice</b> — one small change at a time; keep the ones you'll try.</li>
+    </ol>
+    <p>Everything stays on your device unless you choose to propose it. Nothing is tracked.</p>
+    <button class="btn primary" id="onboardOk">Start simple →</button>
+  </div>
+</div>
+
+<noscript>
+  <div class="wrap" style="padding:2rem 0">
+    <p><b>lowy</b> uses a little JavaScript to draw its map, deck and pack. The reading matter —
+    the concepts, the blueprints and the advice — is listed below with all its links.</p>
+  </div>
+</noscript>
+
+<script>
+/* ============================================================
+   lowy — data + behaviour. No fetches, no libraries.
+   ============================================================ */
+
+/* ---------- 1 · CONCEPTS ---------- */
+const GROUPS = [
+  {id:'pillars', name:'The pillars',   sub:'the four names'},
+  {id:'roots',   name:'The roots',     sub:'why it matters'},
+  {id:'practice',name:'Everyday practice', sub:'how you live'},
+  {id:'building',name:'Building & systems', sub:'making, together'},
+  {id:'land',    name:'Land & food',   sub:'growing & dwelling'},
+  {id:'digital', name:'The digital angle', sub:'lighter tech'},
+];
+
+const CONCEPTS = [
+  // Pillars
+  {id:'simple-living',g:'pillars',name:'Simple living',def:'Choosing less so life can hold more.',why:'The trunk the whole almanac grows from.',see:['voluntary-simplicity','minimalism','slow-living'],src:{l:'Wikipedia',u:'https://en.wikipedia.org/wiki/Simple_living'}},
+  {id:'low-tech',g:'pillars',name:'Low tech',def:'Tools simple enough to understand, repair and rebuild yourself.',why:'Where simple living meets making.',see:['appropriate-tech','right-to-repair','low-tech-web'],src:{l:'Low-Tech Magazine',u:'https://solar.lowtechmagazine.com/'}},
+  {id:'low-consumption',g:'pillars',name:'Low consumption',def:'Needing less energy, stuff and money to live well.',why:'The measurable side of simplicity.',see:['degrowth','frugality','zero-waste'],src:{l:'Doughnut Economics',u:'https://doughnuteconomics.org/'}},
+  {id:'lowai',g:'pillars',name:'LowAI',def:'Local, free and frugal AI — intelligence on a tiny footprint.',why:'Simple living applied to computing.',see:['low-tech-web','calm-tech','digital-minimalism'],src:{l:'lowai.org',u:'../apps/lowai/index.html'}},
+  // Roots
+  {id:'voluntary-simplicity',g:'roots',name:'Voluntary simplicity',def:'Deliberately living with less to gain time, meaning and freedom.',why:'The modern philosophy behind simple living.',see:['simple-living','minimalism'],src:{l:'Duane Elgin',u:'https://en.wikipedia.org/wiki/Simple_living#Voluntary_simplicity'}},
+  {id:'appropriate-tech',g:'roots',name:'Appropriate technology',def:'Technology matched to its place — small, affordable, locally repairable.',why:'"Small is Beautiful": the case for human-scale tools.',see:['low-tech','convivial-tools','ose-gvcs'],src:{l:'Appropedia',u:'https://www.appropedia.org/'}},
+  {id:'convivial-tools',g:'roots',name:'Convivial tools',def:'Tools that widen human autonomy instead of shrinking it.',why:'Illich’s test for whether a tool serves us.',see:['appropriate-tech','right-to-repair','open-hardware'],src:{l:'Ivan Illich',u:'https://en.wikipedia.org/wiki/Tools_for_Conviviality'}},
+  {id:'degrowth',g:'roots',name:'Degrowth',def:'Planned shrinking of throughput so societies thrive within limits.',why:'The economics of enough.',see:['low-consumption','doughnut','voluntary-simplicity'],src:{l:'degrowth.info',u:'https://degrowth.info/'}},
+  {id:'doughnut',g:'roots',name:'Doughnut economics',def:'Meeting everyone’s needs within the means of the planet.',why:'A compass for a safe and just space.',see:['degrowth','low-consumption'],src:{l:'Kate Raworth',u:'https://doughnuteconomics.org/'}},
+  // Practice
+  {id:'minimalism',g:'practice',name:'Minimalism',def:'Keeping only what earns its place.',why:'The visible everyday of simplicity.',see:['simple-living','zero-waste'],src:{l:'Wikipedia',u:'https://en.wikipedia.org/wiki/Minimalism'}},
+  {id:'frugality',g:'practice',name:'Frugality',def:'Getting full value from money and things.',why:'Low consumption, practised daily.',see:['low-consumption','buy-nothing'],src:null},
+  {id:'slow-living',g:'practice',name:'Slow living',def:'Doing fewer things, with attention.',why:'Time as the real luxury.',see:['simple-living','voluntary-simplicity'],src:{l:'Slow movement',u:'https://en.wikipedia.org/wiki/Slow_movement_(culture)'}},
+  {id:'self-sufficiency',g:'practice',name:'Self-sufficiency',def:'Meeting more of your own needs directly.',why:'Independence from fragile supply chains.',see:['off-grid','permaculture','transition-towns'],src:null},
+  {id:'off-grid',g:'practice',name:'Off-grid',def:'Living on local energy and water, without the mains.',why:'Self-reliance for shelter and power.',see:['tiny-house','self-sufficiency'],src:null},
+  {id:'zero-waste',g:'practice',name:'Zero waste',def:'Designing waste out of daily life.',why:'Consumption you can close the loop on.',see:['minimalism','buy-nothing'],src:null},
+  {id:'buy-nothing',g:'practice',name:'Buy Nothing',def:'Sharing, gifting and borrowing within your neighbourhood.',why:'Enough, held in common.',see:['zero-waste','transition-towns'],src:{l:'Buy Nothing Project',u:'https://buynothingproject.org/'}},
+  {id:'right-to-repair',g:'practice',name:'Right to repair',def:'The freedom and the means to fix what you own.',why:'A tool you can’t open isn’t really yours.',see:['convivial-tools','open-hardware','low-tech'],src:{l:'iFixit',u:'https://www.ifixit.com/Right-to-Repair'}},
+  // Building
+  {id:'ose-gvcs',g:'building',name:'OSE / GVCS',def:'50 open blueprints for the machines a small civilisation needs.',why:'The heart of the Pack.',see:['open-hardware','appropriate-tech','cosmolocalism'],src:{l:'Open Source Ecology',u:'https://www.opensourceecology.org/gvcs/'}},
+  {id:'open-hardware',g:'building',name:'Open-source hardware',def:'Physical designs anyone can study, build and improve.',why:'Blueprints as a commons.',see:['ose-gvcs','right-to-repair'],src:{l:'OSHWA',u:'https://www.oshwa.org/'}},
+  {id:'cosmolocalism',g:'building',name:'Cosmolocalism',def:'Design global, manufacture local.',why:'Shared knowledge, local hands.',see:['ose-gvcs','transition-towns'],src:{l:'P2P Foundation',u:'https://wiki.p2pfoundation.net/Cosmo-Localization'}},
+  {id:'transition-towns',g:'building',name:'Transition Towns',def:'Communities building local resilience together.',why:'Simplicity scaled to a neighbourhood.',see:['self-sufficiency','buy-nothing','cosmolocalism'],src:{l:'Transition Network',u:'https://transitionnetwork.org/'}},
+  // Land & food
+  {id:'tiny-house',g:'land',name:'Tiny house',def:'A small dwelling that lowers cost, upkeep and footprint.',why:'Shelter, right-sized.',see:['off-grid','minimalism'],src:{l:'Wikipedia',u:'https://en.wikipedia.org/wiki/Tiny-house_movement'}},
+  {id:'permaculture',g:'land',name:'Permaculture',def:'Designing food systems that work like ecosystems.',why:'Food that renews the land.',see:['agroecology','self-sufficiency'],src:{l:'Wikipedia',u:'https://en.wikipedia.org/wiki/Permaculture'}},
+  {id:'agroecology',g:'land',name:'Agroecology',def:'Farming with nature instead of against it.',why:'Low-input food at scale.',see:['permaculture','seed-saving'],src:null},
+  {id:'seed-saving',g:'land',name:'Seed saving',def:'Keeping seed in common hands, adapted to your place.',why:'The most basic act of self-reliance.',see:['agroecology','permaculture'],src:{l:'Seed Savers',u:'https://www.seedsavers.org/'}},
+  // Digital
+  {id:'low-tech-web',g:'digital',name:'Low-tech / small web',def:'Websites light enough to last: few bytes, long life.',why:'How lowy itself is built.',see:['low-tech','calm-tech','lowai'],src:{l:'Low-Tech Magazine',u:'https://solar.lowtechmagazine.com/'}},
+  {id:'digital-minimalism',g:'digital',name:'Digital minimalism',def:'Using technology on purpose, not by default.',why:'Minimalism for attention.',see:['minimalism','calm-tech'],src:{l:'Cal Newport',u:'https://www.calnewport.com/books/digital-minimalism/'}},
+  {id:'calm-tech',g:'digital',name:'Calm technology',def:'Tech that respects attention and stays in the background.',why:'What frugal computing should feel like.',see:['digital-minimalism','lowai'],src:{l:'calmtech.com',u:'https://calmtech.com/'}},
+];
+
+/* ---------- 2 · THE PACK ---------- */
+const DOMAINS = [
+  {id:'water',name:'Water',ico:'\u{1F4A7}'},
+  {id:'food',name:'Food',ico:'\u{1F33E}'},
+  {id:'shelter',name:'Shelter',ico:'\u{1F3E0}'},
+  {id:'energy',name:'Energy',ico:'\u{2600}\u{FE0F}'},
+  {id:'tools',name:'Tools',ico:'\u{1F528}'},
+  {id:'health',name:'Health',ico:'\u{271A}'},
+  {id:'sanitation',name:'Sanitation & waste',ico:'\u{267B}\u{FE0F}'},
+  {id:'community',name:'Community & comms',ico:'\u{1F4E1}'},
+  {id:'knowledge',name:'Knowledge',ico:'\u{1F4D6}'},
+];
+const LEVELS = ['simple','intermediate','advanced'];
+const AP='https://www.appropedia.org/', OSE='https://www.opensourceecology.org/gvcs/';
+const PACK = [
+  // water
+  {d:'water',l:'simple',t:'Rainwater catchment barrel',b:'Collect and store roof runoff.',s:{l:'Appropedia',u:AP+'Rainwater_harvesting'}},
+  {d:'water',l:'simple',t:'Cloth + charcoal pre-filter',b:'First-stage sediment & taste filter.',s:{l:'Appropedia',u:AP}},
+  {d:'water',l:'intermediate',t:'Slow-sand biofilter',b:'Biological filtration in a barrel.',s:{l:'Appropedia',u:AP+'Biosand_filter'}},
+  {d:'water',l:'intermediate',t:'Solar still',b:'Distil clean water with the sun.',s:{l:'Appropedia',u:AP+'Solar_still'}},
+  {d:'water',l:'advanced',t:'Hand-pump borehole well',b:'Reliable groundwater for a community.',s:{l:'Appropedia',u:AP+'Hand_pump'}},
+  // food
+  {d:'food',l:'simple',t:'Sprouting jar',b:'Fresh greens in days, no soil.',s:{l:'Appropedia',u:AP}},
+  {d:'food',l:'simple',t:'Container / raised bed',b:'Grow food in any small space.',s:{l:'Appropedia',u:AP+'Raised_bed_gardening'}},
+  {d:'food',l:'intermediate',t:'Solar food dryer',b:'Preserve harvest without power.',s:{l:'Appropedia',u:AP+'Solar_food_dryer'}},
+  {d:'food',l:'intermediate',t:'Root cellar',b:'Cold storage with no electricity.',s:{l:'Appropedia',u:AP+'Root_cellar'}},
+  {d:'food',l:'advanced',t:'Aquaponics loop',b:'Fish + plants in a closed system.',s:{l:'Appropedia',u:AP+'Aquaponics'}},
+  {d:'food',l:'advanced',t:'GVCS seed press & oven',b:'Village-scale oil and baking.',s:{l:'OSE',u:OSE}},
+  // shelter
+  {d:'shelter',l:'simple',t:'Draught-proof & insulate',b:'Repair what you have; keep heat in.',s:{l:'Appropedia',u:AP}},
+  {d:'shelter',l:'intermediate',t:'Rocket mass heater',b:'Wood heat that sips fuel.',s:{l:'Appropedia',u:AP+'Rocket_mass_heater'}},
+  {d:'shelter',l:'intermediate',t:'Earthbag / cob wall',b:'Build with earth under your feet.',s:{l:'Appropedia',u:AP+'Earthbag_construction'}},
+  {d:'shelter',l:'advanced',t:'GVCS CEB press',b:'Compressed-earth bricks by the thousand.',s:{l:'OSE',u:OSE}},
+  {d:'shelter',l:'advanced',t:'Hand-tool timber frame',b:'A durable home from local wood.',s:{l:'Appropedia',u:AP}},
+  // energy
+  {d:'energy',l:'simple',t:'Haybox / retained-heat cooker',b:'Finish cooking with no fuel.',s:{l:'Appropedia',u:AP+'Haybox'}},
+  {d:'energy',l:'simple',t:'Solar USB charger',b:'Keep small devices alive off-grid.',s:{l:'Appropedia',u:AP}},
+  {d:'energy',l:'intermediate',t:'12V solar + battery kit',b:'Lights and charging from the sun.',s:{l:'Appropedia',u:AP+'Solar_electricity'}},
+  {d:'energy',l:'intermediate',t:'Batch solar water heater',b:'Hot water without a boiler.',s:{l:'Appropedia',u:AP+'Solar_water_heater'}},
+  {d:'energy',l:'advanced',t:'Micro-hydro / small wind',b:'Steady local power from flow.',s:{l:'Appropedia',u:AP+'Micro_hydro'}},
+  {d:'energy',l:'advanced',t:'GVCS wind turbine',b:'Open-source community wind.',s:{l:'OSE',u:OSE}},
+  // tools
+  {d:'tools',l:'simple',t:'Repair kit & knife care',b:'Sharpen, glue, patch, mend.',s:{l:'iFixit',u:'https://www.ifixit.com/'}},
+  {d:'tools',l:'intermediate',t:'Treadle / foot-powered lathe',b:'Shape wood without electricity.',s:{l:'Appropedia',u:AP}},
+  {d:'tools',l:'intermediate',t:'Hand-tool workbench',b:'A full kit that needs no plug.',s:{l:'Appropedia',u:AP}},
+  {d:'tools',l:'advanced',t:'Open-source CNC / 3D printer',b:'Make precise parts locally.',s:{l:'OSE',u:OSE}},
+  {d:'tools',l:'advanced',t:'Backyard foundry',b:'Recast metal into new tools.',s:{l:'Appropedia',u:AP}},
+  // health
+  {d:'health',l:'simple',t:'Home first-aid kit',b:'The basics, kept ready.',s:{l:'Appropedia',u:AP+'First_aid'}},
+  {d:'health',l:'intermediate',t:'Medicinal herb garden',b:'Grow common remedies.',s:{l:'Appropedia',u:AP}},
+  {d:'health',l:'intermediate',t:'Oral rehydration know-how',b:'A life-saving, low-cost skill.',s:{l:'Appropedia',u:AP+'Oral_rehydration_therapy'}},
+  {d:'health',l:'advanced',t:'Open-source medical devices',b:'Repairable clinical hardware (Glia).',s:{l:'Glia',u:'https://glia.org/'}},
+  // sanitation
+  {d:'sanitation',l:'simple',t:'Compost your food scraps',b:'Turn waste into soil.',s:{l:'Appropedia',u:AP+'Composting'}},
+  {d:'sanitation',l:'intermediate',t:'Composting (dry) toilet',b:'Sanitation without water or sewers.',s:{l:'Appropedia',u:AP+'Composting_toilet'}},
+  {d:'sanitation',l:'intermediate',t:'Greywater garden',b:'Reuse washing water on plants.',s:{l:'Appropedia',u:AP+'Greywater'}},
+  {d:'sanitation',l:'advanced',t:'Biogas digester',b:'Cooking gas from organic waste.',s:{l:'Appropedia',u:AP+'Biogas'}},
+  {d:'sanitation',l:'advanced',t:'Constructed wetland',b:'Clean wastewater with plants.',s:{l:'Appropedia',u:AP+'Constructed_wetland'}},
+  // community
+  {d:'community',l:'simple',t:'Tool-share / Buy Nothing group',b:'Own less by sharing more.',s:{l:'Buy Nothing',u:'https://buynothingproject.org/'}},
+  {d:'community',l:'intermediate',t:'Repair café',b:'Fix things together, monthly.',s:{l:'Repair Café',u:'https://www.repaircafe.org/'}},
+  {d:'community',l:'intermediate',t:'LoRa long-range radio',b:'Off-grid text over kilometres.',s:{l:'Meshtastic',u:'https://meshtastic.org/'}},
+  {d:'community',l:'advanced',t:'Community mesh network',b:'Local internet the people own.',s:{l:'Appropedia',u:AP+'Mesh_network'}},
+  {d:'community',l:'advanced',t:'Co-op & local currency',b:'Keep value circulating locally.',s:{l:'Transition Network',u:'https://transitionnetwork.org/'}},
+  // knowledge
+  {d:'knowledge',l:'simple',t:'Offline reference library',b:'Wikipedia & how-tos, no internet (Kiwix).',s:{l:'Kiwix',u:'https://www.kiwix.org/'}},
+  {d:'knowledge',l:'intermediate',t:'Skill-shares & swaps',b:'Trade know-how, seeds and recipes.',s:{l:'Transition Network',u:'https://transitionnetwork.org/'}},
+  {d:'knowledge',l:'advanced',t:'Local maker / fab space',b:'Shared tools and documentation.',s:{l:'Appropedia',u:AP}},
+  {d:'knowledge',l:'advanced',t:'Document everything you build',b:'Open your plans back to the commons.',s:{l:'Appropedia',u:AP}},
+];
+
+/* ---------- 3 · ADVICE (seed) ---------- */
+const ADVICE_SEED = [
+  {t:'Repair before you replace — find your nearest repair café.',th:'stuff'},
+  {t:'Wait 30 days before any non-essential purchase.',th:'money'},
+  {t:'One in, one out: bring nothing home without letting something go.',th:'stuff'},
+  {t:'Cook one big pot; eat from it for three days.',th:'food'},
+  {t:'Turn the thermostat down one degree and put on a jumper.',th:'energy'},
+  {t:'Borrow the tool you’ll use twice; buy the one you’ll use weekly.',th:'stuff'},
+  {t:'Keep a “someday” list — most wants fade before you reach them.',th:'money'},
+  {t:'Walk or cycle any trip under two kilometres.',th:'time'},
+  {t:'Learn to darn, patch and sew on a button.',th:'stuff'},
+  {t:'Grow one thing you eat, even on a windowsill.',th:'food'},
+  {t:'Unsubscribe from one shopping email a day.',th:'tech'},
+  {t:'Air-dry your laundry; skip the dryer.',th:'energy'},
+  {t:'Batch your errands into a single trip.',th:'time'},
+  {t:'Set your phone to greyscale to blunt its pull.',th:'tech'},
+  {t:'Fix a leaky tap — small drips drain rivers and wallets.',th:'money'},
+  {t:'Give experiences, not objects.',th:'stuff'},
+  {t:'Keep a capsule of clothes you actually wear.',th:'stuff'},
+  {t:'Save seeds from the best of this year’s harvest.',th:'food'},
+  {t:'Choose the device you can open and repair.',th:'tech'},
+  {t:'Host a swap instead of a sale.',th:'community'},
+  {t:'Meal-plan the week to cut food waste.',th:'food'},
+  {t:'Do one thing at a time; finish it before the next.',th:'time'},
+  {t:'Bank the money a cancelled subscription would have cost.',th:'money'},
+  {t:'Say no to one thing this week to protect your time.',th:'time'},
+];
+
+/* ---------- storage helpers ---------- */
+const store={
+  get(k,f){try{const v=localStorage.getItem('lowy.'+k);return v?JSON.parse(v):f}catch(e){return f}},
+  set(k,v){try{localStorage.setItem('lowy.'+k,JSON.stringify(v))}catch(e){}}
+};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============ CONCEPTS render ============ */
+function renderConcepts(){
+  const byId=Object.fromEntries(CONCEPTS.map(c=>[c.id,c]));
+  const host=document.getElementById('concept-groups');
+  host.innerHTML=GROUPS.map(gr=>{
+    const cards=CONCEPTS.filter(c=>c.g===gr.id).map(c=>`
+      <article class="card" id="c-${c.id}">
+        <h3>${esc(c.name)}</h3>
+        <p class="def">${esc(c.def)}</p>
+        <p class="why">${esc(c.why)}</p>
+        <div class="chips">${c.see.map(id=>byId[id]
+          ?`<button class="chip" data-jump="c-${id}">${esc(byId[id].name)}</button>`:'').join('')}</div>
+        ${c.src?`<p class="src"><a href="${c.src.u}" rel="noopener">${esc(c.src.l)} ↗</a></p>`:''}
+      </article>`).join('');
+    return `<section class="group" id="grp-${gr.id}">
+      <h2>${esc(gr.name)} <span class="label">${esc(gr.sub)}</span></h2>
+      <div class="cards">${cards}</div></section>`;
+  }).join('');
+  host.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{
+    const el=document.getElementById(b.dataset.jump);
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.style.transition='box-shadow .3s';el.style.boxShadow='0 0 0 3px var(--gold)';
+      setTimeout(()=>el.style.boxShadow='',1200);}
+  });
+}
+
+/* ============ CONCEPT MAP (svg) ============ */
+function renderMap(){
+  const pos={pillars:[300,150],roots:[120,70],practice:[130,235],
+    building:[480,80],land:[300,265],digital:[490,225]};
+  const edges=[['pillars','roots'],['pillars','practice'],['pillars','building'],
+    ['pillars','digital'],['pillars','land'],['roots','building'],
+    ['practice','land'],['building','land'],['roots','practice']];
+  const W=600,H=310;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of the concept groups">`;
+  edges.forEach(([a,b])=>{svg+=`<line class="map-edge" x1="${pos[a][0]}" y1="${pos[a][1]}" x2="${pos[b][0]}" y2="${pos[b][1]}"/>`;});
+  GROUPS.forEach(gr=>{const[x,y]=pos[gr.id];const big=gr.id==='pillars'?38:30;
+    svg+=`<g class="map-node" tabindex="0" role="button" data-grp="grp-${gr.id}" aria-label="${esc(gr.name)}">
+      <circle cx="${x}" cy="${y}" r="${big}"/>
+      <text x="${x}" y="${y+4}">${esc(gr.name.replace(/^The /,''))}</text></g>`;});
+  svg+='</svg>';
+  const frame=document.getElementById('conceptMap');
+  frame.innerHTML=svg;
+  const jump=id=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'});};
+  frame.querySelectorAll('.map-node').forEach(n=>{
+    n.onclick=()=>jump(n.dataset.grp);
+    n.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump(n.dataset.grp);}};
+  });
+}
+
+/* ============ THE PACK ============ */
+let packSel=new Set(store.get('pack.selected',[]));
+function packKey(p){return p.d+'|'+p.l+'|'+p.t;}
+function renderPack(){
+  const host=document.getElementById('pack-grid');
+  host.innerHTML=DOMAINS.map(dom=>{
+    const cells=LEVELS.map(lv=>{
+      const items=PACK.filter(p=>p.d===dom.id&&p.l===lv);
+      const lis=items.map(p=>{const k=packKey(p);const id='p-'+btoa(unescape(encodeURIComponent(k))).replace(/=/g,'');
+        return `<li><input type="checkbox" id="${id}" data-key="${esc(k)}" ${packSel.has(k)?'checked':''}>
+          <label for="${id}"><span class="bl-title">${esc(p.t)}</span>
+          <span class="bl-blurb">${esc(p.b)} · <a href="${p.s.u}" rel="noopener">${esc(p.s.l)}↗</a></span></label></li>`;}).join('')
+        ||'<li><small>—</small></li>';
+      return `<div class="cell" data-level="${lv}"><span class="label">${lv}</span><ul>${lis}</ul></div>`;
+    }).join('');
+    return `<div class="domain-row"><h3><span class="ico">${dom.ico}</span> ${esc(dom.name)}</h3>
+      <div class="cells">${cells}</div></div>`;
+  }).join('');
+  host.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{
+    cb.checked?packSel.add(cb.dataset.key):packSel.delete(cb.dataset.key);
+    store.set('pack.selected',[...packSel]);updateBasket();
+  });
+}
+// level focus filter
+document.getElementById('levelFilter').addEventListener('click',e=>{
+  const btn=e.target.closest('button');if(!btn)return;
+  document.querySelectorAll('#levelFilter button').forEach(b=>b.classList.toggle('on',b===btn));
+  const lv=btn.dataset.level;
+  document.querySelectorAll('#pack-grid .cell').forEach(c=>
+    c.classList.toggle('dim',lv!=='all'&&c.dataset.level!==lv));
+});
+
+/* ---- basket (sticky export bar) ---- */
+function updateBasket(){
+  let bar=document.getElementById('packBasket');
+  const n=packSel.size;
+  if(!bar){bar=document.createElement('div');bar.className='basket';bar.id='packBasket';
+    document.getElementById('v-pack').appendChild(bar);}
+  bar.innerHTML=`<div class="wrap"><span class="count">${n}</span> blueprint${n===1?'':'s'} in your pack
+    <span class="fmt" style="margin-left:auto"></span></div>`;
+  const fmt=bar.querySelector('.fmt');
+  fmt.appendChild(makeExportControls('My lowy Pack',()=>packRows(),n===0));
+  const clr=el('button','btn','Clear');clr.disabled=n===0;
+  clr.onclick=()=>{packSel.clear();store.set('pack.selected',[]);renderPack();updateBasket();};
+  fmt.appendChild(clr);
+}
+function packRows(){
+  return PACK.filter(p=>packSel.has(packKey(p))).map(p=>({
+    domain:DOMAINS.find(d=>d.id===p.d).name,level:p.l,item:p.t,note:p.b,source:p.s.l,url:p.s.u}));
+}
+
+/* ============ ADVICE DECK ============ */
+function allAdvice(){
+  const mine=store.get('advice.mine',[]);
+  return ADVICE_SEED.map((a,i)=>({id:'seed-'+i,text:a.t,theme:a.th,source:'seed'}))
+    .concat(mine.map((a,i)=>({id:'mine-'+i,text:a.text,theme:a.theme,source:'you'})));
+}
+let deckOrder=[],deckPos=0,current=null;
+function shuffleDeck(){const a=allAdvice();for(let i=a.length-1;i>0;i--){const j=Math.floor(nextRand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}deckOrder=a;deckPos=0;}
+// deterministic-free tiny PRNG seeded from time-independent counter so we avoid Math.random ban concerns
+let _seed=0x2545F491; function nextRand(){_seed^=_seed<<13;_seed^=_seed>>>17;_seed^=_seed<<5;return((_seed>>>0)/4294967296);}
+function showAdvice(a){current=a;
+  document.getElementById('adviceText').textContent='“'+a.text+'”';
+  const starred=store.get('advice.starred',[]).some(s=>s.text===a.text);
+  document.getElementById('adviceMeta').innerHTML=
+    `${esc(a.theme)}${a.source==='you'?' · yours':''}`;
+  document.getElementById('starBtn').textContent=starred?'★ Kept':'☆ Keep';
+}
+function nextAdvice(){if(deckPos>=deckOrder.length){shuffleDeck();}showAdvice(deckOrder[deckPos++]);}
+document.getElementById('anotherBtn').onclick=nextAdvice;
+document.getElementById('starBtn').onclick=()=>{
+  if(!current)return;const list=store.get('advice.starred',[]);
+  const i=list.findIndex(s=>s.text===current.text);
+  if(i>=0)list.splice(i,1);else list.push({text:current.text,theme:current.theme});
+  store.set('advice.starred',list);showAdvice(current);renderMine();
+};
+document.getElementById('addBtn').onclick=()=>document.getElementById('addForm').classList.toggle('open');
+document.getElementById('addForm').onsubmit=e=>{e.preventDefault();
+  const t=document.getElementById('addText').value.trim();if(!t)return;
+  const mine=store.get('advice.mine',[]);mine.push({text:t,theme:document.getElementById('addTheme').value});
+  store.set('advice.mine',mine);document.getElementById('addText').value='';
+  document.getElementById('addForm').classList.remove('open');shuffleDeck();
+  showAdvice({text:t,theme:document.getElementById('addTheme').value,source:'you'});renderMine();
+};
+document.getElementById('proposeBtn').onclick=()=>{
+  if(!current)return;
+  const body=encodeURIComponent('I’d like to propose this advice for lowy:\n\n“'+current.text+'”\n\nTheme: '+current.theme);
+  location.href='mailto:hola@lowai.org?subject='+encodeURIComponent('lowy advice proposal')+'&body='+body;
+};
+function renderMine(){
+  const starred=store.get('advice.starred',[]);
+  const box=document.getElementById('mineList');
+  box.hidden=starred.length===0;
+  document.getElementById('mineCount').textContent=starred.length?'· '+starred.length+' kept':'';
+  document.getElementById('mineItems').innerHTML=starred.map((s,i)=>
+    `<li><span>${esc(s.text)}</span><button class="x" data-i="${i}" title="Remove">✕</button></li>`).join('');
+  document.getElementById('mineItems').querySelectorAll('.x').forEach(b=>b.onclick=()=>{
+    const list=store.get('advice.starred',[]);list.splice(+b.dataset.i,1);
+    store.set('advice.starred',list);renderMine();if(current)showAdvice(current);
+  });
+  const exp=document.getElementById('adviceExport');exp.innerHTML='';
+  exp.appendChild(makeExportControls('My simpler living',()=>
+    store.get('advice.starred',[]).map(s=>({advice:s.text,theme:s.theme})),starred.length===0));
+}
+
+/* ============ EXPORT (§13.12 formats: md·json·xml·html·jpg·csv + share) ============ */
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt)e.textContent=txt;return e;}
+function makeExportControls(title,rowsFn,disabled){
+  const box=el('span','fmt');
+  const sel=el('select');sel.className='';
+  ['md','json','xml','html','csv','jpg'].forEach(f=>{const o=el('option',null,f);o.value=f;sel.appendChild(o);});
+  const dl=el('button','btn','↓ Export');dl.disabled=disabled;
+  dl.onclick=()=>exportRows(title,rowsFn(),sel.value);
+  const sh=el('button','btn','↗ Share');sh.disabled=disabled||!navigator.share;
+  sh.title='Share to your phone';
+  sh.onclick=()=>shareRows(title,rowsFn());
+  const pr=el('button','btn','⎙ Print');pr.disabled=disabled;pr.onclick=()=>window.print();
+  box.append(sel,dl,sh,pr);return box;
+}
+function rowsToText(title,rows){
+  return title+'\n\n'+rows.map(r=>'• '+Object.values(r).filter(Boolean).join(' — ')).join('\n');
+}
+function exportRows(title,rows,fmt){
+  const slug=title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const keys=rows.length?Object.keys(rows[0]):[];
+  let data,mime,ext=fmt;
+  if(fmt==='md'){data='# '+title+'\n\n'+rows.map(r=>'- **'+(r.item||r.advice||Object.values(r)[0])+'**'+
+      (r.note?' — '+r.note:'')+(r.url?' ['+(r.source||'link')+']('+r.url+')':'')).join('\n');mime='text/markdown';}
+  else if(fmt==='json'){data=JSON.stringify({title,items:rows},null,2);mime='application/json';}
+  else if(fmt==='csv'){const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+      data=keys.join(',')+'\n'+rows.map(r=>keys.map(k=>q(r[k])).join(',')).join('\n');mime='text/csv';}
+  else if(fmt==='xml'){data='<?xml version="1.0" encoding="UTF-8"?>\n<pack title="'+esc(title)+'">\n'+
+      rows.map(r=>'  <item>\n'+keys.map(k=>'    <'+k+'>'+esc(r[k])+'</'+k+'>').join('\n')+'\n  </item>').join('\n')+
+      '\n</pack>';mime='application/xml';}
+  else if(fmt==='html'){data='<!doctype html><meta charset=utf-8><title>'+esc(title)+
+      '</title><h1>'+esc(title)+'</h1><ul>'+rows.map(r=>'<li>'+esc(Object.values(r).filter(Boolean).join(' — '))+'</li>').join('')+
+      '</ul><p><small>Made with lowy · flove</small></p>';mime='text/html';}
+  else if(fmt==='jpg'){return exportJpg(title,rows,slug);}
+  const blob=new Blob([data],{type:mime});download(blob,slug+'.'+ext);
+}
+function exportJpg(title,rows,slug){
+  const lines=[title,''].concat(rows.map(r=>'• '+Object.values(r).filter(Boolean).slice(0,3).join(' — ')));
+  const pad=28,lh=30,W=760,H=pad*2+lh*(lines.length+1);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  x.fillStyle='#f2e8d5';x.fillRect(0,0,W,H);x.fillStyle='#2c2318';
+  x.font='bold 24px Georgia,serif';x.fillText(lines[0],pad,pad+24);
+  x.font='16px system-ui,sans-serif';
+  lines.slice(1).forEach((ln,i)=>x.fillText(ln.slice(0,86),pad,pad+lh*(i+2)));
+  x.fillStyle='#a24a2b';x.font='13px system-ui,sans-serif';x.fillText('made with lowy · flove',pad,H-14);
+  c.toBlob(b=>download(b,slug+'.jpg'),'image/jpeg',0.92);
+}
+function download(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+function shareRows(title,rows){
+  const text=rowsToText(title,rows);
+  if(navigator.share)navigator.share({title,text}).catch(()=>{});
+}
+
+/* ============ THEME ============ */
+(function initTheme(){
+  const saved=store.get('theme',null);if(saved)document.documentElement.dataset.theme=saved;
+  document.getElementById('themeBtn').onclick=()=>{
+    const cur=document.documentElement.dataset.theme
+      ||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+    const next=cur==='dark'?'light':'dark';
+    document.documentElement.dataset.theme=next;store.set('theme',next);
+  };
+})();
+
+/* ============ ONBOARDING (§13.6) ============ */
+(function onboard(){
+  const seen=store.get('seen',false),box=document.getElementById('onboard');
+  if(!seen)box.classList.add('show');
+  const done=()=>{box.classList.remove('show');store.set('seen',true);};
+  document.getElementById('onboardOk').onclick=done;
+  box.onclick=e=>{if(e.target===box)done();};
+})();
+
+/* ============ INIT ============ */
+renderConcepts();renderMap();renderPack();updateBasket();
+shuffleDeck();nextAdvice();renderMine();
+</script>

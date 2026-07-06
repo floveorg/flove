@@ -19,7 +19,7 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const read = p => readFileSync(join(ROOT, p), 'utf8');
 
 // Motes que chocarían con carpetas/ficheros reales de la raíz: no se generan.
-const RESERVED = new Set(['index','apps','blog','docs','images','others','launch',
+const RESERVED = new Set(['index','apps','blog','docs','images','launch',
   '404','readme','license','cname','flove','flove-icon','start-flove',
   'build-flove-zip','publish-lowai','favicon','launch']);
 

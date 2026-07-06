@@ -24,15 +24,16 @@ git archive --format=tar HEAD | tar -x -C "$TARGET"
 
 # Things that make no sense inside a downloaded local copy.
 rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/build-sw.mjs" \
-       "$TARGET/publish-lowai.sh" "$TARGET/build-aliases.mjs" "$TARGET/404.html" \
+       "$TARGET/build-aliases.mjs" "$TARGET/404.html" \
        "$TARGET/.gitignore" "$TARGET/.htmlvalidate.json" \
        "$TARGET/CNAME" "$TARGET/.nojekyll"
 
 # Web-only — kept on the live site but NOT bundled into the offline download:
 # the blog (separate repo, gitignored so not even in the archive), the dev
-# design specs, and these standalone extras.
+# design specs, and these standalone extras. apps/lowai carries its own
+# publish-lowai.sh, stripped here with the rest of the lowai folder.
 rm -rf "$TARGET/blog" "$TARGET/docs/superpowers" \
-       "$TARGET/others/lowai" "$TARGET/others/ephemerall" "$TARGET/others/anim-form.html"
+       "$TARGET/apps/lowai" "$TARGET/apps/ephemerall" "$TARGET/apps/anim-form.html"
 
 # Make the entry obvious in the download: rename launch.html -> START.html
 # (download only — the live site keeps launch.html). Keep the local copy's

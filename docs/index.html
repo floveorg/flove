@@ -1523,16 +1523,21 @@
       gap: 14px;
       align-items: center;
     }
-    /* the four-tab strip stays hidden until the intro animation ends or is skipped */
-    .table-strip { transition: opacity .5s ease; }
+    /* the four-tab strip stays hidden until revealed on load, then fades in over ~4s */
+    .table-strip { transition: opacity 4s ease; }
     body:not(.tabs-revealed) .table-strip { opacity: 0; pointer-events: none; }
-    body.tabs-revealed .strip-cols { animation: tabsZoomIn .6s ease backwards; }
+    body.tabs-revealed .strip-cols { animation: tabsFadeIn 4s ease backwards; }
+    @keyframes tabsFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
     @keyframes tabsZoomIn {
       from { opacity: 0; transform: scale(.4); }
       to   { opacity: 1; transform: scale(1); }
     }
     @media (prefers-reduced-motion: reduce) {
       .flove-bar, .strip-cols, .intro-toggle { animation: none; }
+      .table-strip { transition: none; }
     }
     .strip-cols span,
     .strip-cols label {
@@ -2404,6 +2409,48 @@
     /* close button = label-for tab-off (the always-present "off" radio) */
     .strip-cols label { cursor: pointer; }
 
+    /* ── Substance tab → reveal + play the CosmoSystems video (hidden otherwise) ── */
+    .intro-cosmos-video { display: none; }
+    body:has(#tab-substance:checked) .intro-cosmos-video { display: block; }
+
+    /* ── Contextual panel below the four tabs (mutually exclusive by radio) ──
+       Paradigm → four inline explanations aligned under the tabs + a link.
+       App      → a "See all apps" link. Substance shows the video in place;
+       Field toggles the topbar section-nav (JS, mirroring the book icon). */
+    .tab-panel { display: none; }
+    body:has(#tab-paradigm:checked) .tab-panel,
+    body:has(#tab-app:checked)      .tab-panel { display: block; }
+    .tab-panel-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 12px 56px 16px;
+      box-sizing: border-box;
+      animation: tabInfoSlide .22s ease-out;
+    }
+    .tab-pane { display: none; }
+    body:has(#tab-paradigm:checked) .tab-pane-paradigm { display: block; }
+    body:has(#tab-app:checked)      .tab-pane-app { display: block; }
+    .tab-pane-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .tab-pane-col .tab-info-eyebrow { display: block; margin-bottom: 4px; }
+    .tab-pane-col p {
+      margin: 0;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: var(--whole-ink);
+      text-align: left;
+    }
+    .tab-pane-foot { text-align: center; margin-top: 12px; }
+    .tab-pane-app { text-align: center; }
+    @media (max-width: 720px) {
+      .tab-pane-grid { grid-template-columns: 1fr; gap: 10px; }
+      .tab-panel-inner { padding: 10px 18px 14px; }
+    }
+
     /* ── Section navigation via :target (was: go(idx) in JS) ── */
     /* default: hide all sections except map */
     .section { display: none; }
@@ -2603,12 +2650,12 @@
     .advmenu-close:hover { background: var(--app-accent-soft); color: var(--whole-ink); border-color: var(--app-accent); }
     /* ── Standardized menu (as blogyadvanced): search · quick row · collapsible subsections ── */
     .bar-advmenu .menu-list { list-style: none; margin: 0; padding: 0; max-height: calc(100vh - 130px); overflow-y: auto; overscroll-behavior: contain; }
-    .menu-search-row { display: flex; align-items: center; gap: 6px; padding: 4px 2px 6px; list-style: none; }
+    .menu-search-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; padding: 4px 2px 6px; list-style: none; }
     .menu-search-row .search-wrap { flex: 1; min-width: 0; opacity: .6; transition: opacity .2s; }
     .menu-search-row:hover .search-wrap, .menu-search-row:focus-within .search-wrap { opacity: 1; }
     .search-input { width: 100%; font: inherit; font-size: 0.85rem; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--whole-line); background: #fff; color: var(--whole-ink); outline: none; transition: border-color .15s, box-shadow .15s; }
     .search-input:focus-visible { border-color: var(--app-accent); box-shadow: 0 0 0 3px var(--app-accent-soft); }
-    .search-go { flex: 0 0 auto; padding: 6px 13px; border-radius: 999px; border: 0; background: var(--app-accent); color: #fff; font: inherit; font-size: 0.74rem; font-weight: 700; letter-spacing: .04em; cursor: pointer; transition: filter .15s, transform .15s; }
+    .search-go { flex: 0 0 auto; white-space: nowrap; padding: 6px 13px; border-radius: 999px; border: 0; background: var(--app-accent); color: #fff; font: inherit; font-size: 0.74rem; font-weight: 700; letter-spacing: .04em; cursor: pointer; transition: filter .15s, transform .15s; }
     .search-go:hover { filter: brightness(1.08); }
     .search-go:active { transform: scale(.96); }
     .menu-divider { height: 1px; margin: 5px 4px; background: var(--whole-line); list-style: none; }
@@ -2693,8 +2740,6 @@
       transition: background .15s, color .15s, border-color .15s;
     }
     .about-panel-close:hover { background: var(--app-accent-soft); color: var(--whole-ink); border-color: var(--app-accent); }
-    body:has(#about-docs-state:checked) .adoc-backdrop { display: block; }
-    body:has(#about-docs-state:checked) .adoc-panel { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
 
     /* media button lit when ON; chosen type chips light up */
     body:has(#mediabar-state:checked) .mediabar-btn { background: var(--app-accent); border-color: var(--app-accent); }
@@ -2778,7 +2823,6 @@
 <input type="checkbox" id="advmenu-state" class="state" hidden><!-- menu, opened from the brand (logo + title) -->
 <input type="checkbox" id="cats-state" class="state" checked hidden><!-- 📖 book: collapse/expand the chapter (category) buttons -->
 <input type="checkbox" id="about-state" class="state" hidden><!-- About panel (the four columns) -->
-<input type="checkbox" id="about-docs-state" class="state" hidden><!-- About Docs panel (this page) -->
 <input type="checkbox" id="mediabar-state" class="state" hidden><!-- 🎬 media files + type fan-out — default OFF -->
 <input type="checkbox" id="mt-text"  class="state mtype-check" hidden><!-- type filters (multi-select) -->
 <input type="checkbox" id="mt-audio" class="state mtype-check" hidden>
@@ -2793,9 +2837,9 @@
 <input type="checkbox" id="intro-7" class="intro-state" hidden>
 <input type="checkbox" id="intro-8" class="intro-state" hidden>
 <input type="checkbox" id="intro-9" class="intro-state" hidden>
-<input type="radio" name="tab" id="tab-off" class="tab-state" checked hidden>
+<input type="radio" name="tab" id="tab-off" class="tab-state" hidden>
 <input type="radio" name="tab" id="tab-substance" class="tab-state" hidden>
-<input type="radio" name="tab" id="tab-field" class="tab-state" hidden>
+<input type="radio" name="tab" id="tab-field" class="tab-state" checked hidden><!-- Fields highlighted at entrance -->
 <input type="radio" name="tab" id="tab-paradigm" class="tab-state" hidden>
 <input type="radio" name="tab" id="tab-app" class="tab-state" hidden>
 <input type="checkbox" id="cosmo-state" class="cosmo-state" hidden>
@@ -2866,7 +2910,8 @@
 
       <li class="menu-divider" role="separator" aria-hidden="true"></li>
       <li class="menu-section-title"><span class="en" lang="en">Main</span><span class="es" lang="es">Principal</span></li>
-      <li class="m-item"><label for="about-docs-state" tabindex="0"><span class="en" lang="en">About Docs</span><span class="es" lang="es">Acerca de Docs</span></label></li>
+      <li class="m-item"><a href="index.html"><span class="en" lang="en">Docs</span><span class="es" lang="es">Docs</span></a></li>
+      <li class="m-item"><label class="js-about-docs" for="tab-paradigm" tabindex="0"><span class="en" lang="en">About Docs</span><span class="es" lang="es">Acerca de Docs</span></label></li>
       <li class="m-item"><button type="button" id="dl-table" data-tip="Download the page contents as structured JSON" data-tip-en="Download the page contents as structured JSON" data-tip-es="Descargar los contenidos de la página como JSON estructurado"><span class="en" lang="en">Download table</span><span class="es" lang="es">Descargar tabla</span></button></li>
 
       <li class="menu-divider" role="separator" aria-hidden="true"></li>
@@ -2906,30 +2951,55 @@
   </div>
 </aside>
 
-<!-- About Docs — about this page (opened from the menu · Main) -->
-<label for="about-docs-state" class="about-backdrop adoc-backdrop" aria-hidden="true"></label>
-<aside class="about-panel adoc-panel" role="dialog" aria-modal="true" aria-label="The four tabs" data-aria-en="The four tabs" data-aria-es="Las cuatro pestañas">
-  <div class="about-panel-inner">
-    <label class="about-panel-close" for="about-docs-state" aria-label="Close" data-aria-en="Close" data-aria-es="Cerrar" tabindex="0">×</label>
-    <h2 class="about-panel-title"><span class="en" lang="en">The four tabs</span><span class="es" lang="es">Las cuatro pestañas</span></h2>
-    <div class="about-col">
-      <p><span class="en" lang="en">The Whole map reads every level of reality across four tabs: <strong>Substance</strong> — what it is made of; <strong>Field</strong> — the discipline that studies it; <strong>Paradigm</strong> — flove's theoretical-poetic lens; <strong>App</strong> — the playable practice.</span><span class="es" lang="es">El Mapa del Todo lee cada nivel de la realidad a través de cuatro pestañas: <strong>Sustancia</strong> — de qué está hecho; <strong>Campo</strong> — la disciplina que lo estudia; <strong>Paradigma</strong> — la lente teórico-poética de flove; <strong>App</strong> — la práctica jugable.</span></p>
-    </div>
-  </div>
-</aside>
+<!-- About Docs modal removed — the four-tab explanations are now shown inline
+     under the tabs via the Paradigm tab (the menu's "About Docs" activates it). -->
 
 <!-- Media aggregate ("together above") lives at the top of <main>, see #media-aggregate. -->
 
 <div class="table-strip" role="group" id="table-strip" aria-label="Whole table headers" data-aria-en="Whole table headers" data-aria-es="Cabeceras de la tabla del Todo">
   <div class="strip-inner">
     <div class="strip-cols">
-      <span class="strip-col-name" data-col="substance"><span class="en" lang="en">Substance</span><span class="es" lang="es">Sustancia</span></span>
-      <span class="strip-col-name" data-col="field"><span class="en" lang="en">Field</span><span class="es" lang="es">Campo</span></span>
-      <span class="strip-col-name" data-col="paradigm"><span class="en" lang="en">Paradigm</span><span class="es" lang="es">Paradigma</span></span>
-      <span class="strip-col-name" data-col="app"><span class="en" lang="en">App</span><span class="es" lang="es">App</span></span>
+      <label class="strip-col-name" for="tab-substance" data-col="substance" tabindex="0" data-tip="Substance · play the CosmoSystems animation" data-tip-en="Substance · play the CosmoSystems animation" data-tip-es="Sustancia · reproducir la animación CosmoSystems"><span class="en" lang="en">Substance</span><span class="es" lang="es">Sustancia</span></label>
+      <label class="strip-col-name" for="tab-field" data-col="field" tabindex="0" data-tip="Field · expand / collapse the topbar sections" data-tip-en="Field · expand / collapse the topbar sections" data-tip-es="Campo · desplegar / plegar las secciones de la barra"><span class="en" lang="en">Field</span><span class="es" lang="es">Campo</span></label>
+      <label class="strip-col-name" for="tab-paradigm" data-col="paradigm" tabindex="0" data-tip="Paradigm · what the four tabs mean" data-tip-en="Paradigm · what the four tabs mean" data-tip-es="Paradigma · qué significan las cuatro pestañas"><span class="en" lang="en">Paradigm</span><span class="es" lang="es">Paradigma</span></label>
+      <label class="strip-col-name" for="tab-app" data-col="app" tabindex="0" data-tip="App · see all apps" data-tip-en="App · see all apps" data-tip-es="App · ver todas las apps"><span class="en" lang="en">App</span><span class="es" lang="es">App</span></label>
     </div>
   </div>
   <!-- The four-column descriptions moved to the About panel (opened from the menu). -->
+</div>
+
+<!-- Contextual panel under the four tabs — one active tab at a time.
+     Substance plays the video in place · Field toggles the topbar sections (JS) ·
+     Paradigm reveals the four explanations below · App links out to all apps. -->
+<div class="tab-panel" id="tab-panel" aria-live="polite">
+  <div class="tab-panel-inner">
+    <div class="tab-pane tab-pane-paradigm">
+      <div class="tab-pane-grid">
+        <div class="tab-pane-col">
+          <span class="tab-info-eyebrow"><span class="en" lang="en">Substance</span><span class="es" lang="es">Sustancia</span></span>
+          <p><span class="en" lang="en"><strong>Substance</strong> is what reality is made of at each level — from <em>X</em> through particle, cell, organism, language, society and economy. The anchor column of the map.</span><span class="es" lang="es"><strong>Sustancia</strong> es aquello de lo que está hecha la realidad en cada nivel — desde <em>X</em> hasta la partícula, la célula, el organismo, el lenguaje, la sociedad y la economía. La columna ancla del mapa.</span></p>
+        </div>
+        <div class="tab-pane-col">
+          <span class="tab-info-eyebrow"><span class="en" lang="en">Field</span><span class="es" lang="es">Campo</span></span>
+          <p><span class="en" lang="en"><strong>Field</strong> is the academic discipline that studies each substance: metaphysics, (bio)physics, (bio)chemistry, (evo)biology, linguistics, psychology, sociology, politics, economics…</span><span class="es" lang="es"><strong>Campo</strong> es la disciplina académica que estudia cada sustancia: metafísica, (bio)física, (bio)química, biología (evolutiva), lingüística, psicología, sociología, política, economía…</span></p>
+        </div>
+        <div class="tab-pane-col">
+          <span class="tab-info-eyebrow"><span class="en" lang="en">Paradigm</span><span class="es" lang="es">Paradigma</span></span>
+          <p><span class="en" lang="en"><strong>Paradigm</strong> is the theoretical-poetic lens flove proposes for each field: <em>Confluentism</em>, <em>CarboSilicon</em>, <em>Symbionim</em>, <em>Original</em>… each a distinct way of seeing.</span><span class="es" lang="es"><strong>Paradigma</strong> es la lente teórico-poética que flove propone para cada campo: <em>Confluentism</em>, <em>CarboSilicon</em>, <em>Symbionim</em>, <em>Original</em>… cada una un modo distinto de ver.</span></p>
+        </div>
+        <div class="tab-pane-col">
+          <span class="tab-info-eyebrow"><span class="en" lang="en">App</span><span class="es" lang="es">App</span></span>
+          <p><span class="en" lang="en"><strong>App</strong> is the playable practice that embodies the paradigm — what you <em>can do</em>, not just think: Souls, Lovy, Freed, Reward… each paradigm has its app.</span><span class="es" lang="es"><strong>App</strong> es la práctica jugable que encarna el paradigma — lo que <em>puedes hacer</em>, no solo pensar: Souls, Lovy, Freed, Reward… cada paradigma tiene su app.</span></p>
+        </div>
+      </div>
+      <div class="tab-pane-foot">
+        <a class="tab-info-more" href="paradigms.html"><span class="en" lang="en">See main paradigms orders →</span><span class="es" lang="es">Ver los órdenes de paradigmas principales →</span></a>
+      </div>
+    </div>
+    <div class="tab-pane tab-pane-app">
+      <a class="tab-info-more" href="../apps/index.html"><span class="en" lang="en">See all apps →</span><span class="es" lang="es">Ver todas las apps →</span></a>
+    </div>
+  </div>
 </div>
 
 
@@ -3027,7 +3097,7 @@
             <input type="checkbox" class="more-toggle" id="more-1"><label class="more-trigger" for="more-1" data-tip="See related paradigms" data-tip-en="See related paradigms" data-tip-es="Ver paradigmas relacionados">+</label>
             <span class="more-body">
               <a class="std-link" href="https://flove.org/metaphysics#panbitheism" target="_blank" rel="noopener" data-tip="PanBitheism — a genesic couple in everything." data-tip-en="PanBitheism — a genesic couple in everything." data-tip-es="PanBitheism — una pareja genésica en todo.">PanBitheism</a>
-              <a class="std-link" href="https://flove.org/metaphysics#doctrine" target="_blank" rel="noopener" data-tip="Doctrine — final moral positions." data-tip-en="Doctrine — final moral positions." data-tip-es="Doctrine — posiciones morales finales.">Doctrine</a>
+              <a class="std-link" href="https://flove.org/metaphysics#doctrine" target="_blank" rel="noopener" data-tip="Cathomatrix — final moral positions." data-tip-en="Cathomatrix — final moral positions." data-tip-es="Cathomatrix — posiciones morales finales.">Cathomatrix</a>
             </span>
           </span>
         </span>
@@ -3272,7 +3342,7 @@
       <div class="item">
         <span class="sub" data-tip="Polymers that already hold memory: DNA, RNA, proteins. The antechamber of life." data-tip-en="Polymers that already hold memory: DNA, RNA, proteins. The antechamber of life." data-tip-es="Polímeros que ya guardan memoria: ADN, ARN, proteínas. La antesala de la vida."><span class="en" lang="en">Macromolecule</span><span class="es" lang="es">Macromolécula</span></span>
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Molecular_biology" target="_blank" rel="noopener" data-tip="Molecular Biology · Wikipedia." data-tip-en="Molecular Biology · Wikipedia." data-tip-es="Biología Molecular · Wikipedia."><span class="en" lang="en">Molecular Biology</span><span class="es" lang="es">Biología Molecular</span></a></span>
-        <span class="par"><span class="pname" data-tip="Chemical memory — real fictions that are the antechamber of life." data-tip-en="Chemical memory — real fictions that are the antechamber of life." data-tip-es="Memoria química — ficciones reales que son la antesala de la vida.">Chemical memory</span></span>
+        <span class="par"></span>
         <span class="app-cell"><a class="app-btn" href="../apps/realy.html" target="_blank" rel="noopener" data-tip="Where fiction becomes memory." data-tip-en="Where fiction becomes memory." data-tip-es="Donde la ficción se vuelve memoria.">Realy</a></span>
       </div>
       <div class="item">
@@ -3363,13 +3433,13 @@
       <div class="item">
         <span class="sub" data-tip="A set of cells of the same kind: development as accelerated evolution." data-tip-en="A set of cells of the same kind: development as accelerated evolution." data-tip-es="Un conjunto de células del mismo tipo: el desarrollo como evolución acelerada."><span class="en" lang="en">Tissue</span><span class="es" lang="es">Tejido</span></span>
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Developmental_biology" target="_blank" rel="noopener" data-tip="Developmental biology · Wikipedia." data-tip-en="Developmental biology · Wikipedia." data-tip-es="Biología del desarrollo · Wikipedia."><span class="en" lang="en">(Evo) Devo Biology</span><span class="es" lang="es">(Evo) Devo Biología</span></a></span>
-        <span class="par"><span class="pname" data-tip="EvoBio — embryonic development as accelerated evolution." data-tip-en="EvoBio — embryonic development as accelerated evolution." data-tip-es="EvoBio — el desarrollo embrionario como evolución acelerada.">EvoBio</span></span>
+        <span class="par"></span>
         <span class="app-cell"><a class="app-btn" href="../apps/metas/souls.html" target="_blank" rel="noopener" data-tip="To be defined." data-tip-en="To be defined." data-tip-es="Por definir.">Souls</a></span>
       </div>
       <div class="item">
         <span class="sub" data-tip="Emergent function of coordinated tissues." data-tip-en="Emergent function of coordinated tissues." data-tip-es="Función emergente de tejidos coordinados."><span class="en" lang="en">Organ</span><span class="es" lang="es">Órgano</span></span>
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Physiology" target="_blank" rel="noopener" data-tip="Physiology · Wikipedia." data-tip-en="Physiology · Wikipedia." data-tip-es="Fisiología · Wikipedia."><span class="en" lang="en">(Evo) Physiology</span><span class="es" lang="es">(Evo) Fisiología</span></a></span>
-        <span class="par"><span class="pname" data-tip="Emergent function of the organ within the body." data-tip-en="Emergent function of the organ within the body." data-tip-es="Función emergente del órgano dentro del cuerpo.">Emergent function</span></span>
+        <span class="par"></span>
         <span class="app-cell"><a class="app-btn" href="../apps/bio/sensy.html" target="_blank" rel="noopener" data-tip="To be defined." data-tip-en="To be defined." data-tip-es="Por definir.">Sensy</a></span>
       </div>
             <div class="item-wrap">
@@ -3449,7 +3519,7 @@
         <span class="sub" data-tip="The whole body as confluence: pivot of the map." data-tip-en="The whole body as confluence: pivot of the map." data-tip-es="El cuerpo entero como confluencia: eje del mapa."><span class="en" lang="en">ORGANISM</span><span class="es" lang="es">ORGANISMO</span></span>
         <span class="field"><a class="soft-link" href="https://flove.org/metaphysics#confluentism" target="_blank" rel="noopener" data-tip="Confluentism — reality is processes that converge." data-tip-en="Confluentism — reality is processes that converge." data-tip-es="Confluentism — la realidad son procesos que convergen.">CONFLUENTISM</a></span>
         <span class="par"><a class="std-link" href="https://flove.org/linguistics#original" target="_blank" rel="noopener" data-tip="Original — return to the origin to understand the present." data-tip-en="Original — return to the origin to understand the present." data-tip-es="Original — volver al origen para entender el presente.">ORIGINAL</a></span>
-        <span class="app-cell"><a class="app-btn" href="../apps/lovy.html" target="_blank" rel="noopener" data-tip="The practice that sustains confluence." data-tip-en="The practice that sustains confluence." data-tip-es="La práctica que sostiene la confluencia.">Lovy</a></span>
+        <span class="app-cell"><a class="app-btn" href="../apps/puzzy/confluenty.html" target="_blank" rel="noopener" data-tip="The practice that sustains confluence." data-tip-en="The practice that sustains confluence." data-tip-es="La práctica que sostiene la confluencia.">Confluenty</a></span>
       </div>
     </div>
   </section>
@@ -3526,7 +3596,7 @@
       <div class="item">
         <span class="field"><a class="soft-link" href="https://flove.org/Linguistics#Phonetics" target="_blank" rel="noopener" data-tip="Phonetics — concrete, articulated sound." data-tip-en="Phonetics — concrete, articulated sound." data-tip-es="Fonética — el sonido concreto y articulado."><span class="en" lang="en">Phonetics</span><span class="es" lang="es">Fonética</span></a></span>
         <span class="par"><a class="std-link" href="https://flove.org/linguistics#prosody" target="_blank" rel="noopener" data-tip="proSODY — preserved as new channels evolve." data-tip-en="proSODY — preserved as new channels evolve." data-tip-es="proSODY — se preserva a medida que evolucionan nuevos canales.">proSODY</a></span>
-        <span class="app-cell"><a class="app-btn" href="https://flove.org/vowy" target="_blank" rel="noopener" data-tip="Voice and prosody." data-tip-en="Voice and prosody." data-tip-es="Voz y prosodia.">Vowy</a></span>
+        <span class="app-cell"><a class="app-btn" href="../apps/lovy.html" target="_blank" rel="noopener" data-tip="Voice and prosody." data-tip-en="Voice and prosody." data-tip-es="Voz y prosodia.">Lovy</a></span>
       </div>
             <div class="item-wrap">
       <div class="item">
@@ -3563,7 +3633,7 @@
       <div class="item">
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Morphosyntax" target="_blank" rel="noopener" data-tip="MorphoSyntax — how morphemes combine into phrases." data-tip-en="MorphoSyntax — how morphemes combine into phrases." data-tip-es="MorfoSintaxis — cómo se combinan los morfemas en frases."><span class="en" lang="en">MorphoSyntax</span><span class="es" lang="es">MorfoSintaxis</span></a></span>
         <span class="par"><a class="std-link" href="https://flove.org/linguistics#verbon" target="_blank" rel="noopener" data-tip="Verbon — the verb is object AND subject." data-tip-en="Verbon — the verb is object AND subject." data-tip-es="Verbon — el verbo es objeto Y sujeto.">Verbon</a></span>
-        <span class="app-cell"><a class="app-btn" href="https://flove.org/verby" target="_blank" rel="noopener" data-tip="Verbs as living objects." data-tip-en="Verbs as living objects." data-tip-es="Los verbos como objetos vivos.">Verby</a></span>
+        <span class="app-cell"><a class="app-btn" href="../apps/puzzy/comby.html" target="_blank" rel="noopener" data-tip="Verbs as living objects." data-tip-en="Verbs as living objects." data-tip-es="Los verbos como objetos vivos.">Comby</a></span>
       </div>
             <div class="item-wrap">
       <div class="item">
@@ -3756,7 +3826,7 @@
             <div class="item-wrap">
       <div class="item">
         <span class="field"><a class="soft-link" href="https://flove.org/psicososcia#psychology" target="_blank" rel="noopener" data-tip="(Evo) Psychology — the evolutionary psyche." data-tip-en="(Evo) Psychology — the evolutionary psyche." data-tip-es="(Evo) Psicología — la psique evolutiva."><span class="en" lang="en">(Evo) Psychology</span><span class="es" lang="es">(Evo) Psicología</span></a></span>
-        <span class="par"><a class="std-link" href="https://flove.org/psicosocial#psychology" target="_blank" rel="noopener" data-tip="PsicoS — ordered psychopathologies." data-tip-en="PsicoS — ordered psychopathologies." data-tip-es="PsicoS — psicopatologías ordenadas.">PsicoS</a></span>
+        <span class="par"><a class="std-link" href="https://flove.org/psicosocial#psychology" target="_blank" rel="noopener" data-tip="Psicotrix — ordered psychopathologies." data-tip-en="Psicotrix — ordered psychopathologies." data-tip-es="Psicotrix — psicopatologías ordenadas.">Psicotrix</a></span>
         <span class="app-cell">
           <a class="app-btn" href="../apps/trusty/maty.html" target="_blank" rel="noopener">Maty</a>
           <span class="more">
@@ -3796,7 +3866,7 @@
             <div class="item-wrap">
       <div class="item">
         <span class="field"><a class="soft-link" href="https://flove.org/psicosocial#sociology" target="_blank" rel="noopener" data-tip="(Evo) Sociology — the broadest rational field." data-tip-en="(Evo) Sociology — the broadest rational field." data-tip-es="(Evo) Sociología — el campo racional más amplio."><span class="en" lang="en">(Evo) Sociology</span><span class="es" lang="es">(Evo) Sociología</span></a></span>
-        <span class="par"><a class="std-link" href="https://flove.org/psicosocial#sociology" target="_blank" rel="noopener" data-tip="SocioS — no value is more complex than wisdom." data-tip-en="SocioS — no value is more complex than wisdom." data-tip-es="SocioS — ningún valor es más complejo que la sabiduría.">SocioS</a></span>
+        <span class="par"><a class="std-link" href="https://flove.org/psicosocial#sociology" target="_blank" rel="noopener" data-tip="Sociotrix — no value is more complex than wisdom." data-tip-en="Sociotrix — no value is more complex than wisdom." data-tip-es="Sociotrix — ningún valor es más complejo que la sabiduría.">Sociotrix</a></span>
         <span class="app-cell"><a class="app-btn" href="../apps/freedoms.html" target="_blank" rel="noopener">Freedoms</a></span>
       </div>
         <details class="row-files">
@@ -3815,7 +3885,7 @@
       <div class="item">
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Journalism" target="_blank" rel="noopener" data-tip="Journalism · Wikipedia." data-tip-en="Journalism · Wikipedia." data-tip-es="Periodismo · Wikipedia."><span class="en" lang="en">Media</span><span class="es" lang="es">Medios</span></a></span>
         <span class="par"><a class="std-link" href="https://lowai.org" target="_blank" rel="noopener" data-tip="LowAI — low-tech principles applied to AI." data-tip-en="LowAI — low-tech principles applied to AI." data-tip-es="LowAI — principios low-tech aplicados a la IA.">LowAI</a></span>
-        <span class="app-cell"><a class="app-btn" href="https://flove.org" target="_blank" rel="noopener" data-tip="Polarities demo." data-tip-en="Polarities demo." data-tip-es="Demo de polaridades.">…</a></span>
+        <span class="app-cell"><a class="app-btn" href="https://flove.org" target="_blank" rel="noopener" data-tip="To be defined." data-tip-en="To be defined." data-tip-es="Por definir.">Wizy</a></span>
       </div>
       <div class="item">
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Law" target="_blank" rel="noopener" data-tip="Law · Wikipedia." data-tip-en="Law · Wikipedia." data-tip-es="Derecho · Wikipedia."><span class="en" lang="en">Legal</span><span class="es" lang="es">Jurídico</span></a></span>
@@ -3845,7 +3915,7 @@
       <div class="item">
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Military" target="_blank" rel="noopener" data-tip="Military · Wikipedia." data-tip-en="Military · Wikipedia." data-tip-es="Militar · Wikipedia."><span class="en" lang="en">Military</span><span class="es" lang="es">Militar</span></a></span>
         <span class="par"><a class="std-link" href="https://flove.org/psicosocial#fireelse" target="_blank" rel="noopener" data-tip="Fire&amp;Else — fire of air, water and earth." data-tip-en="Fire&amp;Else — fire of air, water and earth." data-tip-es="Fire&amp;Else — fuego de aire, agua y tierra.">Fire&amp;Else</a></span>
-        <span class="app-cell"><a class="app-btn" href="https://flove.org" target="_blank" rel="noopener" data-tip="To be defined." data-tip-en="To be defined." data-tip-es="Por definir.">Wizy</a></span>
+        <span class="app-cell"><a class="app-btn" href="../apps/puzzy/raty.html" target="_blank" rel="noopener" data-tip="To be defined." data-tip-en="To be defined." data-tip-es="Por definir.">Raty</a></span>
       </div>
     </div>
 
@@ -3926,8 +3996,9 @@
       </div>
       <div class="item">
         <span class="field"><a class="soft-link" href="https://en.wikipedia.org/wiki/Marketing" target="_blank" rel="noopener" data-tip="Marketing · Wikipedia." data-tip-en="Marketing · Wikipedia." data-tip-es="Marketing · Wikipedia.">Marketing</a></span>
-        <span class="par">
-          <a class="std-link" href="https://demos.flove.org/PsicoSocial/Freedom/Offer/Many/index.html" target="_blank" rel="noopener" data-tip="Offer — to offer is to declare desire and stock." data-tip-en="Offer — to offer is to declare desire and stock." data-tip-es="Offer — ofrecer es declarar deseo y existencias.">Offer</a>
+        <span class="par"><a class="std-link" href="https://demos.flove.org/PsicoSocial/Freedom/Offer/Many/index.html" target="_blank" rel="noopener" data-tip="Offer — to offer is to declare desire and stock." data-tip-en="Offer — to offer is to declare desire and stock." data-tip-es="Offer — ofrecer es declarar deseo y existencias.">Offer</a></span>
+        <span class="app-cell">
+          <a class="app-btn" href="../apps/economy/dealy/index.html" target="_blank" rel="noopener" data-tip="Multiple offers." data-tip-en="Multiple offers." data-tip-es="Ofertas múltiples.">Dealy</a>
           <span class="more">
             <input type="checkbox" class="more-toggle" id="more-11"><label class="more-trigger" for="more-11" data-tip="See related apps" data-tip-en="See related apps" data-tip-es="Ver apps relacionadas">+</label>
             <span class="more-body apps">
@@ -3937,7 +4008,6 @@
             </span>
           </span>
         </span>
-        <span class="app-cell"><a class="app-btn" href="../apps/economy/dealy/index.html" target="_blank" rel="noopener" data-tip="Multiple offers." data-tip-en="Multiple offers." data-tip-es="Ofertas múltiples.">Dealy</a></span>
       </div>
       <div class="item">
         <span class="field"><span class="pname" data-tip="Gift · giving without counterpart." data-tip-en="Gift · giving without counterpart." data-tip-es="Regalo · dar sin contrapartida.">Gift</span></span>
@@ -4103,56 +4173,39 @@
   syncBarH();
   window.addEventListener("resize", syncBarH);
 
-  // ── Intro CosmoSystems animation (map) ──────────────────────────────
-  //    Plays on load inside the open intro. When it ends, the intro collapses
-  //    and the four-tab strip is revealed. Clicking anywhere else (skip) reveals
-  //    the tabs too. Reduced-motion: reveal immediately, don't autoplay.
-  const step1 = document.getElementById("map");
+  // ── Four-tab strip (map) ────────────────────────────────────────────
+  //    On load the four tabs fade in (CSS, ~4s) with Field pre-highlighted.
+  //    The CosmoSystems video is NOT shown until the Substance tab is clicked.
   const introVideo = document.getElementById("intro-cosmos-video");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function revealTabs(){ document.body.classList.add("tabs-revealed"); }
-  // Freeze the cosmos 1s before it finishes and hold that frame — it does NOT
-  // advance to Metaphysics on its own. It stays fixed until another link is
-  // clicked (which hides it); only the ALL button brings it back.
-  function freezeCosmos(){
-    if (!introVideo) return;
-    const d = introVideo.duration;
-    if (d && isFinite(d)){ try { introVideo.currentTime = Math.max(0, d - 1); } catch(_){} }
-    introVideo.pause();
-    revealTabs();
-  }
-  if (introVideo){
-    if (reduceMotion){
-      revealTabs();
-      // keep the intro open and the cosmos visible, just frozen
-      introVideo.addEventListener("loadedmetadata", freezeCosmos, { once: true });
-      if (introVideo.readyState >= 1) freezeCosmos();
-    } else {
-      // if autoplay is blocked we can't get a timeupdate — reveal tabs anyway
-      introVideo.play().catch(() => { revealTabs(); });
-      introVideo.addEventListener("timeupdate", () => {
-        if (introVideo.duration && introVideo.currentTime >= introVideo.duration - 1) freezeCosmos();
-      });
-      // safety net if the browser still fires "ended"
-      introVideo.addEventListener("ended", freezeCosmos);
-    }
-  } else {
-    revealTabs();
-  }
+  revealTabs();
 
-  // The ALL button brings the frozen cosmos back (and replays it); closing ALL
-  // hides it again. Showing it is gated on ALL — nothing else reveals it.
-  const allMode = document.getElementById("all-mode");
-  if (allMode && introVideo){
-    allMode.addEventListener("toggle", () => {
-      if (allMode.open){
-        if (step1) step1.classList.add("intro-open");
+  // Tab clicks: Substance (re)plays the video · Field mirrors the 📖 book icon
+  // (toggles the topbar section-nav) · Paradigm & App reveal their panels (CSS).
+  const catsState = document.getElementById("cats-state");
+  document.querySelectorAll(".strip-cols label").forEach(lbl => {
+    lbl.addEventListener("click", () => {
+      const tab = lbl.getAttribute("for");
+      if (tab === "tab-field"){
+        if (catsState) catsState.checked = !catsState.checked;   // expand/collapse topbar sections
+      } else if (tab === "tab-substance" && introVideo){
         try { introVideo.currentTime = 0; } catch(_){}
         introVideo.play().catch(()=>{});
-      } else {
-        if (step1) step1.classList.remove("intro-open");
+      } else if (introVideo){
         introVideo.pause();
       }
+    });
+  });
+
+  // Menu "About Docs" → activates the Paradigm tab (the label drives the radio);
+  // here we just close the menu and scroll the tab strip into view.
+  const aboutDocs = document.querySelector(".js-about-docs");
+  if (aboutDocs){
+    aboutDocs.addEventListener("click", () => {
+      const adv = document.getElementById("advmenu-state"); if (adv) adv.checked = false;
+      const strip = document.getElementById("table-strip");
+      if (strip) strip.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
     });
   }
 
@@ -4277,7 +4330,7 @@
   // ── Escape also closes the added panels (advanced menu · About) ──
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    ["advmenu-state","about-state","about-docs-state"].forEach(id => {
+    ["advmenu-state","about-state"].forEach(id => {
       const el = document.getElementById(id); if (el && el.checked) el.checked = false;
     });
   });

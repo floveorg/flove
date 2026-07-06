@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Puzzy — Linky</title>
+  <link rel="icon" type="image/svg+xml" href="favicon-linky.svg">
+  <!-- shared flove identity layer (tokens · flove-bar · flove-menu · flove-popover · flove-publish) -->
+  <link rel="stylesheet" href="../flove.css">
+  <style>
+    /* Linky = the "relate" family → teal accent. */
+    :root{
+      --app-accent:#25c39e;
+      --app-accent-soft:#b6ffe9;
+      --app-ink-on-accent:#04241a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; color:#15201c;
+      font-family:var(--flove-font-ui);
+      background:
+        radial-gradient(1100px 700px at 110% -10%, #e8fff6 0, transparent 55%),
+        radial-gradient(900px 600px at -10% 110%, #eafff8 0, transparent 55%),
+        #f6fffb;
+    }
+
+    /* topbar: the logo + title together are the menu trigger */
+    .flove-bar{ position:sticky; }
+    .brand-btn{
+      display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+      border:0; background:transparent; color:inherit; font:inherit; padding:4px 8px; border-radius:var(--flove-radius-pill);
+    }
+    .brand-btn:hover{ background:var(--app-accent-soft); color:var(--app-ink-on-accent); }
+    .brand-btn[aria-expanded="true"]{ background:var(--app-accent-soft); color:var(--app-ink-on-accent); }
+    .brand-btn .flove-mark{ width:1.25em; height:1.25em; vertical-align:-.2em; color:var(--app-accent); }
+    .brand-btn .flove-app-name{ font-weight:600; opacity:1; }
+    .brand-btn .caret{ font-size:.7em; opacity:.55; }
+    .flove-menu{ position:absolute; top:calc(100% + 6px); left:12px; }
+
+    /* About panel (holds what used to be the intro text) */
+    .about-panel{
+      max-width:720px; margin:16px auto 0; padding:14px 16px;
+      border:1px solid rgba(20,60,45,.14); border-radius:16px;
+      background:rgba(255,255,255,.78); color:#33534a; font-size:.95rem;
+    }
+    .about-panel[hidden]{ display:none; }
+
+    /* page */
+    .wrap{ max-width:720px; margin:0 auto; padding:20px 16px 96px; }
+    #rows{ display:flex; flex-direction:column; gap:14px; }
+    .row{
+      border:1px solid rgba(20,60,45,.12); border-radius:18px;
+      padding:14px; background:rgba(255,255,255,.72);
+      box-shadow:0 10px 24px -16px rgba(20,80,60,.4);
+    }
+    .row:nth-child(even){ background:rgba(226,255,245,.6); }   /* differentiated rows */
+    .row-badge{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:26px; height:26px; border-radius:50%; margin-bottom:10px;
+      background:var(--app-accent); color:var(--app-ink-on-accent);
+      font-weight:700; font-size:.82rem;
+    }
+
+    .pair{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .cell{ flex:1 1 180px; min-width:0; }
+    .cell[hidden]{ display:none; }
+    .arrow{ color:var(--app-accent); font-weight:800; font-size:1.1rem; }
+    .arrow[hidden]{ display:none; }
+
+    .f-input{
+      width:100%; padding:11px 13px; font:inherit; font-size:1rem;
+      border:1px solid rgba(20,60,45,.22); border-radius:12px; background:#fff; color:inherit;
+    }
+    .f-input:focus{
+      outline:none; border-color:var(--app-accent);
+      box-shadow:0 0 0 3px color-mix(in srgb, var(--app-accent) 26%, transparent);
+    }
+    .f-input.is-frozen{
+      background:var(--app-accent-soft); color:var(--app-ink-on-accent);
+      border-color:transparent; font-weight:600; cursor:default;
+    }
+
+    .num-slot{ margin-top:12px; text-align:center; }
+    .num-slot[hidden]{ display:none; }
+    .f-num{
+      padding:9px 14px; font:inherit; font-size:1rem; border-radius:12px;
+      border:1px solid rgba(20,60,45,.22); background:#fff; color:inherit; cursor:pointer;
+    }
+    .f-num:focus{ outline:none; border-color:var(--app-accent); }
+    .f-num.is-frozen{
+      background:var(--app-accent-soft); color:var(--app-ink-on-accent);
+      border-color:transparent; font-weight:700; cursor:default; -webkit-appearance:none; appearance:none;
+    }
+
+    .btn-slot{ margin-top:12px; text-align:center; }
+    .btn-slot[hidden]{ display:none; }
+    .stepbtn{
+      padding:9px 26px; border:0; border-radius:999px; cursor:pointer; font:inherit; font-weight:700;
+      background:var(--app-accent); color:var(--app-ink-on-accent);
+      box-shadow:0 10px 20px -10px color-mix(in srgb, var(--app-accent) 75%, transparent);
+      transition:transform .15s var(--flove-ease), filter .15s;
+    }
+    .stepbtn:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+    .stepbtn:active{ transform:translateY(0); }
+
+    .hint{ text-align:center; color:#6b8378; font-size:.85rem; margin-top:16px; }
+    .hint[hidden]{ display:none; }
+
+    .actions-wrap{ margin-top:26px; }
+    .flove-action-bar{ justify-content:center; }
+
+    /* save format popover */
+    .flove-popover{ position:absolute; }
+    .flove-popover[hidden]{ display:none; }
+    .flove-popover__item{ display:flex; align-items:center; gap:10px; }
+    .flove-popover__item .kind{ margin-left:auto; opacity:.5; font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; }
+
+    /* publish modal */
+    .lk-modal{ position:fixed; inset:0; z-index:600; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(10,30,24,.4); }
+    .lk-modal[hidden]{ display:none; }
+    .lk-modal__box{
+      width:min(360px, 100%); background:#fff; color:#15201c; border-radius:20px; padding:18px;
+      box-shadow:0 24px 60px rgba(0,0,0,.28); position:relative;
+    }
+    .lk-modal__title{ margin:0 0 12px; font-size:1.1rem; }
+    .lk-modal__x{ position:absolute; top:10px; right:12px; border:0; background:transparent; font-size:1.4rem; line-height:1; cursor:pointer; color:#6b8378; }
+    .flove-publish-row{ cursor:pointer; }
+
+    /* tiny toast */
+    .toast{
+      position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(12px);
+      background:#0f2f26; color:#eafff8; padding:10px 18px; border-radius:999px;
+      font:inherit; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:700;
+    }
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); border:0; }
+  </style>
+</head>
+<body>
+
+<div class="flove-bar">
+  <button type="button" class="brand-btn" id="menuBtn" aria-expanded="false" aria-controls="menu" aria-haspopup="true" title="Menu">
+    <svg class="flove-mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(4 4)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3.6"/><circle cx="17" cy="17" r="3.6"/><path d="M9.5 9.5 14.5 14.5"/></g></svg>
+    <span class="flove-app-name">Linky</span>
+    <span class="caret" aria-hidden="true">▾</span>
+  </button>
+  <span class="flove-spacer"></span>
+  <nav class="flove-menu" id="menu" hidden>
+    <div class="flove-menu__section">
+      <div class="flove-menu__title">Linky</div>
+      <button type="button" class="flove-menu__item" id="aboutBtn">About Linky</button>
+      <button type="button" class="flove-menu__item" id="resetBtn">Reset all links</button>
+    </div>
+    <div class="flove-menu__section">
+      <div class="flove-menu__title">flove</div>
+      <a class="flove-menu__item" href="../appy/appy-basic.html">Profile</a>
+      <a class="flove-menu__item" href="index.html">All Puzzy apps</a>
+    </div>
+  </nav>
+</div>
+
+<main class="wrap">
+  <aside class="about-panel" id="aboutPanel" hidden>
+    Chain a word to a related word, and rate how strongly they link (0–10). Up to 10 links.
+  </aside>
+
+  <div id="rows"></div>
+
+  <p class="hint" id="hint" hidden></p>
+
+  <div class="actions-wrap">
+    <div class="flove-action-bar" role="group" aria-label="Actions">
+      <button type="button" class="flove-action-btn" id="saveBtn" aria-haspopup="true" aria-expanded="false">💾 <span>Save</span></button>
+      <button type="button" class="flove-action-btn" id="shareBtn">🔗 <span>Share</span></button>
+      <button type="button" class="flove-action-btn flove-action-btn--primary" id="publishBtn">📤 <span>Publish</span></button>
+    </div>
+  </div>
+</main>
+
+<!-- Save: pick an export format (the one summary-model, six ways). No results panel. -->
+<div class="flove-popover" id="savePop" role="menu" aria-label="Save as" hidden></div>
+
+<!-- Publish: choose a destination for the summary. -->
+<div class="lk-modal" id="publishModal" hidden>
+  <div class="lk-modal__box" role="dialog" aria-modal="true" aria-label="Publish">
+    <button type="button" class="lk-modal__x" data-close aria-label="Close">×</button>
+    <h2 class="lk-modal__title">Publish your links</h2>
+    <ul class="flove-publish-list" id="pubList" style="list-style:none;margin:0;padding:0"></ul>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+  const MAX = 10;
+  const KEY = 'linky:rows';
+  const rowsEl = document.getElementById('rows');
+  const hintEl = document.getElementById('hint');
+  let committed = [];   // [{ word, related, num }]
+
+  /* ---- persistence ------------------------------------------------ */
+  function load(){
+    try { committed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(_){ committed = []; }
+    if (!Array.isArray(committed)) committed = [];
+    committed = committed.slice(0, MAX);
+  }
+  function persist(){ try { localStorage.setItem(KEY, JSON.stringify(committed)); } catch(_){} }
+
+  /* ---- toast ------------------------------------------------------ */
+  const toastEl = document.getElementById('toast');
+  let toastT = null;
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(()=> toastEl.classList.remove('show'), 1800);
+  }
+
+  /* ---- row building ----------------------------------------------- */
+  function numOptions(){
+    let s = '<option value="" selected disabled>0–10</option>';
+    for (let i = 0; i <= 10; i++) s += '<option value="' + i + '">' + i + '</option>';
+    return s;
+  }
+
+  function frozenRow(idx, d){
+    const row = document.createElement('div');
+    row.className = 'row is-done'; row.dataset.idx = idx;
+    row.innerHTML =
+      '<div class="row-badge">' + (idx + 1) + '</div>' +
+      '<div class="pair">' +
+        '<div class="cell"><input class="f-input is-frozen" type="text" readonly></div>' +
+        '<span class="arrow" aria-hidden="true">→</span>' +
+        '<div class="cell"><input class="f-input is-frozen" type="text" readonly></div>' +
+      '</div>' +
+      '<div class="num-slot"><span class="f-num is-frozen" role="img" aria-label="link strength ' + d.num + ' of 10">' + d.num + ' / 10</span></div>';
+    const inputs = row.querySelectorAll('.f-input');
+    inputs[0].value = d.word; inputs[1].value = d.related;
+    return row;
+  }
+
+  function activeRow(idx){
+    const row = document.createElement('div');
+    row.className = 'row'; row.dataset.idx = idx;
+    row.innerHTML =
+      '<div class="row-badge">' + (idx + 1) + '</div>' +
+      '<div class="pair">' +
+        '<div class="cell cell-word"><input class="f-input f-word" type="text" maxlength="80" placeholder="a word" aria-label="word"></div>' +
+        '<span class="arrow" hidden aria-hidden="true">→</span>' +
+        '<div class="cell cell-related" hidden><input class="f-input f-related" type="text" maxlength="80" placeholder="add a related word" aria-label="related word"></div>' +
+      '</div>' +
+      '<div class="num-slot" hidden><label class="sr-only" for="num-' + idx + '">link strength, 0 to 10</label><select class="f-num" id="num-' + idx + '">' + numOptions() + '</select></div>' +
+      '<div class="btn-slot" hidden><button type="button" class="stepbtn"></button></div>';
+
+    const word    = row.querySelector('.f-word');
+    const related = row.querySelector('.f-related');
+    const relCell = row.querySelector('.cell-related');
+    const arrow   = row.querySelector('.arrow');
+    const numSlot = row.querySelector('.num-slot');
+    const numSel  = row.querySelector('.f-num');
+    const btnSlot = row.querySelector('.btn-slot');
+    const btn     = row.querySelector('.stepbtn');
+
+    let stage = 'word';
+    function setBtn(label, show){ btn.textContent = label; btnSlot.hidden = !show; }
+
+    word.addEventListener('input',    ()=>{ if (stage === 'word')    setBtn('Go',   word.value.trim() !== ''); });
+    related.addEventListener('input', ()=>{ if (stage === 'related') setBtn('Add',  related.value.trim() !== ''); });
+    numSel.addEventListener('change', ()=>{ if (stage === 'number')  setBtn('Save', numSel.value !== ''); });
+
+    btn.addEventListener('click', ()=>{
+      if (stage === 'word'){
+        if (word.value.trim() === '') return;
+        word.readOnly = true; word.classList.add('is-frozen');
+        arrow.hidden = false; relCell.hidden = false;
+        setBtn('Add', false); stage = 'related'; related.focus();
+      } else if (stage === 'related'){
+        if (related.value.trim() === '') return;
+        related.readOnly = true; related.classList.add('is-frozen');
+        numSlot.hidden = false;
+        setBtn('Save', false); stage = 'number'; numSel.focus();
+      } else if (stage === 'number'){
+        if (numSel.value === '') return;
+        numSel.disabled = true; numSel.classList.add('is-frozen');
+        btnSlot.hidden = true; row.classList.add('is-done'); stage = 'done';
+        committed.push({ word: word.value.trim(), related: related.value.trim(), num: Number(numSel.value) });
+        persist();
+        if (committed.length < MAX) spawnNext();
+        else showFull();
+      }
+    });
+    return row;
+  }
+
+  function spawnNext(){
+    const r = activeRow(committed.length);
+    rowsEl.appendChild(r);
+    const w = r.querySelector('.f-word'); if (w) w.focus();
+  }
+  function showFull(){ hintEl.textContent = 'All 10 links added. Save, share or publish them below.'; hintEl.hidden = false; }
+
+  function render(){
+    rowsEl.innerHTML = '';
+    committed.forEach((d, i)=> rowsEl.appendChild(frozenRow(i, d)));
+    if (committed.length < MAX) spawnNext(); else showFull();
+  }
+
+  /* ================================================================
+     /summary — one summary-model, exported six ways. No results panel.
+     ================================================================ */
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
+  const escA = s => esc(s).replace(/"/g, '&quot;');
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  function buildSummaryModel(){
+    return {
+      app: 'Linky',
+      version: 1,
+      date: today(),
+      links: committed.map(d => ({ word: d.word, related: d.related, strength: d.num }))
+    };
+  }
+
+  function downloadBlob(body, mime, filename){
+    const blob = new Blob([body], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  }
+
+  function buildContent(fmt){
+    const m = buildSummaryModel();
+    if (fmt === 'md'){
+      let s = '# flove · Linky\n\n_' + m.date + '_\n\n';
+      m.links.forEach(l => { s += '- **' + l.word + '** → *' + l.related + '* — link ' + l.strength + '/10\n'; });
+      return { mime:'text/markdown', ext:'md', body: s };
+    }
+    if (fmt === 'json'){
+      return { mime:'application/json', ext:'json', body: JSON.stringify(m, null, 2) };
+    }
+    if (fmt === 'csv'){
+      const q = v => { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+      const rows = [['word','related','strength']];
+      m.links.forEach(l => rows.push([l.word, l.related, l.strength]));
+      return { mime:'text/csv', ext:'csv', body: rows.map(r => r.map(q).join(',')).join('\n') };
+    }
+    if (fmt === 'xml'){
+      const p = ['<?xml version="1.0" encoding="UTF-8"?>', '<linky date="' + escA(m.date) + '">'];
+      m.links.forEach(l => {
+        p.push('  <link strength="' + l.strength + '">');
+        p.push('    <word>' + esc(l.word) + '</word>');
+        p.push('    <related>' + esc(l.related) + '</related>');
+        p.push('  </link>');
+      });
+      p.push('</linky>');
+      return { mime:'application/xml', ext:'xml', body: p.join('\n') };
+    }
+    if (fmt === 'html'){
+      const rows = m.links.map(l =>
+        '<tr><td><strong>' + esc(l.word) + '</strong></td><td class="rel">' + esc(l.related) + '</td><td class="n">' + l.strength + ' / 10</td></tr>').join('');
+      const body = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1"><title>flove · Linky — ' + esc(m.date) + '</title>' +
+        '<style>body{font-family:Inter,system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 20px;color:#15201c;background:#f6fffb}' +
+        'h1{color:#0f2f26}table{width:100%;border-collapse:collapse;margin:20px 0}' +
+        'th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #d6efe6}' +
+        'th{background:#e2fff5;font-size:.75rem;letter-spacing:.6px;text-transform:uppercase}' +
+        'td.rel{font-style:italic;color:#0d7c66}td.n{color:#25c39e;font-weight:700;text-align:right}</style></head>' +
+        '<body><h1>flove · Linky <small style="opacity:.5">' + esc(m.date) + '</small></h1>' +
+        '<table><thead><tr><th>word</th><th>related</th><th>link</th></tr></thead><tbody>' + rows + '</tbody></table></body></html>';
+      return { mime:'text/html', ext:'html', body };
+    }
+  }
+
+  function buildJpg(cb){
+    const m = buildSummaryModel();
+    const W = 1080, H = 1080, canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const c = canvas.getContext('2d');
+    c.fillStyle = '#f6fffb'; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#25c39e'; c.font = '700 60px Georgia, serif';
+    c.fillText('flove · Linky', 56, 100);
+    c.fillStyle = '#52706a'; c.font = '26px Inter, system-ui, sans-serif';
+    c.fillText(m.date, 56, 146);
+    c.font = '30px Inter, system-ui, sans-serif';
+    const MAX_ROWS = 26;
+    m.links.slice(0, MAX_ROWS).forEach((l, i) => {
+      const y = 224 + i * 34;
+      c.fillStyle = '#15201c'; c.fillText((l.word + ' → ' + l.related).slice(0, 46), 56, y);
+      c.fillStyle = '#25c39e'; c.fillText(l.strength + '/10', 920, y);
+    });
+    if (m.links.length > MAX_ROWS) { c.fillStyle = '#15201c'; c.fillText('…', 56, 224 + MAX_ROWS * 34); }
+    canvas.toBlob(cb, 'image/jpeg', 0.92);
+  }
+
+  function downloadAs(fmt){
+    const base = 'linky-' + today();
+    if (fmt === 'jpg'){ buildJpg(b => { downloadBlob(b, 'image/jpeg', base + '.jpg'); toast('Saved as .jpg'); }); return; }
+    const out = buildContent(fmt);
+    if (!out) return;
+    downloadBlob(out.body, out.mime + ';charset=utf-8', base + '.' + out.ext);
+    toast('Saved as .' + out.ext);
+  }
+
+  /* ---- Save → format popover -------------------------------------- */
+  const SAVE_FORMATS = [
+    { id:'md',   icon:'📝', label:'Markdown', kind:'md'   },
+    { id:'json', icon:'{ }', label:'JSON',    kind:'json' },
+    { id:'xml',  icon:'📄', label:'XML',      kind:'xml'  },
+    { id:'html', icon:'🌐', label:'Web page', kind:'html' },
+    { id:'jpg',  icon:'🖼️', label:'Image',    kind:'jpg'  },
+    { id:'csv',  icon:'📊', label:'Table',    kind:'csv'  }
+  ];
+  const savePop = document.getElementById('savePop');
+  const saveBtn = document.getElementById('saveBtn');
+  function buildSavePop(){
+    savePop.innerHTML = '';
+    SAVE_FORMATS.forEach(f => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'flove-popover__item'; b.setAttribute('role','menuitem');
+      b.innerHTML = '<span aria-hidden="true">' + f.icon + '</span><span>' + f.label + '</span><span class="kind">.' + f.kind + '</span>';
+      b.addEventListener('click', ()=>{ downloadAs(f.id); persist(); hideSavePop(); });
+      savePop.appendChild(b);
+    });
+  }
+  function showSavePop(){
+    const r = saveBtn.getBoundingClientRect();
+    savePop.hidden = false; saveBtn.setAttribute('aria-expanded','true');
+    savePop.style.top = (window.scrollY + r.bottom + 6) + 'px';
+    savePop.style.left = (window.scrollX + Math.max(8, r.left)) + 'px';
+  }
+  function hideSavePop(){ savePop.hidden = true; saveBtn.setAttribute('aria-expanded','false'); }
+  buildSavePop();
+  saveBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if (!committed.length){ toast('Add a link first'); return; }
+    if (savePop.hidden) showSavePop(); else hideSavePop();
+  });
+
+  /* ---- Share → Web Share of the summary (HTML file + text) -------- */
+  function summaryText(){
+    const m = buildSummaryModel();
+    return 'flove · Linky\n\n' + m.links.map(l => '• ' + l.word + ' → ' + l.related + ' (' + l.strength + '/10)').join('\n');
+  }
+  document.getElementById('shareBtn').addEventListener('click', async ()=>{
+    if (!committed.length){ toast('Add a link first'); return; }
+    const text = summaryText();
+    const out = buildContent('html');
+    const file = new File([out.body], 'linky-' + today() + '.html', { type:'text/html' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ title:'flove · Linky', text, files:[file] }); return; }
+      if (navigator.share){ await navigator.share({ title:'flove · Linky', text }); return; }
+      await navigator.clipboard.writeText(text); toast('Copied to clipboard');
+    } catch(_){ /* cancelled — no-op */ }
+  });
+
+  /* ---- Publish → destination for the summary ---------------------- */
+  const PUB_DESTS = [
+    { id:'feed',  letter:'✺', name:'flove feed', hint:'share to your circles' },
+    { id:'nostr', letter:'⚡', name:'Nostr',      hint:'post to the open network' },
+    { id:'copy',  letter:'🔗', name:'Copy link text', hint:'paste anywhere' }
+  ];
+  const publishModal = document.getElementById('publishModal');
+  const pubList = document.getElementById('pubList');
+  function buildPubList(){
+    pubList.innerHTML = '';
+    PUB_DESTS.forEach(d => {
+      const li = document.createElement('li');
+      li.className = 'flove-publish-row';
+      li.innerHTML = '<span class="flove-publish-kind" aria-hidden="true">' + d.letter + '</span>' +
+                     '<label style="pointer-events:none"><strong>' + d.name + '</strong> — ' + d.hint + '</label>';
+      li.addEventListener('click', ()=> publishTo(d));
+      pubList.appendChild(li);
+    });
+  }
+  function publishTo(d){
+    closeModal();
+    if (d.id === 'copy'){
+      try { navigator.clipboard.writeText(summaryText()); toast('Link text copied'); } catch(_){ toast('Copy not available'); }
+      return;
+    }
+    toast('Published to ' + d.name);
+  }
+  function openModal(){ if (!committed.length){ toast('Add a link first'); return; } buildPubList(); publishModal.hidden = false; }
+  function closeModal(){ publishModal.hidden = true; }
+  document.getElementById('publishBtn').addEventListener('click', openModal);
+  publishModal.addEventListener('click', (e)=>{ if (e.target === publishModal || e.target.hasAttribute('data-close')) closeModal(); });
+
+  /* ---- menu (opened by the logo + title) -------------------------- */
+  const menuBtn = document.getElementById('menuBtn');
+  const menu = document.getElementById('menu');
+  function closeMenu(){ menu.hidden = true; menuBtn.setAttribute('aria-expanded', 'false'); }
+  menuBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  /* About Linky → reveal the intro text */
+  const aboutPanel = document.getElementById('aboutPanel');
+  document.getElementById('aboutBtn').addEventListener('click', ()=>{ aboutPanel.hidden = !aboutPanel.hidden; closeMenu(); });
+
+  /* Reset */
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    if (!committed.length || confirm('Clear all links?')){
+      committed = []; persist(); hintEl.hidden = true; render(); toast('Cleared');
+    }
+    closeMenu();
+  });
+
+  /* global click / Escape: close menu, save popover */
+  document.addEventListener('click', (e)=>{
+    if (!menu.hidden && !menu.contains(e.target) && e.target !== menuBtn && !menuBtn.contains(e.target)) closeMenu();
+    if (!savePop.hidden && !savePop.contains(e.target) && e.target !== saveBtn && !saveBtn.contains(e.target)) hideSavePop();
+  });
+  document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape'){ closeMenu(); hideSavePop(); closeModal(); } });
+
+  /* ---- go --------------------------------------------------------- */
+  load();
+  render();
+})();
+</script>
+</body>
+</html>

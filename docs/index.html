@@ -2423,6 +2423,20 @@
     body:has(#tab-substance:checked) .tab-panel,
     body:has(#tab-paradigm:checked) .tab-panel,
     body:has(#tab-app:checked)      .tab-panel { display: block; }
+    /* Dock the active tab panel right under the sticky tab-strip, so clicking a
+       main tab reveals its content wherever you are on the page — not only at the
+       entrance. At the top it pushes the sections below down; once scrolled it
+       stays pinned under the tabs (--strip-h synced in JS, like --bar-h). */
+    .tab-panel {
+      position: sticky;
+      top: calc(var(--bar-h, 56px) + var(--strip-h, 46px));
+      z-index: 89;
+      background: linear-gradient(180deg, var(--whole-bg-1) 0%, #fff8f1f0 100%);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--whole-line);
+      box-shadow: 0 12px 20px -14px rgba(0,0,0,.35);
+    }
     .tab-panel-inner {
       max-width: 1080px;
       margin: 0 auto;
@@ -4130,6 +4144,9 @@
   /* Blog RSS card — sits below the docs index, links out to the flove blog feed. */
   .docs-foot{
     max-width: 1080px; margin: 0 auto; padding: 8px 18px 90px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .blog-foot-actions{
     display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
   }
   .blog-rss{
@@ -4149,9 +4166,41 @@
     border: 1px solid var(--whole-line); transition: border-color var(--flove-fast);
   }
   .blog-visit:hover{ border-color: var(--app-accent); }
+  /* Latest from the blog — filled client-side from the blog RSS feed (§ docs) */
+  .blog-latest{ display: flex; flex-direction: column; gap: 12px; }
+  .blog-latest[hidden]{ display: none; }
+  .blog-latest-head{
+    font-family: var(--flove-font-display, Georgia, serif);
+    font-size: 1.15rem; font-weight: 700; color: var(--whole-ink);
+  }
+  .blog-latest-list{ list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .blog-item-link{
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 14px 16px; text-decoration: none; color: var(--whole-ink);
+    background: var(--whole-card); border: 1px solid var(--whole-line);
+    border-radius: var(--flove-radius); transition: border-color var(--flove-fast), transform var(--flove-fast);
+  }
+  .blog-item-link:hover{ border-color: var(--app-accent); transform: translateY(-1px); }
+  .blog-item-top{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .blog-item-cat{
+    font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--app-ink-on-accent, #fff); background: var(--app-accent);
+    padding: 2px 9px; border-radius: var(--flove-radius-pill);
+  }
+  .blog-item-date{ margin-left: auto; color: var(--whole-mut); font-size: .82rem; white-space: nowrap; }
+  .blog-item-title{ font-weight: 700; font-size: 1.02rem; }
+  .blog-item-desc{ color: var(--whole-mut); font-size: .92rem; line-height: 1.45; }
 </style>
 <footer class="docs-foot">
-  <a class="blog-rss" href="/blog/index.xml" data-tip="Subscribe to the flove blog" data-tip-en="Subscribe to the flove blog" data-tip-es="Suscríbete al blog de flove">
+  <!-- Latest from the blog — 5 newest posts (title · category · short description),
+       fetched from /blog/index.xml on load; hidden until filled, so it degrades
+       silently offline / on the file:// download. See the script below. -->
+  <div class="blog-latest" id="blog-latest" hidden>
+    <div class="blog-latest-head"><span class="en" lang="en">Latest from the blog</span><span class="es" lang="es">Lo último del blog</span></div>
+    <ul class="blog-latest-list" id="blog-latest-list"></ul>
+  </div>
+  <div class="blog-foot-actions">
+  <a class="blog-rss" href="https://flove.org/blog/index.xml" data-tip="Subscribe to the flove blog" data-tip-en="Subscribe to the flove blog" data-tip-es="Suscríbete al blog de flove">
     <svg class="rss-ico" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
       <circle cx="6.18" cy="17.82" r="2.18" fill="currentColor"/>
       <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83C19.56 11.4 12.6 4.44 4 4.44z" fill="currentColor"/>
@@ -4162,7 +4211,8 @@
       <span class="blog-rss-sub"><span class="en" lang="en">Notes, releases and thinking-out-loud — subscribe in your reader.</span><span class="es" lang="es">Notas, lanzamientos y pensamiento en voz alta — suscríbete en tu lector.</span></span>
     </span>
   </a>
-  <a class="blog-visit" href="/blog/"><span class="en" lang="en">Visit the blog →</span><span class="es" lang="es">Ir al blog →</span></a>
+  <a class="blog-visit" href="https://flove.org/blog/"><span class="en" lang="en">Visit the blog →</span><span class="es" lang="es">Ir al blog →</span></a>
+  </div>
 </footer>
 
 <div class="floating-actions" aria-hidden="false">
@@ -4171,13 +4221,17 @@
 
 <script>
 (function(){
-  // Sync --bar-h with current bar height (fed to scroll-margin-top)
+  // Sync --bar-h (flove-bar) and --strip-h (four-tab strip) with their live
+  // heights, so the sticky tab-panel docks right under the tabs at any width.
   function syncBarH(){
     const bar = document.querySelector(".flove-bar");
     if (bar) document.documentElement.style.setProperty("--bar-h", bar.offsetHeight + "px");
+    const strip = document.getElementById("table-strip");
+    if (strip) document.documentElement.style.setProperty("--strip-h", strip.offsetHeight + "px");
   }
   syncBarH();
   window.addEventListener("resize", syncBarH);
+  window.addEventListener("load", syncBarH);
 
   // ── Four-tab strip (map) ────────────────────────────────────────────
   //    On load the four tabs fade in (CSS, ~4s) with Field pre-highlighted.
@@ -4191,8 +4245,17 @@
   // (toggles the topbar section-nav) · Paradigm & App reveal their panels (CSS).
   const catsState = document.getElementById("cats-state");
   document.querySelectorAll(".strip-cols label").forEach(lbl => {
-    lbl.addEventListener("click", () => {
+    lbl.addEventListener("click", (e) => {
       const tab = lbl.getAttribute("for");
+      const radio = document.getElementById(tab);
+      const off = document.getElementById("tab-off");
+      // Click the already-active tab again → de-select it (toggle off).
+      if (radio && radio.checked){
+        e.preventDefault();
+        if (off) off.checked = true;
+        if (introVideo) introVideo.pause();
+        return;
+      }
       if (tab === "tab-field"){
         if (catsState) catsState.checked = !catsState.checked;   // expand/collapse topbar sections
       } else if (tab === "tab-substance" && introVideo){
@@ -4202,6 +4265,15 @@
         introVideo.pause();
       }
     });
+  });
+
+  // Click anywhere outside the tab strip / its panel → de-select the active tab.
+  // Ignore the hidden tab radios too: clicking a label fires a synthetic click on
+  // its radio (which lives outside the strip), and that must NOT count as "outside".
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#table-strip, #tab-panel, label[for^='tab-'], .tab-state")) return;
+    const off = document.getElementById("tab-off");
+    if (off && !off.checked){ off.checked = true; if (introVideo) introVideo.pause(); }
   });
 
   // Menu "About Docs" → activates the Paradigm tab (the label drives the radio);
@@ -4433,6 +4505,62 @@
 })();
 </script>
 
+<script>
+// Latest from the blog — pull the 5 newest posts from the blog RSS feed and
+// render title · category · short description · date into the footer. Absolute
+// URL so it also works from localhost / the offline copy when online (GitHub
+// Pages serves the feed with CORS). Any failure leaves the block hidden.
+(function(){
+  var box  = document.getElementById('blog-latest');
+  var list = document.getElementById('blog-latest-list');
+  if (!box || !list) return;
+  var FEED = 'https://flove.org/blog/index.xml';
+
+  function stripHtml(s){
+    try { return (new DOMParser().parseFromString(s || '', 'text/html').body.textContent || '').replace(/\s+/g,' ').trim(); }
+    catch(_){ return ''; }
+  }
+  function truncate(s, n){ return s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '') + '…' : s; }
+  function fmtDate(s){
+    var d = new Date(s); if (isNaN(d.getTime())) return '';
+    try { return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); } catch(_){ return ''; }
+  }
+
+  fetch(FEED, {mode:'cors'})
+    .then(function(r){ return r.ok ? r.text() : Promise.reject(); })
+    .then(function(xml){
+      var doc = new DOMParser().parseFromString(xml, 'application/xml');
+      if (doc.querySelector('parsererror')) return;
+      var items = Array.prototype.slice.call(doc.querySelectorAll('item')).filter(function(it){
+        var l = it.querySelector('link'); return l && l.textContent.indexOf('/posts/') !== -1; // real posts only
+      }).slice(0, 5);
+      if (!items.length) return;
+
+      var frag = document.createDocumentFragment();
+      items.forEach(function(it){
+        function txt(sel){ var el = it.querySelector(sel); return el ? el.textContent : ''; }
+        var li = document.createElement('li'); li.className = 'blog-item';
+        var a  = document.createElement('a');  a.className = 'blog-item-link'; a.href = txt('link');
+
+        var top = document.createElement('span'); top.className = 'blog-item-top';
+        var cat = txt('category');
+        if (cat){ var c = document.createElement('span'); c.className = 'blog-item-cat'; c.textContent = cat; top.appendChild(c); }
+        var date = fmtDate(txt('pubDate'));
+        if (date){ var dt = document.createElement('span'); dt.className = 'blog-item-date'; dt.textContent = date; top.appendChild(dt); }
+        a.appendChild(top);
+
+        var t = document.createElement('span'); t.className = 'blog-item-title'; t.textContent = txt('title'); a.appendChild(t);
+        var desc = truncate(stripHtml(txt('description')), 120);
+        if (desc){ var ds = document.createElement('span'); ds.className = 'blog-item-desc'; ds.textContent = desc; a.appendChild(ds); }
+
+        li.appendChild(a); frag.appendChild(li);
+      });
+      list.appendChild(frag);
+      box.hidden = false;
+    })
+    .catch(function(){ /* offline / no feed — leave the block hidden */ });
+})();
+</script>
 
 </body>
 </html>

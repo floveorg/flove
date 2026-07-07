@@ -4,7 +4,7 @@
    Same-origin localStorage bridge between any flove app and Appy/miniappy.
 
    An app opts in with ONE line (auto-injects a floating publish button):
-     <script src="../flove-appy.js" data-app="Keys" data-colour="#9b51e0" defer></script>
+     <script src="../appy/flove-appy.js" data-app="Keys" data-colour="#9b51e0" defer></script>
 
    The receiver (miniappy) includes it WITHOUT data-app (no button) and reads:
      window.floveAppy.played()  ->  [{app, colour, summary, url, date}, ...]

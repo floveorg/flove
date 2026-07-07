@@ -1,6 +1,11 @@
 /* ============================================================
    flove.js · CSS-friendly behaviors for blogy.html (sound engine + summary actions)
    ============================================================
+   Demo of a future flove distro where the js shared by the apps
+   is abstracted into common files and called externally. In the
+   current distro every app inlines its own copy and stays
+   self-contained; only the blogy tiers load this file.
+   ============================================================
    • One click listener on <body> (capture phase).
    • Reads `data-sound="key"` from the clicked element (or ancestor),
      or falls back to a class→key map.
@@ -1813,7 +1818,7 @@ ${cardBody(d)}
    flove.autowire · zero-config decoration for blogy.html
    ============================================================
    Lights up a blogy.html copy that does nothing more than add
-   <script src="flove.js" defer></script>. No HTML edits required:
+   <script src="flove.js" defer><\/script>. No HTML edits required:
 
    • Tags the summary panel (.step-panel.is-summary) as
      [data-flove-root] so collect()/save()/share() find it.

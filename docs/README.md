@@ -19,7 +19,7 @@ home de **https://flove.org**.
 ├── blog/               # repo APARTE (marc/blog) anidado + gitignored — NO es de flove
 ├── apps/               # índice de demos + las apps (puzzy, appy, blogy, metas, …)
 │   ├── index.html      # índice de demos
-│   ├── flove.css · flove.js
+│   ├── blogy/flove.css · blogy/flove.js  # demo de abstracción (solo blogy los llama)
 │   └── */ · *.html     # las apps
 ├── docs/               # teoría / "Whole" paso a paso (docs/index.html sí se sirve)
 │   ├── README.md       # este archivo

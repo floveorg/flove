@@ -1234,7 +1234,43 @@
     .item a.soft-link:hover { color: var(--app-accent); border-color: var(--app-accent); }
     .item a.std-link { color: var(--app-accent); text-decoration: none; font-weight: 600; border-bottom: 1px dotted transparent; transition: border-color .15s; }
     .item a.std-link:hover { border-bottom-color: var(--app-accent); }
-    .item .app-cell { display: inline-flex; gap: 6px; align-items: center; justify-content: center; }
+    /* App column: 1fr auto 1fr keeps the app button centred whether or not it
+       carries a "+", so every app button lines up the same. The "+" sits in the
+       right column; expanded sub-apps drop in-flow below (no box, no label). */
+    .item .app-cell {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      grid-auto-rows: auto;
+      align-items: center;
+      justify-items: center;
+      column-gap: 6px;
+    }
+    .item .app-cell > .app-btn { grid-column: 2; grid-row: 1; }
+    .item .app-cell > .more { display: contents; }
+    .item .app-cell .more-toggle,
+    .item .app-cell .more-trigger { grid-column: 3; grid-row: 1; }
+    .item .app-cell .more-trigger { justify-self: start; }
+    .item .app-cell .more-body.apps {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      position: static;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+      min-width: 0;
+      max-width: none;
+    }
+    .item .app-cell .more:has(.more-toggle:checked) .more-body.apps { display: flex; }
+    .item .app-cell .more-body.apps .more-label { display: none; }
     .item a.app-btn {
       display: inline-block;
       padding: 6px 14px;
@@ -1293,6 +1329,10 @@
     .more:has(.more-toggle:focus-visible) .more-trigger { outline: 2px solid var(--app-accent); outline-offset: 2px; }
     /* once checked (expanded) the trigger no longer shows its hover tooltip */
     .more:has(.more-toggle:checked) .more-trigger::after { content: none; }
+    /* glyph via ::before so it can flip: "+" collapsed → highlighted "×" when expanded */
+    .more .more-trigger { font-size: 0; }
+    .more .more-trigger::before { content: "+"; font-size: 1.6rem; line-height: 1; }
+    .more:has(.more-toggle:checked) .more-trigger::before { content: "×"; }
     .more .more-body {
       position: absolute;
       top: 50%;
@@ -2349,8 +2389,9 @@
       .item .field, .item .par { font-size: 0.7rem; word-break: break-word; }
       .item .par { gap: 3px; }
       .item a.app-btn { padding: 4px 8px; font-size: 0.66rem; }
-      .item .app-cell { gap: 3px; flex-wrap: wrap; }
-      .more .more-trigger { width: 18px; height: 18px; font-size: 0.7rem; }
+      .item .app-cell { column-gap: 3px; }
+      .more .more-trigger { width: 18px; height: 18px; font-size: 0; }
+      .more .more-trigger::before { font-size: 0.7rem; }
 
       .strip-inner { padding: 6px 18px; }
       .strip-cols { gap: 6px; }
@@ -2482,8 +2523,15 @@
       animation: docsEntrance 3s ease 7s backwards;
     }
     @keyframes docsEntrance { from { opacity: 0; } to { opacity: 1; } }
+    /* The landing "← Previous" and "Science →" buttons arrive later still: 12s hold, 3s fade. */
+    body:not(:has(.section:target)) .nav-link.prev.home,
+    body:not(:has(.section:target)) .nav-link.next[data-from="2"] {
+      animation: docsEntrance 3s ease 12s backwards;
+    }
     @media (prefers-reduced-motion: reduce) {
-      body:not(:has(.section:target)) #metaphysics { animation: none; }
+      body:not(:has(.section:target)) #metaphysics,
+      body:not(:has(.section:target)) .nav-link.prev.home,
+      body:not(:has(.section:target)) .nav-link.next[data-from="2"] { animation: none; }
     }
     /* preceding sections (have a later :target sibling) → "dim" treatment */
     .section:has(~ .section:target) {
@@ -2941,7 +2989,7 @@
       <li class="m-item m-item--lang">
         <!-- translate2 worldball — page language switcher (en + es). Pure-CSS swap of .en/.es spans. -->
         <details class="lang">
-          <summary class="worldball" title="Language" aria-label="Language">🌐 <span class="en" lang="en">World ball</span><span class="es" lang="es">Bola del mundo</span></summary>
+          <summary class="worldball" title="Languages" aria-label="Languages">🌐 <span class="en" lang="en">Languages</span><span class="es" lang="es">Idiomas</span></summary>
           <div class="lang-opts">
             <input type="radio" name="lang" id="lang-en" checked><label for="lang-en">English</label>
             <input type="radio" name="lang" id="lang-es"><label for="lang-es">Español</label>
@@ -3094,7 +3142,14 @@
       <div class="item">
         <span class="sub" data-tip="The simple before the word: the apophatic angle." data-tip-en="The simple before the word: the apophatic angle." data-tip-es="Lo simple antes de la palabra: el ángulo apofático.">X</span>
         <span class="field"><a class="soft-link" href="https://flove.org/Metaphysics" target="_blank" rel="noopener" data-tip="Metaphysics · flove.org" data-tip-en="Metaphysics · flove.org" data-tip-es="Metafísica · flove.org"><span class="en" lang="en">Metaphysics</span><span class="es" lang="es">Metafísica</span></a></span>
-        <span class="par"><a class="std-link" href="https://flove.org/metaphysics#Simplex" target="_blank" rel="noopener" data-tip="Simplex — simplicity as the final step of sophistication." data-tip-en="Simplex — simplicity as the final step of sophistication." data-tip-es="Simplex — la simplicidad como paso final de la sofisticación.">Simplex</a></span>
+        <span class="par"><a class="std-link" href="https://flove.org/metaphysics#Simplex" target="_blank" rel="noopener" data-tip="Simplex — simplicity as the final step of sophistication." data-tip-en="Simplex — simplicity as the final step of sophistication." data-tip-es="Simplex — la simplicidad como paso final de la sofisticación.">Simplex</a>
+          <span class="more">
+            <input type="checkbox" class="more-toggle" id="more-simplex"><label class="more-trigger" for="more-simplex" data-tip="See related paradigms" data-tip-en="See related paradigms" data-tip-es="Ver paradigmas relacionados">+</label>
+            <span class="more-body">
+              <a class="std-link" href="https://flove.org/metaphysics#panbitheism" target="_blank" rel="noopener" data-tip="PanBitheism — a genesic couple in everything." data-tip-en="PanBitheism — a genesic couple in everything." data-tip-es="PanBitheism — una pareja genésica en todo.">PanBitheism</a>
+            </span>
+          </span>
+        </span>
         <span class="app-cell"><a class="app-btn" href="../apps/metas/goddy.html" target="_blank" rel="noopener">Goddy</a></span>
       </div>
         <details class="row-files">
@@ -3132,7 +3187,6 @@
           <span class="more">
             <input type="checkbox" class="more-toggle" id="more-1"><label class="more-trigger" for="more-1" data-tip="See related paradigms" data-tip-en="See related paradigms" data-tip-es="Ver paradigmas relacionados">+</label>
             <span class="more-body">
-              <a class="std-link" href="https://flove.org/metaphysics#panbitheism" target="_blank" rel="noopener" data-tip="PanBitheism — a genesic couple in everything." data-tip-en="PanBitheism — a genesic couple in everything." data-tip-es="PanBitheism — una pareja genésica en todo.">PanBitheism</a>
               <a class="std-link" href="https://flove.org/metaphysics#doctrine" target="_blank" rel="noopener" data-tip="Cathomatrix — final moral positions." data-tip-en="Cathomatrix — final moral positions." data-tip-es="Cathomatrix — posiciones morales finales.">Cathomatrix</a>
             </span>
           </span>
@@ -4434,15 +4488,33 @@
     document.querySelectorAll(".section.intro-open").forEach(s => s.classList.remove("intro-open"));
   });
 
-  // ── Advanced-menu search: filter its items live ──
+  // ── Advanced-menu search: filter its items live + Go/Enter jumps to the first match ──
   const advSearch = document.getElementById("advmenu-search");
+  const advGo = document.querySelector("#bar-advmenu .search-go");
   if (advSearch){
-    advSearch.addEventListener("input", () => {
+    const items = () => [...document.querySelectorAll("#bar-advmenu .m-item")];
+    const applyFilter = () => {
       const q = advSearch.value.trim().toLowerCase();
-      document.querySelectorAll("#bar-advmenu .m-item").forEach(it => {
+      items().forEach(it => {
         it.classList.toggle("is-hidden", !!q && !it.textContent.toLowerCase().includes(q));
       });
-    });
+      // hide section titles / dividers that have no visible item under them
+      document.querySelectorAll("#bar-advmenu .menu-section-title, #bar-advmenu .menu-divider").forEach(sec => {
+        let vis = false;
+        for (let n = sec.nextElementSibling; n && !n.classList.contains("menu-section-title") && !n.classList.contains("menu-divider"); n = n.nextElementSibling){
+          if (n.classList.contains("m-item") && !n.classList.contains("is-hidden")){ vis = true; break; }
+        }
+        sec.classList.toggle("is-hidden", !!q && !vis);
+      });
+    };
+    const goToFirst = () => {
+      const first = items().find(it => !it.classList.contains("is-hidden"));
+      const target = first && first.querySelector("a, button, label, summary");
+      if (target){ target.click(); if (target.tagName === "A" && target.href) location.href = target.href; }
+    };
+    advSearch.addEventListener("input", applyFilter);
+    advSearch.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); goToFirst(); } });
+    if (advGo) advGo.addEventListener("click", goToFirst);
   }
 
   // ── Escape also closes the added panels (advanced menu · About) ──

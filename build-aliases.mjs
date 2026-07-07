@@ -46,7 +46,7 @@ const EXTRAS = {
   'appy-basic': '/apps/appy/appy-basic.html',   // el índice no lo enlaza; lo pidió Marc
   'appy':       '/apps/appy/appy-basic.html',   // /appy  -> tier canónico
   'blogy':      '/apps/blogy/blogy-advanced.html',
-  'keys':       '/apps/puzzy/keys-advanced.html',
+  'keys':       '/apps/puzzy/keys/keys-advanced.html',
   'dealy':      '/apps/economy/dealy/dealy-advanced.html',
 };
 for (const [k,v] of Object.entries(EXTRAS)) add(k, v);

@@ -159,6 +159,38 @@
   .app-menu button:disabled:hover{background:transparent;color:var(--ink)}
   .app-menu .sep{height:1px;background:var(--stroke);margin:4px 2px;padding:0}
 
+  /* About fivy modal (opened from the menu; ✕ or any outside click closes) */
+  .about-overlay{
+    position:fixed;inset:0;z-index:120;
+    background:rgba(20,20,32,.55);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:12vh 18px 18px;
+  }
+  .about-overlay[hidden]{display:none}
+  .about-modal{
+    position:relative;max-width:52ch;width:100%;
+    background:var(--panel);border:1px solid var(--stroke);border-radius:18px;
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+    padding:1.4rem 1.5rem 1.2rem;
+    animation:fadein .18s ease;
+  }
+  .about-modal h2{
+    font:600 1.3rem/1.2 ui-serif,Georgia,serif;margin:0 0 .6rem;
+    background:linear-gradient(135deg,var(--gold),var(--accent) 60%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .about-modal p{margin:0;color:var(--ink);font-size:.95rem;line-height:1.6}
+  .about-close{
+    position:absolute;top:10px;right:10px;
+    width:30px;height:30px;border-radius:50%;
+    background:var(--fx);border:1px solid var(--stroke);color:var(--ink);
+    font:700 .9rem/1 system-ui,sans-serif;cursor:pointer;
+    display:grid;place-items:center;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .about-close:hover{border-color:var(--accent);color:var(--accent)}
+
   /* compact "Go back" pill (matches keys-advanced.html .btn-back) */
   .btn-back{padding:.4rem .8rem;font-size:.84rem;border-radius:999px}
 
@@ -1158,7 +1190,9 @@
     color:var(--ink); font:500 .95rem/1.5 ui-serif,Georgia,serif; text-align:center;
   }
   .summary-actions .clause-magic{ display:none; }
-  body:has(#magic-toggle:checked) .summary-actions .clause-default{ display:none; }
+  /* the "My fivys — a ▸ b ▸ …" phrase block stays in the DOM (it feeds Copy,
+     Share and the exports via data-flove-phrase) but is not displayed */
+  .summary-actions .clause-default{ display:none; }
   body:has(#magic-toggle:checked) .summary-actions .clause-magic{ display:block; }
   .magic-btn-summary .label-on{ display:none; }
   body:has(#magic-toggle:checked) .magic-btn-summary .label-off{ display:none; }
@@ -1276,13 +1310,11 @@
     </div>
     <div class="topbar-spacer"></div>
     <nav class="app-menu" id="app-menu" role="menu" hidden>
-      <a href="index.html" role="menuitem">◂ <span class="en" lang="en">All apps</span><span class="es" lang="es">Todas las apps</span></a>
+      <button type="button" data-act="about" role="menuitem">✺ <span class="en" lang="en">About fivy</span><span class="es" lang="es">Sobre fivy</span></button>
+      <div class="sep"></div>
+      <a href="index.html" role="menuitem">◂ <span class="en" lang="en">All puzzy apps</span><span class="es" lang="es">Todas las apps puzzy</span></a>
       <a href="../appy/appy-basic.html" role="menuitem">◈ <span class="en" lang="en">Profile</span><span class="es" lang="es">Perfil</span></a>
       <a href="https://flove.org" target="_blank" rel="noopener" role="menuitem">♥ <span class="en" lang="en">flove.org</span><span class="es" lang="es">flove.org</span></a>
-      <div class="sep"></div>
-      <button type="button" data-act="decks" role="menuitem">▦ <span class="en" lang="en">Decks</span><span class="es" lang="es">Mazos</span></button>
-      <button type="button" data-act="fields" role="menuitem">⬡ <span class="en" lang="en">Fields</span><span class="es" lang="es">Campos</span></button>
-      <button type="button" data-act="summary" role="menuitem">✦ <span class="en" lang="en">Summary</span><span class="es" lang="es">Resumen</span></button>
       <div class="sep"></div>
       <button type="button" data-act="restart" role="menuitem">↺ <span class="en" lang="en">Restart</span><span class="es" lang="es">Reiniciar</span></button>
       <div class="sep"></div>
@@ -1446,9 +1478,11 @@
   <input type="radio" name="insight" id="insight-2" class="ctl">
   <input type="radio" name="insight" id="insight-3" class="ctl">
   <input type="radio" name="insight" id="insight-4" class="ctl">
+  <!-- Save & Share drawers are independent checkboxes, OPEN by default;
+       Publish keeps the radio cycle (closed until clicked) -->
   <input type="radio" name="cycle" id="cycle-none" class="ctl" checked>
-  <input type="radio" name="cycle" id="cycle-save" class="ctl">
-  <input type="radio" name="cycle" id="cycle-share" class="ctl">
+  <input type="checkbox" id="cycle-save" class="ctl" checked>
+  <input type="checkbox" id="cycle-share" class="ctl" checked>
   <input type="radio" name="cycle" id="cycle-pub" class="ctl">
   <input type="radio" name="pub-plat-set" id="pub-plat-set-0" class="ctl" checked>
   <input type="radio" name="pub-plat-set" id="pub-plat-set-1" class="ctl">
@@ -1513,7 +1547,7 @@
           <span class="cycle-wrap save-wrap">
             <span class="cycle-trigger">
               <label class="btn ghost save-btn cycle-step cycle-step--open"  for="cycle-save">💾 <span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></label>
-              <label class="btn ghost save-btn cycle-step cycle-step--close" for="cycle-none">💾 <span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></label>
+              <label class="btn ghost save-btn cycle-step cycle-step--close" for="cycle-save">💾 <span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></label>
               <span class="cycle-row below">
                 <button type="button" class="btn ghost" data-flove-save="txt">TXT</button>
                 <button type="button" class="btn ghost" data-flove-save="md">MD</button>
@@ -1529,7 +1563,7 @@
           <span class="cycle-wrap share-wrap">
             <span class="cycle-trigger">
               <label class="btn ghost share-btn cycle-step cycle-step--open"  for="cycle-share" data-flove-share>📤 <span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></label>
-              <label class="btn ghost share-btn cycle-step cycle-step--close" for="cycle-none">📤 <span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></label>
+              <label class="btn ghost share-btn cycle-step cycle-step--close" for="cycle-share">📤 <span class="en" lang="en">Share</span><span class="es" lang="es">Compartir</span></label>
               <span class="cycle-row below">
                 <button type="button" class="btn ghost share-sub" data-flove-print aria-label="Print" data-aria-en="Print" data-aria-es="Imprimir">🖨 <span class="en" lang="en">Print</span><span class="es" lang="es">Imprimir</span></button>
                 <button type="button" class="btn ghost share-sub" data-flove-share-menu="mobile" aria-label="Share with a mobile app" data-aria-en="Share with a mobile app" data-aria-es="Compartir con una app móvil">📱 <span class="en" lang="en">Mobile</span><span class="es" lang="es">Móvil</span></button>
@@ -1581,6 +1615,15 @@
     <div class="related-apps" id="related-apps" hidden></div>
   </div>
 
+</div>
+
+<!-- About fivy — modal opened from the brand menu; ✕ or any click outside closes it -->
+<div class="about-overlay" id="about-overlay" hidden>
+  <div class="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <button class="about-close" id="about-close" type="button" aria-label="Close" data-aria-en="Close" data-aria-es="Cerrar">✕</button>
+    <h2 id="about-title">✺ <span class="en" lang="en">About fivy</span><span class="es" lang="es">Sobre fivy</span></h2>
+    <p><span class="en" lang="en">fivy is a small game of fives: order the five senses and other famous high&nbsp;5s into your own ranking, tell why, and watch your fives meet in the fields square — five decks, one square, your summary.</span><span class="es" lang="es">fivy es un pequeño juego de cincos: ordena los cinco sentidos y otros cincos famosos a tu manera, cuenta el porqué y mira cómo se cruzan tus cincos en el cuadrado de campos — cinco mazos, un cuadrado, tu resumen.</span></p>
+  </div>
 </div>
 
 <div class="float-counters" aria-live="polite">
@@ -2098,10 +2141,12 @@
     paintFivysTable();   // keep the Summary's per-deck Time column live
   }
   function startTimer(){
-    if (timer.t0) return;                 // already running
-    timer.t0 = Date.now();
-    paintTime();
-    timer.handle = setInterval(paintTime, 1000);
+    // t0 may already hold a restored offset — keep it and just (re)start the tick
+    if (!timer.t0) timer.t0 = Date.now();
+    if (!timer.handle){
+      paintTime();
+      timer.handle = setInterval(paintTime, 1000);
+    }
   }
   // hidden by default; click toggles the time open / closed
   document.getElementById('timeToggle').addEventListener('click', () => {
@@ -2200,10 +2245,6 @@
   function setMenu(open){
     $appMenu.hidden = !open;
     $brandMenu.setAttribute('aria-expanded', String(open));
-    if (open){
-      const f = $appMenu.querySelector('[data-act="fields"]');
-      if (f) f.disabled = !allDone();
-    }
   }
   $brandMenu.addEventListener('click', e => { e.stopPropagation(); setMenu($appMenu.hidden); });
   document.addEventListener('click', e => {
@@ -2214,12 +2255,15 @@
     if (!btn || btn.disabled) return;
     setMenu(false);
     switch (btn.dataset.act){
+      case 'about':   $aboutOverlay.hidden = false; break;
       case 'restart': location.reload(); break;
-      case 'decks':   startTimer(); showDecks(); break;            // also dismisses the intro
-      case 'fields':  if (allDone()){ startTimer(); enterFields(); } break;
-      case 'summary': startTimer(); enterSummary(); break;
     }
   });
+
+  // ----- About fivy modal: ✕ or any click outside the text box closes it -----
+  const $aboutOverlay = document.getElementById('about-overlay');
+  document.getElementById('about-close').addEventListener('click', () => { $aboutOverlay.hidden = true; });
+  $aboutOverlay.addEventListener('click', e => { if (e.target === $aboutOverlay) $aboutOverlay.hidden = true; });
 
   // ----- Field data: only Social pre-filled. Others start empty. -----
   const SIMPLEX = {
@@ -2898,6 +2942,16 @@
   document.addEventListener('click', e => {
     if (e.target.closest('[data-flove-print]')) window.print();
   });
+  // fivy's share sheet offers only messenger / mobile-first apps — the feed
+  // platforms (X, Threads, Bluesky, Mastodon, Reddit, LinkedIn) stay out.
+  // flove.js (inlined at end of body) seeds window.flove.shareApps before
+  // DOMContentLoaded, so this filter runs after the seed and before any click.
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.flove && Array.isArray(window.flove.shareApps)){
+      const drop = /twitter|threads|bluesky|mastodon|reddit|linkedin/i;
+      window.flove.shareApps = window.flove.shareApps.filter(a => !drop.test(a.name));
+    }
+  });
   const pubGo = document.getElementById('fivy-pub-go');
   if (pubGo) pubGo.addEventListener('click', () => {
     // hand the summary off via the same Share path flove.js provides
@@ -2948,6 +3002,16 @@
       reasons,
       toggles,
       counters,
+      // time stats: per-deck active ms + elapsed play/fields ms, stored as
+      // DURATIONS so a later session resumes the clocks instead of zeroing them
+      deckTime: Object.assign({}, deckTime),
+      timers: (() => {
+        const now = Date.now();
+        return {
+          total:  timer.t0      ? now - timer.t0 : 0,
+          fields: timer.tFields ? (timer.tSummary || now) - timer.tFields : 0,
+        };
+      })(),
     };
   }
 
@@ -2998,6 +3062,13 @@
       if (snap.reasons && typeof snap.reasons === 'object'){ Object.keys(reasons).forEach(k => delete reasons[k]); Object.assign(reasons, snap.reasons); }
       if (snap.toggles)  Object.assign(toggles,  snap.toggles);
       if (snap.counters) Object.assign(counters, snap.counters);
+      // resume the clocks: durations → offsets from now
+      if (snap.deckTime) Object.assign(deckTime, snap.deckTime);
+      if (snap.timers){
+        const now = Date.now();
+        if (snap.timers.total)  timer.t0      = now - snap.timers.total;
+        if (snap.timers.fields) timer.tFields = now - snap.timers.fields;
+      }
     } finally {
       _restoring = false;
     }
@@ -3089,6 +3160,8 @@
       Object.keys(reasons).forEach(k => delete reasons[k]);
       toggles.list = toggles.cycle = toggles.confluence = false;
       counters.clicks = counters.selections = counters.stars = 0;
+      Object.keys(deckTime).forEach(k => delete deckTime[k]);
+      timer.t0 = timer.tFields = timer.tSummary = 0;
     } finally { _restoring = false; }
 
     // wipe ONLY this app's own keys — NEVER localStorage.clear()

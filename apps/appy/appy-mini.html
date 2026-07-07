@@ -1864,8 +1864,6 @@ body:has(#lang-es:checked) .es{display:inline}
 .mod-pill-curator{padding:.3rem .7rem;border-radius:6px;background:rgba(141,137,255,.08);border:1px solid rgba(141,137,255,.3);color:var(--accent-soft)}
 .mod-pill-live{padding:.3rem .7rem;border-radius:6px;background:rgba(0,247,167,.08);border:1px solid rgba(0,247,167,.3);color:var(--signal)}
 </style>
-<!-- receiver: read apps published from other flove apps (no data-app → no button) -->
-<script src="flove-appy.js" defer></script>
 </head>
 <body>
 
@@ -2900,7 +2898,6 @@ function switchTab(name) {
     p.classList.toggle('active', p.id === 'panel-' + name);
   });
   activeTab = name;
-  if (name === 'profile' && window.floveIngest) window.floveIngest();   // pick up newly published apps
 }
 
 // "Play Apps" chip (Add content card) → jump to the profile's Play Apps section
@@ -4636,29 +4633,7 @@ switchTab('profile');
     if (window.applyLang) applyLang();
   }
 
-  // --- Ingest apps published from other flove apps via flove-appy.js (localStorage) ---
-  function ingestAppy(){
-    if (!window.floveAppy) return;
-    floveAppy.played().forEach(function(rec){
-      if (!rec || !rec.app) return;
-      const raw = rec.summary != null
-        ? JSON.stringify(rec.summary, null, 2)
-        : JSON.stringify({ published: rec.date || null, from: rec.url || null }, null, 2);
-      addPlayedApp(rec.app, rec.app.toLowerCase() + '-summary.json', raw, null);
-      const b = document.querySelector('.rb[data-app="' + rec.app + '"]'); if (b) b.classList.add('played');
-    });
-    refreshUploadUI();
-  }
-  window.floveIngest = ingestAppy;                       // let switchTab re-ingest on Profile
-  // run after flove-appy.js (deferred) has loaded; retry to defeat any load-order race
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ingestAppy);
-  else ingestAppy();
   refreshUploadUI();
-  setTimeout(ingestAppy, 300);
-  setTimeout(ingestAppy, 1200);
-  // live-update when an app publishes from another tab, and when the window regains focus
-  window.addEventListener('storage', function(e){ if (window.floveAppy && e.key === floveAppy.KEY) ingestAppy(); });
-  window.addEventListener('focus', ingestAppy);
 })();
 </script>
 <script>

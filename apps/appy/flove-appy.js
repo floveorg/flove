@@ -1,6 +1,12 @@
 /* ============================================================
    flove-appy.js · "Publish to Appy" handoff  (phase 1 — no backend)
    ============================================================
+   ⏸ PARKED (2026-07-07): not wired into any app on purpose. The
+   current flow is manual — the user downloads the app's
+   Appname-summary.json and uploads it in their Appy profile
+   ("Upload summary here"). Do NOT re-include this script anywhere
+   until Marc decides to revisit the automatic publish handoff.
+   ============================================================
    Same-origin localStorage bridge between any flove app and Appy/miniappy.
 
    An app opts in with ONE line (auto-injects a floating publish button):

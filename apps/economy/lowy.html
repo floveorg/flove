@@ -94,9 +94,12 @@
   .catnav{display:flex; flex-direction:column; gap:.2rem}
   .catnav .lowy-row{display:flex; gap:.3rem; align-items:stretch}
   .catnav .lowy-row .cat-tab{flex:1 1 auto}
-  .all-btn{flex:0 0 auto; width:auto; color:var(--clay); font-size:.85rem;
-    padding:.4rem .55rem; justify-content:center}
-  .all-btn:hover{color:var(--leaf)}
+  .all-btn{flex:0 0 auto; width:auto; color:var(--clay); font-weight:700;
+    font-size:1.6rem; line-height:1; padding:.1rem .85rem; justify-content:center}
+  .all-btn:hover{color:var(--leaf); border-color:var(--rule); background:var(--paper)}
+  .all-btn.on{color:#fff; background:var(--clay); border-color:var(--clay)}
+  .all-btn.on:hover{color:#fff; background:var(--leaf); border-color:var(--leaf)}
+  .see-more-row{display:flex; justify-content:center; margin:2.2rem 0 1rem}
 
   .theme-btn{cursor:pointer; background:none; border:1px solid var(--rule); color:var(--ink-soft);
     border-radius:2px; padding:.25rem .5rem; font-size:1rem; line-height:1;
@@ -484,7 +487,7 @@ function renderCatNav(){
   const list=document.getElementById('catList');
   const lowy=CATS.find(c=>c.center), rest=CATS.filter(c=>!c.center);
   const tab=c=>`<button type="button" class="vtab cat-tab" data-cat="${c.id}" aria-pressed="false">
-       <span class="ico" aria-hidden="true">${c.ico}</span><span>${esc(c.name)}</span></button>`;
+       <span class="ico" aria-hidden="true">${c.ico}</span><span>${esc(c.short)}</span></button>`;
   list.innerHTML=
     `<div class="lowy-row">${tab(lowy)}<button type="button" class="vtab all-btn" id="allCats"
        title="Select every category">All</button></div>`
@@ -500,7 +503,8 @@ function renderCatNav(){
     };
   });
   document.getElementById('allCats').onclick=()=>{
-    CATS.forEach(c=>catSel.add(c.id));
+    // toggle: everything on ⇄ back to just Lowy
+    catSel=CATS.every(c=>catSel.has(c.id))?new Set(['lowy']):new Set(CATS.map(c=>c.id));
     store.set('cats',[...catSel]);
     syncCatNav();renderBlocks();
   };
@@ -512,6 +516,8 @@ function syncCatNav(){
     n.classList.toggle('sel',on);
     n.setAttribute('aria-pressed',on);
   });
+  const all=document.getElementById('allCats');
+  if(all)all.classList.toggle('on',CATS.every(c=>catSel.has(c.id)));
 }
 
 /* ============ CATEGORY BLOCKS ============ */
@@ -521,7 +527,7 @@ function renderBlocks(){
   const sel=CATS.filter(c=>catSel.has(c.id));
   host.innerHTML=sel.map(cat=>`
     <section class="catblock" id="cat-${cat.id}">
-      <h2 class="cat-title"><span class="ico">${cat.ico}</span>${esc(cat.name)}</h2>
+      <h2 class="cat-title"><span class="ico">${cat.ico}</span>${esc(cat.short)}</h2>
       <div class="sec sec-concepts">
         <h3>Concepts <span class="label">the ideas behind it</span></h3>
         ${conceptCards(cat)}
@@ -562,6 +568,22 @@ function renderBlocks(){
   wireConceptChips(host);
   wireTools(host);
   wireCulture(host);
+  renderSeeMore(host);
+}
+
+/* "See more" — reveal the next category in order (Lowy → Water → …) */
+function renderSeeMore(host){
+  const next=CATS.find(c=>!catSel.has(c.id));
+  if(!next)return;
+  const row=el('div','see-more-row');
+  const b=el('button','btn see-next','See more · '+next.short+' ↓');
+  b.onclick=()=>{
+    catSel.add(next.id);store.set('cats',[...catSel]);
+    syncCatNav();renderBlocks();
+    const t=document.getElementById('cat-'+next.id);
+    if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  row.appendChild(b);host.appendChild(row);
 }
 
 /* ---- concepts section: cards + chips + links ---- */

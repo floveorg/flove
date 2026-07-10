@@ -17,7 +17,7 @@
     --card:#f7efdd; --shadow:rgba(60,44,20,.14);
     --serif:Iowan Old Style,"Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --maxw:64rem;
+    --maxw:64rem; --topbar-h:3.4rem;
   }
   @media (prefers-color-scheme:dark){
     :root{
@@ -42,7 +42,10 @@
   body{
     margin:0; background:var(--paper); color:var(--ink);
     font-family:var(--sans); font-size:17px; line-height:1.6;
-    display:flex; align-items:flex-start;
+    display:grid; min-height:100vh;
+    grid-template-columns:15rem 1fr;
+    grid-template-rows:var(--topbar-h) 1fr;
+    grid-template-areas:"header header" "nav main";
   }
   h1,h2,h3,h4{font-family:var(--serif); font-weight:600; line-height:1.15; margin:0 0 .4em}
   h1{font-size:2.5rem} h2{font-size:1.8rem} h3{font-size:1.25rem}
@@ -51,18 +54,31 @@
   p{margin:0 0 1em}
   small{color:var(--ink-soft)}
   .wrap{max-width:var(--maxw); margin:0 auto; padding:0 1.25rem}
-  .content{flex:1 1 auto; min-width:0; width:100%; max-width:var(--maxw); margin:0 auto;
+  .content{grid-area:main; min-width:0; width:100%; max-width:var(--maxw); margin:0 auto;
     padding:0 1.5rem}
   .label{font-family:var(--sans); text-transform:uppercase; letter-spacing:.12em;
     font-size:.72rem; color:var(--ink-soft)}
   hr{border:0; border-top:1px solid var(--rule); margin:2rem 0}
 
-  /* ---- Left vertical navigation: sidebar with section tabs + category tabs ---- */
+  /* ---- Fixed top bar (logo + horizontal centred section tabs) ---- */
   .tab-check,.page-radio{position:absolute; opacity:0; pointer-events:none}
+  header.topbar{
+    grid-area:header; position:sticky; top:0; z-index:25; height:var(--topbar-h);
+    background:var(--paper-2); display:flex; align-items:center; gap:1rem; padding:0 1rem;
+  }
+  header.topbar nav.tabs{display:flex; gap:.35rem;
+    position:absolute; left:50%; transform:translateX(-50%)}
+  header.topbar nav.tabs label{
+    cursor:pointer; padding:.3rem .8rem; border:1px solid transparent; border-radius:3px;
+    font-size:.95rem; color:var(--ink-soft); white-space:nowrap;
+  }
+  header.topbar nav.tabs label:hover{color:var(--ink); border-color:var(--rule)}
+
+  /* ---- Left category navigation (no borders) ---- */
   aside.sidenav{
-    position:sticky; top:0; align-self:stretch; z-index:20;
-    flex:0 0 15rem; width:15rem; max-height:100vh; overflow-y:auto;
-    background:var(--paper-2); border-right:2px solid var(--ink);
+    grid-area:nav; position:sticky; top:var(--topbar-h); align-self:start;
+    max-height:calc(100vh - var(--topbar-h)); overflow-y:auto;
+    background:var(--paper-2);
     padding:1.1rem .9rem; display:flex; flex-direction:column; gap:1.1rem;
   }
 
@@ -105,29 +121,32 @@
   .see-more-row{display:flex; justify-content:center; margin:2.2rem 0 1rem}
 
   .theme-btn{cursor:pointer; background:none; border:1px solid var(--rule); color:var(--ink-soft);
-    border-radius:2px; padding:.25rem .5rem; font-size:1rem; line-height:1;
-    align-self:flex-start; margin-top:auto}
+    border-radius:2px; padding:.25rem .5rem; font-size:1rem; line-height:1; margin-left:auto}
   .theme-btn:hover{color:var(--ink)}
 
-  /* active state — section tabs (checkboxes) and selected category tabs */
-  #t-concepts:checked ~ .sidenav label[for=t-concepts],
-  #t-tools:checked    ~ .sidenav label[for=t-tools],
-  #t-culture:checked  ~ .sidenav label[for=t-culture],
+  /* active state — section tabs (in the top bar) */
+  #t-concepts:checked ~ header nav.tabs label[for=t-concepts],
+  #t-tools:checked    ~ header nav.tabs label[for=t-tools],
+  #t-culture:checked  ~ header nav.tabs label[for=t-culture]{
+    color:var(--ink); border-color:var(--ink); background:var(--paper);
+    box-shadow:inset 0 -2px 0 var(--clay);
+  }
+  /* active state — selected category tabs (left) */
   .catnav .vtab.sel{
     color:var(--ink); border-color:var(--ink); background:var(--paper);
     box-shadow:inset 3px 0 0 var(--clay);
   }
 
-  /* narrow screens: the sidebar folds into a wrapping top bar */
+  /* narrow screens: header, then categories row, then content */
   @media(max-width:720px){
-    body{flex-direction:column}
-    aside.sidenav{position:static; flex-basis:auto; width:auto; max-height:none;
-      border-right:0; border-bottom:2px solid var(--ink);
-      flex-direction:row; flex-wrap:wrap; align-items:center; gap:.5rem .9rem}
+    body{grid-template-columns:1fr; grid-template-rows:var(--topbar-h) auto 1fr;
+      grid-template-areas:"header" "nav" "main"}
+    header.topbar nav.tabs{position:static; transform:none; margin:0 auto}
+    aside.sidenav{position:static; max-height:none; overflow:visible}
     .nav-group{flex-direction:row; flex-wrap:wrap; align-items:center; gap:.3rem}
     .nav-group > .label{margin-bottom:0}
     .catnav{flex-direction:row; flex-wrap:wrap}
-    .theme-btn{margin-top:0; margin-left:auto}
+    .catnav .lowy-row{flex:0 0 auto}
   }
   /* page switching (Home = the network, About) */
   main > .page{display:none; padding:1.6rem 0 4rem}
@@ -144,6 +163,7 @@
 
   /* ---- Category blocks ---- */
   .catblock{margin:2.6rem 0; scroll-margin-top:5rem; border-top:2px solid var(--ink); padding-top:1rem}
+  .catblock:first-child{border-top:0; margin-top:.6rem; padding-top:0}
   .cat-title{font-size:clamp(2.4rem,6vw,3.6rem); margin:.1em 0 .3em; display:flex;
     align-items:center; gap:.4em}
   .cat-title .ico{font-size:.55em}
@@ -231,7 +251,7 @@
   .footer{border-top:1px solid var(--rule); margin-top:3rem; padding:1.5rem 0; text-align:center;
     font-size:.85rem; color:var(--ink-soft)}
   @media print{
-    aside.sidenav,.basket,.saying-actions,.propose-row,.see-more,.onboard{display:none!important}
+    header.topbar,aside.sidenav,.basket,.saying-actions,.propose-row,.see-more,.onboard{display:none!important}
     body{background:#fff; color:#000}
   }
 </style>
@@ -243,10 +263,10 @@
 <input class="page-radio" type="radio" name="page" id="r-main" checked>
 <input class="page-radio" type="radio" name="page" id="r-about">
 
-<aside class="sidenav">
+<header class="topbar">
   <details class="menu" id="brandMenu">
     <summary aria-label="lowy menu">
-      <span class="brand"><svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 58V30" stroke="var(--leaf)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M31 34C18 34 12 23 15 12 28 12 34 23 31 34Z" fill="var(--leaf)"/><path d="M33 34C46 34 52 23 49 12 36 12 30 23 33 34Z" fill="var(--gold)"/></svg><span class="brand-name"><b>low</b>y</span></span><span class="menu-caret">▾</span>
+      <span class="brand"><svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 58V30" stroke="var(--leaf)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M31 34C18 34 12 23 15 12 28 12 34 23 31 34Z" fill="var(--leaf)"/><path d="M33 34C46 34 52 23 49 12 36 12 30 23 33 34Z" fill="var(--gold)"/></svg></span><span class="menu-caret">▾</span>
     </summary>
     <div class="menu-list">
       <label for="r-main">Home</label>
@@ -254,19 +274,20 @@
     </div>
   </details>
 
-  <nav class="tabs nav-group" aria-label="Sections (multi-select)">
-    <span class="label">Sections</span>
-    <label class="vtab" for="t-concepts">Concepts</label>
-    <label class="vtab" for="t-tools">Tools</label>
-    <label class="vtab" for="t-culture">Culture</label>
+  <nav class="tabs" aria-label="Sections (multi-select)">
+    <label for="t-concepts">Concepts</label>
+    <label for="t-tools">Tools</label>
+    <label for="t-culture">Culture</label>
   </nav>
 
+  <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">◐</button>
+</header>
+
+<aside class="sidenav">
   <div class="nav-group" aria-label="Categories">
     <span class="label">Categories</span>
     <div class="catnav" id="catList"><!-- category tabs injected --></div>
   </div>
-
-  <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">◐</button>
 </aside>
 
 <main class="content">

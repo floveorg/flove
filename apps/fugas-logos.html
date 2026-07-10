@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>✺ flove · Fugas — the art of the fugue in ten marks</title>
+  <style>
+    :root{
+      --flove-font-ui:'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --flove-radius-pill:999px;
+      --bg:#0b0d16; --ink:#eae6db; --muted:#9b9aa8;
+      --line:#1d2033; --card:#151830;
+      --fuga:hsl(210 78% 66%);   /* the house hue — the subject's own key */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1100px 780px at 108% -12%, hsl(210 70% 50% / .14), transparent 60%),
+        radial-gradient(900px 700px at -10% 118%, hsl(30 80% 55% / .09), transparent 52%),
+        var(--bg);
+      background-attachment:fixed;
+      font-family:var(--flove-font-ui); letter-spacing:.2px;
+    }
+
+    header{ max-width:1080px; margin:0 auto; padding:1.4rem 1rem .2rem }
+    .crumb{ font-size:.8rem; color:var(--muted) }
+    .crumb a{ color:var(--fuga); text-decoration:none }
+    h1{ margin:.3rem 0 .15rem; font-size:clamp(1.4rem,3.6vw,2rem); font-weight:800; letter-spacing:.4px }
+    .lede{ margin:0; color:var(--muted); font-size:.92rem; max-width:68ch }
+    .lede b{ color:var(--fuga); font-weight:700 }
+
+    .brand{ display:inline-block; vertical-align:-.42em; color:var(--fuga);
+      filter:drop-shadow(0 0 2px var(--fuga)) drop-shadow(0 0 7px var(--fuga)) }
+    .brand .g{ fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round }
+    .brand .p{ fill:none; stroke:currentColor; stroke-width:1.5 }
+
+    /* ─── the fugue's own operations, applied to every mark at once ─── */
+    .modes{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin:1.1rem auto 0;
+      max-width:1080px; padding:0 1rem }
+    .modes .lbl{ font-size:.72rem; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin-right:.2rem }
+    .modes input{ position:absolute; opacity:0; pointer-events:none }
+    .modes label{ cursor:pointer; font-size:.85rem; font-weight:700; padding:.4rem .9rem;
+      border-radius:var(--flove-radius-pill); border:1px solid var(--line); color:var(--muted);
+      background:var(--card); transition:.25s }
+    .modes label:focus-visible{ outline:2px solid var(--fuga); outline-offset:2px }
+    #op-recto:checked   ~ label[for=op-recto],
+    #op-inv:checked     ~ label[for=op-inv],
+    #op-retro:checked   ~ label[for=op-retro],
+    #op-mirror:checked  ~ label[for=op-mirror]{ color:#0b0b14; background:var(--fuga); border-color:var(--fuga) }
+    .modes input:focus-visible ~ label[for]{ outline:none }
+    .modes input#op-recto:focus-visible  ~ label[for=op-recto],
+    .modes input#op-inv:focus-visible    ~ label[for=op-inv],
+    .modes input#op-retro:focus-visible  ~ label[for=op-retro],
+    .modes input#op-mirror:focus-visible ~ label[for=op-mirror]{ outline:2px solid var(--ink); outline-offset:2px }
+    .modes .tip{ flex-basis:100%; font-size:.76rem; color:var(--muted); margin-top:.2rem }
+    .modes .tip b{ color:var(--ink); font-weight:700 }
+
+    main{ max-width:1080px; margin:1.2rem auto 3rem; padding:0 1rem }
+    .intro{ color:var(--muted); font-size:.82rem; margin:.2rem 0 1rem }
+    .sec{ border:1px solid var(--line); border-radius:18px; padding:.6rem 1rem 1.1rem;
+      background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%) }
+
+    .gamut{ display:grid; grid-template-columns:150px repeat(5,1fr); gap:.45rem .5rem; align-items:center; overflow-x:auto }
+    .grow{ display:contents }
+    .collab{ font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); text-align:center; padding-bottom:.2rem }
+    .rowlab{ font-size:.88rem; font-weight:800; color:var(--c) }
+    .rowlab small{ display:block; font-weight:500; color:var(--muted); font-size:.66rem; letter-spacing:.2px }
+    .gcell{ display:flex; align-items:center; justify-content:center; min-height:92px }
+
+    /* ─── the marks ─── */
+    .mark{ color:var(--c); display:block; overflow:visible; transition:filter .35s ease }
+    .mark .glyph{ fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round }
+    .mark .line{ fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; opacity:.38 }
+    .mark .punctus{ fill:none; stroke:currentColor; stroke-width:1.5; transition:fill .3s ease }
+    .mark .head{ fill:currentColor; stroke:none }
+    .mark .vback{ opacity:.42 } .mark .vmid{ opacity:.7 }
+    .mark .void{ stroke-dasharray:1.6 1.9; opacity:.5 }
+    .mf{ width:16px; height:16px } .ms{ width:24px; height:24px }
+    .mmd{ width:44px; height:44px } .ml{ width:80px; height:80px }
+
+    /* the operation rides on medium + large; favicon and small stay recto */
+    .glyphs{ transform-box:view-box; transform-origin:12px 12px; transition:transform .45s cubic-bezier(.2,.8,.2,1) }
+    body:has(#op-inv:checked)    .mmd .glyphs, body:has(#op-inv:checked)    .ml .glyphs{ transform:scaleY(-1) }
+    body:has(#op-retro:checked)  .mmd .glyphs, body:has(#op-retro:checked)  .ml .glyphs{ transform:scaleX(-1) }
+    body:has(#op-mirror:checked) .mmd .glyphs, body:has(#op-mirror:checked) .ml .glyphs{ transform:scale(-1) }
+
+    .gcell:hover .mmd, .gcell:hover .ml{ filter:drop-shadow(0 0 2px var(--c)) drop-shadow(0 0 6px var(--c)) }
+    .gcell:hover .punctus{ fill:currentColor }
+
+    /* ─── animated column: the voice entering, drawn note by note ─── */
+    .anim .glyph{ stroke-dasharray:1 1; stroke-dashoffset:1; animation:enter 3.6s cubic-bezier(.2,.8,.2,1) infinite }
+    .anim .void{ stroke-dasharray:1 1 }
+    .anim .punctus, .anim .head{ animation:bloom 3.6s cubic-bezier(.2,.8,.2,1) infinite }
+    @keyframes enter{ 0%{ stroke-dashoffset:1 } 45%,88%{ stroke-dashoffset:0 } 100%{ stroke-dashoffset:0; opacity:0 } }
+    @keyframes bloom{ 0%,38%{ opacity:0 } 55%,88%{ opacity:1 } 100%{ opacity:0 } }
+
+    footer{ max-width:1080px; margin:0 auto 3rem; padding:1rem; color:var(--muted);
+      font-size:.8rem; text-align:center; border-top:1px solid var(--line) }
+    footer a{ color:var(--fuga); text-decoration:none }
+
+    @media (prefers-reduced-motion:reduce){
+      .mark, .glyphs, .anim .glyph, .anim .punctus, .anim .head{ animation:none; transition:none }
+      .anim .glyph{ stroke-dashoffset:0 }
+    }
+    @media (max-width:640px){
+      .gamut{ grid-template-columns:120px repeat(5,minmax(88px,1fr)) }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="crumb"><a href="fugas.html">← Fugas</a></p>
+    <h1><svg class="brand" viewBox="0 0 24 24" width="34" height="34" role="img" aria-label="Fugas">
+        <path class="g" d="M5 16h4v-7h4v5h4v-6h2"/><circle class="p" cx="19" cy="8" r="2"/>
+      </svg> Fugas — ten marks for the art of the fugue</h1>
+    <p class="lede">Ten candidate marks, one per contrapuntal device: the theme stated, answered, crowded,
+      turned upside down, read backwards, slowed, chased, spelled B-A-C-H, crossed, and broken off.
+      Every mark carries the <b>punctus</b> — the note against which the other note is set — and each
+      takes its hue one perfect fifth further round the circle of fifths. Pick an <b>operation</b> to
+      run all ten through the fugue's own transformations.</p>
+  </header>
+
+  <div class="modes">
+    <span class="lbl">Operation</span>
+    <input type="radio" name="op" id="op-recto" checked>
+    <input type="radio" name="op" id="op-inv">
+    <input type="radio" name="op" id="op-retro">
+    <input type="radio" name="op" id="op-mirror">
+    <label for="op-recto">Recto</label>
+    <label for="op-inv">Inversion</label>
+    <label for="op-retro">Retrograde</label>
+    <label for="op-mirror">Mirror</label>
+    <p class="tip"><b>Recto</b> — as written · <b>Inversion</b> — every interval turned upside down ·
+      <b>Retrograde</b> — the subject read from the last note back · <b>Mirror</b> — both at once.
+      Affects medium &amp; large; favicon and small stay recto. Hover a mark to fill its punctus.</p>
+  </div>
+
+  <main>
+    <p class="intro">Each row: the same mark at favicon (16), small (24), medium (44) and large (80), plus the entry drawn as an animation.</p>
+
+    <section class="sec">
+      <div class="gamut">
+
+        <div class="grow">
+          <span></span>
+          <span class="collab">Favicon 16</span><span class="collab">Small 24</span>
+          <span class="collab">Medium 44</span><span class="collab">Large 80</span><span class="collab">Entry</span>
+        </div>
+
+        <div class="grow" style="--c:hsl(210 78% 66%)">
+          <span class="rowlab">Subject <small>the theme, alone</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Subject — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M5 16h4v-7h4v5h4v-6h2"/>
+    <circle class="punctus" cx="19" cy="8" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M5 16h4v-7h4v5h4v-6h2"/>
+    <circle class="punctus" cx="19" cy="8" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M5 16h4v-7h4v5h4v-6h2"/>
+    <circle class="punctus" cx="19" cy="8" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M5 16h4v-7h4v5h4v-6h2"/>
+    <circle class="punctus" cx="19" cy="8" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M5 16h4v-7h4v5h4v-6h2"/>
+    <circle class="punctus" cx="19" cy="8" r="2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(60 72% 64%)">
+          <span class="rowlab">Answer <small>the theme, a fifth up</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Answer — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M2 20h3v-5h3v3h3"/>
+    <line class="line" x1="11" y1="15" x2="11" y2="10"/>
+    <path pathLength="1" class="glyph" d="M11 10h3v-5h3v3h3"/>
+    <circle class="punctus" cx="11" cy="12.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M2 20h3v-5h3v3h3"/>
+    <line class="line" x1="11" y1="15" x2="11" y2="10"/>
+    <path pathLength="1" class="glyph" d="M11 10h3v-5h3v3h3"/>
+    <circle class="punctus" cx="11" cy="12.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M2 20h3v-5h3v3h3"/>
+    <line class="line" x1="11" y1="15" x2="11" y2="10"/>
+    <path pathLength="1" class="glyph" d="M11 10h3v-5h3v3h3"/>
+    <circle class="punctus" cx="11" cy="12.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M2 20h3v-5h3v3h3"/>
+    <line class="line" x1="11" y1="15" x2="11" y2="10"/>
+    <path pathLength="1" class="glyph" d="M11 10h3v-5h3v3h3"/>
+    <circle class="punctus" cx="11" cy="12.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M2 20h3v-5h3v3h3"/>
+    <line class="line" x1="11" y1="15" x2="11" y2="10"/>
+    <path pathLength="1" class="glyph" d="M11 10h3v-5h3v3h3"/>
+    <circle class="punctus" cx="11" cy="12.5" r="2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(270 70% 70%)">
+          <span class="rowlab">Stretto <small>entries crowding in</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Stretto — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph vback" d="M2 20h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph vmid" d="M6.5 15.5h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph" d="M11 11h2.5v-4h2.5v2.5h2.5"/>
+    <circle class="punctus" cx="18.5" cy="9.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph vback" d="M2 20h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph vmid" d="M6.5 15.5h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph" d="M11 11h2.5v-4h2.5v2.5h2.5"/>
+    <circle class="punctus" cx="18.5" cy="9.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph vback" d="M2 20h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph vmid" d="M6.5 15.5h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph" d="M11 11h2.5v-4h2.5v2.5h2.5"/>
+    <circle class="punctus" cx="18.5" cy="9.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph vback" d="M2 20h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph vmid" d="M6.5 15.5h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph" d="M11 11h2.5v-4h2.5v2.5h2.5"/>
+    <circle class="punctus" cx="18.5" cy="9.5" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph vback" d="M2 20h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph vmid" d="M6.5 15.5h2.5v-4h2.5v2.5h2.5"/>
+    <path pathLength="1" class="glyph" d="M11 11h2.5v-4h2.5v2.5h2.5"/>
+    <circle class="punctus" cx="18.5" cy="9.5" r="2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(120 56% 62%)">
+          <span class="rowlab">Inversion <small>reflected in the axis</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Inversion — favicon"><g class="glyphs">
+    <line class="line" x1="3" y1="12" x2="21" y2="12"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4" transform="matrix(1 0 0 -1 0 24)"/>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <line class="line" x1="3" y1="12" x2="21" y2="12"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4" transform="matrix(1 0 0 -1 0 24)"/>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <line class="line" x1="3" y1="12" x2="21" y2="12"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4" transform="matrix(1 0 0 -1 0 24)"/>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <line class="line" x1="3" y1="12" x2="21" y2="12"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4" transform="matrix(1 0 0 -1 0 24)"/>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <line class="line" x1="3" y1="12" x2="21" y2="12"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4"/>
+    <path pathLength="1" class="glyph" d="M8 10h4v-4h4" transform="matrix(1 0 0 -1 0 24)"/>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(330 76% 70%)">
+          <span class="rowlab">Cancrizans <small>read backwards — the crab</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Cancrizans — favicon"><g class="glyphs">
+    <g><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <g transform="matrix(-1 0 0 1 24 9)"><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <g><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <g transform="matrix(-1 0 0 1 24 9)"><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <g><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <g transform="matrix(-1 0 0 1 24 9)"><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <g><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <g transform="matrix(-1 0 0 1 24 9)"><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <g><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <g transform="matrix(-1 0 0 1 24 9)"><path pathLength="1" class="glyph" d="M3 9h4v-3h4"/><path pathLength="1" class="glyph" d="M9.6 4.9 11 6 9.6 7.1"/></g>
+    <circle class="punctus" cx="12" cy="12" r="2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(180 62% 62%)">
+          <span class="rowlab">Augmentation <small>the same, at half speed</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Augmentation — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 18h1.8v-3h1.8v2h1.8"/>
+    <line class="line" x1="8.4" y1="17.4" x2="9" y2="12.6"/>
+    <g style="stroke-width:.85" transform="translate(9 6) scale(2)"><path pathLength="1" class="glyph" d="M0 3h1.8v-3h1.8v2h1.8"/></g>
+    <circle class="punctus" cx="19.6" cy="14" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 18h1.8v-3h1.8v2h1.8"/>
+    <line class="line" x1="8.4" y1="17.4" x2="9" y2="12.6"/>
+    <g style="stroke-width:.85" transform="translate(9 6) scale(2)"><path pathLength="1" class="glyph" d="M0 3h1.8v-3h1.8v2h1.8"/></g>
+    <circle class="punctus" cx="19.6" cy="14" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 18h1.8v-3h1.8v2h1.8"/>
+    <line class="line" x1="8.4" y1="17.4" x2="9" y2="12.6"/>
+    <g style="stroke-width:.85" transform="translate(9 6) scale(2)"><path pathLength="1" class="glyph" d="M0 3h1.8v-3h1.8v2h1.8"/></g>
+    <circle class="punctus" cx="19.6" cy="14" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 18h1.8v-3h1.8v2h1.8"/>
+    <line class="line" x1="8.4" y1="17.4" x2="9" y2="12.6"/>
+    <g style="stroke-width:.85" transform="translate(9 6) scale(2)"><path pathLength="1" class="glyph" d="M0 3h1.8v-3h1.8v2h1.8"/></g>
+    <circle class="punctus" cx="19.6" cy="14" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 18h1.8v-3h1.8v2h1.8"/>
+    <line class="line" x1="8.4" y1="17.4" x2="9" y2="12.6"/>
+    <g style="stroke-width:.85" transform="translate(9 6) scale(2)"><path pathLength="1" class="glyph" d="M0 3h1.8v-3h1.8v2h1.8"/></g>
+    <circle class="punctus" cx="19.6" cy="14" r="2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(30 82% 66%)">
+          <span class="rowlab">Canon <small>the round, chasing itself</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Canon — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M12 4.5A7.5 7.5 0 0 1 19.5 12"/>
+    <path pathLength="1" class="glyph" d="M12 19.5A7.5 7.5 0 0 1 4.5 12"/>
+    <circle class="head" cx="19.5" cy="12" r="1.5"/>
+    <circle class="head" cx="4.5" cy="12" r="1.5"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M12 4.5A7.5 7.5 0 0 1 19.5 12"/>
+    <path pathLength="1" class="glyph" d="M12 19.5A7.5 7.5 0 0 1 4.5 12"/>
+    <circle class="head" cx="19.5" cy="12" r="1.5"/>
+    <circle class="head" cx="4.5" cy="12" r="1.5"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M12 4.5A7.5 7.5 0 0 1 19.5 12"/>
+    <path pathLength="1" class="glyph" d="M12 19.5A7.5 7.5 0 0 1 4.5 12"/>
+    <circle class="head" cx="19.5" cy="12" r="1.5"/>
+    <circle class="head" cx="4.5" cy="12" r="1.5"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M12 4.5A7.5 7.5 0 0 1 19.5 12"/>
+    <path pathLength="1" class="glyph" d="M12 19.5A7.5 7.5 0 0 1 4.5 12"/>
+    <circle class="head" cx="19.5" cy="12" r="1.5"/>
+    <circle class="head" cx="4.5" cy="12" r="1.5"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M12 4.5A7.5 7.5 0 0 1 19.5 12"/>
+    <path pathLength="1" class="glyph" d="M12 19.5A7.5 7.5 0 0 1 4.5 12"/>
+    <circle class="head" cx="19.5" cy="12" r="1.5"/>
+    <circle class="head" cx="4.5" cy="12" r="1.5"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(240 70% 72%)">
+          <span class="rowlab">B-A-C-H <small>four notes, one cross</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="B-A-C-H — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 14 20 8"/>
+    <path pathLength="1" class="glyph" d="M9 16 15 6"/>
+    <circle class="head" cx="4" cy="14" r="1.2"/>
+    <circle class="head" cx="9" cy="16" r="1.2"/>
+    <circle class="head" cx="15" cy="6" r="1.2"/>
+    <circle class="head" cx="20" cy="8" r="1.2"/>
+    <circle class="punctus" cx="12" cy="11" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 14 20 8"/>
+    <path pathLength="1" class="glyph" d="M9 16 15 6"/>
+    <circle class="head" cx="4" cy="14" r="1.2"/>
+    <circle class="head" cx="9" cy="16" r="1.2"/>
+    <circle class="head" cx="15" cy="6" r="1.2"/>
+    <circle class="head" cx="20" cy="8" r="1.2"/>
+    <circle class="punctus" cx="12" cy="11" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 14 20 8"/>
+    <path pathLength="1" class="glyph" d="M9 16 15 6"/>
+    <circle class="head" cx="4" cy="14" r="1.2"/>
+    <circle class="head" cx="9" cy="16" r="1.2"/>
+    <circle class="head" cx="15" cy="6" r="1.2"/>
+    <circle class="head" cx="20" cy="8" r="1.2"/>
+    <circle class="punctus" cx="12" cy="11" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 14 20 8"/>
+    <path pathLength="1" class="glyph" d="M9 16 15 6"/>
+    <circle class="head" cx="4" cy="14" r="1.2"/>
+    <circle class="head" cx="9" cy="16" r="1.2"/>
+    <circle class="head" cx="15" cy="6" r="1.2"/>
+    <circle class="head" cx="20" cy="8" r="1.2"/>
+    <circle class="punctus" cx="12" cy="11" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 14 20 8"/>
+    <path pathLength="1" class="glyph" d="M9 16 15 6"/>
+    <circle class="head" cx="4" cy="14" r="1.2"/>
+    <circle class="head" cx="9" cy="16" r="1.2"/>
+    <circle class="head" cx="15" cy="6" r="1.2"/>
+    <circle class="head" cx="20" cy="8" r="1.2"/>
+    <circle class="punctus" cx="12" cy="11" r="2.2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(90 58% 64%)">
+          <span class="rowlab">Counterpoint <small>two voices trading register</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Counterpoint — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 6C10 6 14 18 21 18"/>
+    <path pathLength="1" class="glyph" d="M3 18C10 18 14 6 21 6"/>
+    <circle class="head" cx="3" cy="6" r="1.2"/>
+    <circle class="head" cx="3" cy="18" r="1.2"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 6C10 6 14 18 21 18"/>
+    <path pathLength="1" class="glyph" d="M3 18C10 18 14 6 21 6"/>
+    <circle class="head" cx="3" cy="6" r="1.2"/>
+    <circle class="head" cx="3" cy="18" r="1.2"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 6C10 6 14 18 21 18"/>
+    <path pathLength="1" class="glyph" d="M3 18C10 18 14 6 21 6"/>
+    <circle class="head" cx="3" cy="6" r="1.2"/>
+    <circle class="head" cx="3" cy="18" r="1.2"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 6C10 6 14 18 21 18"/>
+    <path pathLength="1" class="glyph" d="M3 18C10 18 14 6 21 6"/>
+    <circle class="head" cx="3" cy="6" r="1.2"/>
+    <circle class="head" cx="3" cy="18" r="1.2"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M3 6C10 6 14 18 21 18"/>
+    <path pathLength="1" class="glyph" d="M3 18C10 18 14 6 21 6"/>
+    <circle class="head" cx="3" cy="6" r="1.2"/>
+    <circle class="head" cx="3" cy="18" r="1.2"/>
+    <circle class="punctus" cx="12" cy="12" r="2.2"/></g></svg></span>
+        </div>
+
+        <div class="grow" style="--c:hsl(300 24% 74%)">
+          <span class="rowlab">Unfinished <small>where Contrapunctus XIV stops</small></span>
+          <span class="gcell"><svg class="mark mf" viewBox="0 0 24 24" role="img" aria-label="Unfinished — favicon"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 17h4v-7h4v5h3"/>
+    <path pathLength="1" class="glyph void" d="M15 15h3v-3"/>
+    <circle class="punctus void" cx="18" cy="9.4" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ms" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 17h4v-7h4v5h3"/>
+    <path pathLength="1" class="glyph void" d="M15 15h3v-3"/>
+    <circle class="punctus void" cx="18" cy="9.4" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark mmd" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 17h4v-7h4v5h3"/>
+    <path pathLength="1" class="glyph void" d="M15 15h3v-3"/>
+    <circle class="punctus void" cx="18" cy="9.4" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 17h4v-7h4v5h3"/>
+    <path pathLength="1" class="glyph void" d="M15 15h3v-3"/>
+    <circle class="punctus void" cx="18" cy="9.4" r="2"/></g></svg></span>
+          <span class="gcell"><svg class="mark ml anim" viewBox="0 0 24 24" aria-hidden="true"><g class="glyphs">
+    <path pathLength="1" class="glyph" d="M4 17h4v-7h4v5h3"/>
+    <path pathLength="1" class="glyph void" d="M15 15h3v-3"/>
+    <circle class="punctus void" cx="18" cy="9.4" r="2"/></g></svg></span>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Ten devices · one punctus · one gamut — <a href="fugas.html">back to Fugas</a>
+  </footer>
+
+</body>
+</html>

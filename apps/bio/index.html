@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="author" content="Marc (marcflove)">
+<meta name="copyright" content="© 2026 Marc · CC BY-SA 4.0">
+<link rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">
+<meta name="description" content="Launcher for the four bio apps — varyy, sensy, pracsys and diesafe — as readings riding a living vital-signs trace.">
+<title>FLOVE · BIO</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'><path d='M2 20 H30 l5 -14 l6 30 l5 -16 H98' fill='none' stroke='%232a2d33' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/><circle cx='68' cy='20' r='6' fill='%23c2453f'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   bio — the resting trace
+   Four apps ride a vital-signs line. Drained graphite + pewter, with ONE
+   living colour — the arterial pulse that sweeps the trace. The title is a
+   quiet hub: click it for the menu (above) and the blurb (below); click
+   anywhere else and it collapses. ──────────────────────────────────────── */
+:root {
+  --paper:#e8e9ec;          /* pewter ground                               */
+  --mist:#d3d6db;           /* panel fills                                 */
+  --pewter:#9aa0aa;         /* grid, resting trace, secondary text         */
+  --pewter-2:#c3c7cd;       /* faint hairlines                             */
+  --graphite:#2a2d33;       /* ink                                         */
+  --graphite-2:#565b64;     /* softer ink                                  */
+  --pulse:#c2453f;          /* arterial red — the only saturated colour    */
+
+  --gap: clamp(74px, 21.5vw, 208px);    /* half-distance between stations  */
+  --node: clamp(70px, 18vmin, 128px);   /* ball diameter                   */
+  --swap: 1450ms;                       /* one re-scan, in ms              */
+  --ease: cubic-bezier(.62,-0.26,.34,1.32);
+}
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; height:100%; }
+body {
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--graphite);
+  background:var(--paper);
+  min-height:100svh;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+/* ─── ambient: one drained pewter breath (flove/index soul, greyer) +
+       a faint monitor graph-paper grid ─────────────────────────────────── */
+.field { position:fixed; inset:0; z-index:0; pointer-events:none; }
+.field::before {                         /* the slow breath                */
+  content:""; position:absolute; inset:-15%;
+  background:
+    radial-gradient(60vmax 44vmax at 108% -8%, #dfe1e6 0, transparent 60%),
+    radial-gradient(52vmax 40vmax at -8% 112%, #dcdee3 0, transparent 60%);
+  animation: breathe 30s ease-in-out infinite;
+}
+.field::after {                          /* graph-paper grid               */
+  content:""; position:absolute; inset:0;
+  background-image:
+    linear-gradient(var(--pewter-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--pewter-2) 1px, transparent 1px);
+  background-size:34px 34px;
+  opacity:.22;
+  -webkit-mask-image:radial-gradient(120% 90% at 50% 46%, #000 55%, transparent 100%);
+          mask-image:radial-gradient(120% 90% at 50% 46%, #000 55%, transparent 100%);
+}
+@keyframes breathe {
+  0%,100% { transform:translate(0,0) scale(1); opacity:.9; }
+  50%     { transform:translate(-1.5vmax,1vmax) scale(1.05); opacity:1; }
+}
+
+/* ─── stage ─────────────────────────────────────────────────────────────── */
+.stage {
+  position:relative; z-index:2; height:100svh; width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:2rem 1rem;
+}
+
+/* ─── the title hub: click bio → menu above + blurb below ───────────────── */
+.hub {
+  position:relative;
+  display:flex; flex-direction:column; align-items:center;
+  margin:0 0 clamp(2.4rem,9vh,5rem);
+  transform:translateY(-25px);   /* nudge the title + its reveal up, leaving the trace put */
+}
+.bio-btn {
+  appearance:none; -webkit-appearance:none; border:0; background:none; padding:.1em .2em;
+  font-family:'Fraunces',serif; font-weight:300;
+  font-size:clamp(3.4rem,15vw,7rem); line-height:.9; letter-spacing:-.02em;
+  color:var(--graphite); cursor:pointer;
+  transition:opacity .2s, transform .2s;
+}
+.bio-btn:hover { opacity:.78; }
+.bio-btn:active { transform:scale(.985); }
+.bio-btn:focus { outline:none; }
+.bio-btn:focus-visible { outline:2px solid var(--graphite); outline-offset:6px; border-radius:4px; }
+
+/* menu (above) + blurb (below) — absolutely placed so revealing them never
+   nudges the trace; hidden until the hub holds focus */
+.menu, .blurb {
+  position:absolute; left:50%;
+  opacity:0; visibility:hidden;
+  transition:opacity .26s ease, transform .26s var(--ease), visibility .26s;
+}
+.menu {
+  bottom:100%; margin-bottom:1rem; transform:translate(-50%,9px);
+  display:inline-flex; align-items:center; gap:.7rem; white-space:nowrap;
+  padding:.4rem .5rem .4rem .55rem;
+  background:rgba(255,255,255,.55); border:1px solid var(--pewter-2); border-radius:3px;
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+}
+.blurb {
+  top:100%; margin-top:1rem; transform:translate(-50%,-9px);
+  width:min(34ch,82vw); text-align:center;
+  font-size:clamp(.78rem,2.3vw,.94rem); line-height:1.5; color:var(--graphite-2);
+}
+.hub:focus-within .menu,
+.hub:focus-within .blurb { opacity:1; visibility:visible; transform:translate(-50%,0); }
+
+.menu a {
+  display:inline-flex; align-items:center; gap:.35rem;
+  font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.06em;
+  text-transform:uppercase; text-decoration:none; color:var(--graphite-2);
+  padding:.3rem .6rem; border-radius:2px; transition:color .16s, background .16s;
+}
+.menu a:hover, .menu a:focus-visible { color:var(--graphite); background:rgba(255,255,255,.6); outline:none; }
+.menu .mark {
+  font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--pewter); padding-right:.4rem;
+  display:inline-flex; align-items:center; gap:.45rem;
+}
+.menu .mark b { color:var(--graphite-2); font-weight:500; }
+.menu .dot { width:8px; height:8px; border-radius:50%; background:var(--pulse);
+  animation: beat 1.15s ease-out infinite; }
+@keyframes beat {
+  0% { transform:scale(.85); box-shadow:0 0 0 0 rgba(194,69,63,.45); }
+  35%{ transform:scale(1.25); }
+  70%,100%{ transform:scale(.85); box-shadow:0 0 0 9px rgba(194,69,63,0); }
+}
+
+/* ─── the trace + stations ──────────────────────────────────────────────── */
+.trace {
+  position:relative;
+  width:min(94vw, calc(var(--gap) * 6.4));
+  height:var(--node);
+}
+.trace svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; z-index:1; }
+.trace .rest  { fill:none; stroke:var(--pewter); stroke-width:2;
+  vector-effect:non-scaling-stroke; stroke-linejoin:round; stroke-linecap:round; }
+.trace .sweep { fill:none; stroke:var(--pulse); stroke-width:2.6;
+  vector-effect:non-scaling-stroke; stroke-linejoin:round; stroke-linecap:round;
+  stroke-dasharray:130 870; filter:drop-shadow(0 0 5px rgba(194,69,63,.55));
+  animation: sweep 4.6s linear infinite; }
+@keyframes sweep { from { stroke-dashoffset:0; } to { stroke-dashoffset:-1000; } }
+
+/* ─── a station = one app ───────────────────────────────────────────────── */
+.node {
+  --slot:0;
+  --x: calc((var(--slot) - 1.5) * var(--gap));
+  position:absolute; left:50%; top:50%; z-index:3;
+  width:var(--node); height:var(--node);
+  transform: translate(calc(-50% + var(--x)), -50%);
+  transition: transform var(--swap) var(--ease);
+  text-decoration:none; color:inherit;
+}
+.node-in {
+  position:relative; width:100%; height:100%; border-radius:50%;
+  display:grid; place-items:center;
+  background:
+    radial-gradient(circle at 36% 30%, rgba(255,255,255,.9), rgba(255,255,255,.4) 44%, transparent 58%),
+    color-mix(in srgb, var(--tint) 20%, var(--mist));
+  border:1px solid #fff;
+  box-shadow:0 8px 22px rgba(42,45,51,.16), inset 0 1px 2px rgba(255,255,255,.9),
+             0 0 0 6px rgba(232,233,236,.9);      /* pewter "cuff" lifting it off the line */
+  animation: node-beat 4.6s ease-in-out infinite;
+  transition: box-shadow .25s, transform .25s;
+  will-change:transform, filter;
+}
+@keyframes node-beat {              /* the pulse washing through each node   */
+  0%,72%,100% { box-shadow:0 8px 22px rgba(42,45,51,.16), inset 0 1px 2px rgba(255,255,255,.9), 0 0 0 6px rgba(232,233,236,.9); }
+  80% { box-shadow:0 8px 22px rgba(42,45,51,.16), inset 0 1px 2px rgba(255,255,255,.9), 0 0 0 6px rgba(232,233,236,.9), 0 0 22px 3px rgba(194,69,63,.28); }
+}
+.node .glyph { font-size:calc(var(--node) * .4); line-height:1;
+  filter:grayscale(.62) contrast(.95); transition:filter .25s; }
+/* the lead: a hairline anchoring the station's name to the trace */
+.node::after {
+  content:""; position:absolute; left:50%; top:100%; width:1px; height:.7rem;
+  transform:translateX(-50%); background:var(--pewter-2);
+}
+.node .name {
+  position:absolute; left:50%; top:calc(100% + .95rem); transform:translateX(-50%);
+  white-space:nowrap; pointer-events:none;
+  font-family:'Fraunces',serif; font-weight:400;
+  font-size:clamp(.92rem,2.7vw,1.14rem); color:var(--graphite);
+}
+.node:hover .node-in, .node:focus-visible .node-in {
+  transform:translateY(-5px) scale(1.05);
+  box-shadow:0 16px 34px rgba(42,45,51,.22), inset 0 1px 2px rgba(255,255,255,.9),
+             0 0 0 6px rgba(232,233,236,.9), 0 0 0 3px var(--tint);
+  animation-play-state:paused;
+}
+.node:hover .glyph, .node:focus-visible .glyph { filter:grayscale(0); }
+.node:focus-visible { outline:none; }
+.node:focus-visible .node-in { outline:2px solid var(--graphite); outline-offset:8px; }
+
+/* ─── the swap flair bank — themed to the vitals world ──────────────────── */
+.trace[data-fx="arc"]     .node-in { animation: fxArc   var(--swap) ease-in-out; }
+.trace[data-fx="dip"]     .node-in { animation: fxDip   var(--swap) ease-in-out; }
+.trace[data-fx="flatline"].node-in { animation: fxFlat  var(--swap) ease-in-out; }
+.trace[data-fx="defib"]   .node-in { animation: fxDefib var(--swap) cubic-bezier(.6,-0.5,.3,1.5); }
+.trace[data-fx="tachy"]   .node-in { animation: fxTachy var(--swap) linear; }
+.trace[data-fx="spin"]    .node-in { animation: fxSpin  var(--swap) cubic-bezier(.5,.1,.3,1); }
+.trace[data-fx="flip"]    .node-in { animation: fxFlip  var(--swap) ease-in-out; }
+.trace[data-fx="pop"]     .node-in { animation: fxPop   var(--swap) cubic-bezier(.6,-0.4,.3,1.4); }
+
+@keyframes fxArc  { 0%,100%{transform:translateY(0)} 45%{transform:translateY(calc(var(--node) * -1.15))} }
+@keyframes fxDip  { 0%,100%{transform:translateY(0)} 45%{transform:translateY(calc(var(--node) * 1.05)) scale(.9)} }
+@keyframes fxFlat { 0%,100%{transform:scaleY(1); opacity:1} 30%,52%{transform:scaleY(.06) translateY(0); opacity:.5} 40%{transform:scaleY(.06)} }
+@keyframes fxDefib{ 0%{transform:scale(1)} 18%{transform:scale(1.5); filter:brightness(1.5) drop-shadow(0 0 16px rgba(194,69,63,.8))} 30%{transform:scale(.6)} 100%{transform:scale(1)} }
+@keyframes fxTachy{ 0%,100%{transform:translate(0,0)} 10%{transform:translate(3px,-6px)} 25%{transform:translate(-4px,5px)} 45%{transform:translate(5px,4px)} 65%{transform:translate(-5px,-5px)} 85%{transform:translate(3px,3px)} }
+@keyframes fxSpin { 0%{transform:rotate(0)} 100%{transform:rotate(720deg)} }
+@keyframes fxFlip { 0%{transform:perspective(600px) rotateY(0)} 100%{transform:perspective(600px) rotateY(720deg)} }
+@keyframes fxPop  { 0%{transform:scale(1)} 42%{transform:scale(.04); filter:blur(1px)} 100%{transform:scale(1)} }
+
+/* re-scan brightens the sweep for the length of the swap */
+.stage.swapping .sweep { animation-duration:1.1s; stroke-width:3.4;
+  filter:drop-shadow(0 0 9px rgba(194,69,63,.85)); }
+
+@media (prefers-reduced-motion: reduce){
+  :root { --swap:520ms; }
+  .field::before, .sweep, .node-in, .menu .dot { animation:none !important; }
+  .trace .node-in { animation:none !important; }
+  .stage.swapping .sweep { animation:none; }
+  .menu, .blurb { transition:opacity .18s; }
+}
+</style>
+</head>
+<body>
+
+<div class="field" aria-hidden="true"></div>
+
+<main class="stage" id="stage">
+  <div class="hub">
+    <nav class="menu" id="biomenu" aria-label="bio menu">
+      <span class="mark"><span class="dot"></span><b>flove</b> · bio</span>
+      <a href="../index.html">‹ launcher</a>
+    </nav>
+    <button class="bio-btn" id="bioBtn" type="button" aria-expanded="false" aria-controls="biomenu bioblurb" title="Menu">bio</button>
+    <p class="blurb" id="bioblurb">Four apps for a living body — how it speaks, senses, works, and ends.</p>
+  </div>
+
+  <div class="trace" id="trace" data-fx="arc">
+    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+      <path class="rest" pathLength="1000" d="M0,60 L60,60 L80,60 L88,52 L96,60 L112,60 L120,88 L128,14 L136,96 L144,60 L164,56 L180,60 L300,60 L320,60 L328,52 L336,60 L352,60 L360,88 L368,14 L376,96 L384,60 L404,56 L420,60 L540,60 L560,60 L568,52 L576,60 L592,60 L600,88 L608,14 L616,96 L624,60 L644,56 L660,60 L780,60 L800,60 L808,52 L816,60 L832,60 L840,88 L848,14 L856,96 L864,60 L884,56 L900,60 L1020,60 L1040,60 L1048,52 L1056,60 L1072,60 L1080,88 L1088,14 L1096,96 L1104,60 L1124,56 L1140,60 L1200,60"/>
+      <path class="sweep" pathLength="1000" d="M0,60 L60,60 L80,60 L88,52 L96,60 L112,60 L120,88 L128,14 L136,96 L144,60 L164,56 L180,60 L300,60 L320,60 L328,52 L336,60 L352,60 L360,88 L368,14 L376,96 L384,60 L404,56 L420,60 L540,60 L560,60 L568,52 L576,60 L592,60 L600,88 L608,14 L616,96 L624,60 L644,56 L660,60 L780,60 L800,60 L808,52 L816,60 L832,60 L840,88 L848,14 L856,96 L864,60 L884,56 L900,60 L1020,60 L1040,60 L1048,52 L1056,60 L1072,60 L1080,88 L1088,14 L1096,96 L1104,60 L1124,56 L1140,60 L1200,60"/>
+    </svg>
+
+    <a class="node" href="varyy.html"   style="--tint:#8b93a1" data-slot="0">
+      <span class="node-in"><span class="glyph">✦</span></span>
+      <span class="name">varyy</span>
+    </a>
+
+    <a class="node" href="sensy.html"    style="--tint:#86988f" data-slot="1">
+      <span class="node-in"><span class="glyph">🫧</span></span>
+      <span class="name">sensy</span>
+    </a>
+
+    <a class="node" href="pracsys.html"  style="--tint:#a08a8f" data-slot="2">
+      <span class="node-in"><span class="glyph">🫀</span></span>
+      <span class="name">pracsys</span>
+    </a>
+
+    <a class="node" href="diesafe.html"  style="--tint:#8f8d8a" data-slot="3">
+      <span class="node-in"><span class="glyph">🕯</span></span>
+      <span class="name">diesafe</span>
+    </a>
+  </div>
+</main>
+
+<script>
+/* ═══ the re-scan choreographer ═══════════════════════════════════════════
+   Every 10 s the four stations take a fresh derangement of the four slots,
+   under one of eight vitals-themed waveforms — never twice in a row. The
+   horizontal glide rides the CSS transition on .node; the flair rides a
+   per-effect keyframe on .node-in. ─────────────────────────────────────── */
+(function(){
+  var stage = document.getElementById('stage');
+  var trace = document.getElementById('trace');
+  var nodes = Array.prototype.slice.call(trace.querySelectorAll('.node'));
+  var N = nodes.length;
+
+  var FX = ['arc','dip','flatline','defib','tachy','spin','flip','pop'];
+  var seed = 5, lastFx = trace.getAttribute('data-fx'), next = pick();
+
+  function rnd(){ seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  function pick(){ var f; do { f = FX[Math.floor(rnd() * FX.length)]; } while (f === lastFx); return f; }
+
+  function derangement(){                       // everyone moves, nobody stays
+    var p;
+    do {
+      p = []; for (var i=0;i<N;i++) p.push(i);
+      for (var j=N-1;j>0;j--){ var k=Math.floor(rnd()*(j+1)); var t=p[j]; p[j]=p[k]; p[k]=t; }
+    } while (p.some(function(v,i){ return v===i; }));
+    return p;
+  }
+  function place(){ nodes.forEach(function(n){ n.style.setProperty('--slot', n.dataset.slot); }); }
+  place();
+
+  function scan(){
+    lastFx = next;
+    trace.removeAttribute('data-fx'); void trace.offsetWidth;   // replay the keyframe
+    trace.setAttribute('data-fx', next);
+    stage.classList.add('swapping');
+
+    var perm = derangement();
+    nodes.forEach(function(n,i){ n.dataset.slot = perm[i]; });
+    place();
+
+    setTimeout(function(){ stage.classList.remove('swapping'); }, 1450);
+    next = pick();
+  }
+  setInterval(scan, 10000);
+
+  /* keep aria-expanded honest as the hub gains / loses focus */
+  var hub = document.querySelector('.hub'), btn = document.getElementById('bioBtn');
+  hub.addEventListener('focusin',  function(){ btn.setAttribute('aria-expanded','true');  });
+  hub.addEventListener('focusout', function(){ btn.setAttribute('aria-expanded','false'); });
+})();
+</script>
+</body>
+</html>

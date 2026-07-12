@@ -12,7 +12,8 @@
      ring one   what you bring         Wanty · Crafty · Inventary
      ring two   what you weigh         Rewardy · Dealy · Worthing
      ring three what you let go        Shareful · Freed · Lowy
-   Each coin is a card: icon, title, slogan, and a "Go play" link out.
+   Each coin is a bubble; click it and it opens into a borderless ball
+   carrying its slogan and a "Go play" link out.
    No external requests. Self-contained per the flove distro doctrine.
    ───────────────────────────────────────────────────────────── */
 
@@ -151,8 +152,9 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
 /* ── nodes ──────────────────────────────────────────────── */
 .node {
   position: absolute; top: 50%; left: 50%;
-  width: var(--card);
+  width: var(--disc);
   opacity: 0;
+  transition: width 300ms cubic-bezier(.2,.9,.3,1);
   transform:
     translate(-50%, -50%)
     rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a)))
@@ -170,16 +172,17 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
 }
 .disc {
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 5px;
-  width: 100%;
-  padding: 14px 12px;
-  border-radius: 20px;
+  align-items: center; justify-content: center; gap: 4px;
+  width: 100%; height: var(--disc);
+  border-radius: 50%;
   background: linear-gradient(158deg, #3b3390 0%, #2a2370 58%, #1c1750 100%);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.22),
     inset 0 -3px 6px rgba(0,0,0,.45),
     0 0 0 1px color-mix(in srgb, var(--indigo) 85%, transparent);
-  transition: transform 260ms cubic-bezier(.2,.9,.3,1), box-shadow 260ms ease, background 260ms ease;
+  transition: height 300ms cubic-bezier(.2,.9,.3,1),
+              transform 260ms cubic-bezier(.2,.9,.3,1),
+              box-shadow 260ms ease, background 260ms ease;
 }
 .ico {
   width: 21px; height: 21px;
@@ -195,16 +198,18 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
   color: var(--chalk);
   transition: color 220ms ease;
 }
-/* the slogan, sat under the title inside the card */
+/* slogan + Go stay collapsed until the bubble is opened */
 .slogan {
+  display: none;
   font-family: var(--serif);
-  font-size: 11px; line-height: 1.25;
+  font-size: 11.5px; line-height: 1.25;
   text-align: center; letter-spacing: .01em;
   color: var(--mute);
 }
 /* the one link out: a small pill under the slogan */
 .go {
-  margin-top: 3px;
+  display: none;
+  margin-top: 4px;
   padding: 5px 13px;
   border-radius: 999px;
   background: var(--brass);
@@ -215,6 +220,16 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
 }
 .go:hover, .go:focus-visible { filter: brightness(1.08); transform: translateY(-1px); outline: none; }
 .go:focus-visible { outline: 2px solid var(--chalk); outline-offset: 2px; }
+
+/* click a bubble → it grows into a borderless ball carrying its words */
+.node.open { z-index: 30; width: var(--card); }
+.node.open .disc {
+  height: var(--card); padding: 16px 14px;
+  background: linear-gradient(158deg, #443c9e 0%, #2f2878 60%, #201b58 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 16px 40px rgba(0,0,0,.5);
+}
+.node.open .slogan { display: block; }
+.node.open .go { display: inline-block; }
 .node:hover .disc,
 .node:focus-visible .disc {
   transform: translateY(-4px);
@@ -303,18 +318,18 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
   /* radii open up and the coins shrink, so nothing touches the centre */
   :root {
     --disc: 42px;
-    --card: 42px;
+    --card: 150px;
     --u:  min(360px, 90vw);
     --r1: calc(var(--u) * 0.21);
     --r2: calc(var(--u) * 0.35);
     --r3: calc(var(--u) * 0.49);
   }
   .wrap { width: 100vw; }
-  /* the card can't sit on the tight ring here: coins fall back to bare
-     icons and the ledger below carries every word */
-  .disc { height: var(--disc); padding: 0; border-radius: 50%; gap: 1px; }
-  .ttl, .slogan, .go { display: none; }
+  /* collapsed coins are bare icons here; a tap opens the ball with its words */
+  .ttl { display: none; }
+  .node.open .ttl { display: block; }
   .ico { width: 20px; height: 20px; }
+  .node.open .ico { width: 22px; height: 22px; }
   .core { width: 76px; height: 76px; }
   .core::before { inset: 6px; }
   .core span { font-size: 8px; letter-spacing: .18em; text-indent: .18em; }
@@ -332,7 +347,7 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
       translate(-50%, -50%)
       rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a)));
   }
-  .disc, .ico, .ttl, .ledger-list a { transition: none; }
+  .node, .disc, .ico, .ttl, .ledger-list a { transition: none; }
 }
 </style>
 </head>
@@ -469,6 +484,17 @@ body:has(#menu-toggle:focus-visible) .core { outline: 2px solid var(--brass); ou
     n.addEventListener('focus', () => { say(n); burst(n); });
     n.addEventListener('pointerleave', hush);
     n.addEventListener('blur', hush);
+  });
+
+  /* click a bubble to open it into a ball; clicking Go still navigates,
+     clicking another bubble (or the same one again) closes the last */
+  nodes.forEach(n => {
+    n.addEventListener('click', e => {
+      if (e.target.closest('.go')) return;
+      const open = n.classList.contains('open');
+      nodes.forEach(o => o.classList.remove('open'));
+      if (!open) n.classList.add('open');
+    });
   });
 
   /* opening the list should carry you to it */

@@ -1407,6 +1407,13 @@
 
     .results-area {
       margin-top: 20px;
+      /* hidden until the reading is complete: every list has a pick and
+         every field holds valid input (date · time · location) */
+      display: none;
+    }
+    .container:has(#dobInput:valid):has(#timeInput:valid):has(#locationInput:not(:placeholder-shown)):has(input[name="trad"]:checked):has(input[name="focus"]:checked):has(input[name="depth"]:checked) .results-area {
+      display: block;
+      animation: info-panel-pop 0.28s cubic-bezier(.2,.8,.2,1);
     }
 
     .result-card {
@@ -1596,11 +1603,11 @@
       <div class="grid two form-grid-spaced">
         <label class="stack">
           <span><span class="en" lang="en">Date of birth</span><span class="es" lang="es">Fecha de nacimiento</span></span>
-          <input type="date" required id="dobInput" value="1990-01-01">
+          <input type="date" required id="dobInput">
         </label>
         <label class="stack">
-          <span><span class="en" lang="en">Time (optional)</span><span class="es" lang="es">Hora (opcional)</span></span>
-          <input type="time" id="timeInput" value="12:00">
+          <span><span class="en" lang="en">Time</span><span class="es" lang="es">Hora</span></span>
+          <input type="time" required id="timeInput">
         </label>
       </div>
       <div class="grid two">
@@ -1621,7 +1628,7 @@
       <section class="card">
         <fieldset class="choices">
           <legend class="vh"><span class="en" lang="en">Traditions</span><span class="es" lang="es">Tradiciones</span></legend>
-          <label class="chip"><input type="checkbox" name="trad" value="western" checked> <span><span class="en" lang="en">Western</span><span class="es" lang="es">Occidental</span></span></label>
+          <label class="chip"><input type="checkbox" name="trad" value="western"> <span><span class="en" lang="en">Western</span><span class="es" lang="es">Occidental</span></span></label>
           <label class="chip"><input type="checkbox" name="trad" value="mayan"> <span><span class="en" lang="en">Mayan</span><span class="es" lang="es">Maya</span></span></label>
           <label class="chip"><input type="checkbox" name="trad" value="vedic"> <span><span class="en" lang="en">Vedic</span><span class="es" lang="es">Védico</span></span></label>
           <label class="chip"><input type="checkbox" name="trad" value="chinese"> <span><span class="en" lang="en">Chinese</span><span class="es" lang="es">Chino</span></span></label>
@@ -1632,7 +1639,7 @@
       <section class="card">
         <fieldset class="choices fieldset-spaced">
           <legend class="legend-label"><span class="en" lang="en">focus</span><span class="es" lang="es">enfoque</span></legend>
-          <label class="chip"><input type="checkbox" name="focus" value="self" checked> <span><span class="en" lang="en">Self-reflection</span><span class="es" lang="es">Autorreflexión</span></span></label>
+          <label class="chip"><input type="checkbox" name="focus" value="self"> <span><span class="en" lang="en">Self-reflection</span><span class="es" lang="es">Autorreflexión</span></span></label>
           <label class="chip"><input type="checkbox" name="focus" value="planning"> <span><span class="en" lang="en">Planning &amp; cadence</span><span class="es" lang="es">Planificación y ritmo</span></span></label>
           <label class="chip"><input type="checkbox" name="focus" value="relational"> <span><span class="en" lang="en">Relational insight</span><span class="es" lang="es">Visión relacional</span></span></label>
         </fieldset>
@@ -1848,8 +1855,8 @@
     }
 
     function updateReflection() {
-      const dob = dobInput.value || '1990-01-01';
-      const time = timeInput.value || '12:00';
+      const dob = dobInput.value;
+      const time = timeInput.value;
       const trads = getCheckedValues('trad');
       const focusList = getCheckedValues('focus');
       const depth = getCheckedValues('depth');
@@ -1892,7 +1899,7 @@
 
       let html = `
         <p style="font-size:1.2rem; margin-bottom:12px;"><strong>${tradStr}</strong> · ${focusText}</p>
-        <p>📅 <span class="en" lang="en">anchor:</span><span class="es" lang="es">punto de partida:</span> ${dob} ${time} <span class="en" lang="en">(optional time)</span><span class="es" lang="es">(hora opcional)</span></p>
+        <p>📅 <span class="en" lang="en">anchor:</span><span class="es" lang="es">punto de partida:</span> ${dob} ${time}</p>
         ${locationInfo ? `<p>${locationInfo}</p>` : ''}
         ${depth.length ? `<p><span class="en" lang="en">layers:</span><span class="es" lang="es">capas:</span> ${depthStr}</p>` : ''}
         <p style="margin-top:18px; border-left:3px solid #a5b9ff; padding-left:16px;"><em><span class="en" lang="en">bridges: Aries ↔ Imix, Hexagram 1 ↔ Ashwini, Dragon ↔ rhythm — plural, traceable.</span><span class="es" lang="es">puentes: Aries ↔ Imix, Hexagrama 1 ↔ Ashwini, Dragón ↔ ritmo — plural, rastreable.</span></em></p>
@@ -2057,8 +2064,8 @@
 
     // THE single summary-model. The live phrase, every format and share read from this.
     function buildModel() {
-      const dob = document.getElementById('dobInput').value || '1990-01-01';
-      const time = document.getElementById('timeInput').value || '12:00';
+      const dob = document.getElementById('dobInput').value;
+      const time = document.getElementById('timeInput').value;
       const location = document.getElementById('locationInput').value || '';
       const lat = document.getElementById('latHidden').value || '';
       const lon = document.getElementById('lonHidden').value || '';
@@ -2069,7 +2076,7 @@
 
       // Anchor items (only filled ones carried)
       const anchorItems = [];
-      anchorItems.push(`${t({en:'born', es:'nacido/a'})}: ${dob} ${time}`);
+      if (dob || time) anchorItems.push(`${t({en:'born', es:'nacido/a'})}: ${[dob, time].filter(Boolean).join(' ')}`);
       if (location) anchorItems.push(`${t({en:'place', es:'lugar'})}: ${location}`);
       if (coordStr) anchorItems.push(`${t({en:'coords', es:'coordenadas'})}: ${coordStr}`);
 

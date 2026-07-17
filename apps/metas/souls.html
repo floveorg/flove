@@ -3135,12 +3135,13 @@
 
   // ── data ────────────────────────────────────────────────
   // order: taste before smell, sight after touch (applies to picker + summary)
+  // ordered Sight → Hearing (drives both the sense picker and the summary list)
   const SENSES = [
-    { id:'hearing', label:'Hearing', icon:'👂', verb:'hearing'  },
-    { id:'taste',   label:'Taste',   icon:'👅', verb:'tasting'  },
-    { id:'smell',   label:'Smell',   icon:'👃', verb:'smelling' },
+    { id:'sight',   label:'Sight',   icon:'👁', verb:'seeing'   },
     { id:'touch',   label:'Touch',   icon:'✋', verb:'touching' },
-    { id:'sight',   label:'Sight',   icon:'👁', verb:'seeing'   }
+    { id:'smell',   label:'Smell',   icon:'👃', verb:'smelling' },
+    { id:'taste',   label:'Taste',   icon:'👅', verb:'tasting'  },
+    { id:'hearing', label:'Hearing', icon:'👂', verb:'hearing'  }
   ];
   // seven rainbow colours, red→violet (ids are valid CSS colour names so the
   // existing colour pipeline — parseColorToHex, the ball, mirrors — just works)
@@ -3610,9 +3611,9 @@
 
   // species-category picker (no animal examples) — optional dim of ref-idx + above
   const S2_CATS = Object.keys(SPECIES_TREE);
-  // categories hidden in the earlier stage (s2-species), revealed later. Microbe is
-  // hidden here (Fungus is not); it appears after Fungus but stays locked until stage 3.
-  const SPECIES_LOCK_SET = new Set(['Tree', 'Flower', 'Microbe']);
+  // categories locked in the earlier stage (s2-species), selectable only from stage 3.
+  // Fungus is locked here too, so it can't be picked in "Pick the specie …".
+  const SPECIES_LOCK_SET = new Set(['Tree', 'Flower', 'Fungus', 'Microbe']);
   // lockMode: 'last3' = lock last three (s2-species), 'lastOnly' = lock only the last (s2-cat2/s3-species)
   function buildCatPicker(containerSel, stateKey, dimRefFn, onPick, lockMode){
     lockMode = lockMode || 'last3';
@@ -3697,15 +3698,17 @@
 
   // ── tier preview (species → matter → particle ladder) ──
   // each stage shows the full ladder; previous picks highlighted, future tiers dim.
-  function renderTierPreview(containerSel, type, highlights){
+  function renderTierPreview(containerSel, type, highlights, hideLabel){
     const el = $(containerSel);
     if (!el) return;
     el.innerHTML = '';
     const labelMap = { species:'Species', matter:'Matter', particle:'Particle' };
-    const labelEl = document.createElement('div');
-    labelEl.className = 'tier-label';
-    labelEl.textContent = labelMap[type] || '';
-    el.appendChild(labelEl);
+    if (!hideLabel){
+      const labelEl = document.createElement('div');
+      labelEl.className = 'tier-label';
+      labelEl.textContent = labelMap[type] || '';
+      el.appendChild(labelEl);
+    }
     let items = [];
     if (type === 'species')  items = S2_CATS.map((cat, idx) => ({ id: cat, label: cat, icon: '', idx }));
     if (type === 'matter')   items = MATTER_SCALE.slice();
@@ -3733,8 +3736,9 @@
     // s3-species
     renderTierPreview('#s3MatterPreview',   'matter',   []);
     renderTierPreview('#s3ParticlePreview', 'particle', []);
-    // s4-matter: species preview with previous picks highlighted; particle still dim
-    renderTierPreview('#s4SpeciesPreview',  'species',  speciesHighlights());
+    // s4-matter: species preview with previous picks highlighted; particle still dim.
+    // Its "Species" label is dropped here per spec (chips still shown).
+    renderTierPreview('#s4SpeciesPreview',  'species',  speciesHighlights(), true);
     renderTierPreview('#s4ParticlePreview', 'particle', []);
     // s5-particle: species + matter both with highlights
     renderTierPreview('#s5SpeciesPreview',  'species',  speciesHighlights());
@@ -4018,17 +4022,17 @@
 
   // ── related apps (shown by Keep-playing in save-intro) ──
   const RELATED_APPS_PRIMARY = [
-    { name:'Profily',   sub:'my inner figure',  icon:'✺',  href:'profily.html' },
-    { name:'Inventary', sub:"It's smart to list all offers easily.", icon:'🎒', href:'inventary.html' },
-    { name:'Rewardy',   sub:'Enriched lovely offers', icon:'🏆', href:'rewardy.html' }
+    { name:'Goddy',   sub:'Goddess, God and Us', icon:'☯',  href:'goddy.html' },
+    { name:'Pracsys', sub:"your body's eleven systems", icon:'🧬', href:'../bio/pracsys.html' },
+    { name:'Keys',    sub:'the keys that fit you', icon:'⬠',  href:'../puzzy/keys/keys-advanced.html' }
   ];
   const RELATED_APPS_EXTRA = [
-    { name:'Astry',  sub:'Hyperconnect with my date of birth.', icon:'✦',  href:'astry.html' },
-    { name:'Daty',   sub:'For more personal meet ups.',         icon:'🗂', href:'daty.html' },
-    { name:'Maty',   sub:'Enhance my close trust network.',   icon:'◈',  href:'maty.html' },
-    { name:'Trusty', sub:'whom you trust',   icon:'⌬',  href:'trusty.html' },
-    { name:'Hacky',  sub:'parts of you',     icon:'⚡', href:'hacky.html' },
-    { name:'Realy',  sub:'The eye of the beholder', icon:'◆',  href:'realy.html' }
+    { name:'Astry',   sub:'Hyperconnect with my date of birth.', icon:'✦',  href:'astry.html' },
+    { name:'Daty',    sub:'For more personal meet ups.',         icon:'🗂', href:'daty.html' },
+    { name:'Maty',    sub:'Enhance my close trust network.',   icon:'◈',  href:'maty.html' },
+    { name:'Rewardy', sub:'Enriched lovely offers', icon:'🏆', href:'rewardy.html' },
+    { name:'Appy',    sub:'your flove profile',    icon:'◉', href:'../appy/appy-basic.html' },
+    { name:'Realy',   sub:'The eye of the beholder', icon:'◆',  href:'realy.html' }
   ];
   function makeAppCard(app){
     const a = document.createElement('a');

@@ -1645,13 +1645,12 @@
           <label class="btn ghost insight-step" for="insight-0"><span class="en" lang="en">Insight · 4/4</span><span class="es" lang="es">Hallazgo · 4/4</span></label>
         </span>
         <label class="btn ghost magic-btn-summary" for="magic-toggle">
-          <span class="label-off"><span class="en" lang="en">Magic</span><span class="es" lang="es">Magia</span></span><span class="label-on"><span class="en" lang="en">Phrase</span><span class="es" lang="es">Frase</span></span>
+          <span class="label-off"><span class="en" lang="en">Magic</span><span class="es" lang="es">Magia</span></span><span class="label-on"><span class="en" lang="en">Clear magic</span><span class="es" lang="es">Quitar magia</span></span>
         </label>
       </div>
     </div>
     <div class="summary-nav-row" id="summary-nav-row">
-      <button class="btn btn-ghost btn-back" id="btn-summary-back" type="button">↺ <span class="en" lang="en">Start over</span><span class="es" lang="es">Empezar de nuevo</span></button>
-      <button class="btn btn-primary" id="btn-summary-next" type="button"><span class="en" lang="en">Next →</span><span class="es" lang="es">Siguiente →</span></button>
+      <button class="btn btn-primary" id="btn-summary-next" type="button"><span class="en" lang="en">Related apps</span><span class="es" lang="es">Apps relacionadas</span></button>
     </div>
     <!-- related apps live two rows below the nav buttons -->
     <div class="related-apps" id="related-apps" hidden></div>
@@ -2276,9 +2275,8 @@
   // Fields ↔ Summary navigation
   document.getElementById('btn-fields-back').addEventListener('click', showDecks);
   document.getElementById('btn-to-summary').addEventListener('click', enterSummary);
-  // Summary's button is a full "Start over": reload the page, which drops every
-  // selection from this play and returns to the intro.
-  document.getElementById('btn-summary-back').addEventListener('click', () => location.reload());
+  // (The summary's "Start over" button was removed; Reset in the summary still
+  //  offers a full clean-slate restart.)
 
   // ============== Brand menu ==============
   const $brandMenu = document.getElementById('brand-menu');
@@ -2919,11 +2917,19 @@
     const parts = decks.map(d => `${dtl(d)}: ${deckRankedL(d).filter(Boolean).join(' ▸ ')}`);
     ph.textContent = `${t('My fivys','Mis fivys')} — ${parts.join('  ·  ')}.`;
 
-    const woven = decks.map(d => {
-      const r = deckRankedL(d).filter(Boolean);
-      return r.length ? t(`in ${dtl(d).toLowerCase()} you lead with ${r[0]}`, `en ${dtl(d).toLowerCase()} encabezas con ${r[0]}`) : '';
-    }).filter(Boolean);
-    if (mg) mg.textContent = `✨ ${woven.join(', ')}${woven.length ? t(' — a small map of how you weigh the world.',' — un pequeño mapa de cómo sopesas el mundo.') : ''}`;
+    // Magic phrase: each fivy's leading (rank-1) choice, each introduced by a
+    // different preposition — a small woven line.
+    const PREPS = lang() === 'es'
+      ? ['En','junto a','con','por','entre','a través de','dentro de','ante','bajo','más allá de','tras','sobre']
+      : ['In','beside','with','for','among','through','within','before','beneath','beyond','after','above'];
+    const firstItems = decks.map(d => deckRankedL(d)[0]).filter(Boolean);
+    const woven = firstItems.map((item, i) => {
+      const p = PREPS[i % PREPS.length];
+      return `${i === 0 ? p : p.toLowerCase()} ${item}`;
+    }).join(' ');
+    if (mg) mg.textContent = firstItems.length
+      ? `✨ ${woven}.`
+      : t('✨ Order some fivys to weave a phrase.','✨ Ordena algunos fivys para tejer una frase.');
 
     if (ins){
       const firsts = decks.map(d => deckRankedL(d)[0]).filter(Boolean);
@@ -6006,6 +6012,8 @@ ${cardBody(d)}
   }
 
   function ensurePhraseButton(){
+    return;   // fivy: the Magic button itself becomes "Clear magic" — no extra Phrase button
+    /* eslint-disable no-unreachable */
     if (document.getElementById('flove-phrase-btn')) return;
     const btn = magicBtn();
     if (!btn) return;
@@ -6028,20 +6036,10 @@ ${cardBody(d)}
     document.getElementById('flove-phrase-btn')?.remove();
   }
 
-  function onMagicBtnClick(ev){
-    const t = magicToggle();
-    if (!t) return;
-    if (t.checked){
-      // Already on — cycle, don't flip the toggle off.
-      ev.preventDefault();
-      magicIndex = (magicIndex + 1) % MAGIC_CYCLES.length;
-      renderMagic();
-    } else {
-      // First click — let the label toggle the checkbox; once it flips,
-      // the change handler below will render version 0 and add the
-      // Phrase button.
-      magicIndex = 0;
-    }
+  function onMagicBtnClick(){
+    // fivy: Magic is a plain on/off toggle. The <label for="magic-toggle">
+    // flips the checkbox itself (on → show the phrase, off → remove it), so we
+    // do NOT intercept the click to cycle through variants.
   }
 
   function onMagicToggleChange(){

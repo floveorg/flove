@@ -772,7 +772,6 @@
       background:linear-gradient(90deg,#fff,var(--app-accent-soft));
       -webkit-background-clip:text; background-clip:text; color:transparent;
     }
-    .title-tag{ font-size:.85rem; color:var(--muted); white-space:nowrap }
     .title-mood{ font-size:.85rem; color:var(--app-accent-soft); white-space:nowrap }
     .title-mood>span{ display:none }
     body:has(#ray-formal:checked)   .tm-formal,
@@ -1019,14 +1018,14 @@
     body:has(#step-2:checked) .stepnav-node[for=step-5] .stepnav-dot,
     body:has(#step-3:checked) .stepnav-node[for=step-5] .stepnav-dot{ opacity:.4 }
 
-    /* ── STEP 1 GATE — text is mandatory before reaching step 2.
-       The Wise field uses a placeholder, so :placeholder-shown == empty. */
-    body:has(.wise-line input[type=text]:placeholder-shown) .step-ctl--1 .step-btn--next{
+    /* ── STEP 1 GATE — a mode (Define / Create form) must be picked before
+       advancing. The Next button + step-2 node stay locked until then. */
+    body:not(:has(.mode-toggle input:checked)) .step-ctl--1 .step-btn--next{
       opacity:.4; pointer-events:none;
     }
-    body:has(.wise-line input[type=text]:placeholder-shown) .stepnav-node[for=step-2]{ pointer-events:none }
-    /* once text exists, node 2 of the stepper celebrates (effect on the field-2 node) */
-    body:has(#step-1:checked):has(.wise-line input[type=text]:not(:placeholder-shown)) .stepnav-node[for=step-2] .stepnav-dot{
+    body:not(:has(.mode-toggle input:checked)) .stepnav-node[for=step-2]{ pointer-events:none }
+    /* once a mode is picked, node 2 of the stepper celebrates */
+    body:has(#step-1:checked):has(.mode-toggle input:checked) .stepnav-node[for=step-2] .stepnav-dot{
       border-color:var(--app-accent); color:var(--app-accent);
       animation:node-ready 1.4s var(--flove-ease) infinite;
     }
@@ -1329,6 +1328,32 @@
     .relate-field{ display:none }
     .xpl-relate:has(#relate-open:checked) .relate-field{ display:block; animation:fade .25s var(--flove-ease) both }
 
+    /* ── FORM-ONLY mode (Create form checked · Define NOT checked) ──────────
+       Titles become selection buttons and every text field is hidden, so the
+       downloaded form carries only the selected (empty) fields + the checks. */
+    .form-only-btn{ display:none }                        /* hidden in Define / text mode */
+    body.mode-form-only .form-only-btn{ display:inline-flex; margin:0 }
+    .form-only-btn:has(input:checked){
+      background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent); box-shadow:0 0 10px rgba(141,137,255,.35);
+    }
+    /* hide every text field + the plain titles the buttons replace */
+    body.mode-form-only .pack--3 .col-title,
+    body.mode-form-only .pack--4 .col-title,
+    body.mode-form-only .pack--3 .relate-toggle,
+    body.mode-form-only .pack--3 .relate-field,
+    body.mode-form-only .pack--3 textarea,
+    body.mode-form-only .pack--3 input[type=text],
+    body.mode-form-only .pack--4 textarea,
+    body.mode-form-only .pack--4 input[type=text],
+    body.mode-form-only .pack--4 select{ display:none }
+    /* the reveal rule would otherwise re-show an xpl textarea when its button is on */
+    body.mode-form-only .xpl-field{ display:none !important }
+    /* trim the now-empty band chrome so a lone title-button doesn't float in a big box */
+    body.mode-form-only .funnel__band{ background:none; border:0; padding:0 }
+    body.mode-form-only .evidence{ border:0; padding:0; background:none }
+    body.mode-form-only .evidence .grid{ display:block }
+    body.mode-form-only .evidence .grid > .field{ display:none }   /* the Kind select cell */
+
     /* ── perspective views — sub-titles in a row, selections below in pairs.
        Used on step 3 (above the title echo) AND in the summary. ───────── */
     .persp-echo{ display:none; max-width:980px; margin:1rem auto 0; padding:0 1rem }
@@ -1504,7 +1529,6 @@
       </label>
       <div class="title-wrap">
         <label class="title" for="m" title="Menu — Wisy" tabindex="0">Wisy</label>
-        <label class="title-tag" for="m" tabindex="0" title="Menu" style="cursor:pointer">Explain</label>
         <span class="title-mood" aria-hidden="true">
           <span class="tm-formal">· formal</span>
           <span class="tm-informal">· informal</span>
@@ -1591,16 +1615,19 @@
     <!-- PACK 1 · ESSENTIAL -->
     <section class="pack pack--1">
       <div class="wise-line">
-        <span class="wise-word">Wise</span>
+        <label class="mode-btn"><input type="checkbox" id="mode-define"> <span class="lv-default"><span class="t-en">Define</span><span class="t-es">Definir</span></span><span class="lv-formal"><span class="t-en">Specify</span><span class="t-es">Especificar</span></span><span class="lv-informal"><span class="t-en">Just define</span><span class="t-es">Defínelo</span></span><span class="lv-hotter"><span class="t-en">Nail it</span><span class="t-es">Clávalo</span></span></label>
         <input type="text" id="wise-input" autofocus placeholder="Something here">
         <div class="mode-toggle" role="group" aria-label="Mode">
-          <label class="mode-btn"><input type="checkbox" id="mode-define" checked> <span class="lv-default"><span class="t-en">Define</span><span class="t-es">Definir</span></span><span class="lv-formal"><span class="t-en">Specify</span><span class="t-es">Especificar</span></span><span class="lv-informal"><span class="t-en">Just define</span><span class="t-es">Defínelo</span></span><span class="lv-hotter"><span class="t-en">Nail it</span><span class="t-es">Clávalo</span></span></label>
           <label class="mode-btn"><input type="checkbox" id="mode-form"> <span class="lv-default"><span class="t-en">Create form</span><span class="t-es">Crear formulario</span></span><span class="lv-formal"><span class="t-en">Generate form</span><span class="t-es">Generar formulario</span></span><span class="lv-informal"><span class="t-en">Make a form</span><span class="t-es">Haz un formulario</span></span><span class="lv-hotter"><span class="t-en">Forge form</span><span class="t-es">Forja formulario</span></span></label>
         </div>
       </div>
+      <p class="form-hint define-hint" id="define-hint" role="status" aria-live="polite">
+        <span class="t-en">Explain "<span class="dh-title"></span>" in depth here.</span>
+        <span class="t-es">Explica "<span class="dh-title"></span>" en profundidad aquí.</span>
+      </p>
       <p class="form-hint" id="form-hint" role="status" aria-live="polite">
-        <span class="t-en">You'll get a standalone HTML form with only the buttons &amp; fields you filled — ready to download, reuse and share.</span>
-        <span class="t-es">Obtendrás un formulario HTML independiente con solo los botones y campos que rellenaste — listo para descargar, reutilizar y compartir.</span>
+        <span class="t-en">You'll get a standalone HTML form with only the buttons &amp; fields you selected — empty and ready to fill, download, reuse and share.</span>
+        <span class="t-es">Obtendrás un formulario HTML independiente con solo los botones y campos que seleccionaste — vacío y listo para rellenar, descargar, reutilizar y compartir.</span>
       </p>
     </section>
 
@@ -1711,6 +1738,7 @@
         <div class="xpl-col">
           <div class="xpl-static">
             <span class="col-title">PHRASE</span>
+            <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="PHRASE"> PHRASE</label>
             <textarea rows="2" data-k="PHRASE"></textarea>
           </div>
           <div class="xpl-static xpl-relate">
@@ -1718,6 +1746,7 @@
             <label class="col-title relate-toggle" for="relate-open" tabindex="0" title="Relate to — expand / collapse" aria-label="Relate to — expand / collapse">
               <span class="relate-ico" aria-hidden="true">🔗</span>
             </label>
+            <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="RELATE TO"> <span class="t-en">RELATE TO</span><span class="t-es">RELACIÓN</span></label>
             <div class="relate-field">
               <input type="text" data-k="RELATE TO">
             </div>
@@ -1728,33 +1757,33 @@
         <div class="xpl-col">
           <div class="xpl-row xpl-row--gap">
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> WHY</label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="WHY"> WHY</label>
               <div class="xpl-field"><textarea rows="2" data-k="WHY"></textarea></div>
             </div>
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> WHAT</label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="WHAT"> WHAT</label>
               <div class="xpl-field"><textarea rows="2" data-k="WHAT"></textarea></div>
             </div>
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> HOW</label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="HOW"> HOW</label>
               <div class="xpl-field"><textarea rows="2" data-k="HOW"></textarea></div>
             </div>
           </div>
           <div class="xpl-row">
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> <span class="t-en">What for</span><span class="t-es">Para qué</span></label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="What for"> <span class="t-en">What for</span><span class="t-es">Para qué</span></label>
               <div class="xpl-field"><textarea rows="2" data-k="What for"></textarea></div>
             </div>
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> WHO</label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="Who"> WHO</label>
               <div class="xpl-field"><textarea rows="2" data-k="Who"></textarea></div>
             </div>
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> WHERE</label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="Where"> WHERE</label>
               <div class="xpl-field"><textarea rows="2" data-k="Where"></textarea></div>
             </div>
             <div class="xpl">
-              <label class="xpl-btn"><input type="checkbox"> WHEN</label>
+              <label class="xpl-btn"><input type="checkbox" class="pick" data-k="When"> WHEN</label>
               <div class="xpl-field"><textarea rows="2" data-k="When"></textarea></div>
             </div>
           </div>
@@ -1767,12 +1796,16 @@
       <div class="grid grid--two">
         <!-- column A · Axiom -->
         <div class="funnel__band">
-          <textarea rows="3" data-k="Axiom" placeholder="Axiom"></textarea>
+          <span class="col-title">Axiom</span>
+          <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="Axiom"> Axiom</label>
+          <textarea rows="3" data-k="Axiom"></textarea>
         </div>
         <!-- column B · Evidence above · Kind + Sources below -->
         <div class="evidence">
+          <span class="col-title">Evidence</span>
+          <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="Evidence"> Evidence</label>
           <label class="field">
-            <textarea rows="3" data-k="Evidence" placeholder="Evidence"></textarea>
+            <textarea rows="3" data-k="Evidence"></textarea>
           </label>
           <div class="grid grid--two" style="margin-top:.6rem">
             <label class="field">
@@ -1781,9 +1814,13 @@
                 <option>Actual</option><option>Past</option><option>Case study</option><option>Review</option>
               </select>
             </label>
-            <label class="field">
-              <input type="text" data-k="Sources" placeholder="Sources">
-            </label>
+            <span class="src-cell">
+              <span class="col-title">Sources</span>
+              <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="Sources"> Sources</label>
+              <label class="field">
+                <input type="text" data-k="Sources">
+              </label>
+            </span>
           </div>
         </div>
       </div>
@@ -1791,13 +1828,19 @@
       <!-- Prediction · Proposal · Challenge — three columns -->
       <div class="grid grid--three" style="margin-top:.7rem">
         <div class="funnel__band">
-          <textarea rows="3" data-k="Prediction" placeholder="Prediction"></textarea>
+          <span class="col-title">Prediction</span>
+          <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="Prediction"> Prediction</label>
+          <textarea rows="3" data-k="Prediction"></textarea>
         </div>
         <div class="funnel__band">
-          <textarea rows="3" data-k="Proposal" placeholder="Proposal"></textarea>
+          <span class="col-title">Proposal</span>
+          <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="Proposal"> Proposal</label>
+          <textarea rows="3" data-k="Proposal"></textarea>
         </div>
         <div class="funnel__band">
-          <textarea rows="3" data-k="Challenge" placeholder="Challenge"></textarea>
+          <span class="col-title">Challenge</span>
+          <label class="xpl-btn form-only-btn"><input type="checkbox" class="pick" data-k="Challenge"> Challenge</label>
+          <textarea rows="3" data-k="Challenge"></textarea>
         </div>
       </div>
     </section>
@@ -1928,10 +1971,18 @@
     var def  = document.getElementById('mode-define');
     var form = document.getElementById('mode-form');
 
-    /* mode toggle — multiselect but never empty */
-    function guard(just){ if(!def.checked && !form.checked){ just.checked = true; } }
-    def.addEventListener('change', function(){ guard(def); });
-    form.addEventListener('change', function(){ guard(form); });
+    /* mode toggle — independent checkboxes, none selected by default.
+       "form-only" = Create form is on AND Define is off → titles become buttons
+       and the text fields hide (see .mode-form-only CSS). */
+    function formOnly(){ return form.checked && !def.checked; }
+    var defineHint = document.getElementById('define-hint');
+    function syncModeUI(){
+      document.body.classList.toggle('mode-form-only', formOnly());
+      // Define shows its "Explain … in depth here." prompt while it is checked
+      if(defineHint) defineHint.classList.toggle('is-on', def.checked);
+    }
+    def.addEventListener('change', syncModeUI);
+    form.addEventListener('change', syncModeUI);
 
     /* clicking "Create form" shows the what-you'll-get note for 5s */
     var hint = document.getElementById('form-hint'), hintTimer;
@@ -1948,16 +1999,23 @@
     function en(el){ var s = el && el.querySelector('.t-en'); return (s ? s.textContent : (el ? el.textContent : '')).trim(); }
     function esOn(){ var es = document.getElementById('ui-lang-es'); return es && es.checked; }
 
-    /* ── title echo — mirror the Wise field into the centred banner ── */
+    /* ── title echo — mirror the Wise field into the centred banner + the
+       Define "Explain … in depth here." prompt ── */
     var wise = document.getElementById('wise-input');
     var echo = document.getElementById('title-echo-text');
-    function syncTitle(){ if(echo) echo.textContent = wise.value.trim(); }
+    var dhTitles = document.querySelectorAll('#define-hint .dh-title');
+    function syncTitle(){
+      var v = wise.value.trim();
+      if(echo) echo.textContent = v;
+      dhTitles.forEach(function(el){ el.textContent = v || '…'; });
+    }
     wise.addEventListener('input', syncTitle);
     syncTitle();
+    syncModeUI();   // reflect the initial (none selected) mode state
 
     /* ── labeler-driven inline texts — the active labeler also re-letters the
        fields' placeholder prompts. Order per key: [none, formal, informal, hotter].
-       (none = blank for the step-3 fields, the plain word for step-4.) */
+       (none = blank everywhere; the plain word now lives as the field's title.) */
     var PH_EN = {
       'PHRASE':   ['', 'A precise phrase that defines it', 'A quick phrase for it', 'One bold line that nails it'],
       'RELATE TO': ['', 'Relate it to a comparable notion', "What's it like?", 'Smash it against something'],
@@ -1968,12 +2026,12 @@
       'Who':      ['', 'Who is involved', 'Who?', "Who's in it"],
       'Where':    ['', 'Where it applies', 'Where?', 'Where it lands'],
       'When':     ['', 'When it holds', 'When?', 'When it strikes'],
-      'Axiom':      ['Axiom', 'Premise', 'Starting point', 'The big claim'],
-      'Evidence':   ['Evidence', 'Supporting evidence', "Proof you've got", 'The receipts'],
-      'Sources':    ['Sources', 'Citations', 'Where from?', 'Drop the links'],
-      'Prediction': ['Prediction', 'Predicted outcome', "What'll happen", 'The call'],
-      'Proposal':   ['Proposal', 'Proposed action', 'What to do', 'The move'],
-      'Challenge':  ['Challenge', 'Open objection', 'What could break it', 'Hit it hard']
+      'Axiom':      ['', 'Premise', 'Starting point', 'The big claim'],
+      'Evidence':   ['', 'Supporting evidence', "Proof you've got", 'The receipts'],
+      'Sources':    ['', 'Citations', 'Where from?', 'Drop the links'],
+      'Prediction': ['', 'Predicted outcome', "What'll happen", 'The call'],
+      'Proposal':   ['', 'Proposed action', 'What to do', 'The move'],
+      'Challenge':  ['', 'Open objection', 'What could break it', 'Hit it hard']
     };
     var PH_ES = {
       'PHRASE':   ['', 'Una frase precisa que lo define', 'Una frase rápida', 'Una línea atrevida que lo clava'],
@@ -1985,12 +2043,12 @@
       'Who':      ['', 'Quién participa', '¿Quién?', 'Quién está dentro'],
       'Where':    ['', 'Dónde aplica', '¿Dónde?', 'Dónde aterriza'],
       'When':     ['', 'Cuándo se cumple', '¿Cuándo?', 'Cuándo golpea'],
-      'Axiom':      ['Axioma', 'Premisa', 'Punto de partida', 'La gran afirmación'],
-      'Evidence':   ['Evidencia', 'Evidencia de apoyo', 'La prueba que tienes', 'Los recibos'],
-      'Sources':    ['Fuentes', 'Citas', '¿De dónde?', 'Suelta los enlaces'],
-      'Prediction': ['Predicción', 'Resultado previsto', 'Qué pasará', 'La apuesta'],
-      'Proposal':   ['Propuesta', 'Acción propuesta', 'Qué hacer', 'La jugada'],
-      'Challenge':  ['Reto', 'Objeción abierta', 'Qué podría romperlo', 'Dale fuerte']
+      'Axiom':      ['', 'Premisa', 'Punto de partida', 'La gran afirmación'],
+      'Evidence':   ['', 'Evidencia de apoyo', 'La prueba que tienes', 'Los recibos'],
+      'Sources':    ['', 'Citas', '¿De dónde?', 'Suelta los enlaces'],
+      'Prediction': ['', 'Resultado previsto', 'Qué pasará', 'La apuesta'],
+      'Proposal':   ['', 'Acción propuesta', 'Qué hacer', 'La jugada'],
+      'Challenge':  ['', 'Objeción abierta', 'Qué podría romperlo', 'Dale fuerte']
     };
     function rayIndex(){
       if(document.getElementById('ray-formal').checked)   return 1;
@@ -2097,7 +2155,7 @@
         var picks = [].slice.call(fs.querySelectorAll('input:checked')).map(function(i){ return en(i.parentElement); });
         if(picks.length) out.push({k:en(fs.querySelector('legend')), vs:picks});
       });
-      document.querySelectorAll('.pack--3 textarea[data-k], .pack--3 input[data-k]').forEach(function(ctl){
+      document.querySelectorAll('.pack--3 textarea[data-k], .pack--3 input[type=text][data-k]').forEach(function(ctl){
         if(ctl.value.trim()) out.push({k:ctl.getAttribute('data-k'), v:ctl.value.trim()});
       });
       document.querySelectorAll('.pack--4 textarea, .pack--4 input[type=text]').forEach(function(c){
@@ -2207,7 +2265,25 @@
              arr.map(function(v){ return '<label class="c"><input type="checkbox" checked> ' + esc(v) + '</label>'; }).join('') +
              '</fieldset>';
     }
+    /* an empty (blank) field — a title + a fill-me textarea, no prefilled content */
+    function emptyField(label){
+      return '    <label class="f"><span>' + esc(label) + '</span><textarea rows="2"></textarea></label>';
+    }
     function buildFields(){
+      // Form-only mode: the form carries ONLY the selected field titles (as empty
+      // textareas to fill) plus the perspective checks — no content you typed here.
+      if(formOnly()){
+        var out = [];
+        document.querySelectorAll('.pack--2 fieldset.persp-sec').forEach(function(fs){
+          var picks = [].slice.call(fs.querySelectorAll('input:checked')).map(function(i){ return en(i.parentElement); });
+          if(picks.length) out.push(choice(en(fs.querySelector('legend')), picks));
+        });
+        document.querySelectorAll('.pack--3 .pick:checked, .pack--4 .pick:checked').forEach(function(cb){
+          out.push(emptyField(cb.getAttribute('data-k') || 'Field'));
+        });
+        return out;
+      }
+      // Define / text mode: emit the filled fields (prefilled), as before.
       return collect().map(function(it){ return it.vs ? choice(it.k, it.vs) : text(it.k, it.v); });
     }
     function template(object, body){

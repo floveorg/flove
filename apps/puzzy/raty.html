@@ -114,6 +114,33 @@
   opacity: .55;
 }
 
+/* clickable app title → dropdown menu below */
+.flove-brand { position: relative; display: inline-flex; align-items: center; }
+.flove-brand-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 0; cursor: pointer; color: inherit;
+  font-family: inherit; font-size: inherit; font-weight: 600; letter-spacing: .3px;
+  padding: 4px 10px; border-radius: var(--flove-radius-pill);
+  transition: background var(--flove-fast);
+}
+.flove-brand-btn:hover { background: var(--app-accent-soft); color: var(--app-ink-on-accent); }
+.flove-brand-btn .flove-app-name { font-weight: 600; opacity: 1; }
+.flove-brand-btn .flove-caret { font-size: .7em; opacity: .7; }
+.flove-brand[data-open="true"] .flove-caret { transform: rotate(180deg); }
+.flove-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+  display: flex; flex-direction: column; min-width: 172px; padding: 6px;
+  border-radius: 12px; background: rgba(10,12,18,.97);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 12px 34px rgba(0,0,0,.45);
+}
+.flove-menu[hidden] { display: none; }
+.flove-menu a {
+  display: block; padding: 8px 12px; border-radius: 8px;
+  text-decoration: none; color: #e9ecf3; font-size: 13px;
+}
+.flove-menu a:hover { background: var(--app-accent-soft); color: var(--app-ink-on-accent); }
+
 /* ============================================================
    ASTERISM ANIMATION — used wherever a `.flove-asterism` lives
    (launcher hero, footer badges, splash). Subtle slow rotation.
@@ -1251,6 +1278,10 @@
     /* Merge / Compare radios — Merge stacked above Compare */
     .phrase-modes{ display:inline-flex; flex-direction:column; gap:.25rem; vertical-align:middle; margin-left:.4rem }
     .phrase-modes .phrase-btn{ margin-left:0 }
+    /* Merge / Compare in their own row, centered below the two keyword fields */
+    .phrase-modes-row{ display:flex; justify-content:center; gap:.5rem; margin:.45rem 0 .2rem }
+    .phrase-modes-row[hidden]{ display:none }
+    .phrase-modes-row .phrase-btn{ margin-left:0 }
     .phrase-btn.is-on{ background:var(--app-accent); color:var(--app-ink-on-accent); border-color:var(--app-accent); box-shadow:0 0 10px rgba(141,137,255,.4) }
     /* the comparison connector ("as more … than") inserted between the two words only in Compare */
     .cmp-connector[hidden]{ display:none }
@@ -1520,10 +1551,18 @@
 <body>
   <!-- language radios (drive the pure-CSS i18n) -->
   <nav class="flove-bar flove-bar--dark">
-    <a class="flove-home" href="../../../index.html">← <span class="t-en">Apps</span><span class="t-es">Apps</span></a>
-    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#8d89ff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;display:inline-block;vertical-align:middle;filter:drop-shadow(0 0 4px #8d89ff)"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M7 17a5 5 0 0 1 10 0"/><path d="M9.5 17a2.5 2.5 0 0 1 5 0"/><circle fill="#8d89ff" stroke="none" cx="12" cy="17" r="1.3"/></svg>
-    <span class="flove-app-name">Puzzy</span>
-    <span class="flove-tag">Rate</span>
+    <div class="flove-brand" id="ratyBrand">
+      <button class="flove-brand-btn" id="ratyBrandBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ratyMenu">
+        <svg class="flove-mark" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#8d89ff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;display:inline-block;vertical-align:middle;filter:drop-shadow(0 0 4px #8d89ff)"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M7 17a5 5 0 0 1 10 0"/><path d="M9.5 17a2.5 2.5 0 0 1 5 0"/><circle fill="#8d89ff" stroke="none" cx="12" cy="17" r="1.3"/></svg>
+        <span class="flove-app-name">Raty</span>
+        <span class="flove-caret" aria-hidden="true">▾</span>
+      </button>
+      <nav class="flove-menu" id="ratyMenu" role="menu" hidden>
+        <a href="index.html" role="menuitem"><span class="t-en">Puzzy apps</span><span class="t-es">Apps de puzzy</span></a>
+        <a href="../../../index.html" role="menuitem"><span class="t-en">All apps</span><span class="t-es">Todas las apps</span></a>
+        <a href="https://flove.org" target="_blank" rel="noopener" role="menuitem">flove.org</a>
+      </nav>
+    </div>
     <span class="lang">
       <input type="radio" name="ui-lang" id="ui-lang-en" checked>
       <input type="radio" name="ui-lang" id="ui-lang-es">
@@ -2712,13 +2751,31 @@
   </details>
 
   <script>
+  /* app-title dropdown menu (replaces the old "← Apps" link) */
+  (function(){
+    const brand = document.getElementById('ratyBrand');
+    const btn   = document.getElementById('ratyBrandBtn');
+    const menu  = document.getElementById('ratyMenu');
+    if(!brand || !btn || !menu) return;
+    const setOpen = (open)=>{
+      menu.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      brand.dataset.open = String(open);
+    };
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); setOpen(menu.hidden); });
+    document.addEventListener('click', (e)=>{ if(!brand.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') setOpen(false); });
+  })();
+  </script>
+
+  <script>
   (function(){
     const livePhrase = document.getElementById('livePhrase');
 
     /* ---- editable phrase fields: button form ↔ text field ----
        TRUE starts as a focused text field; LOVE starts as a squared button.
        Leaving a field (blur) turns its text into the squared button form. */
-    function makeField(initial, startEditing, mod, onChange){
+    function makeField(initial, startEditing, mod, onChange, onInput){
       const wrap = document.createElement('span');
       wrap.className = 'phrase-field';
       let value = initial;
@@ -2734,7 +2791,7 @@
         const inp = document.createElement('input');
         inp.type = 'text'; inp.className = 'phrase-input'; inp.value = value;
         inp.size = Math.max(4, value.length);
-        inp.addEventListener('input', ()=>{ inp.size = Math.max(4, inp.value.length); });
+        inp.addEventListener('input', ()=>{ inp.size = Math.max(4, inp.value.length); onInput && onInput(inp.value); });
         inp.addEventListener('keydown', e=>{ if(e.key==='Enter') inp.blur(); });
         inp.addEventListener('blur', ()=>{ value = inp.value.trim(); showButton(); onChange && onChange(value); });
         wrap.appendChild(inp);
@@ -2782,7 +2839,11 @@
       const connector = document.createElement('span'); connector.className='cmp-connector';
       connector.append(' as', moreWord, ' ', adj, ' than ');
 
-      const subjField = makeField('', false, 'phrase-chip--true', ()=>{ layout(); renderPhrase(); });   // empty by default
+      // live-input hook on the first field → reveal the Merge/Compare row as soon
+      // as typing starts (without rebuilding the field being edited).
+      const subjField = makeField('', false, 'phrase-chip--true',
+        ()=>{ layout(); renderPhrase(); },
+        (live)=> syncModes(!!(live && live.trim())) );                              // onInput
       const objField  = makeField('', false, 'phrase-chip--love', ()=>{ layout(); renderPhrase(); });   // empty by default
       const subjMagic = magicBtn(SUBJ_WORDS, subjField);   // left of the subject field
       const objMagic  = magicBtn(OBJ_WORDS,  objField);    // right of the object field
@@ -2790,44 +2851,46 @@
       const btn = (cls,en,es)=>{ const b=document.createElement('button'); b.type='button'; b.className='phrase-btn '+cls; b.innerHTML='<span class="t-en">'+en+'</span><span class="t-es">'+es+'</span>'; return b; };
       const mergeBtn = btn('merge','Merge','Unir');
       const cmpBtn   = btn('cmp','Compare','Comparar');
-      const modes = document.createElement('span'); modes.className='phrase-modes';
-      modes.append(mergeBtn, cmpBtn);   // Merge stacked above Compare
+      // Merge / Compare now live in their OWN row BELOW the two keyword fields.
+      const modesRow = document.createElement('div'); modesRow.className='phrase-modes-row'; modesRow.hidden = true;
+      modesRow.append(mergeBtn, cmpBtn);
+      // place the row AFTER the whole phrase-row (which is a flex row) so it sits
+      // BELOW the keyword fields, not beside them.
+      (container.closest('.phrase-row') || container).insertAdjacentElement('afterend', modesRow);
 
-      // Merge / Compare behave as mutually-exclusive radios that can also untick
+      // Show the buttons row once the first field holds (or is being given) a word;
+      // keep it visible while a mode is active. liveHasText overrides the stored value.
+      function syncModes(liveHasText){
+        const hasSubj = (liveHasText !== undefined) ? liveHasText : !!subjField.getValue();
+        modesRow.hidden = !(hasSubj || mode !== 'none');
+        mergeBtn.classList.toggle('is-on', mode==='merge');
+        cmpBtn.classList.toggle('is-on', mode==='compare');
+      }
+
+      // Merge / Compare behave as mutually-exclusive toggles that can also untick
       // themselves (clicking the active one returns to 'none' → green field hidden).
       function setMode(m){
         mode = (mode === m) ? 'none' : m;
         phraseMode = mode;
-        mergeBtn.classList.toggle('is-on', mode==='merge');
-        cmpBtn.classList.toggle('is-on', mode==='compare');
         layout(); renderPhrase();
+        // first click into a mode → reveal the second field ready to type
+        if(mode !== 'none') objField.focusInput();
       }
       mergeBtn.addEventListener('click', ()=> setMode('merge'));
       cmpBtn.addEventListener('click', ()=> setMode('compare'));
 
-      // (re)flow the row according to the current state
+      // (re)flow the phrase line; the buttons sit in modesRow (below), so the line
+      // only carries the keyword fields + the Compare connector.
       function layout(){
-        const hasSubj = !!subjField.getValue();
-        const hasObj  = !!objField.getValue();
-        const merged  = (mode === 'merge' && hasObj);   // both words joined together
         connector.hidden = (mode !== 'compare');
         container.innerHTML = '';
         container.append(subjMagic, subjField);
         if(mode === 'compare'){
-          container.append(' ', connector);
-          if(hasSubj) container.append(' ', modes);
-          container.append(' ', objField, objMagic);
+          container.append(' ', connector, ' ', objField, objMagic);
         } else if(mode === 'merge'){
-          if(merged){
-            container.append(' ', objField, objMagic);
-            if(hasSubj) container.append(' ', modes);
-          } else {
-            if(hasSubj) container.append(' ', modes);
-            container.append(' ', objField, objMagic);
-          }
-        } else {
-          if(hasSubj) container.append(' ', modes);   // 'none' → buttons only, no green field
+          container.append(' ', objField, objMagic);
         }
+        syncModes();
       }
 
       layout();

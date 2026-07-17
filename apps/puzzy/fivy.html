@@ -95,6 +95,8 @@
     display:flex;flex-direction:column;align-items:center;gap:4px;
     pointer-events:none;
   }
+  /* the entrance slides show no stepper — it appears once play begins */
+  body:has(#intro-slider:not(.hidden)) .progress-stack{display:none}
   .stage-progress{
     display:flex;gap:5px;padding:5px 9px;border-radius:999px;
     border:1px solid var(--stroke);background:var(--fx);
@@ -850,6 +852,7 @@
     background:linear-gradient(135deg,var(--brand),var(--accent));
     color:#1a1a28;border:1.5px solid transparent;opacity:1;
     box-shadow:0 8px 22px rgba(255,95,220,.25);
+    margin-top:2px;   /* sits at the bottom of the toolbar, below the title row */
   }
   .cat-save:hover{transform:translateY(-1px);color:#1a1a28}
   .cat-add[hidden],.cat-save[hidden]{display:none !important}
@@ -903,6 +906,29 @@
     border:0;cursor:pointer;padding:0;
   }
   .saved-custom .x:hover{background:rgba(0,0,0,.35);color:#fff}
+
+  /* ============== List matrix (below the square, when List is checked) ====== */
+  .list-matrix{
+    margin:2px 0 6px;overflow-x:auto;
+    border:1px solid var(--stroke);border-radius:12px;
+    background:rgba(255,255,255,.03);padding:8px;
+    animation:fadein .2s ease;
+  }
+  .list-matrix:empty{display:none}
+  .list-matrix table{border-collapse:collapse;width:100%;font:600 .82rem/1.2 system-ui,sans-serif}
+  .list-matrix th,.list-matrix td{
+    border:1px solid var(--stroke);padding:6px 8px;text-align:left;color:var(--ink);
+    white-space:nowrap;
+  }
+  .list-matrix thead th{
+    color:#1a1a28;background:var(--c,var(--fx));font-weight:700;text-align:center;
+    border-color:transparent;border-radius:8px;
+  }
+  .list-matrix tbody th{
+    color:var(--muted);text-align:center;width:2.2rem;background:rgba(255,255,255,.04);font-weight:700;
+  }
+  .list-matrix td{color:var(--ink)}
+  .list-matrix td:empty::after{content:'·';color:var(--muted)}
 
   /* ============== Summary (collapsible) ============== */
   .summary-sec{
@@ -1386,7 +1412,7 @@
         <!-- category buttons (one per row) below the List/Cycle/Confluence menu;
              each parent's sub-buttons drop in below it when it's checked -->
         <nav class="cats" aria-label="Categories" id="cats">
-          <button class="cat cat-paradigms" id="btn-load-paradigms" type="button"><span class="en" lang="en">Load main paradigms</span><span class="es" lang="es">Cargar paradigmas principales</span></button>
+          <button class="cat cat-paradigms" id="btn-load-paradigms" type="button"><span class="en" lang="en">Main paradigms</span><span class="es" lang="es">Paradigmas principales</span></button>
           <div class="cat-group">
             <button class="cat cat-rb-r" data-cat="cat-r" type="button"><span class="en" lang="en">Metas</span><span class="es" lang="es">Metas</span></button>
             <div class="cat-children" data-for="cat-r"></div>
@@ -1412,13 +1438,14 @@
             <div class="cat-children" data-for="cat-i"></div>
           </div>
           <button class="cat cat-add" id="btn-add-cat" type="button" aria-label="Add a new fivy" data-aria-en="Add a new fivy" data-aria-es="Añadir un nuevo fivy">+</button>
-          <button class="cat cat-save" id="btn-save-cat" type="button" hidden><span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
         </nav>
         <!-- saved custom chips list (above the title input) -->
         <div class="saved-customs" id="saved-customs"></div>
         <div class="cat-title-row" id="cat-title-row">
           <input id="cat-title-input" type="text" placeholder="Title of your fivy…" data-ph-en="Title of your fivy…" data-ph-es="Título de tu fivy…" maxlength="32">
         </div>
+        <!-- Save sits at the very bottom of the left menu; the + stays checked while filling -->
+        <button class="cat cat-save" id="btn-save-cat" type="button" hidden><span class="en" lang="en">Save</span><span class="es" lang="es">Guardar</span></button>
       </aside>
 
       <div class="fields-main">
@@ -1453,6 +1480,9 @@
         <div class="node n5"><div class="rank-badge">5</div><div class="items" data-rank="4"></div></div>
       </section>
         </div>
+        <!-- when List is checked: a matrix below the square, one column per chosen
+             list × five rank rows, filled with each list's items -->
+        <div class="list-matrix" id="list-matrix" hidden aria-live="polite"></div>
       </div><!-- /fields-main -->
     </div><!-- /fields-grid -->
 
@@ -1788,8 +1818,7 @@
         slot.classList.add('locked');
         slot.textContent = t('5th','5º');
       } else if (state.openDeckIdx === deckIdx){
-        slot.classList.add('placeholder');
-        slot.textContent = t('in the center ↑','en el centro ↑');
+        slot.classList.add('placeholder');   // empty gap where the deck lifted into the centre (no label)
       } else if (state.done[deck.id]){
         slot.appendChild(renderDoneDeck(deckIdx));
       } else {
@@ -2599,6 +2628,30 @@
     }
     lis.forEach((sp, i) => sp.textContent = src[i] || '');
     if ($title) $title.textContent = title;
+    paintListMatrix();
+  }
+
+  // ----- List matrix: one column per chosen list × five rank rows, shown below
+  //       the square only while the List toggle is on. -----
+  function paintListMatrix(){
+    const $m = document.getElementById('list-matrix');
+    if (!$m) return;
+    if (!toggles.list){ $m.hidden = true; $m.innerHTML = ''; return; }
+    const cols = stackOrder()
+      .map(id => { const s = getSource(id); return s && { label:s.label, color:s.color, items:localizeItems(id, s.items) }; })
+      .filter(Boolean);
+    if (!cols.length){ $m.hidden = true; $m.innerHTML = ''; return; }
+    let html = '<table><thead><tr><th></th>';
+    cols.forEach(c => { html += `<th style="--c:${c.color}">${escapeHTML(c.label)}</th>`; });
+    html += '</tr></thead><tbody>';
+    for (let r = 0; r < 5; r++){
+      html += `<tr><th>${r + 1}</th>`;
+      cols.forEach(c => { html += `<td>${escapeHTML(c.items[r] || '')}</td>`; });
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    $m.innerHTML = html;
+    $m.hidden = false;
   }
 
   // The settled fifth deck shows as its own top-level category button (toggles deck:p5).
@@ -2700,34 +2753,63 @@
     paintSummary();
   });
 
-  // ----- New custom fivy (+ Add → title → Save) -----
+  // ----- New custom fivy: + opens a draft — its five empty inputs appear in the
+  //       square right away, at the same time as the "Title of your fivy" field.
+  //       The + stays checked/highlighted while filling; Save (at the bottom of
+  //       the left menu) finalises it. -----
+  let draftCustomId = null;
   $btnAdd.addEventListener('click', () => {
     if (creating) return;
     creating = true;
+    const id = 'custom:' + (++customSeq);
+    draftCustomId = id;
+    customCats.push({ id, label:`Fivy ${customCats.filter(c => !c.draft).length + 1}`, items:['','','','',''], starred:false, draft:true });
+    activeSets.push(id); lastSet = id;
+    bumpCounter('selections');
     $titleRow.classList.add('active');
     $titleInput.value = '';
-    $btnAdd.hidden = true;
+    $btnAdd.classList.add('is-on');   // + stays checked while the fivy is being filled
     $btnSave.hidden = false;
+    renderNodes();                    // the five empty inputs drop into the square now
     setTimeout(() => $titleInput.focus(), 30);
   });
-  function cancelCreate(){
+  function endCreate(){
     creating = false;
+    draftCustomId = null;
     $titleRow.classList.remove('active');
-    $btnAdd.hidden = false;
+    $btnAdd.classList.remove('is-on');
     $btnSave.hidden = true;
   }
-  function commitCustom(){
-    const label = ($titleInput.value || '').trim() || `Fivy ${customCats.length + 1}`;
-    const id = 'custom:' + (++customSeq);
-    customCats.push({ id, label, items:['','','','',''], starred:false });
-    activeSets.push(id);
-    bumpCounter('selections');
-    cancelCreate();
+  function cancelCreate(){
+    if (draftCustomId){
+      const i = customCats.findIndex(x => x.id === draftCustomId);
+      if (i >= 0) customCats.splice(i, 1);
+      const oi = activeSets.indexOf(draftCustomId);
+      if (oi >= 0){ activeSets.splice(oi, 1); if (lastSet === draftCustomId) lastSet = activeSets[activeSets.length - 1] || null; }
+    }
+    endCreate();
     renderCustomsRow();
-    renderNodes();          // its five empty inputs drop under each rank node to fill
+    renderNodes();
+    paintSummary();
+  }
+  function commitCustom(){
+    if (!creating || !draftCustomId) return;
+    const c = customCats.find(x => x.id === draftCustomId);
+    if (c){
+      c.label = ($titleInput.value || '').trim() || c.label;
+      delete c.draft;
+    }
+    endCreate();
+    renderCustomsRow();
+    renderNodes();          // re-render so the finished fivy settles into place
     paintSummary();
   }
   $btnSave.addEventListener('click', commitCustom);
+  $titleInput.addEventListener('input', () => {
+    if (!draftCustomId) return;
+    const c = customCats.find(x => x.id === draftCustomId);
+    if (c){ c.label = ($titleInput.value || '').trim() || c.label; paintList(); }
+  });
   $titleInput.addEventListener('keydown', e => {
     if (e.key === 'Enter'){ e.preventDefault(); commitCustom(); }
     if (e.key === 'Escape'){ e.preventDefault(); cancelCreate(); }
@@ -2737,6 +2819,7 @@
   function renderCustomsRow(){
     $customsRow.innerHTML = '';
     customCats.forEach(c => {
+      if (c.draft) return;                 // an unsaved draft has no chip yet
       const btn = document.createElement('button');
       btn.className = 'saved-custom';
       btn.type = 'button';
@@ -2765,7 +2848,7 @@
     const btn = document.querySelector(`.tbtn[data-toggle="${key}"]`);
     toggles[key] = !toggles[key];
     btn.classList.toggle('is-on', toggles[key]);
-    if (key === 'list') $ll.hidden = !toggles.list;
+    if (key === 'list'){ $ll.hidden = !toggles.list; paintListMatrix(); }
     $square.classList.toggle('cycle', toggles.cycle);
     $square.classList.toggle('confluence', toggles.confluence);
     $ll.classList.toggle('confluence', toggles.confluence);
@@ -2785,7 +2868,7 @@
   function filledFields(){
     const out = [];
     Object.keys(SIMPLEX).forEach(id => { if (SIMPLEX[id].saved) out.push({ label:simplexLabel(id), items:localizeItems(id, SIMPLEX[id].items) }); });
-    customCats.forEach(c => out.push({ label:c.label, items:c.items }));
+    customCats.forEach(c => { if (!c.draft) out.push({ label:c.label, items:c.items }); });
     return out;
   }
   // build a <table> from a left header, column headers, and rows {label, cells:[{v,cls}]}
@@ -2995,7 +3078,7 @@
         p5: (() => { const d = DECKS.find(x => x.id === 'p5'); return d ? { title:d.title, items:d.items } : null; })(),
       },
       simplex:    Object.fromEntries(Object.keys(SIMPLEX).map(id => [id, { items:SIMPLEX[id].items, saved:SIMPLEX[id].saved }])),
-      customCats: customCats.map(c => ({ id:c.id, label:c.label, items:c.items, starred:c.starred })),
+      customCats: customCats.filter(c => !c.draft).map(c => ({ id:c.id, label:c.label, items:c.items, starred:c.starred })),
       customSeq,
       activeSets: activeSets.slice(),
       lastSet,
@@ -3102,6 +3185,7 @@
     if ($ll) $ll.hidden = !toggles.list;
     if ($square){ $square.classList.toggle('cycle', !!toggles.cycle); $square.classList.toggle('confluence', !!toggles.confluence); }
     if ($ll){ $ll.classList.toggle('confluence', !!toggles.confluence); $ll.classList.toggle('cycle', !!toggles.cycle); }
+    paintListMatrix();
   }
   // repaint counter chips from restored values
   function reflectCounters(){ ['clicks','selections','stars'].forEach(paintCounter); }

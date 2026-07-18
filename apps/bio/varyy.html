@@ -865,6 +865,9 @@
       display:inline-grid; place-items:center;
       filter: drop-shadow(0 0 10px color-mix(in srgb, hsl(var(--violet)) 45%, transparent));
       transition: transform .15s ease, filter .15s ease;
+      /* Fades in 7s after load, together with the "+" add-question button. */
+      opacity:0;
+      animation: section-in-fixed 1s ease 7s forwards;
     }
     .labelers-btn:hover{
       transform: scale(1.08);
@@ -976,8 +979,8 @@
       box-shadow: 0 8px 22px hsla(265,84%,62%,.4);
       opacity: 0;
       transform: scale(.5);
-      /* Arrives 3s after the Show-more button is fully shown (24s + 1s + 3s = 28s) */
-      animation: addq-arrive 1.4s cubic-bezier(.2,.7,.3,1) 28s forwards;
+      /* Fades in 7s after load, together with the labelers (tone) control. */
+      animation: addq-arrive 1.4s cubic-bezier(.2,.7,.3,1) 7s forwards;
       transition: transform .2s ease, filter .2s ease;
     }
     .add-q-btn:hover{
@@ -1369,7 +1372,7 @@
 
 
   <main class="shell">
-    <form id="varyy" class="card" method="post" action="#">
+    <form id="varyy" class="card" method="post" action="#" autocomplete="off">
       <input type="hidden" name="form_id" value="varyy-v1">
       <button type="submit" class="visually-hidden" tabindex="-1" aria-hidden="true">Submit</button>
 
@@ -2564,6 +2567,15 @@
     if (navIsReload()){
       // Fresh start — drop our saved state so nothing is restored.
       try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
+      // Browsers restore form-control values across a reload (independent of our
+      // storage). Wipe them so a reload truly starts from 0: empty Q1/Q2/Q3 and
+      // no gender picked — which also re-hides Q2/Q3 (their CSS gate keys off an
+      // empty Q1) and the Summary launcher.
+      const form = document.getElementById('varyy');
+      if (form) form.reset();
+      syncOther();
+      Object.values(answerEls).forEach(o => { if (o) o.textContent = '—'; });
+      Object.values(answerElsEs).forEach(o => { if (o) o.textContent = '—'; });
     } else {
       // Genuine open / reopen — the user's choices persist.
       loadState();

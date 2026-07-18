@@ -861,6 +861,56 @@
         .data-cell:has(.cell-input[data-lvl="2"]:checked) { background: rgba(60, 60, 75, 0.66); }
         .data-cell:has(.cell-input[data-lvl="3"]:checked) { background: rgba(60, 60, 75, 1.00); color: #fff; }
 
+        /* ══ Intro sequence (plays once on load) ═══════════════════════════
+           1) cells "click" in a diagonal wave from the bottom-right corner up
+              to the top-left over 10s;
+           2) at the top, logo + title fade in upward (3s);
+           3) then the gaze icon + buttons fade in upward (3s).
+           All gated behind no-preference so reduced-motion shows everything
+           at rest immediately. ═══════════════════════════════════════════ */
+        @media (prefers-reduced-motion: no-preference) {
+            /* diagonal index of each cell, counted from the bottom-right corner */
+            .data-cell[data-row="us"][data-col="us"]           { --diag: 0; }
+            .data-cell[data-row="us"][data-col="god"],
+            .data-cell[data-row="god"][data-col="us"]          { --diag: 1; }
+            .data-cell[data-row="us"][data-col="goddess"],
+            .data-cell[data-row="god"][data-col="god"],
+            .data-cell[data-row="goddess"][data-col="us"]      { --diag: 2; }
+            .data-cell[data-row="god"][data-col="goddess"],
+            .data-cell[data-row="goddess"][data-col="god"]     { --diag: 3; }
+            .data-cell[data-row="goddess"][data-col="goddess"] { --diag: 4; }
+
+            /* each cell flashes a gray fill in turn — a click travelling the
+               anti-diagonal, one step every 2s (5 steps ≈ 10s) */
+            .data-cell::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: rgba(60, 60, 75, 0.5);
+                opacity: 0;
+                pointer-events: none;
+                z-index: 0;
+                animation: intro-click 2s ease-out both;
+                animation-delay: calc(var(--diag, 0) * 2s);
+            }
+
+            /* 2) logo + title rise in once the wave reaches the top (~10s) */
+            .flove-bar .goddy-brand { animation: intro-up 3s var(--flove-ease) both 10s; }
+            /* 3) gaze icon + buttons rise in after that (~13s) */
+            .gaze-invite  { animation: intro-up 3s var(--flove-ease) both 13s; }
+            .button-group { animation: intro-up 3s var(--flove-ease) both 13s; }
+        }
+        @keyframes intro-click {
+            0%   { opacity: 0; }
+            20%  { opacity: 1; }
+            55%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        @keyframes intro-up {
+            0%   { opacity: 0; transform: translateY(24px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 420px) {
             .matrix-grid { grid-template-columns: 70px repeat(3, 1fr); }
             .row-header { padding-left: 10px; font-size: 0.9rem; }

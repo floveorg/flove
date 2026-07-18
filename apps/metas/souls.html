@@ -1050,26 +1050,30 @@
   .view[data-view="welcome"]:has(.slide[data-slide="0"].is-on) .nav{ justify-content:center; }
 
   /* ── entrance animation (welcome, on load) ─────────────────────── */
-  /* a white sheet that rapidly colours away into the real background */
+  /* a white sheet that starts opaque and reduces its opacity progressively
+     across the whole entrance, colouring into the real background */
   .intro-flash{
     position:fixed; inset:0; z-index:9999; background:#fff; pointer-events:none;
-    animation: introFlash .8s ease forwards;
+    animation: introFlash 16s linear forwards;
   }
   @keyframes introFlash{ from{ opacity:1 } to{ opacity:0; visibility:hidden } }
-  /* the logo slides in rightwards + "souls" rises up, after the flash (button
-     moves so the spiral inside keeps spinning) */
-  .flove-bar .flove-mark-btn{ animation: introLogo 2s cubic-bezier(.2,.85,.25,1) .8s backwards; }
-  .flove-bar .flove-app-name{ animation: introName 2s cubic-bezier(.2,.85,.25,1) .8s backwards; }
-  @keyframes introLogo{ from{ opacity:0; transform:translateX(-26px) } to{ opacity:1; transform:none } }
-  @keyframes introName{ from{ opacity:0; transform:translateY(16px) }  to{ opacity:1; transform:none } }
-  /* typewriter lines + blinking caret while typing */
+  /* the logo slides in rightwards + "souls" rises up, each swelling to ×3 then
+     settling (the button moves so the spiral inside keeps spinning) */
+  .flove-bar .flove-mark-btn{ animation: introLogo 4s cubic-bezier(.2,.85,.25,1) 1.6s backwards; }
+  .flove-bar .flove-app-name{ animation: introName 4s cubic-bezier(.2,.85,.25,1) 1.6s backwards; transform-origin:left center; }
+  @keyframes introLogo{
+    0%{ opacity:0; transform:translateX(-26px) scale(1) }
+    50%{ opacity:1; transform:translateX(0) scale(3) }
+    100%{ opacity:1; transform:none } }
+  @keyframes introName{
+    0%{ opacity:0; transform:translateY(16px) scale(1) }
+    50%{ opacity:1; transform:translateY(0) scale(3) }
+    100%{ opacity:1; transform:none } }
+  /* typewriter lines (no caret) */
   .tw-line{ min-height:1.2em; }
-  .tw-line.typing::after{ content:'▍'; margin-left:.05em; color:var(--app-accent);
-    animation: twCaret .7s step-end infinite; }
-  @keyframes twCaret{ 0%,100%{ opacity:1 } 50%{ opacity:0 } }
   /* Next stays hidden while the lines type, then fades in while it grows */
   body.intro-running #slideNext{ opacity:0; pointer-events:none; }
-  #slideNext.intro-reveal{ animation: nextReveal 3s ease forwards; }
+  #slideNext.intro-reveal{ animation: nextReveal 6s ease forwards; }
   @keyframes nextReveal{
     0%{ opacity:0; transform:scale(.5) }
     66%{ opacity:.85; transform:scale(1.1) }
@@ -1078,7 +1082,7 @@
   @media (prefers-reduced-motion: reduce){
     .intro-flash{ animation-duration:.01s }
     .flove-bar .flove-mark-btn, .flove-bar .flove-app-name,
-    .tw-line.typing::after, #slideNext.intro-reveal{ animation:none }
+    #slideNext.intro-reveal{ animation:none }
   }
 
   /* ── translate2 — i18n span toggle (CSS-only) ── */
@@ -6169,18 +6173,22 @@
     document.body.classList.add('intro-running');
     const wait = ms => new Promise(r => setTimeout(r, ms));
     (async () => {
-      await wait(1000);                 // let the white flash + logo entrance play
-      await twType(l1, t1(), 55);
+      await wait(2000);                 // let the white sheet + logo entrance play
+      await twType(l1, t1(), 110);
       if (introDone) return;
-      await wait(2000);                 // a beat, then the line below
+      await wait(4000);                 // a beat, then the line below
       if (introDone) return;
       l2.hidden = false;
-      await twType(l2, t2(), 55);
+      await twType(l2, t2(), 110);
       if (!introDone) finish();
     })();
-    // a click anywhere on the first slide skips the typing
+    // a click anywhere on the first slide skips the typing (and the white sheet)
+    const snapFlash = () => {
+      const f = document.querySelector('.intro-flash');
+      if (f){ f.style.animation = 'none'; f.style.transition = 'opacity .4s ease'; f.style.opacity = '0'; }
+    };
     const slideEl = document.querySelector('.slide[data-slide="0"]');
-    if (slideEl) slideEl.addEventListener('click', () => { if (!introDone) finish(); }, { once:true });
+    if (slideEl) slideEl.addEventListener('click', () => { if (!introDone){ snapFlash(); finish(); } }, { once:true });
   }
 
   // ── boot · reload always returns to the welcome view (data is kept) ──

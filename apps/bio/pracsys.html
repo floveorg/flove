@@ -1322,6 +1322,20 @@
     ? `<svg class="sys-ico" viewBox="0 0 64 64" aria-hidden="true">${SYS_SVG[sys.id]}</svg>`
     : sys.icon;
 
+  // Rasterised marks for the canvas/JPG export. A data-URL <img> can't see the
+  // page stylesheet, so the a/c/g/p classes are resolved by an internal <style>
+  // with the palette baked in. Warmed at load so the export has them decoded.
+  const SYS_SVG_STYLE = `<style>.ns{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:3}.t{stroke-width:1.7}.a{stroke:#4dd0e1}.c{stroke:#ff8a65}.g{stroke:#69f0ae}.p{stroke:#b388ff}.fa{fill:#4dd0e1}.fc{fill:#ff8a65}.fg{fill:#69f0ae}.fp{fill:#b388ff}.fs{fill:#bfe9f2}</style>`;
+  const _sysImg = {};
+  function sysImg(id){
+    if (!SYS_SVG[id]) return null;
+    if (_sysImg[id]) return _sysImg[id];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${SYS_SVG_STYLE}${SYS_SVG[id]}</svg>`;
+    const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    _sysImg[id] = img; return img;
+  }
+  Object.keys(SYS_SVG).forEach(sysImg);   // warm the cache
+
   // the active-language label for a system / subsystem definition
   const defLabel = d => d ? T(d.label, d.es || d.label) : '';
   // display word for a subsystem's kind (immune only)
@@ -2785,7 +2799,9 @@ footer a{color:#4dd0e1;text-decoration:none}
       + '\n</pracsys>';
   }
   // a canvas render of the body in its board square — matches the summary
-  function summaryToJpg(){
+  async function summaryToJpg(){
+    // decode the rasterised system marks before drawing (data-URL SVG → bitmap)
+    await Promise.all(Object.keys(SYS_SVG).map(id => { const im = sysImg(id); return im && im.decode ? im.decode().catch(()=>{}) : Promise.resolve(); }));
     const W = 900, S = 2, padX = 44, gap = 16;
     const colW = (W - padX*2 - gap*2) / 3;
     const sqW = Math.min(colW, 150), sqH = 46, lineH = 16;
@@ -2847,7 +2863,9 @@ footer a{color:#4dd0e1;text-decoration:none}
       const sys = sysAt(slotId); if (!sys) return;
       // borderless — just the icon + label, with verbs/arrows hugging right below
       ctx.textAlign = 'center';
-      ctx.font = '22px serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.icon, x + sqW/2, yy + 22);
+      const _im = sysImg(sys.id);
+      if (_im && _im.complete && _im.naturalWidth){ ctx.drawImage(_im, x + sqW/2 - 13, yy - 3, 26, 26); }
+      else { ctx.font = '22px serif'; ctx.fillStyle = '#e8eef7'; ctx.fillText(sys.icon, x + sqW/2, yy + 22); }
       ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = slotId === CENTRE_SLOT ? '#ff8a65' : '#e8eef7'; ctx.fillText(defLabel(sys), x + sqW/2, yy + 40);
       let my = yy + sqH + 6;
       metaLines.forEach(ln => { ctx.fillStyle = ln.c; ctx.font = META_FONT; ctx.fillText(ln.t, x + sqW/2, my); my += lineH; });
@@ -2883,7 +2901,7 @@ footer a{color:#4dd0e1;text-decoration:none}
       catch(_){ toast(T('Copy not available','Copiar no está disponible')); }
     } else if (action === 'download'){
       const fmt = (btn.dataset.fmt || 'txt').toLowerCase();
-      if (fmt === 'jpg'){ summaryToJpg(); toast(T('Downloaded · ','Descargado · ') + 'JPG'); return; }
+      if (fmt === 'jpg'){ await summaryToJpg(); toast(T('Downloaded · ','Descargado · ') + 'JPG'); return; }
       if (fmt === 'json'){ downloadBlob(JSON.stringify(buildElement(), null, 2), 'application/json;charset=utf-8', 'json'); }
       else if (fmt === 'csv'){ downloadBlob(rowsCsv(), 'text/csv;charset=utf-8', 'csv'); }
       else if (fmt === 'xml'){ downloadBlob(rowsXml(), 'application/xml;charset=utf-8', 'xml'); }

@@ -307,6 +307,7 @@
   .export-axis-wide{ max-width:min(560px,92vw) }
   .export-axis-narrow{ max-width:min(360px,80vw) }
   .chip.is-frozen{ cursor:default }
+  .chip.is-emph{ font-style:italic }
 
   /* ── toast (replaces alert()) ───────────────────────────────── */
   .toast{
@@ -438,12 +439,19 @@
   .lang input{position:absolute;opacity:0;pointer-events:none}
   .lang label{cursor:pointer;padding:0 12px;min-height:40px;display:inline-flex;align-items:center;border:1px solid #999;border-radius:11px;white-space:nowrap}
   .lang input:checked + label{background:#333;color:#fff;font-weight:bold;border-color:#333}
-  /* moraly is force-dark: theme the worldball to match the topbar */
-  .flove-bar .lang>summary{border-color:var(--chip-border);color:var(--ink)}
-  .flove-bar .lang[open]>summary{background:#2a2a2a;border-color:var(--accent)}
-  .flove-bar .lang-opts{background:var(--panel);border-color:var(--line);box-shadow:0 6px 18px rgba(0,0,0,.5)}
-  .flove-bar .lang label{border-color:var(--chip-border);color:var(--ink)}
-  .flove-bar .lang input:checked + label{background:var(--accent);color:#06262b;border-color:var(--accent)}
+  /* moraly is force-dark: theme the worldball to match the topbar / menu */
+  .flove-bar .lang>summary,
+  .app-menu .lang>summary{border-color:var(--chip-border);color:var(--ink)}
+  .flove-bar .lang[open]>summary,
+  .app-menu .lang[open]>summary{background:#2a2a2a;border-color:var(--accent)}
+  .flove-bar .lang-opts,
+  .app-menu .lang-opts{background:var(--panel);border-color:var(--line);box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  .flove-bar .lang label,
+  .app-menu .lang label{border-color:var(--chip-border);color:var(--ink)}
+  .flove-bar .lang input:checked + label,
+  .app-menu .lang input:checked + label{background:var(--accent);color:#06262b;border-color:var(--accent)}
+  /* inside the menu the worldball sits as a row: give it menu-item padding */
+  .app-menu .lang{margin:2px 0 0;padding:0 6px}
 </style>
 </head>
 <body>
@@ -481,6 +489,12 @@
     <span class="app-caret" aria-hidden="true">▾</span>
   </button>
   <span class="flove-spacer"></span>
+</div>
+
+<!-- App menu (opens under the logo/title) — About + flove moved here from the topbar -->
+<nav class="app-menu" id="appMenu" aria-label="App menu" data-aria-en="App menu" data-aria-es="Menú de la app">
+  <button type="button" class="app-menu-item" id="menuAbout"><span class="en" lang="en">About</span><span class="es" lang="es">Acerca de</span></button>
+  <a class="app-menu-item" href="index.html" aria-label="Back to flove launcher" data-aria-en="Back to flove launcher" data-aria-es="Volver al lanzador de flove">← flove</a>
   <details class="lang">
     <summary class="worldball" title="Language" aria-label="Language" data-aria-en="Language" data-aria-es="Idioma">🌐</summary>
     <div class="lang-opts">
@@ -488,12 +502,6 @@
       <input type="radio" name="lang" id="lang-es"><label for="lang-es">Español</label>
     </div>
   </details>
-</div>
-
-<!-- App menu (opens under the logo/title) — About + flove moved here from the topbar -->
-<nav class="app-menu" id="appMenu" aria-label="App menu" data-aria-en="App menu" data-aria-es="Menú de la app">
-  <button type="button" class="app-menu-item" id="menuAbout"><span class="en" lang="en">About</span><span class="es" lang="es">Acerca de</span></button>
-  <a class="app-menu-item" href="index.html" aria-label="Back to flove launcher" data-aria-en="Back to flove launcher" data-aria-es="Volver al lanzador de flove">← flove</a>
 </nav>
 
 <!-- Click-outside backdrop: clicking it unchecks #about-toggle and closes the panel -->
@@ -650,8 +658,8 @@
   // Two sets: A (canonical English) and B (Spanish slang counterpart).
   const VIRTUES = {
     A: {
-      commands: ['Love Now','Love Whole','Cheer ancestors','Glorify celebrations','No envy','No steal','No kill','Be pure','Be honest','Control lust','No naive','Be loyal'],
-      sins:     ['Pride','Greed','Wrath','Envy','Lust','Gluttony','Sloth','Deceit','Stupidity','Treachery','Boring','Wishful'],
+      commands: ['Love Now','Love Whole','Cheer past','Glorify party','No envy','No steal','No kill','Be pure','Be honest','Control lust','No naive','Be loyal'],
+      sins:     ['Pride','Greed','Wrath','Envy','Lust','Gluttony','Sloth','Deceit','Stupid','Treach','Boring','Wishful'],
     },
     B: {
       commands: ['No seas un pringao','No vayas de guais','Enróllate con tus viejos','Cúrrate las fiestas','Se buena gente','No me seas un culo quiero culo veo','No mangues','No te cargues a nadie','Menos cuentos','No babosees','No me seas un fumao','No te pases con la peña'],
@@ -729,10 +737,23 @@
   function makeChip(word){
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'chip draggable k-' + wordKind(word);
+    const kind = wordKind(word);
+    b.className = 'chip draggable k-' + kind;
     b.draggable = true;
     b.dataset.word = word;
     b.textContent = word;
+    // emphasis (italic): the last 2 commandments and the last 5 sins, by position —
+    // works across both sets since it's index-based, not word-based.
+    const set = VIRTUES[state.virtue.active];
+    if (kind === 'cmd' && set.commands.indexOf(word) >= set.commands.length - 2) b.classList.add('is-emph');
+    if (kind === 'sin' && set.sins.indexOf(word)     >= set.sins.length - 5)     b.classList.add('is-emph');
+    // shrink two sins (by position, so it holds across both sets):
+    // Gluttony (6th) −20%, Wishful (last) −10%.
+    if (kind === 'sin'){
+      const i = set.sins.indexOf(word);
+      if (i === 5)                    b.style.fontSize = '0.8em';  // Gluttony −20%
+      if (i === set.sins.length - 1)  b.style.fontSize = '0.9em';  // Wishful  −10%
+    }
     return b;
   }
 

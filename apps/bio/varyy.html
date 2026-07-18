@@ -2643,42 +2643,21 @@
     // ----- Update: re-commit + clear the dot (data already autosaves on edit) -----
     updateBtn?.addEventListener('click', () => { saveState(); clearStale(); });
 
-    // ----- Reset: clear DOM + our OWN keys only, re-derive empty, back to step 1 -----
+    // ----- Reset: wipe our OWN keys + reload → fresh form, intro replays -----
+    // Reset "starts all over again" just like the ⟳ logo (behind a confirm):
+    // it overrides persistence. Clearing our keys before the reload means the
+    // navIsReload() branch on load finds nothing to restore, so the form
+    // returns to step 1 (single question, neutral tone) with the intro
+    // animation playing from the top.
     resetBtn?.addEventListener('click', () => {
       const ok = window.confirm(T({
         en:'Reset Varyy? This clears your saved answers and starts a new form.',
         es:'¿Reiniciar Varyy? Esto borra tus respuestas guardadas y empieza un formulario nuevo.'
       }));
       if (!ok) return;
-      // Remove user-added questions, then reset the native form fields.
-      qsContainer.querySelectorAll('.q:not([data-base])').forEach(q => {
-        const ta = q.querySelector('textarea'); const id = ta && ta.id;
-        q.remove();
-        if (id){ delete answerEls[id]; }
-      });
-      // Drop any "Also:" phrase segments that added questions appended.
-      const phrase = document.getElementById('summaryPhrase');
-      if (phrase) phrase.querySelectorAll(':scope > span > [data-answer]').forEach(sp => {
-        const id = sp.getAttribute('data-answer');
-        if (id && !answerEls[id] && sp.parentElement && sp.parentElement !== phrase){
-          sp.parentElement.remove();
-        }
-      });
-      document.getElementById('varyy').reset();
-      // Back to step 1: collapse to the single first question + neutral tone.
-      const bg = qsContainer.querySelector('.q-group[data-reveal]');
-      if (bg) bg.dataset.reveal = '1';
-      document.querySelectorAll('#labelersList a[data-style]').forEach(x =>
-        x.classList.toggle('is-active', x.dataset.style === 'neutral'));
-      document.querySelectorAll('.q-group').forEach(g => { g.dataset.style = 'neutral'; });
-      // Clear ONLY our keys (never localStorage.clear()).
+      // Clear ONLY our keys (never localStorage.clear() — shared origin, §10.5).
       try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
-      // Re-derive the (now empty) view.
-      syncOther();
-      Object.values(answerEls).forEach(out => { if (out) out.textContent = '—'; });
-      Object.values(answerElsEs).forEach(out => { if (out) out.textContent = '—'; });
-      setSummaryHint('');
-      clearStale();
+      location.reload();
     });
 
     // ----- Hook the ACTUAL edit paths so every change autosaves + marks stale -----
@@ -2700,12 +2679,30 @@
       }
     });
 
-    // A page reload is a FRESH start: we intentionally do NOT restore saved
-    // state, so the intro animation replays and the form returns to a single
-    // first question (q2/q3 collapsed again, no user-added questions, empty
-    // answers, neutral tone). Clear our own keys so nothing lingers between
-    // reloads. (Within a session, Reset ↺ still clears in place.)
-    try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
+    // ── Reload / Reset vs. reopen (F0 §13.9 · §10.3a) ─────────────────────
+    // Persistence survives CLOSING and REOPENING the file/tab, but a RELOAD
+    // (F5 / the ⟳ logo) and RESET both start over fresh — they override
+    // persistence, so the intro animation replays and the form returns to a
+    // single first question (q2/q3 collapsed, no added questions, empty
+    // answers, neutral tone). We tell the two apart with the Navigation Timing
+    // API: type "reload" → wipe + fresh; any other entry (navigate / back-
+    // forward = a genuine open or reopen) → restore the saved choices.
+    function navIsReload(){
+      try{
+        const nav = performance.getEntriesByType &&
+                    performance.getEntriesByType('navigation')[0];
+        if (nav && nav.type) return nav.type === 'reload';
+        if (performance.navigation) return performance.navigation.type === 1; // legacy
+      } catch(_){}
+      return false;
+    }
+    if (navIsReload()){
+      // Fresh start — drop our saved state so nothing is restored.
+      try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
+    } else {
+      // Genuine open / reopen — the user's choices persist.
+      loadState();
+    }
   })();
   </script>
 

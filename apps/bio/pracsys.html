@@ -530,14 +530,13 @@
     gap:10px; position:relative; }
   .check-wrap .check-btn{ transition:transform var(--fast), background var(--fast),
     color var(--fast), box-shadow var(--fast); }
-  /* the Pair mark rides the button through every state, growing as it advances:
-     Pair (base) → Polarities (enlarged) → Remove Polarities (bigger) */
-  .check-mark{ display:none; width:40px; height:40px; overflow:visible;
-    transition:transform var(--fast); }
-  .check-wrap.show .check-mark--pair{ display:block; }
-  #board.checking:not(.show-polarities) .check-wrap.show .check-mark--pair{ transform:scale(1.3); }
-  #board.show-polarities .check-wrap.show .check-mark--pair{ transform:scale(1.6); }
-  #board.show-polarities .check-wrap .check-btn{ transform:scale(1.2); }
+  /* the Pair icon IS the button; button + icon grow 50% each click, then the
+     cycle's last click resets to normal (Pair 1× → Polarities 1.5× → Remove 2.25×). */
+  .check-wrap .check-btn{ padding:9px; border-radius:50%; line-height:0;
+    transform-origin:center bottom; }
+  .check-mark{ display:block; width:26px; height:26px; overflow:visible; }
+  #board.checking:not(.show-polarities) .check-wrap .check-btn{ transform:scale(1.5); }
+  #board.show-polarities .check-wrap .check-btn{ transform:scale(2.25); }
   #board.show-polarities .check-wrap::before{ content:""; position:absolute;
     inset:-16px -26px; z-index:-1; border-radius:50%;
     background:radial-gradient(closest-side, rgba(179,136,255,.30), transparent 72%);
@@ -689,6 +688,12 @@
     display:inline-flex; flex-direction:column; align-items:center; gap:2px;
   }
   .reset-hint, .update-hint{ font:400 .66rem/1.2 var(--font-ui); color:var(--ink-dim); }
+  /* Reset + Update relocated to the foot of the action bar */
+  .action-row--foot{ justify-content:center; gap:28px; margin-top:8px;
+    padding-top:12px; border-top:1px solid var(--line); }
+  .action-row--foot .reset-wrap, .action-row--foot .update-wrap{
+    display:inline-flex; flex-direction:column; align-items:center; gap:2px;
+  }
   /* the re-derive / fresh-start buttons reuse the .sum-btn skin */
   .update-btn, .reset-btn{ position:relative; }
   /* "out of date" dot — hidden until an already-saved item is re-edited in-session */
@@ -732,6 +737,8 @@
     padding:2px 0; border:0; background:none;
   }
   .sq-ico{ font-size:1.6rem; line-height:1; }
+  /* on-screen summary hides the system emoji — they return only in the HTML export */
+  #summaryRender .sq-ico{ display:none; }
   .sq-lbl{ font:700 .8rem/1.05 var(--font-ui); color:var(--ink); text-align:center; }
   .sum-sq.centre .sq-lbl{ color:var(--accent-2); }
   .sum-meta{ display:flex; flex-direction:column; gap:3px; width:100%; align-items:center; text-align:center; }
@@ -991,15 +998,16 @@
 
     <!-- stage-1 → stage-2 gate (and stage-4 polarities): appear once all are placed -->
     <span class="check-wrap" id="checkWrap">
-      <svg class="check-mark check-mark--pair pmk mk-pair" viewBox="0 0 64 64" aria-hidden="true">
-        <line class="p-str" x1="20" y1="32" x2="44" y2="32"/>
-        <circle class="n-a" cx="14" cy="32" r="6"/>
-        <circle class="n-c" cx="50" cy="32" r="6"/>
-        <path class="p-str p-thin" d="M25 27 l-5 5 5 5"/>
-        <path class="p-str p-thin p-cor" d="M39 27 l5 5 -5 5"/>
-        <circle class="n-s" cx="32" cy="32" r="2.6"/>
-      </svg>
-      <button type="button" class="next-btn check-btn" id="checkBtn" aria-pressed="false">Pair</button>
+      <button type="button" class="next-btn check-btn" id="checkBtn" aria-pressed="false" aria-label="Pair" data-aria-en="Pair" data-aria-es="Emparejar">
+        <svg class="check-mark check-mark--pair pmk mk-pair" viewBox="0 0 64 64" aria-hidden="true">
+          <line class="p-str" x1="20" y1="32" x2="44" y2="32"/>
+          <circle class="n-a" cx="14" cy="32" r="6"/>
+          <circle class="n-c" cx="50" cy="32" r="6"/>
+          <path class="p-str p-thin" d="M25 27 l-5 5 5 5"/>
+          <path class="p-str p-thin p-cor" d="M39 27 l5 5 -5 5"/>
+          <circle class="n-s" cx="32" cy="32" r="2.6"/>
+        </svg>
+      </button>
     </span>
     <button type="button" class="next-btn" id="nextBtn"><span class="en" lang="en">Next stage&nbsp;→</span><span class="es" lang="es">Siguiente etapa&nbsp;→</span></button>
     <!-- first-slide Back: clears the board so placing can start over -->
@@ -1053,16 +1061,8 @@
       </svg>
       <!-- §13.9 title row: [Reset] — ✦ Summary — [Update] -->
       <header class="summary-head">
-        <div class="title-row">
-          <span class="reset-wrap reset-wrap--title">
-            <button class="sum-btn btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en t-en" lang="en">Reset</span><span class="es t-es" lang="es">Reiniciar</span></button>
-            <small class="reset-hint"><span class="en t-en" lang="en">Clear all and start new play</span><span class="es t-es" lang="es">Borra todo y empieza de nuevo</span></small>
-          </span>
+        <div class="title-row title-row--solo">
           <h2 class="summary-title">✦ <span class="en t-en" lang="en">Summary</span><span class="es t-es" lang="es">Resumen</span></h2>
-          <span class="update-wrap update-wrap--title">
-            <button class="sum-btn btn ghost update-btn" type="button" data-flove-update><span class="en t-en" lang="en">Update</span><span class="es t-es" lang="es">Actualizar</span> <span class="stale-dot" role="img" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
-            <small class="update-hint"><span class="en t-en" lang="en">if you re-edited the form</span><span class="es t-es" lang="es">si has reeditado el formulario</span></small>
-          </span>
         </div>
       </header>
       <div class="summary-render" id="summaryRender"></div>
@@ -1074,9 +1074,8 @@
           <button class="sum-btn insight-btn" type="button" id="insightBtn" aria-expanded="false" aria-controls="insightPanel">💡 <span class="en" lang="en">Insight</span><span class="es" lang="es">Lectura</span></button>
           <button class="sum-btn magic-btn-summary" type="button" id="magicBtn" aria-pressed="false" aria-label="Magic remix · Shift-click switches language" data-aria-en="Magic remix · Shift-click switches language" data-aria-es="Remezcla mágica · Mayús+clic cambia el idioma">
             <span class="label-off">✨ <span class="en" lang="en">Magic</span><span class="es" lang="es">Magia</span></span>
-            <span class="label-on">✦ <span class="en" lang="en">Plain</span><span class="es" lang="es">Llano</span></span>
+            <span class="label-on">✦ <span class="en" lang="en">Clear Magic</span><span class="es" lang="es">Quitar magia</span></span>
           </button>
-          <button class="sum-btn btn ghost update-btn" type="button" data-flove-update><span class="en t-en" lang="en">Update</span><span class="es t-es" lang="es">Actualizar</span> <span class="stale-dot" role="img" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
           <button class="sum-btn copy-btn" type="button" id="copyBtn" data-action="copy" aria-label="Click: copy phrase · Shift-click: copy JSON" data-aria-en="Click: copy phrase · Shift-click: copy JSON" data-aria-es="Clic: copiar frase · Mayús+clic: copiar JSON">⎘ <span class="en" lang="en">Copy</span><span class="es" lang="es">Copiar</span></button>
         </div>
         <div class="action-row action-row--right">
@@ -1104,6 +1103,17 @@
           <span class="cycle-wrap" data-cycle="publish">
             <button class="sum-btn cycle-trigger" type="button" data-cycle-toggle="publish" aria-expanded="false" aria-controls="publishRow">⚡ <span class="en" lang="en">Publish</span><span class="es" lang="es">Publicar</span></button>
             <span class="cycle-row" id="publishRow" hidden></span>
+          </span>
+        </div>
+        <!-- Reset + Update moved to the foot of the action bar -->
+        <div class="action-row action-row--foot">
+          <span class="reset-wrap">
+            <button class="sum-btn btn ghost reset-btn" type="button" data-flove-reset>↺ <span class="en t-en" lang="en">Reset</span><span class="es t-es" lang="es">Reiniciar</span></button>
+            <small class="reset-hint"><span class="en t-en" lang="en">Clear all and start new play</span><span class="es t-es" lang="es">Borra todo y empieza de nuevo</span></small>
+          </span>
+          <span class="update-wrap">
+            <button class="sum-btn btn ghost update-btn" type="button" data-flove-update><span class="en t-en" lang="en">Update</span><span class="es t-es" lang="es">Actualizar</span> <span class="stale-dot" role="img" hidden aria-label="Out of date" data-aria-en="Out of date" data-aria-es="Desactualizado"></span></button>
+            <small class="update-hint"><span class="en t-en" lang="en">if you re-edited the form</span><span class="es t-es" lang="es">si has reeditado el formulario</span></small>
           </span>
         </div>
       </div>
@@ -2177,12 +2187,13 @@
   // default (no animation, no groupings) so the button loops Check → Polarities
   // → default → Check…
   function syncCheckLabel(){
+    // the button shows only the Pair icon now — the state lives in its aria-label
     const b = $('#board'), btn = $('#checkBtn'); if (!b || !btn) return;
-    btn.textContent = b.classList.contains('show-polarities')
+    btn.setAttribute('aria-label', b.classList.contains('show-polarities')
         ? T('Remove Polarities','Quitar polaridades')
         : b.classList.contains('checking')
           ? T('Polarities','Polaridades')
-          : T('Pair','Emparejar');
+          : T('Pair','Emparejar'));
   }
   function resetCheck(){
     const board = $('#board'), btn = $('#checkBtn');
@@ -2368,14 +2379,31 @@
     en:['with','about','beneath','between','toward','from','during','according to','before','after','beside','near','across','around','concerning','inside'],
     es:['con','sobre','bajo','entre','hacia','desde','durante','según','ante','tras','junto a','cerca de','frente a','gracias a','a través de','en torno a']
   };
+  // arrows (↔ →) become linking verbs; the "·" list separators become joiners
+  const LINK_VERBS = {
+    en:['links','connects','pairs with','meets','joins','threads into','flows to','leads to'],
+    es:['enlaza con','conecta con','se empareja con','encuentra a','se une a','se enhebra en','fluye hacia','lleva a']
+  };
+  const JOINERS = {
+    en:['and','plus','also','while','then','with'],
+    es:['y','además','también','mientras','luego','con']
+  };
   let magicOn = false;
   let magicLang = (document.documentElement.lang || 'en').slice(0,2);
   if (!PREPOSITIONS[magicLang]) magicLang = 'en';
   function magicPhrase(){
     const pool = PREPOSITIONS[magicLang].slice();
-    const draw = () => { if (!pool.length) pool.push(...PREPOSITIONS[magicLang]); return pool.splice(Math.floor(Math.random()*pool.length), 1)[0]; };
-    const parts = summaryRows().map(r => `${draw()} ${r.title}${r.items.length ? ' (' + r.items.join(', ') + ')' : ''}`);
-    return '✺ pracsys — ' + (parts.length ? parts.join(' · ') : (magicLang === 'es' ? 'un cuerpo vacío' : 'an empty body')) + '.';
+    const drawPrep = () => { if (!pool.length) pool.push(...PREPOSITIONS[magicLang]); return pool.splice(Math.floor(Math.random()*pool.length), 1)[0]; };
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    // no dots, no arrows: swap ↔/→ for a linking verb and glue rows with joiners
+    const deArrow = s => String(s).replace(/[↔→]/g, () => ' ' + pick(LINK_VERBS[magicLang]) + ' ').replace(/\s+/g, ' ').trim();
+    const parts = summaryRows().map(r => {
+      const title = deArrow(r.title);
+      const items = r.items.map(deArrow).filter(Boolean);
+      return items.length ? `${title} ${drawPrep()} ${items.join(', ')}` : title;
+    });
+    if (!parts.length) return magicLang === 'es' ? 'un cuerpo vacío.' : 'an empty body.';
+    return parts.join(' ' + pick(JOINERS[magicLang]) + ' ') + '.';
   }
   // what Copy / Share read: whatever the panel currently shows
   function shownText(){ return magicOn ? magicPhrase() : summaryText(); }
@@ -2458,13 +2486,23 @@
         `<p>Columna izquierda frente a columna derecha; y las tres primeras de la izquierda + las dos primeras filas de la derecha frente al resto: dos agrupaciones que colorea la vista <em>Polaridades</em>.</p>`)]
     ];
   }
-  let insightIdx = -1;
+  // insight cycle: 0 = hidden default · 1..5 = a read shown (label "Insight"
+  // then "More insights") · at step 5 the button offers "Clear insights", whose
+  // click (the 6th) wipes back to the default with nothing displayed.
+  let insightStep = 0;
   function renderInsight(){
     const panel = $('#insightPanel'); if (!panel) return;
     const reads = insightReads();
-    const [label, html] = reads[((insightIdx % reads.length) + reads.length) % reads.length];
+    const idx = insightStep < 1 ? 0 : (insightStep - 1) % reads.length;
+    const [label, html] = reads[idx];
     panel.innerHTML = `<h4>${escHtml(label)}</h4>${html}`;
     panel.hidden = false;
+  }
+  function setInsightLabel(){
+    const btn = $('#insightBtn'); if (!btn) return;
+    const en = insightStep === 0 ? 'Insight' : insightStep >= 5 ? 'Clear insights' : 'More insights';
+    const es = insightStep === 0 ? 'Lectura' : insightStep >= 5 ? 'Borrar lecturas' : 'Más lecturas';
+    btn.innerHTML = `${insightStep >= 5 ? '🧹' : '💡'} <span class="en" lang="en">${en}</span><span class="es" lang="es">${es}</span>`;
   }
 
   // reveal the whole surface (called by the stage-4 Next)
@@ -2485,9 +2523,16 @@
     if (!$('#insightPanel').hidden) renderInsight();   // keep the open read in step
   });
   $('#insightBtn').addEventListener('click', () => {
-    insightIdx++; renderInsight();
-    $('#insightBtn').setAttribute('aria-expanded', 'true');
-    $('#insightPanel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    const btn = $('#insightBtn'), panel = $('#insightPanel');
+    if (insightStep >= 5){                 // the 6th click clears back to default
+      insightStep = 0; panel.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    } else {
+      insightStep++; renderInsight();
+      btn.setAttribute('aria-expanded', 'true');
+      panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+    setInsightLabel();
   });
 
   // open-one-close-others cycle rows (Save / Share / Publish)

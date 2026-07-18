@@ -2453,6 +2453,33 @@
     });
   });
 
+  /* ============================================================
+     ✦ Reload / Reset == start fresh (backend_plan.md §5.3 / §10.3a).
+     A FRESH OPEN (close + reopen tab/file) restores the saved session.
+     A RELOAD (F5 / reload logo) starts over — exactly like Reset:
+     clear this app's OWN keys, skip the on-load restore, empty default.
+     Runs BEFORE the onboarding gate below so 'maty_onboarded' is cleared
+     first and the onboarding hint replays on reload too.
+     Touches ONLY this app's keys — never the language pref, never other
+     apps, NEVER localStorage.clear().
+     ============================================================ */
+  function navIsReload(){
+    try{
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    } catch(_){}
+    return false;
+  }
+  const _matyReload = navIsReload();
+  if (_matyReload){
+    // mirror the exact key set Reset clears (OWN_KEYS, defined below);
+    // literal here so the onboarding gate just below sees them cleared.
+    ['flove.maty.v1','flove.maty.schema','maty_onboarded']
+      .forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
+  }
+
   /* ---------- Onboarding dismiss ---------- */
   const onboardingClose = document.getElementById('onboardingClose');
   if (localStorage.getItem('maty_onboarded') === '1') {
@@ -2816,21 +2843,11 @@
 
   // ── Reset (data-flove-reset): confirm-guarded destructive clear ──
   function doReset(){
-    // clear contenteditable + selections (form.reset handles native controls)
-    form.reset();
-    form.querySelectorAll('[contenteditable="true"]').forEach(el => { el.textContent = ''; });
-    // remove any custom-added radio chips (✨)
-    form.querySelectorAll('label[data-ico="✨"]').forEach(l => l.remove());
-    // remove ONLY this app's own keys — NEVER localStorage.clear() (§10.3a)
+    // reload == reset == start over (§5.3 / §10.3a): remove ONLY this app's
+    // own keys — NEVER localStorage.clear() — then reload to a fresh, empty
+    // default. The navIsReload gate above skips restore and replays the intro.
     OWN_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
-    setTimeout(() => {
-      clauseOut.textContent = '';        // re-derive empty summary
-      updateHasSelection();
-      hideStale();
-      const step1 = document.getElementById('step-0');   // back to step 1
-      if (step1){ step1.checked = true; step1.dispatchEvent(new Event('change', { bubbles:true })); }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 0);
+    location.reload();
   }
   function floveReset(){
     const msg = L('This will clear all your answers and start over. Continue?',
@@ -3513,8 +3530,9 @@
     r.addEventListener('change', () => sentence());
   });
 
-  // ✦ F0 boot: restore the prior session, then derive the summary.
-  hydrate();
+  // ✦ F0 boot: a fresh OPEN restores the prior session; a RELOAD starts
+  //   fresh (own keys already cleared above), so skip restore on reload.
+  if (!_matyReload) hydrate();
   sentence();
 })();
 </script>

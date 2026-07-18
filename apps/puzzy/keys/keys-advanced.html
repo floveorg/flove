@@ -10589,6 +10589,29 @@ window.tKey = function tKey(k){
   function keysClearSaved(){
     try { localStorage.removeItem(KEYS_STATE_KEY); } catch (_e) {}
   }
+  // flove standard (§5.3 / §10.3a): persistence survives close+reopen, but a
+  // RELOAD (F5 / reload logo) starts fresh — same as Reset. Detect a reload nav.
+  function navIsReload(){
+    try {
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    } catch (_e) {}
+    return false;
+  }
+  // Clear every key this app owns (the SAME set Reset removes) — never
+  // localStorage.clear(), and never the language pref (keys.lang).
+  function keysClearOwnKeys(){
+    try {
+      const kill = [];
+      for (let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if (k && k.indexOf('flove:keys-advanced') === 0) kill.push(k);
+      }
+      kill.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    } catch (e) {}
+  }
   function keysRestore(){
     let raw;
     try { raw = localStorage.getItem(KEYS_STATE_KEY); } catch (_e) { return; }
@@ -10756,7 +10779,14 @@ window.tKey = function tKey(k){
   // initialised (initPrelude resets the prelude fields) and BEFORE the first
   // render, so renderPrelude()/render() repaint from the restored objects.
   // View flags are not restored → we still land on the normal intro entry view.
-  keysRestore();
+  // A RELOAD (F5 / reload logo) starts fresh: clear this app's own keys and skip
+  // restore, so we boot from empty defaults and the intro replays (§5.3/§10.3a).
+  // A fresh open (close+reopen) restores the saved play as before.
+  if (navIsReload()){
+    keysClearOwnKeys();
+  } else {
+    keysRestore();
+  }
   renderIntro();
   renderPrelude();   // build prelude DOM in advance (hidden by setUIMode)
   setUIMode('intro');

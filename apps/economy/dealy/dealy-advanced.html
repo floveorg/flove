@@ -2918,6 +2918,19 @@
   let saveT;
   function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} }, 200); }
 
+  // A RELOAD (F5 / reload logo) starts fresh: drop this app's own saved draft
+  // and skip restore, so an explicit reload always returns to an empty form.
+  // A plain reopen (new tab / navigation) still restores the saved draft.
+  function navIsReload(){
+    try{
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    }catch(_){}
+    return false;
+  }
+
   // Star lighting — stars in disabled groups don't count
   let starPrev = 0;
   function refreshStars(){
@@ -3843,7 +3856,11 @@
     });
   });
 
-  restore();
+  if (navIsReload()){
+    try{ localStorage.removeItem(KEY); }catch(e){}   // reload → fresh, skip restore
+  } else {
+    restore();
+  }
   syncAllClauses();
   refresh();
   // Reflect any restored selections in the Selections counter

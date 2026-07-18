@@ -1629,30 +1629,41 @@
             }));
 
         // ── F0 · Reset — clear-my-data: empty ONLY goddy's own keys ──────────
-        function resetGoddy() {
-            // never localStorage.clear() — only this app's own flove:goddy* keys
+        // never localStorage.clear() — only this app's own flove:goddy* keys
+        function clearGoddyKeys() {
             try {
                 for (let i = localStorage.length - 1; i >= 0; i--) {
                     const k = localStorage.key(i);
                     if (k && k.indexOf('flove:goddy') === 0) localStorage.removeItem(k);
                 }
             } catch (e) {}
-            // clear every in-DOM selection (matrix radios back to level 0)
-            document.querySelectorAll('.cell-input[data-lvl="0"]').forEach(r => { r.checked = true; });
-            document.querySelectorAll('.active, .selected').forEach(el => el.classList.remove('active', 'selected'));
-            document.querySelectorAll('[contenteditable="true"]').forEach(el => { el.textContent = ''; });
-            restoreMatrix();   // re-derive the (now empty) state
-            setHint('<i class="fas fa-eraser"></i> ' + bx('Cleared — start a new play.', 'Borrado — empieza una nueva partida.'));
         }
         const resetBtn = document.querySelector('[data-flove-reset]');
         if (resetBtn) resetBtn.addEventListener('click', () => {
             askPersist();
             // DESTRUCTIVE → guard
             const ok = confirm('Clear all cells and start a new play? / ¿Borrar todas las celdas y empezar de nuevo?');
-            if (ok) resetGoddy();
+            if (!ok) return;
+            clearGoddyKeys();
+            location.reload();   // fresh start (§5.3 / §10.3a): reload starts empty
         });
 
-        restoreMatrix();   // DOM is ready (script at end of body) → re-derive now
+        // ── Load (§5.3 / §10.3a): a genuine open/reopen restores saved state,
+        // but a RELOAD (F5 / reload logo) overrides persistence and starts fresh.
+        function navIsReload() {
+            try {
+                const nav = performance.getEntriesByType &&
+                            performance.getEntriesByType('navigation')[0];
+                if (nav && nav.type) return nav.type === 'reload';
+                if (performance.navigation) return performance.navigation.type === 1; // legacy
+            } catch (_) {}
+            return false;
+        }
+        if (navIsReload()) {
+            clearGoddyKeys();     // reload → drop own keys, skip restore (empty default)
+        } else {
+            restoreMatrix();      // genuine open/reopen → re-derive saved state
+        }
 
         // ── Summary model (§13.12) — read by Save / Share serializers ──
         // Snapshot of the matrix: which cells see who and at what level (1–3).

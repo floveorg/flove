@@ -3249,7 +3249,25 @@
   // Navigation is intentionally NOT restored: the boot (further down) always
   // resets state.view='welcome' / state.slide=0, so reopening lands on the
   // welcome view rather than a deep stage/tab.
+  // ✦ §5.3/§10.3a — persistence survives a genuine close+reopen, but a
+  // reload (F5 / reload logo) starts fresh: it OVERRIDES persistence.
+  const navIsReload = () => {
+    try {
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    } catch(_){}
+    return false;
+  };
   (function hydrateState(){
+    // On a reload, clear this app's own store key (STORAGE_KEY === OWN_KEYS[0])
+    // and SKIP restore, so the app returns to its empty default and the intro
+    // replays. NEVER touch the language pref or other apps' keys.
+    if (navIsReload()){
+      try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
+      return;
+    }
     let raw; try { raw = localStorage.getItem(STORAGE_KEY); } catch(_){ return; }
     if (!raw) return;
     let saved; try { saved = JSON.parse(raw); } catch(_){ return; }
@@ -5416,39 +5434,13 @@
 
   // ── reset ──
   const reset = () => {
-    Object.keys(state).forEach(k => {
-      if (typeof state[k] === 'string') state[k] = '';
-    });
-    state.view = 'welcome'; state.slide = 0; state.seenWelcome = false;
-    state.fromReveal = 's1-reveal';
-    state.maxStageReached = 1;
-    state.custListen = false; _listenFloatShown = false; Audio2.stopSpeak(); reflectListen();
-    state.stars = { 1:false, 2:false, 3:false, 4:false, 5:false };
-    state.events = [];
-    state.aqNest = { aq1:'', aq2:'', aq3:'' };
-    state.cqNest = { cq1:'', cq2:'', cq3:'' };
-    // empty ONLY this app's own store keys — NEVER localStorage.clear(): other
-    // flove apps share this origin and must keep their data (§10.3a).
+    // §5.3/§10.3a — Reset starts fresh: empty ONLY this app's own store keys
+    // (NEVER localStorage.clear() — other flove apps share this origin; the
+    // language pref lives under a different key and is preserved), then reload.
+    // A fresh load re-inits from the empty default and replays the intro; the
+    // navIsReload() gate on hydrate also drops the key so nothing is restored.
     OWN_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
-    persist();
-    // clear every in-DOM selection so nothing visual survives the reset
-    textFieldIds.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    $$('input[type="checkbox"], input[type="radio"]').forEach(el => {
-      if (el.name === 'lang') return;   // keep the worldball language choice
-      el.checked = false;
-    });
-    $$('.is-on, .is-active, .active, .selected').forEach(el =>
-      el.classList.remove('is-on','is-active','active','selected'));
-    $$('[contenteditable="true"]').forEach(el => { el.textContent = ''; });
-    Object.keys(_wasNonEmpty).forEach(k => _wasNonEmpty[k] = false);
-    refreshS3Channel(); syncSenses(); syncMatter(); buildS4Bio(); syncParticle(); syncImmune();
-    syncS2Tree(); syncS3Tree(); syncS2Cat1(); syncS2Cat2(); syncS3Cat();
-    setSlide(0);
-    refreshGates();
-    refreshCounters();
-    hideStale();          // a fresh start is never "out of date"
-    goTo('welcome');      // navigate back to the first step
-    flash('Fresh start');
+    location.reload();
   };
   // guarded reset — DESTRUCTIVE, so confirm() before wiping a session (§10.3a)
   const floveReset = () => {

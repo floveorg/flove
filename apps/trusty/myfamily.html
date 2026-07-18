@@ -2423,33 +2423,38 @@
   /* ── UPDATE: re-derive from storage + re-render, then clear every stale-dot ── */
   function onUpdate(){ restore(); clearStale(); }
 
-  /* ── RESET: clear the in-DOM form + only THIS app's own keys, then re-derive ── */
+  /* ── clear ONLY this app's own flove:<slug>* keys — NEVER localStorage.clear().
+     The language pref lives under 'translate2-lang', and SLUG ('myfamily') can't
+     match 'flove:lang', so this prefix never touches the shared language key. ── */
+  function clearOwnKeys(){
+    try{ for(var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i);
+      if(k&&k.indexOf('flove:'+SLUG)===0) localStorage.removeItem(k); } }catch(_){}
+  }
+
+  /* ── §5.3/§10.3a: a fresh open restores saved answers; a RELOAD (F5 / reload
+     logo) starts fresh — override persistence, clear own keys, skip restore. ── */
+  function navIsReload(){
+    try{
+      var nav=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];
+      if(nav&&nav.type) return nav.type==='reload';
+      if(performance.navigation) return performance.navigation.type===1; /* legacy */
+    }catch(_){}
+    return false;
+  }
+
+  /* ── RESET: clear only THIS app's own keys, then reload to a fresh empty play ── */
   function onReset(){
     var msg=(document.documentElement.lang==='es')
       ? 'Esto borra todas tus respuestas y empieza de nuevo. ¿Continuar?'
       : 'This clears all your answers and starts a new play. Continue?';
     if(!confirm(msg)) return;
-    /* wipe in-DOM selections (skip language radio + ctl/pop controls) */
-    replaying=true;
-    each(function(el){
-      var cls=el.className||'';
-      if(/ctl|pop/.test(cls)) return;
-      if(el.name==='lang'||/^lang-/.test(el.id||'')) return;
-      if(el.type==='checkbox'||el.type==='radio') el.checked=false;
-      else el.value='';
-      el.dispatchEvent(new Event((el.type==='checkbox'||el.type==='radio')?'change':'input',{bubbles:true}));
-    });
-    replaying=false;
-    /* clear any contenteditable surfaces, just in case */
-    Array.prototype.forEach.call(document.querySelectorAll('[contenteditable=""],[contenteditable="true"]'),function(el){ el.textContent=''; });
-    /* empty ONLY this app's own flove:<slug>* keys — NEVER localStorage.clear() */
-    try{ for(var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i);
-      if(k&&k.indexOf('flove:'+SLUG)===0) localStorage.removeItem(k); } }catch(_){}
-    clearStale();
+    clearOwnKeys();     /* empty ONLY this app's own flove:<slug>* keys */
+    location.reload();  /* the reload path also clears + skips restore → fresh */
   }
 
   function go(){
-    restore();
+    /* reload → start fresh (clear own keys, no restore); fresh open → restore */
+    if(navIsReload()) clearOwnKeys(); else restore();
     document.addEventListener('input',save,true);
     document.addEventListener('change',save,true);
     /* first user interaction → request durable storage, once */

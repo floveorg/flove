@@ -2889,32 +2889,34 @@ footer a{color:#4dd0e1;text-decoration:none}
     b.classList.add('intro-play');
   }
 
-  // Reset: destructive fresh start — defaults + cleared DOM + ONLY this app's own keys.
-  function floveReset(){
-    if (!confirm(T('Clear the whole board and start a new play? This cannot be undone.',
-                   '¿Vaciar todo el tablero y empezar de nuevo? No se puede deshacer.'))) return;
-    // 1) reset in-memory state to fresh defaults
-    state.placed = {}; state.reasons = freshReasons(); state.subs = {}; state.verbs = {};
-    state.subReasons = {}; state.subVerbs = {};
-    state.stage = 1; state.verbsShown = false; state.reasonsShown = false;
-    state.centreFx = 0; state.hideImmune = false;
-    state.immuneOpen = false;
-    armedSub = null; openReasons.clear();
-    document.body.classList.remove('hide-right-icons');
-    // 2) empty ONLY pracsys' own keys — never localStorage.clear() (other apps keep theirs)
+  // empty ONLY pracsys' own keys (prefix flove.pracsys) — never localStorage.clear(),
+  // so the language pref (translate2-lang) + other apps' data stay untouched. Shared by
+  // Reset and by a reload/F5 boot (both are a destructive fresh start · §5.3 / §10.3a).
+  function clearOwnKeys(){
     try{
       Object.keys(localStorage).forEach(k => { if (k.indexOf('flove.pracsys') === 0) localStorage.removeItem(k); });
     }catch(_){}
-    // 3) clear DOM selections + rebuild the empty board, return to first step
-    closeDocks();
-    const ss = $('#summarySection'); if (ss) ss.classList.remove('show');
-    buildSlots();
-    renderDeck();
-    setDeckOpen(true);
-    afterChange();      // re-derive the empty summary surfaces (re-writes the empty board)
-    hideStale();
-    toast(T('Board cleared — start placing systems','Tablero vaciado: empieza a colocar sistemas'));
-    playIntro();        // reset re-runs the entrance animation, just like a reload
+  }
+
+  // treat F5 / reload-logo as a fresh start (override persistence); close+reopen restores.
+  function navIsReload(){
+    try{
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    }catch(_){}
+    return false;
+  }
+
+  // Reset: destructive fresh start — clear ONLY this app's own keys, then reload. The
+  // reload boots empty (navIsReload → skip restore) and replays the intro from the
+  // markup, so the in-place rebuild is no longer needed (§5.3 / §10.3a).
+  function floveReset(){
+    if (!confirm(T('Clear the whole board and start a new play? This cannot be undone.',
+                   '¿Vaciar todo el tablero y empezar de nuevo? No se puede deshacer.'))) return;
+    clearOwnKeys();     // empty ONLY pracsys' own keys — never localStorage.clear()
+    location.reload();  // fresh boot: empty board + intro replays
   }
 
   // request durable storage on the first user interaction (guarded once)
@@ -2936,7 +2938,13 @@ footer a{color:#4dd0e1;text-decoration:none}
   // game from localStorage so a reload / close / reopen continues where it left off.
   // (This app no longer wipes storage on boot — it HYDRATES; only Reset clears.)
   buildSlots();
-  restore();          // fills placed slots from STORAGE_KEY (no-op on a clean start)
+  // reload / F5 / reset → start fresh: clear own keys + skip restore (intro replays from
+  // the markup). Close+reopen (any nav that isn't a reload) → hydrate saved board. (§5.3)
+  if (navIsReload()){
+    clearOwnKeys();
+  } else {
+    restore();        // fills placed slots from STORAGE_KEY (no-op on a clean start)
+  }
   renderDeck();       // hides placed systems from the deck
   // systems start already fanned open (5·1·5), not collapsed behind one card
   setDeckOpen(true);

@@ -4786,31 +4786,20 @@ td.ic{width:36px;font-size:1.2rem}td.real{color:#0d7c66}td.fic{color:#8b5cf6;fon
   });
 
   // ---------- F0 Reset + Update (backend_plan §10.3a) ----------
-  // Reset: fresh start. Destructive → confirm(). Clears in-memory state, tears
-  // down dynamic branch realms, empties ONLY this app's own keys, re-derives an
-  // empty summary, and returns to step-0. Never localStorage.clear().
+  // Reset: fresh start. Destructive → confirm(). Empties ONLY this app's own
+  // keys (canonical + legacy) then reloads to a clean empty state at step-0.
+  // Never localStorage.clear().
   function doReset() {
     const msg = (document.documentElement.lang === 'es')
       ? '¿Borrar todos los reinos y notas y empezar de nuevo?'
       : 'Reset all realms and notes? This clears everything and starts a new play.';
     if (!confirm(msg)) return;
-    hydrating = true;
-    // empty only realy's own keys (canonical + legacy) — other apps keep theirs
+    // empty only realy's own keys (canonical + legacy) — other apps keep theirs —
+    // then reload for a clean fresh start (backend_plan §5.3/§10.3a). The reload
+    // path re-clears + skips restore, so no in-place teardown is needed here.
     try { localStorage.removeItem(STORE_KEY); } catch(e) {}
     try { localStorage.removeItem(LEGACY_STORE_KEY); } catch(e) {}
-    // tear down spawned branch realms + custom labels, clear DOM selections
-    extraRealms.slice().forEach(r => removeExtraRealm(r.id));
-    moreRealmsLabels = DEFAULT_MORE_REALMS.slice();
-    buildMoreRealmsGrid();
-    notesInput.value = '';
-    creativeStep = 0;
-    clearInsights();
-    initSections();            // resets in-memory sections + re-renders empty summary
-    const r0 = document.getElementById('step-0');
-    if (r0) r0.checked = true; // return to first step
-    hydrating = false;
-    clearStale();
-    toast(t({en:'reset', es:'reiniciado'}));
+    location.reload();
   }
 
   // Update: re-derive the live view from stored state (re-run hydrate + render),
@@ -4958,9 +4947,28 @@ td.ic{width:36px;font-size:1.2rem}td.real{color:#0d7c66}td.fic{color:#8b5cf6;fon
   })();
 
   // ---------- start ----------
+  // Persistence survives closing/reopening the file, but a RELOAD (F5 / reload
+  // logo) starts fresh (backend_plan §5.3/§10.3a): detect a reload navigation
+  // and, when so, drop ONLY realy's own saved keys and skip restore.
+  function navIsReload() {
+    try {
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    } catch(_) {}
+    return false;
+  }
   hydrating = true;             // suppress stale-dot during the boot re-derive
   initSections();
-  loadLocal();                  // restores canonical values + notes; stashes dynamic data
+  if (navIsReload()) {
+    // reload → start fresh: clear the SAME keys Reset clears, skip restore.
+    // Never touches the language pref (flove:lang) or other apps' data.
+    try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+    try { localStorage.removeItem(LEGACY_STORE_KEY); } catch(e) {}
+  } else {
+    loadLocal();                // fresh open: restore canonical values + notes; stash dynamic data
+  }
   if (sections.length) renderSections();
   restoreDynamicState();        // re-spawn branches + custom labels, refill, land on step-0
   renderPhrase();

@@ -1087,37 +1087,6 @@
     #slideNext.intro-reveal{ animation:none }
   }
 
-  /* "Why?" on the first slide + the reason chips it floats up */
-  .why-btn{
-    display:block; margin:1.5rem auto 0; opacity:0;
-    background:none; border:1px solid color-mix(in srgb, var(--app-accent) 55%, transparent);
-    color:var(--app-accent); border-radius:999px; padding:.35rem .95rem;
-    font:inherit; font-size:.9rem; cursor:pointer;
-    transition:background var(--flove-fast), transform var(--flove-fast);
-  }
-  .why-btn.show{ animation: whyBtnIn 1s ease forwards; }
-  .why-btn:hover{ background:color-mix(in srgb, var(--app-accent) 14%, transparent); transform:translateY(-1px); }
-  .why-btn:disabled{ opacity:.4; cursor:default; }
-  @keyframes whyBtnIn{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
-  .why-chip{
-    position:fixed; z-index:200; pointer-events:none; white-space:nowrap;
-    padding:.32rem .7rem; border-radius:999px; font-size:.85rem; color:var(--ink);
-    background:color-mix(in srgb, var(--app-accent) 22%, transparent);
-    border:1px solid color-mix(in srgb, var(--app-accent) 45%, transparent);
-    backdrop-filter:blur(3px);
-    animation: whyFloat 10s ease-out forwards;
-  }
-  @keyframes whyFloat{
-    0%{ opacity:0; transform:translate(-50%,0) scale(.9) }
-    12%{ opacity:1 }
-    85%{ opacity:1 }
-    100%{ opacity:0; transform:translate(calc(-50% + var(--dx,0px)), var(--dy,-300px)) scale(1) }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .why-btn.show{ animation:none; opacity:1; }
-    .why-chip{ animation-duration:10s; }
-  }
-
   /* ── translate2 — i18n span toggle (CSS-only) ── */
   .es{ display:none; }                               /* default view = .en */
   body:has(#lang-es:checked) .en{ display:none; }
@@ -2611,8 +2580,7 @@
     <div class="slides" id="slides">
       <article class="slide is-on" data-slide="0">
         <h2 id="welcomeTitle" class="tw-line" data-en="Many special things only happen once" data-es="Muchas cosas especiales sólo ocurren una vez"></h2>
-        <p class="tw-line tw-line--2" data-en="You are one of them…" data-es="Eres una de ellas…" hidden></p>
-        <button class="why-btn" id="whyBtn" type="button" hidden><span class="en" lang="en">Why?</span><span class="es" lang="es">¿Por qué?</span></button>
+        <p class="tw-line tw-line--2" data-en="And you are one of them…" data-es="Y eres una de ellas…" hidden></p>
       </article>
       <article class="slide" data-slide="1">
         <h2><span class="en" lang="en">An extreme intimacy</span><span class="es" lang="es">Una intimidad extrema</span></h2>
@@ -6183,46 +6151,6 @@
       })();
     });
   }
-  // "Why?" → floats up two reason chips per click, up to 5 clicks, 10s each
-  const WHY_REASONS = [
-    { en:'To meet yourself',            es:'Para conocerte' },
-    { en:'Because it only happens once', es:'Porque solo ocurre una vez' },
-    { en:'To be truly seen',            es:'Para que te vean de verdad' },
-    { en:'For the ones you love',       es:'Por quienes amas' },
-    { en:'To leave a trace',            es:'Para dejar huella' },
-    { en:'Out of pure curiosity',       es:'Por pura curiosidad' },
-    { en:'To surprise yourself',        es:'Para sorprenderte' },
-    { en:'Because you can',             es:'Porque puedes' },
-    { en:'To play',                     es:'Para jugar' },
-    { en:'For no reason at all',        es:'Sin razón alguna' }
-  ];
-  function wireWhy(){
-    const btn = $('#whyBtn');
-    if (!btn) return null;
-    const pool = WHY_REASONS.slice().sort(() => Math.random() - 0.5);
-    let clicks = 0;
-    btn.addEventListener('click', () => {
-      if (clicks >= 5) return;
-      clicks++;
-      const rect = btn.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2, top = rect.top;
-      for (let k = 0; k < 2; k++){
-        const r = pool.length ? pool.pop() : WHY_REASONS[Math.floor(Math.random() * WHY_REASONS.length)];
-        const chip = document.createElement('div');
-        chip.className = 'why-chip';
-        chip.textContent = r[twLang()] || r.en;
-        chip.style.left = cx + 'px';
-        chip.style.top  = top + 'px';
-        chip.style.setProperty('--dx', (Math.random() * 300 - 150).toFixed(0) + 'px');   // random left/right drift
-        chip.style.setProperty('--dy', (-(230 + Math.random() * 210)).toFixed(0) + 'px'); // calmly upward
-        document.body.appendChild(chip);
-        setTimeout(() => chip.remove(), 10000);   // shown 10s each
-      }
-      if (clicks >= 5) btn.disabled = true;
-    });
-    return btn;
-  }
-
   function runIntro(){
     const l1 = $('#welcomeTitle');
     const l2 = document.querySelector('.tw-line--2');
@@ -6243,9 +6171,6 @@
       slideNext.classList.add('intro-reveal');
     };
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // the "Why?" button surfaces ~5s after the whole entrance has landed
-    const whyBtn = wireWhy();
-    if (whyBtn) setTimeout(() => { whyBtn.hidden = false; whyBtn.classList.add('show'); }, reduce ? 1500 : 22000);
     if (reduce){ finish(); return; }
     document.body.classList.add('intro-running');
     const wait = ms => new Promise(r => setTimeout(r, ms));

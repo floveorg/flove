@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Varyy · FLOVE</title>
+  <!-- Favicon: the Varyy top-bar mark, inline SVG data-URI (self-contained, no external calls). -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'><defs><linearGradient%20id='g'%20x1='14'%20y1='14'%20x2='86'%20y2='86'%20gradientUnits='userSpaceOnUse'><stop%20offset='0'%20stop-color='%23c74df0'/><stop%20offset='1'%20stop-color='%233194f6'/></linearGradient></defs><g%20fill='none'%20stroke='url(%23g)'%20stroke-width='8'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='50'%20cy='50'%20r='18'/><line%20x1='50'%20y1='68'%20x2='50'%20y2='86'/><line%20x1='42'%20y1='78'%20x2='58'%20y2='78'/><line%20x1='62'%20y1='38'%20x2='82'%20y2='18'/><path%20d='M70%2014%20L86%2014%20L86%2030'/></g></svg>">
   <style>
     /* ---------- Root & Theme ---------- */
     :root{
@@ -2564,18 +2566,39 @@
       } catch(_){}
       return false;
     }
-    if (navIsReload()){
-      // Fresh start — drop our saved state so nothing is restored.
-      try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
-      // Browsers restore form-control values across a reload (independent of our
-      // storage). Wipe them so a reload truly starts from 0: empty Q1/Q2/Q3 and
-      // no gender picked — which also re-hides Q2/Q3 (their CSS gate keys off an
-      // empty Q1) and the Summary launcher.
+    // The Navigation Timing API ("reload" vs "navigate") proved unreliable in
+    // some browsers / file:// setups (a reload read as "navigate" → the saved
+    // answers came back). We detect a reload with a per-TAB sessionStorage
+    // marker instead: sessionStorage survives reloads and same-tab navigations
+    // but is cleared when the tab/window closes. A marker that is ALREADY set
+    // means we've loaded in this tab before → it's a reload → start fresh.
+    // Absent → a genuine open / reopen → restore the saved choices.
+    let isReload;
+    try {
+      isReload = sessionStorage.getItem('flove:varyy:session') === '1';
+      sessionStorage.setItem('flove:varyy:session', '1');
+    } catch(_){ isReload = navIsReload(); }
+
+    // Empty every form control (also defeats the browser's own form-value
+    // restoration on reload) and re-sync the derived UI back to zero.
+    function clearForm(){
       const form = document.getElementById('varyy');
       if (form) form.reset();
       syncOther();
       Object.values(answerEls).forEach(o => { if (o) o.textContent = '—'; });
       Object.values(answerElsEs).forEach(o => { if (o) o.textContent = '—'; });
+    }
+
+    if (isReload){
+      // Fresh start — drop our saved state so nothing is restored, then clear
+      // any values the browser tried to carry over. A reload thus truly starts
+      // from 0: empty Q1/Q2/Q3, no gender picked — which also re-hides Q2/Q3
+      // (their CSS gate keys off an empty Q1) and the Summary launcher.
+      try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
+      clearForm();
+      // Browser form-restoration can land AFTER this script; pageshow fires
+      // after it (persisted=false on a normal reload), so clear once more there.
+      window.addEventListener('pageshow', e => { if (!e.persisted) clearForm(); });
     } else {
       // Genuine open / reopen — the user's choices persist.
       loadState();

@@ -45,24 +45,38 @@
     display:flex; align-items:center; gap:12px;
     padding:10px 16px;
     background:linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-    border-bottom:1px solid var(--line);
   }
 
-  /* ── Layers mark: sits below the empty placeholders while placing ───────── */
-  .layers-mark{
-    display:none; justify-content:center; margin:10px auto 0;
-    opacity:1; transform:none; pointer-events:none;
-    transition:opacity .6s ease, transform .6s ease;
+  /* ── Layers mark: lives inside the central placeholder while placing ─────
+     Twice the earlier size, animated (strata write in, gentle breathe), and it
+     fades out the moment a card is dropped into the centre spine. */
+  .slot.centre-spine .layers-mark{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; z-index:1;
+    transition:opacity .5s ease, transform .5s ease;
   }
-  .layers-mark svg{ width:46px; height:46px; overflow:visible; display:block; opacity:.82; }
-  body.placing .layers-mark{ display:flex; }
-  /* the Pair button appearing (board complete) sends the mark up & away */
-  body.placing:has(#checkWrap.show) .layers-mark{ opacity:0; transform:translateY(-24px); }
+  .slot.centre-spine .layers-mark svg{ width:min(88px, 92%); height:auto; overflow:visible; display:block; }
+  body.placing .slot.centre-spine:not(.filled) .layers-mark{ opacity:.9; }
+  @media (prefers-reduced-motion:no-preference){
+    .layers-mark svg{ animation:lm-breathe 3.8s ease-in-out infinite; transform-origin:center; }
+    .layers-mark .lm-strata line{ stroke-dasharray:30; animation:lm-draw 4.2s ease-in-out infinite; }
+    .layers-mark .lm-core{ animation:lm-core 3s ease-in-out infinite; }
+  }
+  @keyframes lm-breathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+  @keyframes lm-draw{ 0%{ stroke-dashoffset:30; } 55%,100%{ stroke-dashoffset:0; } }
+  @keyframes lm-core{ 0%,100%{ opacity:.7; } 50%{ opacity:1; } }
 
   /* ── Entrance choreography ──────────────────────────────────────────────
      Plays on every load (body.intro-play, set in the markup and re-armed on
      Reset). All offsets are from load. Motion-safe only: reduced-motion shows
-     the assembled app immediately. The light-sweep overlay is inert otherwise. */
+     the assembled app immediately. Overlays (title, splash) are inert otherwise. */
+  .intro-title{
+    position:fixed; inset:0; z-index:70; display:grid; place-items:center;
+    pointer-events:none; opacity:0; text-align:center; padding:0 6vw;
+    font-family:var(--font-ui); font-weight:800; letter-spacing:.015em;
+    font-size:clamp(2.4rem, 9vw, 5.4rem); line-height:1.05;
+    color:var(--accent); text-shadow:0 0 34px rgba(77,208,225,.4);
+  }
   .intro-splash{
     position:fixed; top:0; bottom:0; left:0; width:44vw;
     pointer-events:none; z-index:60; opacity:0; will-change:transform,opacity;
@@ -72,11 +86,17 @@
     filter:blur(2px); mix-blend-mode:screen;
   }
   @media (prefers-reduced-motion:no-preference){
+    body.intro-play .intro-title { animation:intro-title  3s ease-in-out                 0s backwards; }
     body.intro-play .flove-bar   { animation:intro-topbar .9s cubic-bezier(.2,.85,.25,1)  4s backwards; }
+    body.intro-play #progress    { animation:intro-fade  1.2s ease                        4s backwards; }
+    body.intro-play #boardGrid .slot{ animation:intro-borders 3s ease-out                 4s backwards; }
     body.intro-play .deck-col    { animation:intro-cards  5s cubic-bezier(.15,.8,.25,1)   7s backwards; }
-    body.intro-play .intro-splash{ animation:intro-splash 5s ease-in-out               12s backwards; }
-    body.intro-play #boardGrid .slot{ animation:intro-borders 5s ease-out              20s backwards; }
+    body.intro-play .intro-splash{ animation:intro-splash 5s ease-in-out                 12s backwards; }
   }
+  @keyframes intro-title{
+    0%{ opacity:0; transform:scale(.94); } 22%{ opacity:1; transform:scale(1); }
+    70%{ opacity:1; transform:scale(1); } 100%{ opacity:0; transform:scale(1.04); } }
+  @keyframes intro-fade{ from{ opacity:0; } to{ opacity:1; } }
   @keyframes intro-topbar{ from{ opacity:0; transform:translateY(-115%); } to{ opacity:1; transform:none; } }
   @keyframes intro-cards { 0%{ opacity:0; transform:translateX(-72px); } 60%{ opacity:1; } 100%{ opacity:1; transform:none; } }
   @keyframes intro-splash{
@@ -85,7 +105,7 @@
     100%{ opacity:0; transform:translateX(106vw); } }
   @keyframes intro-borders{
     0%{ border-color:transparent; box-shadow:0 0 0 0 rgba(77,208,225,0); }
-    70%{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(77,208,225,.35), 0 0 14px rgba(77,208,225,.3); }
+    60%{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(77,208,225,.4), 0 0 16px rgba(77,208,225,.34); }
     100%{ border-color:var(--faint); box-shadow:0 0 0 0 rgba(77,208,225,0); } }
   .flove-bar .flove-mark{ width:1.6em; height:1.6em; filter:drop-shadow(0 0 6px rgba(77,208,225,.35)); }
   .flove-bar .flove-app-name{ font-family:var(--font-ui); font-weight:700; font-size:1.15rem; letter-spacing:.01em; }
@@ -949,7 +969,8 @@
 </head>
 <body class="intro-play">
 
-<!-- entrance light-sweep: a wave that travels rightward across the page as the cards land -->
+<!-- entrance overlays: opening title (0–3s) + a light-sweep that crosses the page as the cards land -->
+<div class="intro-title" aria-hidden="true"><span class="en" lang="en">Know Thyself</span><span class="es" lang="es">Conócete a ti mismo</span></div>
 <div class="intro-splash" aria-hidden="true"></div>
 
 <input type="checkbox" id="about-toggle" class="about-ctl">
@@ -1033,22 +1054,6 @@
   <!-- center: board — 5 rows, each: left slot · middle (reason + centre slot) · right slot -->
   <section class="board" id="board">
     <div class="board-grid" id="boardGrid"></div>
-
-    <!-- Layers mark: rides below the empty placeholders while placing (stage 1);
-         fades up & away the moment the Pair button appears (board complete). -->
-    <div class="layers-mark" id="layersMark" aria-hidden="true">
-      <svg viewBox="0 0 64 64">
-        <g fill="none" stroke="#4dd0e1" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="32" y1="12" x2="32" y2="52" stroke-width="3"/>
-          <line x1="18" y1="15"   x2="46" y2="15"   stroke-width="1.7"/>
-          <line x1="18" y1="24"   x2="46" y2="24"   stroke-width="1.7"/>
-          <line x1="18" y1="33.5" x2="46" y2="33.5" stroke-width="1.7"/>
-          <line x1="18" y1="43"   x2="46" y2="43"   stroke-width="1.7"/>
-          <line x1="18" y1="52.5" x2="46" y2="52.5" stroke-width="1.7"/>
-        </g>
-        <circle cx="32" cy="32" r="3.6" fill="#ff8a65"/>
-      </svg>
-    </div>
 
     <!-- subsystem items fan downward from the two bottom corners; this grows the board -->
     <div class="sub-flow" id="subFlow">
@@ -1418,8 +1423,20 @@
     const centre = makeSlot(CENTRE_SLOT, CENTRE_ROW);
     centre.classList.add('centre-spine');
     centre.style.gridColumn = '2'; centre.style.gridRow = '1 / -1';
+    centre.insertAdjacentHTML('beforeend', LAYERS_MARK_HTML);   // animated layers mark, fades on fill
     grid.appendChild(centre);
   }
+
+  // the layers mark that lives in the empty centre spine while placing (stage 1)
+  const LAYERS_MARK_HTML = `<div class="layers-mark" aria-hidden="true"><svg viewBox="0 0 64 64">
+    <line class="lm-spine" x1="32" y1="12" x2="32" y2="52" fill="none" stroke="#4dd0e1" stroke-width="3" stroke-linecap="round"/>
+    <g class="lm-strata" fill="none" stroke="#4dd0e1" stroke-width="1.7" stroke-linecap="round">
+      <line x1="18" y1="15" x2="46" y2="15"/><line x1="18" y1="24" x2="46" y2="24"/>
+      <line x1="18" y1="33.5" x2="46" y2="33.5"/><line x1="18" y1="43" x2="46" y2="43"/>
+      <line x1="18" y1="52.5" x2="46" y2="52.5"/>
+    </g>
+    <circle class="lm-core" cx="32" cy="32" r="3.6" fill="#ff8a65"/>
+  </svg></div>`;
   const slotEl  = id => $(`.slot[data-slot="${id}"]`);
   const allSlots = () => $$('.slot');
 
@@ -1559,6 +1576,7 @@
     delete state.verbs[sid];
     slot.classList.remove('filled', 'verb-open');
     slot.innerHTML = '';
+    if (sid === CENTRE_SLOT) slot.insertAdjacentHTML('beforeend', LAYERS_MARK_HTML);  // restore the layers mark
     renderDeck();
     afterChange();
   }

@@ -63,11 +63,9 @@
   font-family: var(--flove-font-ui);
   font-size: 13px;
   letter-spacing: .3px;
-  background: rgba(255,255,255,.55);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  color: #1a1a1a;
+  background: transparent;
+  border-bottom: none;
+  color: var(--ink);
 }
 
 /* Auto dark variant when app body is dark */
@@ -103,7 +101,9 @@
 .flove-bar .flove-mark {
   font-size: 16px;
   color: var(--app-accent);
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--app-accent) 35%, transparent));
+  /* white outline so the mark stays legible over the now-transparent bar */
+  filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
+          drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff);
 }
 .flove-bar .flove-app-name {
   font-weight: 500;
@@ -1042,6 +1042,10 @@
     transition: background .25s ease, transform .25s ease;
   }
   .slide-dots button.is-on{ background:var(--app-accent); transform:scale(1.25); }
+  /* first welcome slide: minimal — a centred Next, no Back button, no progress dots */
+  .view[data-view="welcome"]:has(.slide[data-slide="0"].is-on) .slide-dots{ display:none; }
+  .view[data-view="welcome"]:has(.slide[data-slide="0"].is-on) #slidePrev{ display:none; }
+  .view[data-view="welcome"]:has(.slide[data-slide="0"].is-on) .nav{ justify-content:center; }
 
   /* ── translate2 — i18n span toggle (CSS-only) ── */
   .es{ display:none; }                               /* default view = .en */
@@ -1823,9 +1827,22 @@
   /* ── floating arcade counters (no threshold) ── */
   .float-counters{
     position: fixed; left: 14px; bottom: 14px; z-index: 80;
-    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 8px;
     pointer-events: none;
   }
+  /* the always-visible handle; taps expand / collapse the score */
+  .float-counters .pc-toggle{
+    pointer-events: auto; border: 0; cursor: pointer;
+    width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.15rem; line-height: 1;
+    background: rgba(20,16,36,.55); color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35); backdrop-filter: blur(6px);
+    transition: transform var(--flove-fast), background var(--flove-fast);
+  }
+  .float-counters .pc-toggle:hover{ transform: scale(1.08); }
+  .float-counters:not(.collapsed) .pc-toggle{ background: var(--app-accent); color: var(--app-ink-on-accent); }
+  .pc-list{ display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .float-counters.collapsed .pc-list{ display: none; }
   .pc{ pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .pc.is-empty{ display: none; }
   .pc-badge{
@@ -2519,7 +2536,6 @@
   <section class="view" data-view="welcome" aria-labelledby="welcomeTitle">
     <div class="slides" id="slides">
       <article class="slide is-on" data-slide="0">
-        <div class="slide-icon">✺</div>
         <h2 id="welcomeTitle"><span class="en" lang="en">Many special things only happens once</span><span class="es" lang="es">Muchas cosas especiales sólo ocurren una vez</span></h2>
       </article>
       <article class="slide" data-slide="1">
@@ -3109,15 +3125,18 @@
 <!-- floating Listen toggle — appears once Listen is turned on; switches it off/on -->
 <button class="listen-float" id="listenFloat" type="button" hidden aria-pressed="false" title="Listen on / off" aria-label="Listen on / off">🔊</button>
 
-<!-- floating arcade counters — selections on top, stars below -->
-<div class="float-counters" aria-live="polite">
-  <div class="pc pc-sel is-empty" id="chipSels" title="Selections — every filled field & picked option">
-    <div class="pc-badge"><span class="pc-num" id="numSels">0</span></div>
-    <span class="pc-label">Selections</span>
-  </div>
-  <div class="pc pc-stars is-empty" id="chipStars" title="Stars — one per completed stage (max 5)">
-    <div class="pc-badge"><span class="pc-num" id="numStars">0</span></div>
-    <span class="pc-label">Stars</span>
+<!-- floating arcade counters — hidden by default; the handle expands/collapses them -->
+<div class="float-counters collapsed" id="floatCounters" aria-live="polite">
+  <button class="pc-toggle" id="pcToggle" type="button" aria-expanded="false" aria-controls="pcList" title="Score" aria-label="Show score" data-aria-en="Show score" data-aria-es="Mostrar puntuación">✦</button>
+  <div class="pc-list" id="pcList">
+    <div class="pc pc-sel is-empty" id="chipSels" title="Selections — every filled field & picked option">
+      <div class="pc-badge"><span class="pc-num" id="numSels">0</span></div>
+      <span class="pc-label">Selections</span>
+    </div>
+    <div class="pc pc-stars is-empty" id="chipStars" title="Stars — one per completed stage (max 5)">
+      <div class="pc-badge"><span class="pc-num" id="numStars">0</span></div>
+      <span class="pc-label">Stars</span>
+    </div>
   </div>
 </div>
 
@@ -5519,6 +5538,16 @@
     paintChip('chipSels',  'numSels',  countSelections(), 30);
     paintChip('chipStars', 'numStars', countStars(),       5);
   }
+  // the score counters start collapsed; the handle expands / collapses them
+  (() => {
+    const toggle = document.getElementById('pcToggle');
+    const box = document.getElementById('floatCounters');
+    if (!toggle || !box) return;
+    toggle.addEventListener('click', () => {
+      const collapsed = box.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+  })();
 
   // ── Mic recording + file attachments (per text input) ──────
   const attachments = new Map(); // fieldId → File

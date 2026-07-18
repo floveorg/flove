@@ -839,70 +839,18 @@
     .qs textarea{ padding-right: 110px; }
 
     /* ---------- Progressive reveal of the base questions ---------- */
-    .q-reveal-row{
-      display:none;
-      justify-content:center;
-      margin: 4px 0 0;
-    }
-    .q-reveal-btn{
-      width:44px; height:44px;
-      border-radius:999px;
-      border:1px solid transparent;
-      background:
-        linear-gradient(rgba(14,18,30,.85), rgba(14,18,30,.85)) padding-box,
-        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
-      color: var(--fg-0);
-      font-size: 1.6rem; font-weight: 800; line-height: 1;
-      cursor:pointer;
-      display:grid; place-items:center;
-      box-shadow: 0 8px 22px hsla(265,84%,62%,.32);
-      transition: transform .2s ease, box-shadow .25s ease, color .2s ease, filter .2s ease;
-    }
-    .q-reveal-btn:hover{
-      transform: translateY(-1px) scale(1.06);
-      color:#fff;
-      box-shadow: 0 12px 30px hsla(265,84%,62%,.5), 0 0 0 4px hsla(285,84%,62%,.14);
-      filter: saturate(1.1);
-    }
-    .q-reveal-btn:focus-visible{ outline:3px solid hsla(285,84%,62%,.55); outline-offset:3px; }
-
-    /* Reveal-state visibility (driven by data-reveal on the base group).
-       data-reveal = how many of the 3 base questions are shown. */
-    .q-group[data-reveal] .q[data-base="2"],
-    .q-group[data-reveal] .q[data-base="3"]{ display:none; }
-    .q-group[data-reveal="2"] .q[data-base="2"],
-    .q-group[data-reveal="3"] .q[data-base="2"],
-    .q-group[data-reveal="3"] .q[data-base="3"]{
+    /* Q2 & Q3 appear only once the first question has text — the reveal is
+       driven purely by Q1's content, no manual controls. An empty Q1 (a fresh
+       load / after a reload) keeps them hidden; typing in Q1 reveals both;
+       clearing Q1 hides them again. :placeholder-shown is true only while the
+       textarea is empty, so :not(:placeholder-shown) == "Q1 has been filled". */
+    .q-group .q[data-base="2"],
+    .q-group .q[data-base="3"]{ display:none; }
+    .q-group:has(.q[data-base="1"] textarea:not(:placeholder-shown)) .q[data-base="2"],
+    .q-group:has(.q[data-base="1"] textarea:not(:placeholder-shown)) .q[data-base="3"]{
       display:grid;
       animation: section-in .5s ease;
     }
-    .q-group[data-reveal="1"] .q-reveal-row[data-after="1"]{ display:flex; }
-    .q-group[data-reveal="2"] .q-reveal-row[data-after="2"]{ display:flex; }
-
-    /* Collapse ✕ — only on the last-revealed base question (LIFO) */
-    .q-collapse{
-      position:absolute;
-      top:-12px; right:-12px;
-      width:30px; height:30px;
-      border-radius:999px;
-      border:2px solid rgba(255,255,255,.18);
-      background: linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue)));
-      color:#fff;
-      font-size:.95rem; font-weight:800; line-height:1;
-      cursor:pointer;
-      display:none;
-      place-items:center;
-      z-index:5;
-      box-shadow:0 6px 16px hsla(265,84%,62%,.35);
-      transition: transform .25s ease, box-shadow .2s ease;
-    }
-    .q-group[data-reveal="2"] .q[data-base="2"] .q-collapse,
-    .q-group[data-reveal="3"] .q[data-base="3"] .q-collapse{ display:grid; }
-    .q-collapse:hover{
-      transform: scale(1.1) rotate(90deg);
-      box-shadow:0 10px 24px hsla(210,92%,58%,.5);
-    }
-    .q-collapse:focus-visible{ outline:3px solid hsla(285,84%,62%,.55); outline-offset:3px; }
 
     /* ---------- Labelers (tone) control in the top bar ---------- */
     .labelers-btn{
@@ -928,33 +876,6 @@
       box-shadow: 0 8px 22px hsla(265,84%,62%,.4);
     }
 
-    /* ---------- More-questions controls ---------- */
-    .more-controls{
-      margin: 22px 0 6px;
-      display:flex; flex-direction:column; align-items:center; gap:14px;
-    }
-    .big-more-btn{
-      display:inline-flex; align-items:center; gap:10px;
-      padding: 14px 28px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      background:
-        linear-gradient(rgba(14,18,30,.85), rgba(14,18,30,.85)) padding-box,
-        linear-gradient(135deg, hsl(var(--violet)), hsl(var(--blue))) border-box;
-      color: var(--fg-0);
-      cursor: pointer;
-      font: 700 1rem/1 inherit;
-      letter-spacing: .35px;
-      text-transform: uppercase;
-      box-shadow: 0 10px 26px hsla(265,84%,62%,.28);
-      transition: transform .15s, box-shadow .25s, color .2s, letter-spacing .25s;
-    }
-    .big-more-btn:hover{
-      transform: translateY(-1px);
-      color:#fff;
-      letter-spacing: .55px;
-      box-shadow: 0 14px 36px hsla(265,84%,62%,.45), 0 0 0 4px hsla(285,84%,62%,.14);
-    }
     /* Each group of 3 questions, with its own style toggle above */
     .q-group{
       position:relative;
@@ -973,15 +894,6 @@
       40%      { box-shadow: 0 0 18px 4px hsla(285,84%,62%,.55), 0 0 36px 10px hsla(210,92%,58%,.35); }
       70%      { box-shadow: 0 0 10px 2px hsla(285,84%,62%,.30), 0 0 24px 6px hsla(210,92%,58%,.18); }
     }
-
-    /* "Show more" / collapse X — each control row sits below its set. */
-    .more-row{
-      display:flex; justify-content:center; align-items:center;
-      gap:14px;
-      margin: 28px 0 6px;   /* 1 row of space above each control row */
-    }
-
-    .big-more-btn[hidden]{ display:none; }
 
     /* Inline "add a new question" form (appears above q1 when + is clicked) */
     .new-q-form{
@@ -1248,17 +1160,14 @@
        ID-scoped for the initial 3 questions so newly-saved/added questions
        (different IDs) appear immediately, not after 11s. */
     .who,
-    #q1,
-    .more-controls > .more-row:first-child{
+    #q1{
       opacity:0;
       animation: section-in 1s ease forwards;
     }
-    /* .who at 3s. Q1 at 11s. Q2/Q3 now appear only when revealed by the +.
-       Show-more arrives 3s after Q1 is fully displayed (24s),
-       the top-bar "+" arrives 3s after Show-more (28s). */
+    /* .who at 3s. Q1 at 11s. Q2/Q3 now appear on their own (via the CSS gate)
+       the moment Q1 is filled. */
     .who                                    { animation-delay: 3s;  }
     #q1                                     { animation-delay: 11s; }
-    .more-controls > .more-row:first-child  { animation-delay: 24s; }
     @keyframes section-in{
       from { opacity:0; transform: translateY(8px); }
       to   { opacity:1; transform: translateY(0);   }
@@ -1480,7 +1389,7 @@
       </div>
 
       <section class="qs">
-        <section class="q-group" data-reveal="1">
+        <section class="q-group">
           <div class="q" data-base="1">
             <span class="fire" aria-hidden="true"></span>
             <label for="q1"><span class="en" lang="en">What don’t you like from <span class="other-gender">the other gender</span>?</span><span class="es" lang="es">¿Qué no te gusta de <span class="other-gender">el otro género</span>?</span></label>
@@ -1495,13 +1404,8 @@
             </div>
           </div>
 
-          <div class="q-reveal-row" data-after="1">
-            <button type="button" class="q-reveal-btn" data-action="reveal" aria-label="Show the next question" data-aria-en="Show the next question" data-aria-es="Mostrar la siguiente pregunta" title="Show the next question">+</button>
-          </div>
-
           <div class="q" data-base="2">
             <span class="fire" aria-hidden="true"></span>
-            <button type="button" class="q-collapse" data-action="collapse" aria-label="Collapse this question" data-aria-en="Collapse this question" data-aria-es="Plegar esta pregunta" title="Collapse this question">✕</button>
             <label for="q2"><span class="en" lang="en">What do you like from <span class="other-gender">the other gender</span>?</span><span class="es" lang="es">¿Qué te gusta de <span class="other-gender">el otro género</span>?</span></label>
             <div class="field">
               <textarea id="q2" name="likes" rows="2" maxlength="1000" placeholder="Sure there are many things..."></textarea>
@@ -1514,13 +1418,8 @@
             </div>
           </div>
 
-          <div class="q-reveal-row" data-after="2">
-            <button type="button" class="q-reveal-btn" data-action="reveal" aria-label="Show the next question" data-aria-en="Show the next question" data-aria-es="Mostrar la siguiente pregunta" title="Show the next question">+</button>
-          </div>
-
           <div class="q" data-base="3">
             <span class="fire" aria-hidden="true"></span>
-            <button type="button" class="q-collapse" data-action="collapse" aria-label="Collapse this question" data-aria-en="Collapse this question" data-aria-es="Plegar esta pregunta" title="Collapse this question">✕</button>
             <label for="q3"><span class="en" lang="en">What would you like <span class="other-gender">the other gender</span> to develop more?</span><span class="es" lang="es">¿Qué te gustaría que <span class="other-gender">el otro género</span> desarrollara más?</span></label>
             <div class="field">
               <textarea id="q3" name="their_growth" rows="2" maxlength="1000" placeholder="Growth in them you’d love to see…"></textarea>
@@ -1535,11 +1434,6 @@
         </section>
       </section>
 
-      <div class="more-controls" id="moreControls">
-        <div class="more-row" data-step="1">
-          <button type="button" class="big-more-btn" data-action="more"><span class="en" lang="en">Show more</span><span class="es" lang="es">Mostrar más</span></button>
-        </div>
-      </div>
     </form>
 
     <button type="button" class="summary-toggle" id="summaryToggle" aria-controls="summarySection" aria-expanded="false">
@@ -2020,41 +1914,10 @@
     const qsContainer = document.querySelector('.qs');
 
     // ===== Progressive reveal of the base 3 questions =====
-    // data-reveal on the base group = how many of Q1/Q2/Q3 are shown.
-    // + reveals the next; the collapse ✕ on the last-revealed steps back.
-    qsContainer.addEventListener('click', e => {
-      const reveal = e.target.closest('.q-reveal-btn');
-      if (reveal){
-        const group = reveal.closest('.q-group');
-        if (!group) return;
-        const n = Number(group.dataset.reveal || '1');
-        if (n < 3) group.dataset.reveal = String(n + 1);
-        return;
-      }
-      const collapse = e.target.closest('.q-collapse');
-      if (collapse){
-        const group = collapse.closest('.q-group');
-        const qDiv  = collapse.closest('.q');
-        if (!group || !qDiv) return;
-        const base = Number(qDiv.dataset.base || '0');
-        if (base >= 2) group.dataset.reveal = String(base - 1);
-        return;
-      }
-    });
-
-    // Reveal both Q2 & Q3 at once (used by typing in Q1 and by "Show more").
-    function revealAllBase(){
-      const baseGroup = qsContainer.querySelector('.q-group[data-reveal]');
-      if (baseGroup) baseGroup.dataset.reveal = '3';
-      // Nothing further to reveal — retire the "Show more" control if present.
-      document.querySelectorAll('#moreControls .more-row').forEach(r => r.remove());
-    }
-
-    // The moment anything is typed in the first field, the other two
-    // questions (which used to be always present) appear.
-    document.getElementById('q1')?.addEventListener('input', e => {
-      if (e.target.value.trim()) revealAllBase();
-    });
+    // Q2 & Q3 are gated purely by CSS on whether Q1 has text (see the
+    // `.q-group:has(.q[data-base="1"] textarea:not(:placeholder-shown))` rule).
+    // Nothing to wire up here — filling Q1 reveals them, clearing it hides them,
+    // and a reload lands on an empty Q1 so they start hidden ("restart from 0").
 
     function makeQ(labelInnerHTML, placeholder){
       const id = 'q' + (nextQId++);
@@ -2098,19 +1961,6 @@
       p.appendChild(span);
       answerEls[id] = span.querySelector('[data-answer="' + id + '"]');
     }
-    /* "Show more" no longer adds questions — it simply reveals the two
-       questions (Q2 & Q3) that were always part of the form, then retires
-       itself since there is nothing further to show. */
-    const moreControls = document.getElementById('moreControls');
-
-    moreControls.addEventListener('click', e => {
-      const btn = e.target.closest('button[data-action="more"]');
-      if (!btn) return;
-      revealAllBase();
-      const row = btn.closest('.more-row');
-      if (row) row.remove();
-    });
-
     // ===== More formal / More informal style switch (per group) =====
     // Each variant carries an {en, es} pair; <other> becomes a per-language
     // .other-gender span so the men/women swap keeps working in both languages.
@@ -2554,7 +2404,6 @@
     // ----- serialize the live form into a plain object -----
     function serializeState(){
       const checked = document.querySelector('input[name="iam"]:checked');
-      const baseGroup = qsContainer.querySelector('.q-group[data-reveal]');
       const questions = [];
       qsContainer.querySelectorAll('.q').forEach(q => {
         const ta    = q.querySelector('textarea');
@@ -2571,7 +2420,6 @@
       return {
         iam:    checked ? checked.value : null,
         style:  currentStyle(),
-        reveal: baseGroup ? (baseGroup.dataset.reveal || '1') : '1',
         questions
       };
     }
@@ -2608,13 +2456,8 @@
         const r = [...radios].find(x => x.value === data.iam);
         if (r){ r.checked = true; }
       }
-      // 2) reveal count on the base group
-      const baseGroup = qsContainer.querySelector('.q-group[data-reveal]');
-      if (baseGroup && data.reveal){
-        const n = Math.max(1, Math.min(3, parseInt(data.reveal, 10) || 1));
-        baseGroup.dataset.reveal = String(n);
-        if (n >= 3){ document.querySelectorAll('#moreControls .more-row').forEach(rw => rw.remove()); }
-      }
+      // 2) Q2/Q3 visibility is derived purely from Q1's content (CSS gate) —
+      //    restoring the saved answers below is enough to bring them back.
       // 3) rebuild user-added questions (those with no data-base), in order,
       //    above the base ones — mirrors the live "add a question" path.
       const added = (data.questions || []).filter(q => !q.base && q.labelHtml);
@@ -2684,11 +2527,8 @@
     radios.forEach(r => r.addEventListener('change', () => afterEdit()));
     document.addEventListener('click', e => {
       if (e.target.closest('#labelersList a[data-style]') ||
-          e.target.closest('.q-reveal-btn') ||
-          e.target.closest('.q-collapse') ||
           e.target.closest('.q-delete') ||
-          e.target.closest('#saveNewQBtn') ||
-          e.target.closest('[data-action="more"]')){
+          e.target.closest('#saveNewQBtn')){
         setTimeout(afterEdit, 0);
       }
     });

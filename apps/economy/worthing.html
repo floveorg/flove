@@ -3011,30 +3011,38 @@
         showToast(t().updated);
       });
 
-      // RESET — destructive, confirm()-guarded, bilingual; clears ONLY our own keys
+      // RESET — destructive, confirm()-guarded; clears ONLY our own keys, then
+      // reloads to rebuild the default state (§5.3/§10.3a: reset starts fresh).
       document.querySelector('[data-flove-reset]')?.addEventListener('click', () => {
         if (!confirm(t().resetConfirm)) return;
-        hydrating = true;              // suppress save-thrash during teardown
-        customCats.slice().forEach(c => c.card.querySelector('.del')?.click());
-        document.querySelectorAll('.board input[type=radio]:checked').forEach(r => r.checked = false);
-        document.querySelectorAll('.sub-card .note input').forEach(i => { i.value = ''; });
-        document.querySelectorAll('.sub-card.note-open, .added-cat.note-open').forEach(n => n.classList.remove('note-open'));
-        nameInput.value = '';
-        hydrating = false;
         store.clear();                 // NEVER localStorage.clear() — origin is shared
-        clearStale();
-        refresh();
-        // back to the first step (top of the board)
-        document.querySelector('.board')?.scrollIntoView({ behavior:'smooth', block:'start' });
-        showToast(t().resetDone);
+        location.reload();             // fresh default DOM + intro available again
       });
 
       // Re-localize the JS-built bits (resume echo, charts) when language flips
       window.__worthRelabel = refresh;
 
-      // boot: hydrate from storage if present, then arm edit listeners
-      const _boot = store.read();
-      if (_boot) hydrate(_boot); else refresh();
+      // A RELOAD (F5 / reload logo) starts fresh: override persistence so a plain
+      // reload behaves like Reset (§5.3/§10.3a). Closing + reopening still restores.
+      function navIsReload(){
+        try{
+          const nav = performance.getEntriesByType &&
+                      performance.getEntriesByType('navigation')[0];
+          if (nav && nav.type) return nav.type === 'reload';
+          if (performance.navigation) return performance.navigation.type === 1; // legacy
+        } catch(_){}
+        return false;
+      }
+
+      // boot: on reload → clear our own keys + skip restore (empty default);
+      // on a fresh open → hydrate from storage if present. Then arm edit listeners.
+      if (navIsReload()){
+        store.clear();                 // same mechanism Reset uses; only OWN_KEYS
+        refresh();
+      } else {
+        const _boot = store.read();
+        if (_boot) hydrate(_boot); else refresh();
+      }
       loaded = true;
     })();
   </script>

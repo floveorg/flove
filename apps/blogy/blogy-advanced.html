@@ -9540,6 +9540,31 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   }
   function lsDel(k){ try { localStorage.removeItem(k); } catch(e){} }
 
+  /* remove ONLY this app's own content keys — never localStorage.clear();
+     leaves the compass display-mode ('blogy-compass-mode') and language pref
+     untouched (they are not flove:blogy* / flove.blogy* namespaced). */
+  function clearOwnKeys(){
+    var kill = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++){
+        var key = localStorage.key(i);
+        if (key && (key.indexOf('flove:blogy') === 0 || key.indexOf('flove.blogy') === 0)) kill.push(key);
+      }
+    } catch(e){}
+    kill.forEach(lsDel);
+  }
+
+  /* reload (F5 / reload logo) and Reset start fresh; a plain reopen restores. */
+  function navIsReload(){
+    try{
+      var nav = performance.getEntriesByType &&
+                performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    } catch(_){}
+    return false;
+  }
+
   /* ── snapshot / restore the live selection state ── */
   function snapshot(){
     var radios = {};
@@ -9620,32 +9645,11 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
       ? '¿Borrar todo y empezar de nuevo? Esto no se puede deshacer.'
       : 'Clear everything and start a new play? This cannot be undone.';
     if (!window.confirm(msg)) return;
-    /* clear in-DOM selections — radios back to their *-0 / -none default,
-       checkboxes off, contenteditable + textareas emptied, active/selected off */
-    Array.prototype.forEach.call(document.querySelectorAll('input[type="radio"][name^="rate-"]'), function(r){
-      r.checked = /-0$/.test(r.id || '');
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('input[id^="pkr-"]'), function(c){ c.checked = false; });
-    Array.prototype.forEach.call(document.querySelectorAll('input[id^="rater-show-"]'), function(c){ c.checked = false; });
-    Array.prototype.forEach.call(document.querySelectorAll('textarea'), function(t){ t.value = ''; });
-    Array.prototype.forEach.call(document.querySelectorAll('[contenteditable="true"]'), function(c){ c.textContent = ''; });
-    Array.prototype.forEach.call(document.querySelectorAll('.active, .selected'), function(el){
-      el.classList.remove('active'); el.classList.remove('selected');
-    });
-    /* remove ONLY this app's namespaced keys — never localStorage.clear() */
-    var kill = [];
-    try {
-      for (var i = 0; i < localStorage.length; i++){
-        var key = localStorage.key(i);
-        if (key && (key.indexOf('flove:blogy') === 0 || key.indexOf('flove.blogy') === 0)) kill.push(key);
-      }
-    } catch(e){}
-    kill.forEach(lsDel);
-    /* back to the first step */
-    var first = document.getElementById('step-0');
-    if (first) first.checked = true;
-    reRender();
-    hideStale();
+    /* clear this app's own content keys, then reload for a fresh empty default
+       (the reload path re-clears + skips restore, and step-0 / Introduction is
+       the default-checked step, so the intro replays). */
+    clearOwnKeys();
+    location.reload();
   }
 
   /* ── wiring ── */
@@ -9673,8 +9677,11 @@ body:has(#insight-4:checked) .insight-4-content{ display: block; }
   document.addEventListener('change', onEdit);
   document.addEventListener('input', function(ev){ if (ev.target && ev.target.tagName === 'TEXTAREA') onEdit(ev); });
 
-  /* hydrate on load, then snapshot the (possibly empty) starting state */
-  hydrate();
+  /* On a fresh reopen, hydrate saved selections; a RELOAD (F5 / reload logo)
+     starts fresh — clear own content keys and skip restore. Then snapshot the
+     (possibly empty) starting state. */
+  if (navIsReload()) clearOwnKeys();
+  else hydrate();
   reRender();
   hideStale();
   persistState();

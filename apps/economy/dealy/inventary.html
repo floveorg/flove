@@ -3514,8 +3514,25 @@
       renderAllCategories();
     }
 
+    // A fresh OPEN restores saved choices; a RELOAD (F5 / reload logo) starts
+    // fresh — clear this app's own keys and skip restore (§5.3 / §10.3a).
+    function navIsReload() {
+      try {
+        const nav = performance.getEntriesByType &&
+                    performance.getEntriesByType('navigation')[0];
+        if (nav && nav.type) return nav.type === 'reload';
+        if (performance.navigation) return performance.navigation.type === 1; // legacy
+      } catch (_) {}
+      return false;
+    }
+
     // Initialize · no category expanded by default (all items shown, no active tab)
-    restoreState();
+    if (navIsReload()) {
+      // Empty ONLY this app's own keys — never localStorage.clear() (§10.3a).
+      try { localStorage.removeItem(LS_KEY); } catch (_) {}
+      try { localStorage.removeItem(LS_SCHEMA_KEY); } catch (_) {}
+    }
+    restoreState();  // no key present after a reload → renders empty default
     filterByCategory(null);
     updateAllHighlights();
     updateCounts();
@@ -3539,17 +3556,12 @@
           : 'Clear everything and start a new play? This cannot be undone.'
       );
       if (!ok) return;
-      clearLiveState();
       // Empty ONLY this app's own keys — never localStorage.clear() (§10.3a).
       try { localStorage.removeItem(LS_KEY); } catch (_) {}
       try { localStorage.removeItem(LS_SCHEMA_KEY); } catch (_) {}
-      activeCat = 'all';
-      lastSpecificCat = null;
-      filterByCategory(null);
-      updateAllHighlights();
-      updateCounts();
-      renderAllCategories();
-      clearStale();
+      // Reload for a clean slate — the reload gate above then skips restore and
+      // renders the empty default, so Reset and reload land identically.
+      location.reload();
     }
     document.querySelectorAll('[data-flove-reset]').forEach(b => b.addEventListener('click', onReset));
 

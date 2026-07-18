@@ -600,6 +600,25 @@
   // NEVER localStorage.clear() — other flove apps share this origin).
   const OWN_KEYS = [STORAGE_KEY];
 
+  // ✦ §5.3/§10.3a — persistence survives a genuine CLOSE→REOPEN, but a RELOAD
+  // (F5 / reload logo) and Reset START FRESH: they clear this file's own keys
+  // and skip the restore, so the empty default board returns. Detect a reload
+  // via the Navigation Timing API (legacy fallback included).
+  function navIsReload(){
+    try{
+      const nav = performance.getEntriesByType &&
+                  performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type === 'reload';
+      if (performance.navigation) return performance.navigation.type === 1; // legacy
+    } catch(_){}
+    return false;
+  }
+  // A reload overrides persistence: wipe own keys up-front (before _hadPriorSave
+  // seeds and before boot restore), so the restore is skipped and the state is
+  // as if never saved. NEVER localStorage.clear() — other flove apps share origin.
+  const _isReload = navIsReload();
+  if (_isReload){ try { OWN_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){} }
+
   // request durable storage once, on first user interaction (best-effort)
   let _persistAsked = false;
   function requestPersist(){
@@ -1273,7 +1292,7 @@
 
   // ── boot ────────────────────────────────────────────────────
   ensureLayers();
-  loadPlacements();
+  if (!_isReload) loadPlacements();   // reopen restores · reload starts fresh (own keys already cleared above)
   renderWillsList();
   updateLayerVisibility();
 

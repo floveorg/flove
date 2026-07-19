@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Democlick · FLOVE</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff5fd1' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><circle cx='12' cy='12' r='8' opacity='.5'/></svg>">
+<style>
+  /* ======= Palette (from hoty) ======= */
+  :root{
+    --c1:#ff5fd1; --c2:#7b6cff; --c3:#3ad6ff; --c4:#34f2b1;
+    --c5:#f7e072; --c6:#ff9648; --c7:#ff5b6b;
+  }
+  *{box-sizing:border-box}
+
+  html,body{position:relative;z-index:1}
+  html{ background:transparent }
+  body{
+    margin:0;
+    min-height:100vh;
+    /* Same soft lavender field the fuzzy puffs sit on in hoty. */
+    background:
+      radial-gradient(60% 45% at 15% 10%,  rgba(8,6,18,.08)   0%, transparent 70%),
+      radial-gradient(55% 50% at 85% 25%,  rgba(6,5,16,.056)  0%, transparent 70%),
+      radial-gradient(70% 55% at 50% 90%,  rgba(10,8,22,.088) 0%, transparent 70%),
+      radial-gradient(45% 40% at 30% 60%,  rgba(232,226,244,.22) 0%, transparent 70%),
+      #c2bcd5;
+    background-attachment: fixed;
+    /* the whole page is clickable, so bursts fire anywhere */
+    cursor: crosshair;
+  }
+
+  #fxCanvas{ position:fixed; inset:0; width:100vw; height:100vh; z-index:0; pointer-events:none; }
+</style>
+</head>
+<body>
+  <canvas id="fxCanvas" aria-hidden="true"></canvas>
+
+  <script>
+  /* ====================================================================
+     FUZZY FX — background of colourful fuzzy puffs + click bursts.
+     Lifted from hoty.html, stripped of all page/content-specific code:
+     only the ambient background and the click-to-burst behaviour remain.
+  ==================================================================== */
+  (() => {
+    const canvas = document.getElementById('fxCanvas');
+    const ctx = canvas.getContext('2d');
+    let DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    let W = 0, H = 0;
+
+    function resize(){
+      DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      W = canvas.width  = Math.floor(window.innerWidth  * DPR);
+      H = canvas.height = Math.floor(window.innerHeight * DPR);
+      canvas.style.width  = window.innerWidth  + 'px';
+      canvas.style.height = window.innerHeight + 'px';
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const root = getComputedStyle(document.documentElement);
+    const PALETTE = ['--c1','--c2','--c3','--c4','--c5','--c6','--c7']
+      .map(v => (root.getPropertyValue(v).trim() || '#fff'));
+    function hexToRgb(hex){
+      const h = hex.replace('#','');
+      const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+      const n = parseInt(full,16);
+      return [ (n>>16)&255, (n>>8)&255, n&255 ];
+    }
+    const RGB = PALETTE.map(hexToRgb);
+
+    const puffs = [];
+    function makeLobes(n){
+      const lobes = [];
+      for (let i = 0; i < n; i++){
+        lobes.push({
+          ang: Math.random() * Math.PI * 2,
+          dist: 0.25 + Math.random() * 0.55,
+          size: 0.45 + Math.random() * 0.45,
+          spin: (Math.random() - 0.5) * 0.06,
+          orbSeed: Math.random() * 1000,
+        });
+      }
+      return lobes;
+    }
+    function makeAmbient(speedBoost = 1){
+      const cIdx = Math.floor(Math.random() * RGB.length);
+      puffs.push({
+        x: Math.random() * W, y: H + Math.random() * 40 * DPR,
+        vx: (Math.random() - 0.5) * 0.5 * DPR,
+        vy: -(0.25 + Math.random() * 0.7) * DPR * speedBoost,
+        age: 0, life: 220 + Math.random() * 180,
+        r0: (16 + Math.random() * 40) * DPR,
+        grow: 0.10 + Math.random() * 0.20,
+        cIdx, hueShift: 0,
+        hueRate: 0.0035 + Math.random() * 0.006,
+        seed: Math.random() * 1000,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 0.03,
+        breath: 0.06 + Math.random() * 0.10,
+        breathF: 0.03 + Math.random() * 0.04,
+        lobes: makeLobes(3 + Math.floor(Math.random() * 3)),
+        burst: false,
+      });
+    }
+    function makeBurst(x, y, angle, scale){
+      const cIdx = Math.floor(Math.random() * RGB.length);
+      const speed = (1.8 + Math.random() * 3.2) * DPR * scale;
+      puffs.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.3 * DPR,
+        age: 0, life: 60 + Math.random() * 50,
+        r0: (16 + Math.random() * 26) * DPR * (0.8 + 0.5 * scale),
+        grow: 0.30 + Math.random() * 0.45,
+        cIdx, hueShift: 0,
+        hueRate: 0.012 + Math.random() * 0.018,
+        seed: Math.random() * 1000,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 0.10,
+        breath: 0.10 + Math.random() * 0.18,
+        breathF: 0.06 + Math.random() * 0.08,
+        lobes: makeLobes(2 + Math.floor(Math.random() * 3)),
+        burst: true,
+      });
+    }
+    function paletteSample(idx){
+      const n = RGB.length;
+      const i0 = ((Math.floor(idx) % n) + n) % n;
+      const i1 = (i0 + 1) % n;
+      const f  = idx - Math.floor(idx);
+      const [a0,b0,c0] = RGB[i0];
+      const [a1,b1,c1] = RGB[i1];
+      return [ a0 + (a1 - a0) * f, b0 + (b1 - b0) * f, c0 + (c1 - c0) * f ];
+    }
+    function drawPuff(p){
+      const t = p.age / p.life;
+      if (t >= 1) return;
+      const fade = p.burst ? (1 - t) * (t < 0.15 ? t/0.15 : 1) : Math.sin(t * Math.PI);
+      const breath = 1 + Math.sin(p.age * p.breathF + p.seed) * p.breath;
+      let r;
+      if (p.burst){
+        const expand = 0.12 + Math.pow(t, 0.4) * 2.2;
+        r = p.r0 * expand * breath;
+      } else {
+        r = p.r0 * (1 + p.grow * p.age * 0.05) * breath;
+      }
+      const wobX = Math.sin(p.age * 0.09 + p.seed) * r * 0.10;
+      const wobY = Math.cos(p.age * 0.13 + p.seed * 0.7) * r * 0.08;
+      const x = p.x + wobX; const y = p.y + wobY;
+      const base = p.cIdx + p.hueShift;
+      const [cR, cG, cB] = paletteSample(base);
+      const [dR, dG, dB] = paletteSample(base + 2.3);
+      const aOut = (p.burst ? 0.55 : 0.34) * fade;
+      ctx.globalCompositeOperation = 'screen';
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0.00, `rgba(${cR|0},${cG|0},${cB|0},${aOut})`);
+      g.addColorStop(0.55, `rgba(${dR|0},${dG|0},${dB|0},${aOut * 0.55})`);
+      g.addColorStop(1.00, `rgba(${dR|0},${dG|0},${dB|0},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < p.lobes.length; i++){
+        const lobe = p.lobes[i];
+        const ang  = lobe.ang + p.rot + p.age * lobe.spin;
+        const distPulse = 1 + Math.sin(p.age * 0.07 + lobe.orbSeed) * 0.18;
+        const lx = x + Math.cos(ang) * r * lobe.dist * distPulse;
+        const ly = y + Math.sin(ang) * r * lobe.dist * distPulse;
+        const lr = r * lobe.size * (0.85 + Math.sin(p.age * 0.11 + lobe.orbSeed) * 0.15);
+        const [eR, eG, eB] = paletteSample(base + 0.7 + i * 0.9);
+        const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr);
+        lg.addColorStop(0,    `rgba(${eR|0},${eG|0},${eB|0},${aOut * 0.85})`);
+        lg.addColorStop(0.65, `rgba(${eR|0},${eG|0},${eB|0},${aOut * 0.30})`);
+        lg.addColorStop(1,    `rgba(${eR|0},${eG|0},${eB|0},0)`);
+        ctx.fillStyle = lg;
+        ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2); ctx.fill();
+      }
+      const cx = x + Math.cos(p.rot * 1.3 + p.seed) * r * 0.10;
+      const cy = y + Math.sin(p.rot * 1.3 + p.seed) * r * 0.10;
+      const gi = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.42);
+      gi.addColorStop(0, `rgba(255,255,255,${aOut * 0.55})`);
+      gi.addColorStop(1, `rgba(255,255,255,0)`);
+      ctx.fillStyle = gi;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    let intensity = 1; let t = 0;
+    function step(){
+      ctx.clearRect(0, 0, W, H);
+      for (let i = puffs.length - 1; i >= 0; i--){
+        const f = puffs[i];
+        drawPuff(f);
+        f.x += f.vx;
+        f.y += f.vy * intensity;
+        f.rot += f.rotV;
+        f.hueShift += f.hueRate;
+        if (!f.burst){
+          f.vx += Math.sin((f.age + f.seed) * 0.01) * 0.006 * DPR;
+          f.vy += Math.cos((f.age + f.seed) * 0.008) * 0.003 * DPR;
+        } else { f.vx *= 0.97; f.vy *= 0.97; }
+        f.age++;
+        if (f.age >= f.life || f.y + f.r0 < -50 || f.y - f.r0 > H + 50) puffs.splice(i, 1);
+      }
+      const ambientTarget = 4;
+      const burstScale = Math.min(intensity, 2.5);
+      const target = Math.floor(ambientTarget * burstScale);
+      const ambientCount = puffs.reduce((n,f) => n + (f.burst ? 0 : 1), 0);
+      const toSpawn = Math.min(2, target - ambientCount);
+      for (let i = 0; i < toSpawn; i++) makeAmbient(1);
+      intensity += (1 - intensity) * 0.04;
+      t += 0.016;
+      requestAnimationFrame(step);
+    }
+    step();
+
+    function burstAt(clientX, clientY, scale = 1, countMul = 1){
+      // Background colour burst (matches hoty's 25%-of-original spec).
+      intensity = Math.min(intensity + 0.225 * scale, 1 + 0.75 * scale);
+      const x = clientX * DPR; const y = clientY * DPR;
+      const n = Math.floor((10 + 8 * scale) * countMul * 0.25);
+      for (let i = 0; i < n; i++){
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * 8 * DPR;
+        makeBurst(x + Math.cos(a) * r, y + Math.sin(a) * r, a, scale);
+      }
+    }
+    window.floveFX = { burst: burstAt };
+
+    /* Click anywhere → colour burst at the pointer. */
+    document.addEventListener('click', e => {
+      burstAt(e.clientX, e.clientY, 0.7);
+    }, true);
+  })();
+  </script>
+</body>
+</html>

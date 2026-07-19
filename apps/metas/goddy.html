@@ -1386,22 +1386,11 @@
             </div>
         </div>
         <div class="btn-with-subs" id="publishWrap">
-            <div class="subitems subitems-above">
-                <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP0" data-r="0" data-platform="Mastodon" aria-hidden="true" tabindex="-1">
-                <label class="subitem is-radio" for="pubP0" data-r="0" data-group="publish">Mastodon</label>
-                <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP1" data-r="1" data-platform="Bluesky" aria-hidden="true" tabindex="-1">
-                <label class="subitem is-radio" for="pubP1" data-r="1" data-group="publish">Bluesky</label>
-                <input class="subitem-radio" type="radio" name="publishPlatform" id="pubP2" data-r="2" data-platform="X" aria-hidden="true" tabindex="-1">
-                <label class="subitem is-radio" for="pubP2" data-r="2" data-group="publish">X</label>
-            </div>
             <button type="button" class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i> <span class="en" lang="en">Publish</span><span class="es" lang="es">Publicar</span></button>
-            <div class="subitems subitems-below">
-                <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV0" data-r="0" data-visibility="Public" aria-hidden="true" tabindex="-1">
-                <label class="subitem is-radio" for="pubV0" data-r="0" data-group="publish"><span class="en" lang="en">Public</span><span class="es" lang="es">Público</span></label>
-                <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV1" data-r="1" data-visibility="Friends" aria-hidden="true" tabindex="-1">
-                <label class="subitem is-radio" for="pubV1" data-r="1" data-group="publish"><span class="en" lang="en">Friends</span><span class="es" lang="es">Amigos</span></label>
-                <input class="subitem-radio" type="radio" name="publishVisibility" id="pubV2" data-r="2" data-visibility="Private" aria-hidden="true" tabindex="-1">
-                <label class="subitem is-radio" for="pubV2" data-r="2" data-group="publish"><span class="en" lang="en">Private</span><span class="es" lang="es">Privado</span></label>
+            <div class="subitems subitems-above">
+                <button type="button" class="subitem" data-group="publish" data-action="appy"><i class="fas fa-user"></i> Appy</button>
+                <button type="button" class="subitem" data-group="publish" data-action="wizy"><i class="fas fa-wand-magic-sparkles"></i> Wizy</button>
+                <button type="button" class="subitem" data-group="publish" data-action="more"><i class="fas fa-ellipsis"></i> <span class="en" lang="en">More</span><span class="es" lang="es">Más</span></button>
             </div>
         </div>
     </div>
@@ -1410,6 +1399,8 @@
     <div class="hint-area" id="hintMessage"></div>
 </div>
 
+<!-- Appy profile bridge (receiver-style, no floating button) — powers Publish → Appy/Wizy -->
+<script src="../appy/flove-appy.js" defer></script>
 <script>
     (function(){
         "use strict";
@@ -1511,16 +1502,7 @@
         }
         saveBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleWrap(wraps.save); });
         shareBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleWrap(wraps.share); });
-        publishBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (wraps.publish.classList.contains('is-open')) {
-                notImplementedYet();
-                wraps.publish.classList.remove('is-open');
-            } else {
-                closeAllWraps();
-                wraps.publish.classList.add('is-open');
-            }
-        });
+        publishBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleWrap(wraps.publish); });
         // clicks inside any open wrap shouldn't bubble to closeAllWraps
         Object.values(wraps).forEach(w => w.addEventListener('click', e => e.stopPropagation()));
         document.addEventListener('click', () => closeAllWraps());
@@ -1709,20 +1691,64 @@
             'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> ' + bx('Opening WhatsApp…', 'Abriendo WhatsApp…')); },
             'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> ' + bx('Opening Telegram…', 'Abriendo Telegram…')); },
             'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> ' + bx('Opening Mail…', 'Abriendo el correo…')); },
+            // Publish → Appy · Wizy · More
+            'publish:appy': () => saveToProfile(false),
+            'publish:wizy': () => saveToProfile(true),
+            'publish:more': () => setHint('<i class="fas fa-ellipsis"></i> '
+                + bx('Further networks (nety · 0asis) — coming.', 'Más redes (nety · 0asis) — próximamente.')),
         };
 
-        // Publish is not wired to any backend yet — every publish sub-option
-        // (platform + visibility) just says so, and keeps the panel open.
-        function notImplementedYet() {
-            setHint('<i class="fas fa-screwdriver-wrench"></i> '
-                + '<span class="en" lang="en">These features are not implemented… yet…</span>'
-                + '<span class="es" lang="es">Estas funciones no están implementadas… todavía…</span>');
+        // Wizy extra — an agent-oriented block folded into the SAME summary
+        // record. Lets any agent (local MyWizy, or an external one) act on a
+        // Goddy result without guessing the structure. Phase 0/1: purely
+        // descriptive, no backend.
+        function buildAgentBlock(m) {
+            return {
+                prompt: 'You are handed a Goddy matrix: a 3×3 grid of who-sees-who across '
+                    + 'goddess · god · us, each connection rated 1–3 (level). '
+                    + 'Read the cells and the phrase, then help the user reflect on the '
+                    + 'pattern of attention — where intensity concentrates, what is unmapped, '
+                    + 'and one gentle question about a cell they might revisit.',
+                schema: {
+                    app: 'app slug (Goddy)',
+                    phrase: 'one-line human summary the app composed',
+                    count: 'number of mapped connections',
+                    intensity: 'sum of all cell levels',
+                    max: 'maximum possible intensity (27)',
+                    cells: 'array of { from, to, level } — from/to are goddess|god|us, level 1–3'
+                },
+                context: {
+                    source: 'goddy · FLOVE',
+                    url: 'https://flove.org/apps/metas/goddy.html',
+                    axis: 'meta (goddess · god · us)'
+                },
+                suggestions: [
+                    'Point out where attention concentrates (highest-level cells).',
+                    'Name any unmapped pairings and ask if that absence is intentional.',
+                    'Offer one question about a single cell the user might revisit.'
+                ]
+            };
+        }
+
+        // Publish → Appy / Wizy. Both save the summary straight into the Appy
+        // profile (same-origin localStorage bridge) — no manual upload. Wizy
+        // adds an `agent` block into the SAME summary record (edge of F0).
+        function saveToProfile(withAgent) {
+            if (!window.floveAppy) {
+                setHint('<i class="fas fa-triangle-exclamation"></i> ' + bx('Appy bridge not loaded.', 'Puente de Appy no cargado.'));
+                return;
+            }
+            const summary = window.floveSummary();
+            if (withAgent) summary.agent = buildAgentBlock(summary);
+            window.floveAppy.publish({ app: 'Goddy', summary: summary });
+            setHint(withAgent
+                ? '<i class="fas fa-wand-magic-sparkles"></i> ' + bx('Saved to your Appy profile, ready for your agent ✓', 'Guardado en tu perfil de Appy, listo para tu agente ✓')
+                : '<i class="fas fa-user-check"></i> ' + bx('Saved to your Appy profile ✓', 'Guardado en tu perfil de Appy ✓'));
         }
 
         document.querySelectorAll('.subitem').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (btn.dataset.group === 'publish') { notImplementedYet(); return; }
                 const fn = subActions[`${btn.dataset.group}:${btn.dataset.action}`];
                 if (fn) fn();
                 closeAllWraps();

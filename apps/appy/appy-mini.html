@@ -4471,6 +4471,8 @@ buildFeatureTiers();
 render();
 switchTab('profile');
 </script>
+<!-- Appy profile bridge — synchronous so window.floveAppy exists before the upload IIFE hydrates -->
+<script src="flove-appy.js"></script>
 <script>
 /* --- Upload section: play apps by uploading their summary.json --- */
 (function(){
@@ -4632,6 +4634,22 @@ switchTab('profile');
     grid.appendChild(card);
     if (window.applyLang) applyLang();
   }
+
+  // Auto-appear: render apps published straight from an app (same-origin
+  // bridge) — no manual upload needed. Manual upload stays as import fallback.
+  (function hydrateFromBridge(){
+    if (!window.floveAppy) return;
+    window.floveAppy.played().forEach(rec => {
+      if (!rec || !rec.app || !RAINBOW[rec.app]) return;
+      const btn = document.querySelector('.rb[data-app="' + rec.app + '"]');
+      const raw = (rec.summary && typeof rec.summary === 'object')
+        ? JSON.stringify(rec.summary, null, 2)
+        : String(rec.summary ?? '');
+      uploadCount[rec.app] = (uploadCount[rec.app] || 0) + 1;
+      addPlayedApp(rec.app, rec.app + '-summary.json', raw, btn);
+      updateCardCount(rec.app, uploadCount[rec.app]);
+    });
+  })();
 
   refreshUploadUI();
 })();

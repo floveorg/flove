@@ -1896,7 +1896,7 @@ body:has(#lang-es:checked) .es{display:inline}
 <symbol id="mark-inventary" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="9.5" height="8" rx="1.2"/><rect x="11" y="4.5" width="9.5" height="8" rx="1.2"/><path d="M13.6 8.3 l1.6 1.6 L18.4 6.7"/></symbol>
 <symbol id="mark-keys" viewBox="0 0 100 100"><g fill="#fff" stroke="none"><g transform="rotate(0 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(72 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><g transform="rotate(288 50 50)"><ellipse cx="50" cy="26" rx="6.5" ry="17"/></g><circle cx="50" cy="50" r="4.5"/></g></symbol>
 <symbol id="mark-reward" viewBox="0 0 100 100"><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="38" width="60" height="46" rx="2" stroke="#fff" fill="none"/><line x1="50" y1="38" x2="50" y2="84" stroke="#fff"/><line x1="20" y1="54" x2="80" y2="54" stroke="#fff"/><path d="M34 30 Q44 12 50 30 Q56 12 66 30 L66 38 L34 38 Z" fill="#fff" stroke="none"/></g></symbol>
-<symbol id="mark-shareful" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.5"/><circle cx="18.5" cy="12" r="1.4"/><circle fill="#fff" stroke="none" cx="12" cy="12" r="2"/></symbol>
+<symbol id="mark-shary" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.5"/><circle cx="18.5" cy="12" r="1.4"/><circle fill="#fff" stroke="none" cx="12" cy="12" r="2"/></symbol>
   </defs></svg>
 
 
@@ -2095,7 +2095,7 @@ body:has(#lang-es:checked) .es{display:inline}
             <a class="appbtn" style="--c:#6b6bd9" href="../economy/dealy/freed.html" data-app="Freed" title="Freed" aria-label="Freed" onclick="appJump(event,this)"><svg class="flove-mark" aria-hidden="true"><use href="#mark-freed"/></svg><span>Freed</span></a>
             <a class="appbtn" style="--c:#6b6bd9" href="../economy/dealy/inventary.html" data-app="Inventary" title="Inventary" aria-label="Inventary" onclick="appJump(event,this)"><svg class="flove-mark" aria-hidden="true"><use href="#mark-inventary"/></svg><span>Inventary</span></a>
             <a class="appbtn" style="--c:#6b6bd9" href="../economy/dealy/rewardy.html" data-app="Rewardy" title="Rewardy" aria-label="Rewardy" onclick="appJump(event,this)"><svg class="flove-mark" aria-hidden="true"><use href="#mark-reward"/></svg><span>Rewardy</span></a>
-            <a class="appbtn" style="--c:#6b6bd9" href="../economy/dealy/shareful.html" data-app="Shareful" title="Shareful" aria-label="Shareful" onclick="appJump(event,this)"><svg class="flove-mark" aria-hidden="true"><use href="#mark-shareful"/></svg><span>Shareful</span></a>
+            <a class="appbtn" style="--c:#6b6bd9" href="../economy/dealy/shary.html" data-app="Shary" title="Shary" aria-label="Shary" onclick="appJump(event,this)"><svg class="flove-mark" aria-hidden="true"><use href="#mark-shary"/></svg><span>Shary</span></a>
             <a class="appbtn" style="--c:#b27aff" href="../puzzy/keys/keys-advanced.html" data-app="Keys" title="Keys" aria-label="Keys" onclick="appJump(event,this)"><svg class="flove-mark" aria-hidden="true"><use href="#mark-keys"/></svg><span>Keys</span></a>
           </div>
         </section>
@@ -4514,6 +4514,8 @@ buildFeatureTiers();
 render();
 switchTab('profile');
 </script>
+<!-- Appy profile bridge — synchronous so window.floveAppy exists before the upload IIFE hydrates -->
+<script src="flove-appy.js"></script>
 <script>
 /* --- Upload section: play apps by uploading their summary.json --- */
 (function(){
@@ -4662,6 +4664,26 @@ switchTab('profile');
     grid.appendChild(card);
     if (window.applyLang) applyLang();
   }
+
+  // Auto-appear: render apps published straight from an app (same-origin
+  // bridge) — no manual upload needed. Idempotent: safe to call again when a
+  // record changes (addPlayedApp updates the existing card). Manual upload
+  // stays as an import fallback.
+  function hydrateFromBridge(recs){
+    if (!window.floveAppy) return;
+    (recs || window.floveAppy.played()).forEach(rec => {
+      if (!rec || !rec.app || !RAINBOW[rec.app]) return;
+      const btn = document.querySelector('.rb[data-app="' + rec.app + '"]');
+      const raw = (rec.summary && typeof rec.summary === 'object')
+        ? JSON.stringify(rec.summary, null, 2)
+        : String(rec.summary ?? '');
+      if (!uploadCount[rec.app]) uploadCount[rec.app] = 1;   // bridge = 1 record per app (latest wins)
+      addPlayedApp(rec.app, rec.app + '-summary.json', raw, btn);
+    });
+    refreshUploadUI();
+  }
+  hydrateFromBridge();                                        // initial
+  if (window.floveAppy) window.floveAppy.onChange(hydrateFromBridge);  // live: other tab / refocus
 
   refreshUploadUI();
 })();

@@ -2,100 +2,358 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DealyTier</title>
-<meta name="description" content="DealyTier — the offer category switcher: flip between Minidealy, Inventary, Wanty, Dealy advanced and Rewardy in place. Pure CSS, no JavaScript; each category stays its own file. The category nav lives inside each page's own topbar (.tier-pop).">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path fill='%23d32f2f' d='M16 27.5C16 27.5 3.5 19.8 3.5 11.2 3.5 7.3 6.6 4.5 10 4.5 12.7 4.5 15 6 16 8.2 17 6 19.3 4.5 22 4.5 25.4 4.5 28.5 7.3 28.5 11.2 28.5 19.8 16 27.5 16 27.5Z'/></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dealy · FLOVE</title>
+<meta name="description" content="Dealy launcher — climb the neighborhood-economy ladder from mini to super: MiniDealy, Inventary, Wanty, Dealy and Rewardy, each entering into place. Help sits apart as its own node. Pure CSS, no JavaScript.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path fill='%23dc2626' d='M16 27.5C16 27.5 3.5 19.8 3.5 11.2 3.5 7.3 6.6 4.5 10 4.5 12.7 4.5 15 6 16 8.2 17 6 19.3 4.5 22 4.5 25.4 4.5 28.5 7.3 28.5 11.2 28.5 19.8 16 27.5 16 27.5Z'/></svg>">
 <style>
 /* ============================================================
-   dealytier — Pure-CSS category switcher.
+   dealy/index.html — the Dealy launcher.
 
-   Mirrors apps/blogy/index.html: a thin wrapper with NO JavaScript
-   of its own. Five radio inputs drive which iframe shows via the
-   sibling combinator (~). Each category page is the single source
-   of truth for itself; this file only ever embeds it.
+   Replaces the old iframe category-switcher with a landing page
+   that DISPLAYS the family as a mini→super ladder you climb, and
+   LAUNCHES each tier by linking straight to its own page (each
+   page stays the single source of truth for itself).
 
-   The visible category nav lives INSIDE each page's own topbar
-   (.tier-pop), not in this wrapper — switch categories via the
-   embedded page's tier-pop popover.
+   Fully self-contained: no external CSS/JS, no JavaScript at all.
+   Entrance is a pure-CSS staggered "rise" — the ladder fills from
+   the bottom rung (mini) up to the top (super). Help lives OUTSIDE
+   the ladder as its own detached node.
    ============================================================ */
 
 :root{
-  --accent-rgb: 211, 47, 47;
-  --accent:     rgb(var(--accent-rgb));
-  --accent-deep:#9a0007;
-  --ink:        #212121;
-  --ink-soft:   #5a5a5a;
-  --line:       rgba(0, 0, 0, .10);
-  --fill-soft:  rgba(var(--accent-rgb), .07);
-  --font-ui:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --accent:      #dc2626;          /* dealy red — the family frame colour */
+  --accent-deep: #9a0007;
+  --ink:         #241413;
+  --ink-soft:    #6b4a47;
+  --muted:       #9a7a77;
+  --line:        rgba(120, 40, 36, .14);
+  --card:        rgba(255,255,255,.72);
+  --font-ui:     'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display:'Georgia', 'Times New Roman', serif;
+  --ease:        cubic-bezier(.2,.8,.2,1);
 }
 
 *{ box-sizing: border-box; }
-
-html, body{ height: 100%; }
+html,body{ min-height: 100%; }
 body{
   margin: 0;
-  display: flex;
-  flex-direction: column;
   font-family: var(--font-ui);
   color: var(--ink);
   background:
-    radial-gradient(circle at 20% 20%, var(--fill-soft), transparent 45%),
-    linear-gradient(180deg, #fafafa, #d9d9d9);
+    radial-gradient(circle at 82% 6%,  rgba(220,38,38,.10), transparent 42%),
+    radial-gradient(circle at 8% 96%,  rgba(124,58,237,.08), transparent 46%),
+    linear-gradient(180deg, #fdfbfa, #f2ece9);
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
 }
 
-/* hidden state inputs — kept focusable for keyboard users */
-.tier-ctl{
-  position: absolute;
-  width: 1px; height: 1px;
-  opacity: 0;
-  pointer-events: none;
+/* ── flove top bar ─────────────────────────────────────────── */
+.flove-bar{
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px;
+  font-size: 13px; letter-spacing: .3px;
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+}
+.flove-home{
+  display: inline-flex; align-items: center; gap: 6px;
+  text-decoration: none; color: var(--ink); font-weight: 600;
+  padding: 4px 11px; border-radius: 999px;
+  transition: background .15s var(--ease), transform .15s var(--ease);
+}
+.flove-home:hover{ background: #fee2e2; color: var(--accent-deep); transform: translateX(-2px); }
+.flove-mark{
+  font-style: normal; color: var(--accent); font-size: 16px;
+  animation: spin 14s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(220,38,38,.35));
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+.flove-app-name{ font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; }
+.flove-spacer{ flex: 1; }
+.flove-tag{ font-size: 11px; letter-spacing: .9px; text-transform: uppercase; color: var(--muted); }
+
+/* ── page shell ────────────────────────────────────────────── */
+main{ flex: 1 1 auto; width: 100%; max-width: 640px; margin: 0 auto; padding: 26px 20px 40px; }
+
+.hero{ text-align: center; margin: 8px 0 30px; animation: hero-in .6s var(--ease) both; }
+.hero .glyph{
+  display: inline-block; font-size: 30px; color: var(--accent); font-style: normal;
+  animation: spin 18s linear infinite; filter: drop-shadow(0 0 8px rgba(220,38,38,.28));
+}
+.hero h1{
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(2.2rem, 8vw, 3rem); margin: 6px 0 6px; letter-spacing: .5px;
+}
+.hero p{ margin: 0 auto; max-width: 30ch; color: var(--ink-soft); font-size: .95rem; line-height: 1.5; }
+@keyframes hero-in{ from{ opacity: 0; transform: translateY(-12px); } to{ opacity: 1; transform: none; } }
+
+/* ── the ladder ────────────────────────────────────────────── */
+.ladder{
+  position: relative; list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+/* the rail — a vertical line the node dots sit on; grows upward on load */
+.ladder::before{
+  content: ""; position: absolute; top: 22px; bottom: 22px; left: 23px; width: 2px;
+  background: linear-gradient(180deg, #7c3aed, #dc2626, #1f6390, #1e4a6b, #059669);
+  border-radius: 2px; opacity: .35;
+  transform-origin: bottom; animation: rail-grow .9s .1s var(--ease) both;
+}
+@keyframes rail-grow{ from{ transform: scaleY(0); opacity: 0; } to{ transform: scaleY(1); opacity: .35; } }
+
+.rung{
+  position: relative; display: grid;
+  grid-template-columns: 46px 52px 1fr auto; align-items: center; gap: 12px;
+  padding: 12px 16px 12px 12px; border-radius: 20px;
+  text-decoration: none; color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 26px rgba(90,20,16,.06);
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease);
+  animation: rise .7s var(--ease) both;
+}
+.rung:hover, .rung:focus-visible{
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--a) 55%, transparent);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--a) 26%, transparent);
+  outline: none;
+}
+.rung:focus-visible{ box-shadow: 0 0 0 3px color-mix(in srgb, var(--a) 45%, transparent), 0 16px 36px color-mix(in srgb, var(--a) 26%, transparent); }
+
+/* rail node dot — grows mini(small) → super(big) */
+.rung-node{
+  justify-self: center; width: var(--dot,12px); height: var(--dot,12px);
+  border-radius: 50%; background: var(--a);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--a) 20%, transparent);
+  position: relative; z-index: 1;
+}
+/* super rung gets a gentle pulse halo */
+.rung--super .rung-node::after{
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 2px solid var(--a); opacity: .5;
+  animation: pulse 3s ease-out infinite;
+}
+@keyframes pulse{ 0%{ transform: scale(.8); opacity: .55; } 100%{ transform: scale(1.7); opacity: 0; } }
+
+.rung-disc{
+  width: 52px; height: 52px; border-radius: 15px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--as); color: var(--a);
+  transition: transform .22s var(--ease);
+}
+.rung:hover .rung-disc{ transform: rotate(-6deg) scale(1.05); }
+.rung-disc svg{ width: 28px; height: 28px; }
+
+.rung-body{ display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rung-tier{
+  font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--a); opacity: .85;
+}
+.rung-name{ font-family: var(--font-display); font-size: 1.28rem; font-weight: 600; line-height: 1.1; }
+.rung-slogan{ font-size: .82rem; color: var(--ink-soft); }
+
+.rung-go{
+  color: var(--muted); display: inline-flex;
+  transition: transform .22s var(--ease), color .22s var(--ease);
+}
+.rung:hover .rung-go{ color: var(--a); transform: translateX(4px); }
+.rung-go svg{ width: 22px; height: 22px; }
+
+/* size grading — super reads biggest, mini smallest */
+.rung--super   { --dot: 17px; }
+.rung--advanced{ --dot: 15px; }
+.rung--normal  { --dot: 13px; }
+.rung--basic   { --dot: 11px; }
+.rung--mini    { --dot: 9px;  }
+.rung--super   .rung-name{ font-size: 1.4rem; }
+.rung--mini    .rung-name{ font-size: 1.18rem; }
+
+/* staggered rise — mini (bottom, last in DOM) enters first, super last */
+.rung--super   { animation-delay: .78s; }
+.rung--advanced{ animation-delay: .63s; }
+.rung--normal  { animation-delay: .48s; }
+.rung--basic   { animation-delay: .33s; }
+.rung--mini    { animation-delay: .18s; }
+@keyframes rise{ from{ opacity: 0; transform: translateY(30px) scale(.96); } to{ opacity: 1; transform: none; } }
+
+/* ── Help — a node OUTSIDE the ladder ──────────────────────── */
+.aside-sep{
+  display: flex; align-items: center; gap: 12px;
+  margin: 26px 4px 18px; color: var(--muted); font-size: 12px;
+  letter-spacing: .8px; text-transform: uppercase;
+  animation: hero-in .5s 1s var(--ease) both;
+}
+.aside-sep::before, .aside-sep::after{ content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.help-node{
+  --a: #0d9488; --as: #ccfbf1;
+  display: inline-flex; align-items: center; gap: 13px;
+  margin: 0 auto; padding: 13px 22px 13px 15px;
+  text-decoration: none; color: var(--ink);
+  background: rgba(255,255,255,.66);
+  border: 1.5px dashed color-mix(in srgb, var(--a) 45%, transparent);
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(13,148,136,.12);
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease);
+  animation: pop-in .55s 1.08s var(--ease) both;
+}
+.help-wrap{ display: flex; justify-content: center; }
+.help-node:hover, .help-node:focus-visible{
+  transform: translateY(-3px); border-color: var(--a);
+  box-shadow: 0 16px 34px rgba(13,148,136,.22); outline: none;
+}
+.help-node:focus-visible{ box-shadow: 0 0 0 3px rgba(13,148,136,.4), 0 16px 34px rgba(13,148,136,.22); }
+.help-disc{
+  width: 44px; height: 44px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--as); color: var(--a);
+  animation: float 4.5s ease-in-out infinite;
+}
+.help-disc svg{ width: 24px; height: 24px; }
+.help-text{ display: flex; flex-direction: column; gap: 1px; }
+.help-text b{ font-family: var(--font-display); font-weight: 600; font-size: 1.12rem; }
+.help-text span{ font-size: .8rem; color: var(--ink-soft); }
+@keyframes pop-in{ from{ opacity: 0; transform: scale(.8); } to{ opacity: 1; transform: none; } }
+@keyframes float{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-4px); } }
+
+/* ── footer ────────────────────────────────────────────────── */
+footer{
+  text-align: center; margin: 34px auto 0; padding: 16px;
+  color: var(--muted); font-size: 12px;
+}
+footer .glyph{ color: var(--accent); font-style: normal; }
+
+/* ── reduced motion — hold everything still, keep it usable ── */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{ animation: none !important; }
+  .rung, .help-node{ opacity: 1; transform: none; }
+  .ladder::before{ transform: none; opacity: .35; }
+  *{ transition-duration: .01ms !important; }
 }
 
-/* ── the category stage ────────────────────────────────────── */
-.tier-stage{
-  flex: 1 1 auto;
-  position: relative;
-  min-height: 0;
-}
-.tier-frame{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: none;
-  background: #fff;
-}
-#tier-minidealy:checked     ~ .tier-stage .tier-frame--minidealy,
-#tier-inventary:checked     ~ .tier-stage .tier-frame--inventary,
-#tier-wanty:checked         ~ .tier-stage .tier-frame--wanty,
-#tier-dealyadvanced:checked ~ .tier-stage .tier-frame--dealyadvanced,
-#tier-rewardy:checked       ~ .tier-stage .tier-frame--rewardy{
-  display: block;
+@media (max-width: 440px){
+  .rung{ grid-template-columns: 34px 46px 1fr auto; gap: 9px; padding: 11px 12px; }
+  .rung-disc{ width: 46px; height: 46px; }
+  .rung-disc svg{ width: 25px; height: 25px; }
+  .ladder::before{ left: 17px; }
 }
 </style>
 </head>
 <body>
 
-<!-- category state — Minidealy is the default landing category -->
-<input type="radio" name="tier" id="tier-minidealy"     class="tier-ctl" checked>
-<input type="radio" name="tier" id="tier-inventary"     class="tier-ctl">
-<input type="radio" name="tier" id="tier-wanty"         class="tier-ctl">
-<input type="radio" name="tier" id="tier-dealyadvanced" class="tier-ctl">
-<input type="radio" name="tier" id="tier-rewardy"       class="tier-ctl">
+<nav class="flove-bar">
+  <a class="flove-home" href="../index.html">&larr; Economy</a>
+  <span class="flove-mark" aria-hidden="true">&#10042;</span>
+  <span class="flove-app-name">Dealy</span>
+  <span class="flove-spacer"></span>
+  <span class="flove-tag">Launcher</span>
+</nav>
 
-<!-- Category switcher lives inside each page's own topbar (.tier-pop);
-     this wrapper only embeds the five pages side by side. -->
+<main>
+  <header class="hero">
+    <span class="glyph" aria-hidden="true">&#10042;</span>
+    <h1>Dealy</h1>
+    <p>Gift, lend and swap with your neighborhood. Climb the ladder from mini to super.</p>
+  </header>
 
-<div class="tier-stage">
-  <iframe class="tier-frame tier-frame--minidealy"     src="dealy-mini.html"     title="Dealy — Minidealy"     loading="lazy"></iframe>
-  <iframe class="tier-frame tier-frame--inventary"     src="inventary.html"     title="Dealy — Inventary"     loading="lazy"></iframe>
-  <iframe class="tier-frame tier-frame--wanty"         src="wanty.html"         title="Dealy — Wanty"         loading="lazy"></iframe>
-  <iframe class="tier-frame tier-frame--dealyadvanced" src="dealy-advanced.html" title="Dealy — Dealyadvanced" loading="lazy"></iframe>
-  <iframe class="tier-frame tier-frame--rewardy"       src="rewardy.html"       title="Dealy — Rewardy"       loading="lazy"></iframe>
-</div>
+  <!-- The ladder — drawn super (top) → mini (bottom), the way you climb it.
+       Each rung links straight to its own page. -->
+  <ol class="ladder">
+    <li>
+      <a class="rung rung--super" href="rewardy.html" style="--a:#7c3aed;--as:#ede9fe;" aria-label="Rewardy — super tier">
+        <span class="rung-node" aria-hidden="true"></span>
+        <span class="rung-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.8" r="5.3"/><path d="M8.6 13.2 6.6 21l5.4-2.9 5.4 2.9-2-7.8"/></svg>
+        </span>
+        <span class="rung-body">
+          <span class="rung-tier">Super</span>
+          <span class="rung-name">Rewardy</span>
+          <span class="rung-slogan">Earn direct.</span>
+        </span>
+        <span class="rung-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </li>
+    <li>
+      <a class="rung rung--advanced" href="dealy-advanced.html" style="--a:#dc2626;--as:#fee2e2;" aria-label="Dealy — advanced tier">
+        <span class="rung-node" aria-hidden="true"></span>
+        <span class="rung-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 12.6 12.6 20.2a1.9 1.9 0 0 1-2.7 0l-6.1-6.1a1.9 1.9 0 0 1-.6-1.4V5a1.9 1.9 0 0 1 1.9-1.9h7.7c.5 0 1 .2 1.4.6l6 6a1.9 1.9 0 0 1 0 2.9z"/><circle cx="7.6" cy="7.6" r="1.3"/></svg>
+        </span>
+        <span class="rung-body">
+          <span class="rung-tier">Advanced</span>
+          <span class="rung-name">Dealy</span>
+          <span class="rung-slogan">Gift, lend, swap&hellip;</span>
+        </span>
+        <span class="rung-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </li>
+    <li>
+      <a class="rung rung--normal" href="wanty.html" style="--a:#1f6390;--as:#c0d4e8;" aria-label="Wanty — normal tier">
+        <span class="rung-node" aria-hidden="true"></span>
+        <span class="rung-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.6 5.5 6 .9-4.3 4.2 1 6-5.3-2.8L6.7 20.2l1-6L3.4 10l6-.9z"/></svg>
+        </span>
+        <span class="rung-body">
+          <span class="rung-tier">Normal</span>
+          <span class="rung-name">Wanty</span>
+          <span class="rung-slogan">Start thriving.</span>
+        </span>
+        <span class="rung-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </li>
+    <li>
+      <a class="rung rung--basic" href="inventary.html" style="--a:#1e4a6b;--as:#b9d2e5;" aria-label="Inventary — basic tier">
+        <span class="rung-node" aria-hidden="true"></span>
+        <span class="rung-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5h17v11h-17zM3.5 8.5 6 4.5h12l2.5 4M12 4.5v15"/></svg>
+        </span>
+        <span class="rung-body">
+          <span class="rung-tier">Basic</span>
+          <span class="rung-name">Inventary</span>
+          <span class="rung-slogan">All of yours.</span>
+        </span>
+        <span class="rung-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </li>
+    <li>
+      <a class="rung rung--mini" href="dealy-mini.html" style="--a:#059669;--as:#d1fae5;" aria-label="MiniDealy — mini tier">
+        <span class="rung-node" aria-hidden="true"></span>
+        <span class="rung-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-2.4-2.4M17 16H7l2.4 2.4"/><path d="M12 12.4a1.6 1.6 0 0 0 1.6-1.6c0-1.1-1.6-2.4-1.6-2.4s-1.6 1.3-1.6 2.4A1.6 1.6 0 0 0 12 12.4z"/></svg>
+        </span>
+        <span class="rung-body">
+          <span class="rung-tier">Mini</span>
+          <span class="rung-name">MiniDealy</span>
+          <span class="rung-slogan">A small kind swap.</span>
+        </span>
+        <span class="rung-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </li>
+  </ol>
+
+  <!-- Help — a node on its own, deliberately off the ladder. -->
+  <div class="aside-sep">Need a hand?</div>
+  <div class="help-wrap">
+    <a class="help-node" href="help.html" aria-label="Help — chat and guides">
+      <span class="help-disc" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l1.6-4.5A8.4 8.4 0 1 1 21 11.5z"/><path d="M9.2 9.4a2.8 2.8 0 0 1 5.5.8c0 1.9-2.8 2.5-2.8 2.5"/><path d="M12 16.2h.01"/></svg>
+      </span>
+      <span class="help-text">
+        <b>Help</b>
+        <span>Chat &amp; guides &mdash; anytime.</span>
+      </span>
+    </a>
+  </div>
+
+  <footer>
+    <span class="glyph" aria-hidden="true">&#10042;</span> flove &middot; dealy
+  </footer>
+</main>
 
 </body>
 </html>

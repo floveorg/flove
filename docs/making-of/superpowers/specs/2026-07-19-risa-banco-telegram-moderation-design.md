@@ -97,15 +97,14 @@ Todo son ficheros en `floveorg/banco-risa`:
      "name": "Marta", "tags": "contagiosa, de grupo",
      "mod_chat_id": -100..., "mod_msg_id": 678, "submitted_at": "2026-07-19T10:00:00Z" }]
   ```
-- **`banco.json`** — clips publicados (lo que lee la web):
+- **`banco.json`** — clips publicados (lo que lee la web), **orden newest-first** (el bot **prepend**, no append):
   ```json
-  [{ "id": "b_9f3", "t": "Risa de Marta", "src": "audio/b_9f3.mp3",
-     "by": "Marta · CC BY-SA 4.0", "tags": "contagiosa, de grupo",
-     "when": "2026-07-19", "channel_msg": 42 }]
+  [{ "id": "b_9f3", "name": "Marta", "t": "Risa de Marta", "src": "audio/b_9f3.mp3",
+     "tags": "contagiosa, de grupo", "when": "2026-07-19", "channel_msg": 42 }]
   ```
 - **`audio/b_*.mp3`** — audio publicado (convertido con ffmpeg; normalizado en volumen; recortado a un máximo de duración, ver §6).
 
-`banco.json` reutiliza las claves del array `playlists` que ya usa la página (`t`, `src`, `by`, `tags`), así que la playlist «Banco de la risa» se construye con el mismo renderizador que las otras cinco.
+**Contrato de datos (fijado en F0, banco.js):** el bot escribe **`name`** (nombre a mostrar) + `src` + opcionales `t`/`tags`/`when` (ISO). **NO** escribe `by` ni `orig`: la web los **compone** a partir de la licencia constante — `by = "<name> · CC BY-SA 4.0"`, `orig = deed URL` — vía `Banco.buildBancoTracks`. Así la licencia queda FUERA de los datos (un solo sitio) y la playlist se monta con el mismo renderizador que las otras cinco. El bot **prepend** cada clip (newest-first) porque la web toma `slice(0, N)` para el feed y reproduce en orden de array.
 
 ---
 
@@ -121,7 +120,7 @@ Todo son ficheros en `floveorg/banco-risa`:
 ### 5.2 Moderar (bot → grupo privado)
 1. El clip llega al grupo con: audio reproducible, nombre, etiquetas, y botones inline **✅ Publicar / 🗑 Borrar** (el `callback_data` lleva el `id` de la cola).
 2. Un moderador toca un botón. El siguiente cron recoge el `callback_query`.
-   - **✅ Publicar:** descarga el `file_id`, `ffmpeg` → mp3 normalizado, añade entrada a `banco.json`, guarda `audio/b_*.mp3`, publica el mensaje de audio en el **canal público**, edita el mensaje del grupo a «✅ Publicado por @moderador».
+   - **✅ Publicar:** descarga el `file_id`, `ffmpeg` → mp3 normalizado, **prepend** entrada `{id, name, src, t?, tags?, when(ISO)?}` (sin `by`/`orig`) a `banco.json` (newest-first), guarda `audio/b_*.mp3`, publica el mensaje de audio en el **canal público**, edita el mensaje del grupo a «✅ Publicado por @moderador».
    - **🗑 Borrar:** quita de `queue.json`, edita el mensaje a «🗑 Borrado por @moderador».
 3. Commit + push de los ficheros cambiados; se actualiza `offset.txt`.
 
@@ -135,7 +134,7 @@ Todo son ficheros en `floveorg/banco-risa`:
 
 - **Anti-abuso:** solo se aceptan mensajes de **voz/audio**; duración máx. (p. ej. 30 s) y tamaño máx.; límite de frecuencia por `from_user`. Los moderadores son la puerta final. Identidad de Telegram siempre presente (ni un clip anónimo crudo).
 - **Privacidad:** se guarda lo mínimo — `from_user` (id numérico de Telegram) y el **nombre a mostrar** elegido. Nada de email en v1. El id de Telegram no se expone en `banco.json` (solo el nombre a mostrar).
-- **Licencia:** cada clip se publica bajo **CC BY-SA 4.0** (coincide con el resto de pistas de la página; conmutar a CC0 es trivial si se decide). El bot lo declara antes de aceptar; `banco.json` lo refleja en el campo `by`.
+- **Licencia:** cada clip se publica bajo **CC BY-SA 4.0** (coincide con el resto de pistas de la página; conmutar a CC0 es trivial si se decide). El bot lo declara antes de aceptar; la **web compone** el campo `by` (`<name> · CC BY-SA 4.0`) a partir de la licencia constante — el bot solo escribe `name` (ver §4).
 
 ---
 

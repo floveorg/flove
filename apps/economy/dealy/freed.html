@@ -1319,8 +1319,26 @@
     .inv-body{ max-height:none !important; opacity:1 !important }
     .card{ box-shadow:none; border:1px solid #ccc; page-break-inside: avoid }
   }
+  /* ===== Entrance animation — staged fade-in on load; restarts every reload.
+     Scoped under body.intro-anim, which JS drops once the intro is done so
+     later chip reveals appear instantly instead of re-animating. ===== */
+  @keyframes freed-in       { from{ opacity:0 } to{ opacity:1 } }
+  @keyframes freed-in-right { from{ opacity:0; transform:translateX(-26px) } to{ opacity:1; transform:translateX(0) } }
+  /* bubbles (floating reason chips) — appear at 3s, fading in over 3s */
+  body.intro-anim .reason-chip{ animation: freed-in 3s ease 3s backwards }
+  /* Because / For labels — 8s */
+  body.intro-anim .for-col-title{ animation: freed-in 1s ease 8s backwards }
+  /* logo + site title — 11s, sliding in rightwards */
+  body.intro-anim .site-trigger{ animation: freed-in-right 1s var(--bounce) 11s backwards }
+  /* the "+" buttons (reveal + add-reason) — 15s */
+  body.intro-anim .expand-plus,
+  body.intro-anim .for-reasons .add-reason{ animation: freed-in 1s ease 15s backwards }
+
   @media (prefers-reduced-motion: reduce){
-    *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important }
+    *,*::before,*::after{
+      animation-duration:.01ms !important; animation-delay:0s !important;
+      transition-duration:.01ms !important; transition-delay:0s !important;
+    }
   }
 
   /* ── translate2 i18n span toggle (CSS-only): hide every non-active language ── */
@@ -1351,17 +1369,20 @@
   }
 </style>
 </head>
-<body>
+<body class="intro-anim">
 
 <div class="flove-bar">
   <div class="top-menu">
     <button type="button" class="site-trigger" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuList" aria-label="Menu" data-aria-en="Menu" data-aria-es="Menú">
+      <!-- Freed mark · canonical source: images/apps/logos/economy/economy-logos.html
+           (Freed · live · Sun, gradient lg-freed-live). Kept inline so the app
+           stays self-contained. -->
       <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em">
         <defs>
-          <linearGradient id="g-freed" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#10b981"/>
-            <stop offset="60%" stop-color="#84cc16"/>
-            <stop offset="100%" stop-color="#f59e0b"/>
+          <linearGradient id="g-freed" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#10b981"/>
+            <stop offset=".6" stop-color="#84cc16"/>
+            <stop offset="1" stop-color="#f59e0b"/>
           </linearGradient>
         </defs>
         <g stroke="url(#g-freed)" stroke-width="6" stroke-linecap="round" fill="none">
@@ -2830,6 +2851,7 @@ em{color:#14503e}</style></head>
       const lbl = document.createElement("label");
       lbl.className = "reason-chip parent-chip";
       lbl.style.display = "inline-flex";
+      lbl.style.animation = "none";   // custom chips appear at once, no intro fade
       const cb = document.createElement("input");
       cb.type = "checkbox"; cb.name = "reason";
       lbl.append(cb, document.createTextNode(" " + txt));
@@ -2859,16 +2881,21 @@ em{color:#14503e}</style></head>
   // re-telling) whenever the worldball flips language.
   $$('input[name="lang"]').forEach(r => r.addEventListener("change", () => { mirror(); renderMagic(); }));
 
-  // F0 · local persistence (backend_plan.md §10.3a/b). Previously each visit
-  // WIPED the snapshot; now we re-derive the declaration from storage on load
-  // so it survives reload / close / reopen. The sentence/summary are read live
-  // from the DOM (CSS :has() repaints clauses, mirror() refills the free-text
-  // spans), so there is no stale snapshot and no Update button is needed here
-  // (§10.3a Update = N/A for live-state apps). "Reset" in the menu clears it.
-  restore();
+  // Reload starts fresh: every visit begins with empty fields and replays the
+  // entrance animation. We intentionally do NOT restore() the saved snapshot;
+  // any previously stored state is cleared so nothing lingers. ("Reset" in the
+  // menu still clears storage and reloads.)
+  try{ localStorage.removeItem(KEY); }catch(_){}
   mirror();
   renderMagic();
   updateInvFill();
+
+  // Entrance animation is scoped to body.intro-anim; drop it once the staged
+  // fade-in has finished (~16s) so chips revealed by "+" appear instantly
+  // instead of re-running the fade. Revealing via "+" ends it early too.
+  const endIntro = () => document.body.classList.remove("intro-anim");
+  setTimeout(endIntro, 16600);
+  $$(".expand-plus").forEach(b => b.addEventListener("click", endIntro, { once: true }));
 })();
 </script>
 

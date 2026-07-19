@@ -1,26 +1,24 @@
 /* ============================================================
-   flove-appy.js · "Publish to Appy" handoff  (phase 1 — no backend)
+   flove-appy.js · app → Appy profile bridge  (phase 0/1 — no backend)
    ============================================================
-   ⏸ PARKED (2026-07-07): not wired into any app on purpose. The
-   current flow is manual — the user downloads the app's
-   Appname-summary.json and uploads it in their Appy profile
-   ("Upload summary here"). Do NOT re-include this script anywhere
-   until Marc decides to revisit the automatic publish handoff.
-   ============================================================
-   Same-origin localStorage bridge between any flove app and Appy/miniappy.
+   Same-origin localStorage bridge between any flove app and the
+   Appy profile (appy-mini / appy-basic).
 
-   An app opts in with ONE line (auto-injects a floating publish button):
-     <script src="../appy/flove-appy.js" data-app="Keys" data-colour="#9b51e0" defer></script>
+   WRITER (an app) includes it receiver-style (NO data-app, so NO
+   floating button) and calls the API directly from its own UI:
+     window.floveAppy.publish({ app:'Goddy', summary: window.floveSummary() });
 
-   The receiver (miniappy) includes it WITHOUT data-app (no button) and reads:
+   READER (an appy profile page) includes it the same way and, on
+   load, renders window.floveAppy.played() into its Played-apps grid:
      window.floveAppy.played()  ->  [{app, colour, summary, url, date}, ...]
 
-   An app may expose its result for richer publishing:
-     window.floveSummary = () => ({ ...summary-model... });   // or a plain object
+   The optional data-app attribute still auto-injects a floating
+   "Publish to Appy" button (kept for ad-hoc use); Goddy does NOT
+   use it — it wires publish() into its own Publish button group.
 
-   Limits (honest): localStorage is per-origin and per-device. Real cross-device
-   / cross-user propagation is backend work (0asis / F-phases); this is the
-   phase-1 local demo and later the offline cache/fallback.
+   Limits (honest): localStorage is per-origin and per-device. Real
+   cross-device / cross-user propagation is backend work (0asis /
+   F-phases); this is the phase-0/1 local path + offline fallback.
    ============================================================ */
 (function () {
   'use strict';

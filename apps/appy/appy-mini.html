@@ -4636,20 +4636,24 @@ switchTab('profile');
   }
 
   // Auto-appear: render apps published straight from an app (same-origin
-  // bridge) — no manual upload needed. Manual upload stays as import fallback.
-  (function hydrateFromBridge(){
+  // bridge) — no manual upload needed. Idempotent: safe to call again when a
+  // record changes (addPlayedApp updates the existing card). Manual upload
+  // stays as an import fallback.
+  function hydrateFromBridge(recs){
     if (!window.floveAppy) return;
-    window.floveAppy.played().forEach(rec => {
+    (recs || window.floveAppy.played()).forEach(rec => {
       if (!rec || !rec.app || !RAINBOW[rec.app]) return;
       const btn = document.querySelector('.rb[data-app="' + rec.app + '"]');
       const raw = (rec.summary && typeof rec.summary === 'object')
         ? JSON.stringify(rec.summary, null, 2)
         : String(rec.summary ?? '');
-      uploadCount[rec.app] = (uploadCount[rec.app] || 0) + 1;
+      if (!uploadCount[rec.app]) uploadCount[rec.app] = 1;   // bridge = 1 record per app (latest wins)
       addPlayedApp(rec.app, rec.app + '-summary.json', raw, btn);
-      updateCardCount(rec.app, uploadCount[rec.app]);
     });
-  })();
+    refreshUploadUI();
+  }
+  hydrateFromBridge();                                        // initial
+  if (window.floveAppy) window.floveAppy.onChange(hydrateFromBridge);  // live: other tab / refocus
 
   refreshUploadUI();
 })();

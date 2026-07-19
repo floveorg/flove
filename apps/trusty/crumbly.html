@@ -305,6 +305,14 @@
     .term-row .term-days::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
     .term-row .term-days{-moz-appearance:textfield;appearance:textfield}
 
+    /* ── Summary date (today) ── */
+    .summary-date{
+      text-align:center;color:var(--app-accent-soft);
+      font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;
+      padding-top:.6rem;
+    }
+    .summary-date:empty{display:none}
+
     /* ── Summary line ── */
     .summary-line{
       margin-top:0;padding:.6rem .8rem;border-top:1px solid #2a2a3a;color:var(--muted)
@@ -898,14 +906,14 @@
     <!-- "During (n) days" — grant-level term, below "Me" -->
     <label class="term-row">
       <span class="en" lang="en">During</span><span class="es" lang="es">Durante</span>
-      <input type="number" class="term-days" id="during-days" min="1" step="1" inputmode="numeric" placeholder="n" aria-label="During how many days" data-aria-en="During how many days" data-aria-es="Durante cuántos días">
+      <input type="text" class="term-days" id="during-days" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="n" aria-label="During how many days" data-aria-en="During how many days" data-aria-es="Durante cuántos días">
       <span class="en" lang="en">days</span><span class="es" lang="es">días</span>
     </label>
 
     <!-- "Rights expire in (n) days" — grant-level term, below "Me" -->
     <label class="term-row">
       <span class="en" lang="en">Rights expire in</span><span class="es" lang="es">Los derechos caducan en</span>
-      <input type="number" class="term-days" id="rights-days" min="1" step="1" inputmode="numeric" placeholder="n" aria-label="Rights expire in how many days" data-aria-en="Rights expire in how many days" data-aria-es="Los derechos caducan en cuántos días">
+      <input type="text" class="term-days" id="rights-days" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="n" aria-label="Rights expire in how many days" data-aria-en="Rights expire in how many days" data-aria-es="Los derechos caducan en cuántos días">
       <span class="en" lang="en">days</span><span class="es" lang="es">días</span>
     </label>
 
@@ -917,6 +925,7 @@
       <div class="review-body">
 
       <!-- Resumen -->
+      <div class="summary-date" id="outDate"></div>
       <div class="summary-line" id="summaryLine">
         <strong><span class="en" lang="en">I allow</span><span class="es" lang="es">Permito a</span></strong>
         <span id="outName">—</span>
@@ -997,6 +1006,12 @@
     };
     // Pick a bilingual string for the active language.
     window.floveTx = function(en, es){ return window.floveLang() === 'es' ? es : en; };
+    // Today's date, formatted for the active language.
+    window.floveToday = function(){
+      const loc = window.floveLang() === 'es' ? 'es-ES' : 'en-US';
+      try { return new Date().toLocaleDateString(loc, {year:'numeric', month:'long', day:'numeric'}); }
+      catch (_) { return new Date().toISOString().slice(0, 10); }
+    };
     // Read the active-language text out of an element that holds .en/.es spans
     // (falls back to the element's own text when it isn't wrapped).
     function visibleLabel(el){
@@ -1012,6 +1027,7 @@
     const outName = document.getElementById('outName');
     const outCrumble = document.getElementById('outCrumble');
     const outNotify  = document.getElementById('outNotify');
+    const outDate    = document.getElementById('outDate');
     const notifyingBlock = document.getElementById('notifyingBlock');
     const duringInput = document.getElementById('during-days');
     const rightsInput = document.getElementById('rights-days');
@@ -1053,6 +1069,7 @@
     const meTa  = document.getElementById('ta-me');
     const outMe = document.getElementById('outMe');
     function refreshSummary(){
+      if (outDate) outDate.textContent = window.floveToday();
       outName.textContent = (nameInput.value || '—');
       // Split the ticked items: everything under Notifying goes AFTER "Me";
       // the rest (the Crumble tree) stays before it.
@@ -1090,8 +1107,14 @@
     form.addEventListener('change', refreshSummary);
     nameInput.addEventListener('input', refreshSummary);
     meTa?.addEventListener('input', refreshSummary);
-    duringInput?.addEventListener('input', refreshSummary);
-    rightsInput?.addEventListener('input', refreshSummary);
+    // Term fields accept digits only: strip anything else as it's typed/pasted.
+    [duringInput, rightsInput].forEach(inp => {
+      inp?.addEventListener('input', () => {
+        const cleaned = inp.value.replace(/\D/g, '');
+        if (inp.value !== cleaned) inp.value = cleaned;
+        refreshSummary();
+      });
+    });
     refreshSummary();
 
     // ── Review level: 0..5 based on items checked above (3 per level, capped at 15) ──
@@ -1302,8 +1325,9 @@
       const rN = parseInt((document.getElementById('rights-days') || {}).value, 10);
       const during = (dN > 0) ? dN : null;
       const rights = (rN > 0) ? rN : null;
+      const date = (window.floveToday ? window.floveToday() : '');
       // `items` (crumble + notify) kept for the format builders below.
-      return { name, crumble, notify, items: crumble.concat(notify), during, rights, me };
+      return { name, date, crumble, notify, items: crumble.concat(notify), during, rights, me };
     }
 
     function summaryText(){
@@ -1314,10 +1338,11 @@
       if (d.during) after.push(tx(`During ${d.during} days`, `Durante ${d.during} días`));
       if (d.rights) after.push(tx(`Rights expire in ${d.rights} days`, `Los derechos caducan en ${d.rights} días`));
       const afterStr = after.length ? ' — ' + after.join(', ') : '';
-      return tx(
+      const phrase = tx(
         `I allow ${d.name || '—'} to${crumbleStr} — ${d.me}${afterStr}`,
         `Permito a ${d.name || '—'}${crumbleStr} — ${d.me}${afterStr}`
       );
+      return d.date ? `${d.date}\n${phrase}` : phrase;
     }
 
     const esc = s => (s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
@@ -1341,6 +1366,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
       const tx = (en, es) => (window.floveTx ? window.floveTx(en, es) : en);
       const rows = [];
       rows.push([q(tx('field','campo')), q(tx('value','valor'))].join(','));
+      rows.push([q(tx('date','fecha')), q(d.date)].join(','));
       rows.push([q(tx('name','nombre')), q(d.name || '—')].join(','));
       rows.push([q(tx('summary','resumen')), q(summaryText())].join(','));
       d.items.forEach(it => rows.push([q(tx('item','elemento')), q(it)].join(',')));
@@ -1358,6 +1384,7 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
       const itemsXml = d.items.map(it => `    <item>${x(it)}</item>`).join('\n');
       return `<?xml version="1.0" encoding="UTF-8"?>\n` +
 `<crumbly>\n` +
+`  <date>${x(d.date)}</date>\n` +
 `  <name>${x(d.name || '—')}</name>\n` +
 `  <summary>${x(summaryText())}</summary>\n` +
 `  <items>\n${itemsXml}${itemsXml ? '\n' : ''}  </items>\n` +
@@ -1406,6 +1433,11 @@ ul{padding-left:1.2em} li{margin:.3em 0} p{color:#a0a3ad}</style></head>
       ctx.fillStyle = '#00ff88';
       ctx.font = '700 28px Georgia, serif';
       ctx.fillText(`Crumbly · ${d.name || '—'}`, 24, 50);
+      if (d.date){
+        ctx.fillStyle = '#7a7d87';
+        ctx.font = '500 13px system-ui';
+        ctx.fillText(d.date, 24, 74);
+      }
       ctx.fillStyle = '#a0a3ad';
       ctx.font = '600 13px system-ui';
       ctx.fillText(window.floveTx ? window.floveTx('SELECTED','SELECCIONADO') : 'SELECTED', 24, 96);

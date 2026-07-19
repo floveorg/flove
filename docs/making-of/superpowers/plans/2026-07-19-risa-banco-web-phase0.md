@@ -94,7 +94,7 @@ test('constants carry the fixed license and config', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `cd ~/Documents/flove/apps/liberada/risa && node --test test/`
+Run: `cd ~/Documents/flove/apps/liberada/risa && node --test test/banco.test.mjs`
 Expected: FAIL — `Cannot find module '../banco.js'` (file doesn't exist yet).
 
 - [ ] **Step 3: Write the module**
@@ -155,7 +155,7 @@ Create `apps/liberada/risa/banco.js`:
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `cd ~/Documents/flove/apps/liberada/risa && node --test test/`
+Run: `cd ~/Documents/flove/apps/liberada/risa && node --test test/banco.test.mjs`
 Expected: PASS — 6 tests, 0 failures.
 
 - [ ] **Step 5: Commit**
@@ -496,10 +496,9 @@ Replace with:
 
 - [ ] **Step 2: Remove the dead file-input wiring and point the button at the config URL**
 
-Find the "Subir risa" wiring block (around lines 970-978):
+Find the upload-modal wiring block (note: `esc`/`openModal`/`closeModal` sit just above it now and MUST be left untouched — do not include them in the match):
 
 ```js
-  // Subir risa
   const uploadModal = document.getElementById('upload-modal');
   const fileInput = document.getElementById('um-file');
   const fileName = document.getElementById('um-filename');
@@ -513,7 +512,6 @@ Find the "Subir risa" wiring block (around lines 970-978):
 Replace with:
 
 ```js
-  // Subir risa → Telegram
   const uploadModal = document.getElementById('upload-modal');
   const tgLink = document.getElementById('um-telegram');
   if(tgLink) tgLink.href = window.Banco.TELEGRAM_BOT;   // config en un solo sitio
@@ -523,21 +521,37 @@ Replace with:
 
 - [ ] **Step 3: Remove the now-unused uploader CSS**
 
-Find and delete the uploader rules (lines ~319-334, the block starting `#upload-form{...}` through the `.uploader .up-name{...}` rule). Concretely, remove:
+Remove the uploader CSS block. Find exactly:
 
 ```css
 #upload-form{display:grid; gap:16px}
 .uploader{position:relative; display:grid; place-items:center; gap:8px; text-align:center; cursor:pointer;
+  border:3px dashed var(--persimmon); border-radius:22px; padding:26px 18px; background:var(--base);
+  transition:background .15s, border-color .15s}
+.uploader:hover{background:var(--base-2)}
+.uploader input[type=file]{position:absolute; width:1px; height:1px; opacity:0; overflow:hidden}
+.uploader .up-icon{font-size:2.2rem; line-height:1}
+.uploader .up-text{font-family:var(--disp); font-weight:700; font-size:1.05rem; color:var(--ink)}
+.uploader .up-name{font-family:var(--mono); font-size:.72rem; color:var(--mint); font-weight:700; min-height:1em}
 ```
 
-…through the end of that `.uploader .up-name{...}` declaration and the `#upload-form .btn{...}` rule. Add a `.modal-note` rule where they were:
+Replace with:
 
 ```css
 .modal-note{color:var(--ink-soft); line-height:1.5; margin:0 0 4px}
 #upload-modal .btn-primary{justify-content:center; width:100%; text-decoration:none}
+.feed-empty{color:var(--ink-soft); line-height:1.5; padding:8px 2px}
 ```
 
-(Verify `--ink-soft` exists in the file's `:root`; it is used elsewhere on the page, so it does.)
+(The `.feed-empty` rule styles the empty-banco message added in Task 3, which currently has no CSS.)
+
+Then, separately, delete the now-orphaned button rule. Find exactly:
+
+```css
+#upload-form .btn{justify-content:center; margin-top:2px}
+```
+
+and delete that line entirely. (Leave the `.field` rules as-is — they're generic and harmless; a later /simplify pass can remove them. `--ink-soft` already exists in `:root`.)
 
 - [ ] **Step 4: Verify no dangling references remain**
 

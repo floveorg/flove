@@ -1388,15 +1388,15 @@
         <div class="btn-with-subs" id="publishWrap">
             <button type="button" class="btn" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i> <span class="en" lang="en">Publish</span><span class="es" lang="es">Publicar</span></button>
             <div class="subitems subitems-above">
-                <button type="button" class="subitem" data-group="publish" data-action="appy"><i class="fas fa-user"></i> Appy</button>
-                <button type="button" class="subitem" data-group="publish" data-action="wizy"><i class="fas fa-wand-magic-sparkles"></i> Wizy</button>
-                <button type="button" class="subitem" data-group="publish" data-action="more"><i class="fas fa-ellipsis"></i> <span class="en" lang="en">More</span><span class="es" lang="es">Más</span></button>
+                <button type="button" class="subitem" data-flove-publish="appy"><i class="fas fa-user"></i> Appy</button>
+                <button type="button" class="subitem" data-flove-publish="wizy"><i class="fas fa-wand-magic-sparkles"></i> Wizy</button>
+                <button type="button" class="subitem" data-flove-publish="more"><i class="fas fa-ellipsis"></i> <span class="en" lang="en">More</span><span class="es" lang="es">Más</span></button>
             </div>
         </div>
     </div>
 
     <!-- hint area -->
-    <div class="hint-area" id="hintMessage"></div>
+    <div class="hint-area" id="hintMessage" data-flove-hint></div>
 </div>
 
 <!-- Appy profile bridge (receiver-style, no floating button) — powers Publish → Appy/Wizy -->
@@ -1691,18 +1691,15 @@
             'share:whatsapp': () => { window.open(shareUrl('whatsapp'), '_blank', 'noopener'); setHint('<i class="fab fa-whatsapp"></i> ' + bx('Opening WhatsApp…', 'Abriendo WhatsApp…')); },
             'share:telegram': () => { window.open(shareUrl('telegram'), '_blank', 'noopener'); setHint('<i class="fab fa-telegram"></i> ' + bx('Opening Telegram…', 'Abriendo Telegram…')); },
             'share:mail':     () => { location.href = shareUrl('mail'); setHint('<i class="fas fa-envelope"></i> ' + bx('Opening Mail…', 'Abriendo el correo…')); },
-            // Publish → Appy · Wizy · More
-            'publish:appy': () => saveToProfile(false),
-            'publish:wizy': () => saveToProfile(true),
-            'publish:more': () => setHint('<i class="fas fa-ellipsis"></i> '
-                + bx('Further networks (nety · 0asis) — coming.', 'Más redes (nety · 0asis) — próximamente.')),
+            // Publish → Appy · Wizy · More is handled by the shared flove-appy.js
+            // bridge via the data-flove-publish hooks — no per-app wiring here.
         };
 
-        // Wizy extra — an agent-oriented block folded into the SAME summary
-        // record. Lets any agent (local MyWizy, or an external one) act on a
-        // Goddy result without guessing the structure. Phase 0/1: purely
-        // descriptive, no backend.
-        function buildAgentBlock(m) {
+        // Wizy extra — a Goddy-specific agent block, exposed for the shared
+        // bridge (window.floveAgentBlock). flove-appy.js folds it into the SAME
+        // summary record on a Wizy publish so any agent (local MyWizy or an
+        // external one) can act on a Goddy result without guessing the structure.
+        window.floveAgentBlock = function buildAgentBlock(m) {
             return {
                 prompt: 'You are handed a Goddy matrix: a 3×3 grid of who-sees-who across '
                     + 'goddess · god · us, each connection rated 1–3 (level). '
@@ -1728,23 +1725,7 @@
                     'Offer one question about a single cell the user might revisit.'
                 ]
             };
-        }
-
-        // Publish → Appy / Wizy. Both save the summary straight into the Appy
-        // profile (same-origin localStorage bridge) — no manual upload. Wizy
-        // adds an `agent` block into the SAME summary record (edge of F0).
-        function saveToProfile(withAgent) {
-            if (!window.floveAppy) {
-                setHint('<i class="fas fa-triangle-exclamation"></i> ' + bx('Appy bridge not loaded.', 'Puente de Appy no cargado.'));
-                return;
-            }
-            const summary = window.floveSummary();
-            if (withAgent) summary.agent = buildAgentBlock(summary);
-            window.floveAppy.publish({ app: 'Goddy', summary: summary });
-            setHint(withAgent
-                ? '<i class="fas fa-wand-magic-sparkles"></i> ' + bx('Saved to your Appy profile, ready for your agent ✓', 'Guardado en tu perfil de Appy, listo para tu agente ✓')
-                : '<i class="fas fa-user-check"></i> ' + bx('Saved to your Appy profile ✓', 'Guardado en tu perfil de Appy ✓'));
-        }
+        };
 
         document.querySelectorAll('.subitem').forEach(btn => {
             btn.addEventListener('click', (e) => {

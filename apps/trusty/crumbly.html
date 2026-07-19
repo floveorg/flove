@@ -305,14 +305,6 @@
     .term-row .term-days::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
     .term-row .term-days{-moz-appearance:textfield;appearance:textfield}
 
-    /* second summary line, holds "Rights expire in (n) days" below the phrase */
-    .summary-expire{
-      margin-top:.2rem;padding:.2rem .8rem 0;
-      text-align:center;color:var(--muted);
-    }
-    .summary-expire:empty{display:none}
-    .summary-expire strong{color:var(--ink)}
-
     /* ── Summary line ── */
     .summary-line{
       margin-top:0;padding:.6rem .8rem;border-top:1px solid #2a2a3a;color:var(--muted)
@@ -898,19 +890,19 @@
     </div>
     </div>
 
-    <!-- "During (n) days" — grant-level term, sits just before "Me" -->
+    <!-- "Me" field, below the whole checkboxes list -->
+    <label class="me-row">
+      <textarea class="x-ta me-ta" id="ta-me" rows="1" maxlength="40" required aria-label="Me" data-aria-en="Me" data-aria-es="Yo">Me</textarea>
+    </label>
+
+    <!-- "During (n) days" — grant-level term, below "Me" -->
     <label class="term-row">
       <span class="en" lang="en">During</span><span class="es" lang="es">Durante</span>
       <input type="number" class="term-days" id="during-days" min="1" step="1" inputmode="numeric" placeholder="n" aria-label="During how many days" data-aria-en="During how many days" data-aria-es="Durante cuántos días">
       <span class="en" lang="en">days</span><span class="es" lang="es">días</span>
     </label>
 
-    <!-- "Me" field, below the whole checkboxes list -->
-    <label class="me-row">
-      <textarea class="x-ta me-ta" id="ta-me" rows="1" maxlength="40" required aria-label="Me" data-aria-en="Me" data-aria-es="Yo">Me</textarea>
-    </label>
-
-    <!-- "Rights expire in (n) days" — grant-level term, sits just after "Me" -->
+    <!-- "Rights expire in (n) days" — grant-level term, below "Me" -->
     <label class="term-row">
       <span class="en" lang="en">Rights expire in</span><span class="es" lang="es">Los derechos caducan en</span>
       <input type="number" class="term-days" id="rights-days" min="1" step="1" inputmode="numeric" placeholder="n" aria-label="Rights expire in how many days" data-aria-en="Rights expire in how many days" data-aria-es="Los derechos caducan en cuántos días">
@@ -930,11 +922,9 @@
         <span id="outName">—</span>
         <strong><span class="en" lang="en">to</span><span class="es" lang="es"></span></strong>
         <span id="outCrumble"></span>
-        <span id="outDuring"></span>
         <strong id="outMe">Me</strong>
         <span id="outNotify"></span>
       </div>
-      <div class="summary-expire" id="summaryExpire"></div>
 
 
       <!-- Insight / Magic / Copy row (above the save row, with two rows of space) -->
@@ -1022,8 +1012,6 @@
     const outName = document.getElementById('outName');
     const outCrumble = document.getElementById('outCrumble');
     const outNotify  = document.getElementById('outNotify');
-    const outDuring  = document.getElementById('outDuring');
-    const outExpire  = document.getElementById('summaryExpire');
     const notifyingBlock = document.getElementById('notifyingBlock');
     const duringInput = document.getElementById('during-days');
     const rightsInput = document.getElementById('rights-days');
@@ -1077,17 +1065,16 @@
         else crumble.push(label);
       });
       outCrumble.textContent = crumble.length ? ' ' + crumble.join(', ') : '';
-      const dN = parseInt(duringInput && duringInput.value, 10);
-      outDuring.textContent = (dN > 0) ? window.floveTx(` during ${dN} days`, ` durante ${dN} días`) : '';
       const meDefault = window.floveTx('Me', 'Yo');
       outMe.textContent = (meTa?.value || meDefault).trim() || meDefault;
-      outNotify.textContent = notify.length ? ' — ' + notify.join(', ') : '';
-      // "Rights expire in (n) days" — its own line below the phrase.
+      // After "Me": Notifying selections, then the two term phrases, all shown
+      // as regular comma-separated items like the other options.
+      const after = notify.slice();
+      const dN = parseInt(duringInput && duringInput.value, 10);
+      if (dN > 0) after.push(window.floveTx(`During ${dN} days`, `Durante ${dN} días`));
       const rN = parseInt(rightsInput && rightsInput.value, 10);
-      outExpire.innerHTML = (rN > 0)
-        ? '<strong>' + window.floveTx('Rights expire in', 'Los derechos caducan en') + '</strong> ' +
-          rN + ' ' + window.floveTx('days', 'días')
-        : '';
+      if (rN > 0) after.push(window.floveTx(`Rights expire in ${rN} days`, `Los derechos caducan en ${rN} días`));
+      outNotify.textContent = after.length ? ' — ' + after.join(', ') : '';
     }
 
     // Re-render the summary (and language-dependent labels) when the worldball
@@ -1323,16 +1310,14 @@
       const d = getFormData();
       const tx = (en, es) => (window.floveTx ? window.floveTx(en, es) : en);
       const crumbleStr = d.crumble.length ? ': ' + d.crumble.join(', ') : '';
-      const duringStr  = d.during ? tx(` during ${d.during} days`, ` durante ${d.during} días`) : '';
-      const notifyStr  = d.notify.length ? ' — ' + d.notify.join(', ') : '';
-      const base = tx(
-        `I allow ${d.name || '—'} to${crumbleStr}${duringStr} — ${d.me}${notifyStr}`,
-        `Permito a ${d.name || '—'}${crumbleStr}${duringStr} — ${d.me}${notifyStr}`
+      const after = d.notify.slice();
+      if (d.during) after.push(tx(`During ${d.during} days`, `Durante ${d.during} días`));
+      if (d.rights) after.push(tx(`Rights expire in ${d.rights} days`, `Los derechos caducan en ${d.rights} días`));
+      const afterStr = after.length ? ' — ' + after.join(', ') : '';
+      return tx(
+        `I allow ${d.name || '—'} to${crumbleStr} — ${d.me}${afterStr}`,
+        `Permito a ${d.name || '—'}${crumbleStr} — ${d.me}${afterStr}`
       );
-      const expire = d.rights
-        ? tx(`\nRights expire in ${d.rights} days`, `\nLos derechos caducan en ${d.rights} días`)
-        : '';
-      return base + expire;
     }
 
     const esc = s => (s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));

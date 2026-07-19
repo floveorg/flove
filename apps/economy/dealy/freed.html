@@ -66,6 +66,8 @@
   /* ===== TOPBAR ===== transparent, lets background show through */
   .flove-bar{
     position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -74,18 +76,21 @@
   .flove-bar .flove-mark{ font-size:26px; color:var(--accent); filter:drop-shadow(0 0 6px var(--accent-glow)); vertical-align:-.18em; overflow:visible }
   .vh{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
   .pill-col{ display:flex; flex-direction:column; gap:8px; }
-  .flove-bar .flove-mark-link{ display: inline-flex; align-items: center; text-decoration: none; color: inherit }
-  .flove-bar .flove-app-name{ font-family:var(--font-display); font-weight:600; color: var(--accent-deep) }
+  .flove-bar .flove-app-name{ font-family:var(--font-display); font-weight:600; font-size:1.05rem; color: var(--accent-deep) }
 
-  .flove-title-btn{
-    background: transparent; border: 0; padding: 4px 10px; margin: 0;
-    font: inherit; cursor: pointer; border-radius: 8px;
+  /* Site trigger — logo + name open the dropdown menu on click */
+  .site-trigger{
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 0; padding: 4px 8px; margin: 0;
+    font: inherit; cursor: pointer; border-radius: 10px;
     transition: background .15s ease, transform .15s ease;
   }
-  .flove-title-btn:hover{ background: var(--accent-soft); transform: translateY(-1px) }
-  .flove-title-btn[aria-expanded="true"]{ background: var(--accent-soft) }
+  .site-trigger:hover{ background: var(--accent-soft); transform: translateY(-1px) }
+  .site-trigger[aria-expanded="true"]{ background: var(--accent-soft) }
+  .site-trigger .caret{ font-size: .7rem; color: var(--muted); transition: transform .15s ease }
+  .site-trigger[aria-expanded="true"] .caret{ transform: rotate(180deg) }
 
-  /* "All" sections toggle — sits just left of the top-right menu */
+  /* "All" sections toggle — pushed to the far right of the bar */
   .topbar-all{
     margin-left: auto;
     cursor: pointer; user-select: none;
@@ -103,18 +108,11 @@
     box-shadow: 0 6px 14px -4px var(--accent-glow);
   }
 
-  /* top-right menu */
-  .top-menu{ position: relative; display: inline-block; margin-left: 10px }
-  .menu-btn{
-    background: transparent; border: 0; cursor: pointer;
-    color: var(--accent-deep); font-size: 22px; line-height: 1;
-    padding: .15em .35em;
-    transition: transform .15s ease;
-  }
-  .menu-btn:hover{ transform: scale(1.06) }
-  .menu-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px }
+  /* site menu (dropdown anchored under the logo) */
+  .top-menu{ position: relative; display: inline-block }
+  .site-trigger:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px }
   .menu-list{
-    position: absolute; right: 0; top: calc(100% + 6px);
+    position: absolute; left: 0; top: calc(100% + 6px);
     list-style: none; margin: 0; padding: 6px 0;
     background: rgba(255,255,255,.92);
     backdrop-filter: blur(12px) saturate(150%);
@@ -639,69 +637,77 @@
   #decl:has(#sec-4:checked) > .card[data-sec="4"],
   #decl:has(#sec-all:checked) > .card{ display:block }
 
-  /* ===== Reasons section (data-sec="for") — drifting Because / For clouds
-     ported from shareful: chips float in a physics cloud, the "+" beside
-     each title reveals them gradually (2 parents → all parents → +children),
-     and clicking a chip docks it into the grid below. ===== */
+  /* ===== Reasons section (data-sec="for") — "stepper" chips.
+     Because / For start collapsed (title only); the "+" beside each title
+     reveals their chips in two steps (parents → parents + children). Chips
+     are small and sit in a tight, connected flow; a selected chip shows the
+     order-number of the pick, and clicking it again deselects. ===== */
   .card[data-sec="for"]{ position:relative }
   .for-grid{
-    display:grid; gap:14px;
+    display:grid; gap:24px;
     grid-template-columns:1fr 1fr; align-items:start;
   }
   @media (max-width:640px){ .for-grid{ grid-template-columns:1fr } }
   .for-col{ position:relative }
-  .for-col-head{ display:flex; align-items:center; gap:8px; margin:0 0 10px }
+  .for-col-head{ display:flex; align-items:center; gap:10px; margin:0 0 12px; flex-wrap:wrap }
   .for-col-title{
     text-align:left; margin:0;
     font-family:var(--font-display); font-weight:600;
-    font-size:2.1rem; color:var(--accent-deep);
+    font-size:1.75rem; color:var(--accent-deep);
   }
 
+  /* connected chip track — chips flow tightly, reading as one strip */
+  .for-reasons{
+    display:flex; flex-wrap:wrap; gap:6px 7px; align-items:center;
+  }
+  /* chips start hidden — JS reveals them per expand step */
+  .reasons-cloud > .reason-chip{ display:none }
+
   .reason-chip{
-    display:inline-flex; align-items:center; gap:7px;
-    padding: 6px 10px;
+    position:relative;
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 5px 11px;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-pill);
     background:#fff; color: var(--ink);
-    font: 500 .68rem/1.2 var(--font-ui);
-    cursor:pointer;
+    font: 500 .8rem/1.2 var(--font-ui);
+    cursor:pointer; white-space:nowrap;
     transition: all var(--fast);
   }
-  .reason-chip:hover{ border-color: var(--accent) }
+  .reason-chip:hover{ border-color: var(--accent); transform: translateY(-1px) }
   .reason-chip:has(:checked){
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep);
+    padding-left: 6px;
   }
   /* hidden checkbox — selection shown via chip styling */
   .reason-chip input[type=checkbox]{
     position:absolute; opacity:0; pointer-events:none; width:1px; height:1px;
   }
-
-  /* cloud container — chips are absolutely positioned by the JS physics loop */
-  .for-reasons{ position:relative; width:100%; height:320px; transition: height .35s ease }
-  .for-col[data-expand="0"] .for-reasons{ height:200px }
-  .for-col[data-expand="1"] .for-reasons{ height:750px }    /* first click */
-  .for-col[data-expand="2"] .for-reasons{ height:1500px }   /* second click */
-  .for-reasons > .reason-chip{
-    position:absolute;
-    white-space:nowrap;
-    transition: background var(--fast), border-color var(--fast), color var(--fast);
+  /* order-number badge — content comes from data-num (set in JS), shown
+     only once the chip is checked. */
+  .reason-chip::before{ content:""; display:none }
+  .reason-chip:has(:checked)::before{
+    content: attr(data-num);
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; flex-shrink:0;
+    border-radius:50%;
+    background: var(--accent); color:#fff;
+    font: 700 .68rem/1 var(--font-ui);
   }
-  /* parent / sub chips — parents are 2× the size of subs */
-  .reason-chip.parent-chip{ font: 600 1.12rem/1.15 var(--font-ui); padding: 9px 14px }
-  .reason-chip.child-chip{ font: 500 .56rem/1.2 var(--font-ui); padding: 4px 7px }
-  .reason-chip.child-chip:hover,
-  .reason-chip.child-chip:has(:checked){ border-color: var(--line-strong) }
-  /* cloud tabs start hidden — JS reveals them per expand step */
-  .reasons-cloud > .reason-chip{ display:none }
+  /* parents are the main steps; children a touch smaller and quieter */
+  .reason-chip.parent-chip{ font: 600 .9rem/1.2 var(--font-ui); padding: 6px 13px }
+  .reason-chip.parent-chip:has(:checked){ padding-left: 7px }
+  .reason-chip.child-chip{ font: 500 .72rem/1.2 var(--font-ui); padding: 4px 9px; color: var(--ink-soft) }
+  .reason-chip.child-chip:has(:checked){ color: var(--accent-deep) }
 
-  /* "+" beside each title — 3-step reveal of cloud tabs */
+  /* "+" beside each title — 3-step reveal (0 none · 1 parents · 2 +children) */
   .expand-plus{
-    width:34px; height:34px; flex-shrink:0;
+    width:30px; height:30px; flex-shrink:0;
     display:inline-flex; align-items:center; justify-content:center;
     border-radius:50%;
     background:#fff; border:1px solid var(--line-strong);
     color:var(--accent); cursor:pointer;
-    font:700 1.43rem/1 var(--font-ui);
+    font:700 1.3rem/1 var(--font-ui);
     box-shadow:var(--shadow-xs);
     transition: all var(--fast);
   }
@@ -726,15 +732,15 @@
   .new-reason-input.is-open{ display:inline-block }
   .new-reason-input:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-glow) }
 
-  /* "+" add-reason button — floats in the cloud with the chips */
+  /* "+" add-reason button — the last chip in the flow, adds a custom reason */
   .extra-plus{
-    width: 36px; height: 36px;
+    width: 30px; height: 30px;
     display: inline-flex; align-items: center; justify-content: center;
     border-radius: 50%;
     background: #fff;
     border: 1px dashed var(--line-strong);
     color: var(--accent);
-    font: 700 1.2rem/1 var(--font-ui);
+    font: 700 1.1rem/1 var(--font-ui);
     cursor: pointer;
     box-shadow: var(--shadow-xs);
     transition: all var(--fast);
@@ -744,20 +750,6 @@
     background: var(--accent-soft); color: var(--accent-deep);
     transform: translateY(-1px);
   }
-  .for-reasons .add-reason{
-    position:absolute; z-index:3;
-    width:47px; height:47px;
-    font-size:1.56rem;
-    /* Position is driven by the same JS physics loop as the chips. */
-  }
-
-  /* docked reasons — a clicked tab drops into a 2-column grid below the cloud */
-  .for-docked{
-    display:grid; grid-template-columns:1fr 1fr;
-    gap:6px; align-content:start; margin-top:14px;
-  }
-  .for-docked:empty{ margin:0 }
-  .for-docked .reason-chip{ white-space:normal }
 
   /* ===== Tag area below the title (3 tiers, nested + reveals) ===== */
   .tag-toggle{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px }
@@ -1320,33 +1312,32 @@
 <body>
 
 <div class="flove-bar">
-  <a class="flove-mark-link" href="freed.html" aria-label="Reload Freed" data-aria-en="Reload Freed" data-aria-es="Recargar Freed">
-    <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em">
-      <defs>
-        <linearGradient id="g-freed" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#10b981"/>
-          <stop offset="60%" stop-color="#84cc16"/>
-          <stop offset="100%" stop-color="#f59e0b"/>
-        </linearGradient>
-      </defs>
-      <g stroke="url(#g-freed)" stroke-width="6" stroke-linecap="round" fill="none">
-        <circle cx="50" cy="50" r="16"/>
-        <line x1="50" y1="8"  x2="50" y2="22"/>
-        <line x1="50" y1="78" x2="50" y2="92"/>
-        <line x1="8"  y1="50" x2="22" y2="50"/>
-        <line x1="78" y1="50" x2="92" y2="50"/>
-        <line x1="20" y1="20" x2="30" y2="30"/>
-        <line x1="70" y1="70" x2="80" y2="80"/>
-        <line x1="80" y1="20" x2="70" y2="30"/>
-        <line x1="30" y1="70" x2="20" y2="80"/>
-      </g>
-      <circle cx="50" cy="50" r="6" fill="url(#g-freed)"/>
-    </svg>
-  </a>
-  <button type="button" class="flove-app-name flove-title-btn" id="titleBtn" aria-expanded="false" aria-controls="introSection">Freed</button>
-  <label class="topbar-all" for="sec-all" aria-label="Show all sections" data-aria-en="Show all sections" data-aria-es="Mostrar todas las secciones"><span class="en" lang="en">All</span><span class="es" lang="es">Todo</span></label>
   <div class="top-menu">
-    <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu" data-aria-en="Menu" data-aria-es="Menú">☰</button>
+    <button type="button" class="site-trigger" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuList" aria-label="Menu" data-aria-en="Menu" data-aria-es="Menú">
+      <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em">
+        <defs>
+          <linearGradient id="g-freed" x1="14" y1="14" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#10b981"/>
+            <stop offset="60%" stop-color="#84cc16"/>
+            <stop offset="100%" stop-color="#f59e0b"/>
+          </linearGradient>
+        </defs>
+        <g stroke="url(#g-freed)" stroke-width="6" stroke-linecap="round" fill="none">
+          <circle cx="50" cy="50" r="16"/>
+          <line x1="50" y1="8"  x2="50" y2="22"/>
+          <line x1="50" y1="78" x2="50" y2="92"/>
+          <line x1="8"  y1="50" x2="22" y2="50"/>
+          <line x1="78" y1="50" x2="92" y2="50"/>
+          <line x1="20" y1="20" x2="30" y2="30"/>
+          <line x1="70" y1="70" x2="80" y2="80"/>
+          <line x1="80" y1="20" x2="70" y2="30"/>
+          <line x1="30" y1="70" x2="20" y2="80"/>
+        </g>
+        <circle cx="50" cy="50" r="6" fill="url(#g-freed)"/>
+      </svg>
+      <span class="flove-app-name">Freed</span>
+      <span class="caret" aria-hidden="true">▾</span>
+    </button>
     <ul class="menu-list" id="menuList" hidden role="menu">
       <li role="none"><a role="menuitem" href="#" data-act="reset"><i class="fas fa-rotate-left"></i> &nbsp;<span class="en" lang="en">Reset declaration</span><span class="es" lang="es">Reiniciar la declaración</span></a></li>
       <li role="none"><a role="menuitem" href="#" data-act="about"><i class="fas fa-circle-info"></i> &nbsp;<span class="en" lang="en">About Freed</span><span class="es" lang="es">Acerca de Freed</span></a></li>
@@ -1364,12 +1355,12 @@
       </li>
     </ul>
   </div>
+  <label class="topbar-all" for="sec-all" aria-label="Show all sections" data-aria-en="Show all sections" data-aria-es="Mostrar todas las secciones"><span class="en" lang="en">All</span><span class="es" lang="es">Todo</span></label>
 </div>
 
 <section id="introSection" hidden aria-label="About Freed" data-aria-en="About Freed" data-aria-es="Acerca de Freed">
   <span class="badge"><span class="en" lang="en">FREED · gifting declaration</span><span class="es" lang="es">FREED · declaración de regalo</span></span>
   <h1><span class="en" lang="en">For waiving property rights</span><span class="es" lang="es">Para renunciar a los derechos de propiedad</span></h1>
-  <p><span class="en" lang="en">A playful, pure-CSS declaration that builds itself as you tick.</span><span class="es" lang="es">Una declaración lúdica, en CSS puro, que se construye sola a medida que marcas.</span></p>
 </section>
 
 <main class="container">
@@ -1425,7 +1416,6 @@
               <button type="button" class="extra-plus add-reason" aria-label="Add a reason" data-aria-en="Add a reason" data-aria-es="Añadir un motivo">＋</button>
             </div>
           </fieldset>
-          <div class="for-docked"></div>
         </div>
 
         <div class="for-col" data-expand="0">
@@ -1456,7 +1446,6 @@
               <button type="button" class="extra-plus add-reason" aria-label="Add a reason" data-aria-en="Add a reason" data-aria-es="Añadir un motivo">＋</button>
             </div>
           </fieldset>
-          <div class="for-docked"></div>
         </div>
 
       </div>
@@ -2088,18 +2077,21 @@
   const invBlock = $("#invitationBlock");
   function updateInvFill(){
     if (!invBtn) return;
-    let filled = 0;
+    let filled = 0, beyond = 0;   // beyond = anything picked outside the Reasons stepper
     ["thing-name","thing-desc","where","time-span","how","saying","curse-detail"]
-      .forEach(id => { const el = $("#"+id); if (el && el.value.trim()) filled++; });
+      .forEach(id => { const el = $("#"+id); if (el && el.value.trim()){ filled++; beyond++; } });
     $$('#decl input[type=checkbox], #decl input[type=radio]').forEach(el => {
       if (el.classList.contains("secnav-radio") ||
           el.classList.contains("tag-toggle")  ||
           el.classList.contains("ctl")         ||
           el.id === "inv-toggle") return;
-      if (el.checked) filled++;
+      if (el.checked){ filled++; if (el.name !== "reason") beyond++; }
     });
     invBtn.style.setProperty("--fill", Math.min(1, filled / 14).toFixed(3));
-    invBlock?.classList.toggle("inv-shown", filled > 0);
+    // The invitation only appears once the declaration has substance beyond
+    // the reasons — i.e. text added to Thing (or another field) or a pick in
+    // Farewell / Wishes / Beware.
+    invBlock?.classList.toggle("inv-shown", beyond > 0);
   }
   $("#decl").addEventListener("input", updateInvFill);
   $("#decl").addEventListener("change", updateInvFill);
@@ -2392,22 +2384,9 @@ em{color:#14503e}</style></head>
                              `✓ Descargado${picks.length>1?"s":""} ${picks.length} archivo${picks.length>1?"s":""}`));
   });
 
-  // Title click → toggle intro section
-  const titleBtn = $("#titleBtn");
   const introSection = $("#introSection");
-  titleBtn?.addEventListener("click", e => {
-    e.stopPropagation();
-    const hidden = introSection.hasAttribute("hidden");
-    if (hidden) {
-      introSection.removeAttribute("hidden");
-      titleBtn.setAttribute("aria-expanded", "true");
-    } else {
-      introSection.setAttribute("hidden", "");
-      titleBtn.setAttribute("aria-expanded", "false");
-    }
-  });
 
-  // Top-right menu
+  // Site menu — the logo + name button opens the dropdown
   const menuBtn  = $("#menuBtn");
   const menuList = $("#menuList");
   function setMenu(open) {
@@ -2428,7 +2407,6 @@ em{color:#14503e}</style></head>
         location.reload();
       } else if (act === "about") {
         introSection.removeAttribute("hidden");
-        titleBtn.setAttribute("aria-expanded","true");
         introSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       setMenu(false);
@@ -2625,166 +2603,64 @@ em{color:#14503e}</style></head>
     toast(T("Location set","Ubicación fijada"));
   });
 
-  // ── Reasons clouds — drifting cloud · 3-step "+" reveal · click a tab to dock it
-  //    (ported from shareful) ──
+  // ── Reasons steppers — collapsed by default · "+" reveals chips in two
+  //    steps (parents → parents+children) · a checked chip shows its pick
+  //    order-number · clicking again deselects and renumbers. ──
   $$(".reasons-cloud").forEach(cloud => {
     const col = cloud.closest(".for-col");
     const newInput = col ? col.querySelector(".new-reason-input") : null;
     const addBtn = cloud.querySelector(".add-reason");
     const expandBtn = col ? col.querySelector(".expand-plus") : null;
-    const dock = col ? col.querySelector(".for-docked") : null;
 
-    // Chips are positioned by a JS physics loop: each chip has a small
-    // velocity, bounces off the cloud walls and off other chips on contact.
-    const visibleChips = () =>
-      $$(":scope > .reason-chip, :scope > .add-reason", cloud)
-        .filter(c => c.style.display !== "none");
-
-    const physics = new Map(); // chip → {x, y, w, h, vx, vy}  (% of cloud)
-    let rafId = null;
-    const randVel = () => (Math.random() - 0.5) * 0.30;
-
-    function measureChip(el, cloudRect){
-      const r = el.getBoundingClientRect();
-      return {
-        w: r.width  && cloudRect.width  ? (r.width  / cloudRect.width)  * 100 : 10,
-        h: r.height && cloudRect.height ? (r.height / cloudRect.height) * 100 : 10,
-      };
-    }
-
-    function syncPhysicsList(){
-      const chips = visibleChips();
-      const cloudRect = cloud.getBoundingClientRect();
-      if (!cloudRect.width || !cloudRect.height) return;
-      Array.from(physics.keys()).forEach(el => {
-        if (el.parentNode !== cloud || el.style.display === "none") physics.delete(el);
-      });
-      chips.forEach(c => {
-        if (physics.has(c)) return;
-        const m = measureChip(c, cloudRect);
-        physics.set(c, {
-          x: parseFloat(c.dataset.homeX) || 0,
-          y: parseFloat(c.dataset.homeY) || 0,
-          w: m.w, h: m.h,
-          vx: randVel(), vy: randVel(),
-        });
-      });
-    }
-
-    function stepPhysics(){
-      const cloudRect = cloud.getBoundingClientRect();
-      if (!cloudRect.width || !cloudRect.height){ rafId = requestAnimationFrame(stepPhysics); return; }
-      const items = [];
-      Array.from(physics.keys()).forEach(el => {
-        if (el.parentNode !== cloud || el.style.display === "none"){ physics.delete(el); return; }
-        const it = physics.get(el);
-        const m = measureChip(el, cloudRect);
-        it.w = m.w; it.h = m.h;
-        items.push({ el, it });
-      });
-      // When the cloud is fully expanded (state 2 = all parents + children),
-      // the chips drift 50% slower so the denser cloud stays readable.
-      const speed = (col && col.dataset.expand === "2") ? 0.5 : 1;
-      for (const { it } of items){
-        it.x += it.vx * speed; it.y += it.vy * speed;
-        if (it.x < 0)          { it.x = 0;          it.vx =  Math.abs(it.vx); }
-        if (it.x + it.w > 100) { it.x = 100 - it.w; it.vx = -Math.abs(it.vx); }
-        if (it.y < 0)          { it.y = 0;          it.vy =  Math.abs(it.vy); }
-        if (it.y + it.h > 100) { it.y = 100 - it.h; it.vy = -Math.abs(it.vy); }
-      }
-      for (let i = 0; i < items.length; i++){
-        const a = items[i].it;
-        for (let j = i + 1; j < items.length; j++){
-          const b = items[j].it;
-          if (a.x < b.x + b.w && a.x + a.w > b.x &&
-              a.y < b.y + b.h && a.y + a.h > b.y){
-            const dx = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
-            const dy = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
-            if (dx < dy){
-              const push = dx / 2;
-              if (a.x < b.x){ a.x -= push; b.x += push; } else { a.x += push; b.x -= push; }
-              const t = a.vx; a.vx = b.vx; b.vx = t;
-            } else {
-              const push = dy / 2;
-              if (a.y < b.y){ a.y -= push; b.y += push; } else { a.y += push; b.y -= push; }
-              const t = a.vy; a.vy = b.vy; b.vy = t;
-            }
-          }
-        }
-      }
-      for (const { el, it } of items){
-        el.style.left = it.x.toFixed(2) + "%";
-        el.style.top  = it.y.toFixed(2) + "%";
-      }
-      rafId = requestAnimationFrame(stepPhysics);
-    }
-
-    const layout = () => {
-      const chips = visibleChips();
-      for (let i = chips.length - 1; i > 0; i--){
-        const j = Math.floor(Math.random() * (i + 1));
-        [chips[i], chips[j]] = [chips[j], chips[i]];
-      }
-      const cols = Math.max(1, Math.ceil(Math.sqrt(chips.length)));
-      const rows = Math.max(1, Math.ceil(chips.length / cols));
-      const colDen = Math.max(1, cols - 1);
-      const rowDen = Math.max(1, rows - 1);
-      chips.forEach((c, i) => {
-        const hx = +(4 + (i % cols)         / colDen * 80).toFixed(2);
-        const hy = +(4 + Math.floor(i/cols) / rowDen * 88).toFixed(2);
-        c.dataset.homeX = hx; c.dataset.homeY = hy;
-        c.style.left = hx + "%"; c.style.top = hy + "%";
-        const ex = physics.get(c);
-        if (ex){ ex.x = hx; ex.y = hy; ex.vx = randVel(); ex.vy = randVel(); }
-      });
-      syncPhysicsList();
-      if (!rafId && physics.size && !matchMedia("(prefers-reduced-motion: reduce)").matches){
-        rafId = requestAnimationFrame(stepPhysics);
-      }
-    };
-
-    // 3 steps: 0 = two parents · 1 = all parents · 2 = all parents + children
+    // 3 reveal steps: 0 = collapsed (title only) · 1 = parents · 2 = +children
     function applyExpand(){
       const state = +(col.dataset.expand || 0);
-      const parents = $$(":scope > .parent-chip", cloud);
-      const kids    = $$(":scope > .child-chip", cloud);
-      parents.forEach((p,i) => { p.style.display = (state >= 1 || i < 2) ? "inline-flex" : "none"; });
-      if (state >= 2){
-        kids.forEach(k => {
-          if (k.style.display !== "inline-flex"){
-            const p = cloud.querySelector('.parent-chip[data-pid="' + k.dataset.parent + '"]');
-            if (p && p.style.left){ k.style.left = p.style.left; k.style.top = p.style.top; }
-            k.style.display = "inline-flex";
-          }
-        });
-        setTimeout(layout, 40);
-      } else {
-        kids.forEach(k => { k.style.display = "none"; });
-        layout();
-      }
+      $$(":scope > .parent-chip", cloud).forEach(p => { p.style.display = state >= 1 ? "inline-flex" : "none"; });
+      $$(":scope > .child-chip",  cloud).forEach(k => { k.style.display = state >= 2 ? "inline-flex" : "none"; });
+      if (addBtn) addBtn.style.display = state >= 1 ? "inline-flex" : "none";
     }
     expandBtn?.addEventListener("click", () => {
       col.dataset.expand = String(((+(col.dataset.expand || 0)) + 1) % 3);
       applyExpand();
     });
 
-    // click a tab → it docks into the grid below; click again → back to the cloud
+    // Selection order — a checked chip gets the next number; deselecting one
+    // renumbers the rest so the sequence stays 1..n with no gaps.
+    const order = [];
+    const stamp = () => order.forEach((chip, i) => { chip.dataset.num = i + 1; });
     cloud.addEventListener("change", e => {
-      const chip = e.target.closest(".reason-chip");
-      if (!chip || !dock || !cloud.contains(chip)) return;
-      if (e.target.checked){ chip.style.display = ""; dock.appendChild(chip); }
+      const input = e.target.closest('input[name="reason"]');
+      if (!input) return;
+      const chip = input.closest(".reason-chip");
+      if (!chip) return;
+      if (input.checked){
+        if (!order.includes(chip)) order.push(chip);
+      } else {
+        const i = order.indexOf(chip);
+        if (i >= 0) order.splice(i, 1);
+        chip.removeAttribute("data-num");
+      }
+      stamp();
     });
-    dock?.addEventListener("change", e => {
-      const chip = e.target.closest(".reason-chip");
-      if (!chip || e.target.checked) return;
-      chip.style.display = "inline-flex";
-      cloud.insertBefore(chip, addBtn || null);
-      layout();
+    // Rebuild reveal + numbering from restored (localStorage) selections.
+    cloud.addEventListener("reason:init", () => {
+      const anyChild   = $$(':scope > .child-chip  input:checked', cloud).length > 0;
+      const anyChecked = $$(':scope > .reason-chip input:checked', cloud).length > 0;
+      if (anyChild) col.dataset.expand = "2";
+      else if (anyChecked && (+(col.dataset.expand || 0)) < 1) col.dataset.expand = "1";
+      applyExpand();
+      order.length = 0;
+      $$(":scope > .reason-chip", cloud).forEach(chip => {
+        const inp = chip.querySelector('input[name="reason"]');
+        if (inp && inp.checked) order.push(chip);
+        else chip.removeAttribute("data-num");
+      });
+      stamp();
     });
 
     applyExpand();
 
-    // "+" in the cloud — type a custom reason; Enter adds it as a parent tab
+    // "+" in the flow — type a custom reason; Enter adds it as a parent chip
     const addChip = txt => {
       const lbl = document.createElement("label");
       lbl.className = "reason-chip parent-chip";
@@ -2793,7 +2669,6 @@ em{color:#14503e}</style></head>
       cb.type = "checkbox"; cb.name = "reason";
       lbl.append(cb, document.createTextNode(" " + txt));
       cloud.insertBefore(lbl, addBtn || null);
-      layout();
     };
     addBtn?.addEventListener("click", () => {
       if (!newInput) return;
@@ -2825,6 +2700,7 @@ em{color:#14503e}</style></head>
   // spans), so there is no stale snapshot and no Update button is needed here
   // (§10.3a Update = N/A for live-state apps). "Reset" in the menu clears it.
   restore();
+  $$(".reasons-cloud").forEach(c => c.dispatchEvent(new Event("reason:init")));
   mirror();
   renderMagic();
   updateInvFill();

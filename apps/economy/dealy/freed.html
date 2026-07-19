@@ -74,6 +74,7 @@
     border-bottom: none !important;
   }
   .flove-bar .flove-mark{ font-size:26px; color:var(--accent); filter:drop-shadow(0 0 6px var(--accent-glow)); vertical-align:-.18em; overflow:visible }
+  .logo-wrap{ position:relative; z-index:0; display:inline-flex; align-items:center }
   .vh{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
   .pill-col{ display:flex; flex-direction:column; gap:8px; }
   .flove-bar .flove-app-name{ font-family:var(--font-display); font-weight:600; font-size:1.05rem; color: var(--accent-deep) }
@@ -1324,12 +1325,39 @@
      later chip reveals appear instantly instead of re-animating. ===== */
   @keyframes freed-in       { from{ opacity:0 } to{ opacity:1 } }
   @keyframes freed-in-right { from{ opacity:0; transform:translateX(-26px) } to{ opacity:1; transform:translateX(0) } }
+  /* logo grows in, overshooting to 3x during 2s, then settles to normal size */
+  @keyframes freed-logo-grow{
+    0%   { opacity:0; transform:scale(.2) }
+    12%  { opacity:1 }
+    83%  { transform:scale(3) }     /* ~2s in: peak = the "landing" */
+    100% { transform:scale(1) }     /* settle back to its normal size */
+  }
+  /* wavy multicolour splash that bursts downward the moment the logo lands */
+  @keyframes freed-splash{
+    0%   { opacity:0; transform:translateX(-50%) scale(.3); border-radius:50% }
+    20%  { opacity:.9 }
+    55%  { border-radius:42% 58% 55% 45% / 60% 48% 70% 40% }
+    100% { opacity:0; transform:translateX(-50%) translateY(38px) scaleX(1.5) scaleY(2.8);
+           border-radius:46% 54% 50% 50% / 55% 45% 62% 40% }
+  }
   /* bubbles (floating reason chips) — appear at 3s, fading in over 3s */
   body.intro-anim .reason-chip{ animation: freed-in 3s ease 3s backwards }
+  /* logo — in 5s ahead of the rest (6s), growing to 3x over 2s + splash on landing */
+  body.intro-anim .flove-mark{ transform-origin:center; animation: freed-logo-grow 2.4s var(--bounce) 6s backwards }
+  body.intro-anim .logo-wrap::after{
+    content:""; position:absolute; left:50%; top:68%; z-index:-1;
+    width:46px; height:30px; transform:translateX(-50%);
+    background:linear-gradient(180deg,#10b981 0%,#84cc16 32%,#f59e0b 66%,#ec4899 100%);
+    filter:blur(5px); opacity:0; pointer-events:none;
+    animation: freed-splash 1.3s ease-out 8s backwards;
+  }
   /* Because / For labels — 8s */
   body.intro-anim .for-col-title{ animation: freed-in 1s ease 8s backwards }
-  /* logo + site title — 11s, sliding in rightwards */
-  body.intro-anim .site-trigger{ animation: freed-in-right 1s var(--bounce) 11s backwards }
+  /* site title + Next button + stepper — 11s (5s after the logo) */
+  body.intro-anim .flove-app-name,
+  body.intro-anim .site-trigger .caret{ animation: freed-in-right 1s var(--bounce) 11s backwards }
+  body.intro-anim .section-nav,
+  body.intro-anim .section-buttons{ animation: freed-in 1s ease 11s backwards }
   /* the "+" buttons (reveal + add-reason) — 15s */
   body.intro-anim .expand-plus,
   body.intro-anim .for-reasons .add-reason{ animation: freed-in 1s ease 15s backwards }
@@ -1376,7 +1404,8 @@
     <button type="button" class="site-trigger" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuList" aria-label="Menu" data-aria-en="Menu" data-aria-es="Menú">
       <!-- Freed mark · canonical source: images/apps/logos/economy/economy-logos.html
            (Freed · live · Sun, gradient lg-freed-live). Kept inline so the app
-           stays self-contained. -->
+           stays self-contained. The .logo-wrap anchors the entrance splash. -->
+      <span class="logo-wrap">
       <svg class="flove-mark" aria-hidden="true" viewBox="0 0 100 100" width="1em" height="1em">
         <defs>
           <linearGradient id="g-freed" x1="0" y1="0" x2="1" y2="1">
@@ -1398,6 +1427,7 @@
         </g>
         <circle cx="50" cy="50" r="6" fill="url(#g-freed)"/>
       </svg>
+      </span>
       <span class="flove-app-name">Freed</span>
       <span class="caret" aria-hidden="true">▾</span>
     </button>

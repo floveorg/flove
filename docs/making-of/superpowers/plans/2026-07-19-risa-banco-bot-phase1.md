@@ -8,6 +8,8 @@
 
 **Tech Stack:** Node ≥20 (global `fetch`, no libraries), `ffmpeg` (preinstalled on the runner), Telegram Bot API over HTTPS, GitHub Actions + GitHub Pages. Tests: Node's built-in `node --test`.
 
+> **Amendment 2026-07-19 — audio on Cloudinary (Marc):** the community-uploaded laugh clips are uploaded to **Cloudinary** (zero-dep signed upload, `bot/cloudinary.mjs`), NOT committed to git. `banco.json` keeps only metadata; each entry's `src` is the Cloudinary `secure_url`. `bancoEntry` now takes `src` directly (no `pagesBase`/`audio/` path). `poll.mjs` approve branch: download → ffmpeg loudnorm → upload to Cloudinary → prepend `banco.json` → post to channel **by URL**; temp files in `os.tmpdir()`. The `audio/` dir is dropped from the repo. New secret **`CLOUDINARY_URL`** (`cloudinary://key:secret@cloud`) alongside `TELEGRAM_BOT_TOKEN` (Task 6). Workflow commits only `banco.json` + `state/`. Tasks 3, 5, 6, 8 below reflect the pre-amendment repo-audio design; the implemented code follows this amendment.
+
 ## Global Constraints
 
 - **All work is in the NEW repo `floveorg/banco-risa`**, EXCEPT Task 7 which makes a one-line change in the existing flove repo (`~/Documents/flove`).

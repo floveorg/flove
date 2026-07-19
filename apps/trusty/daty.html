@@ -836,27 +836,7 @@
             transform: translateY(-1px);
         }
 
-        /* ─── topmenu (☰) ─── */
-        .topmenu-btn {
-            width: 32px; height: 32px;
-            border: 3px solid var(--line);
-            background: rgba(255,255,255,.7);
-            border-radius: 999px;
-            cursor: pointer;
-            font-size: 1rem;
-            color: inherit;
-            display: inline-flex; align-items: center; justify-content: center;
-            transition: background .15s, border-color .15s, color .15s;
-        }
-        .topmenu-btn:hover {
-            background: var(--app-accent-soft);
-            border-color: var(--app-accent);
-        }
-        .topmenu-btn[aria-expanded="true"] {
-            background: var(--app-accent);
-            color: #fff;
-            border-color: var(--app-accent);
-        }
+        /* ─── topmenu (opens from the logo + app name) ─── */
         .topmenu {
             position: fixed;
             top: 52px;
@@ -1487,12 +1467,11 @@
 </div>
 
 <nav class="flove-bar">
-  <button class="flove-mark-btn" id="floveMarkBtn" type="button" aria-label="Reload page" data-aria-en="Reload page" data-aria-es="Recargar la página">
+  <button class="flove-mark-btn" id="floveMarkBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="topmenu" aria-label="Open menu" data-aria-en="Open menu" data-aria-es="Abrir menú">
     <svg class="flove-mark" aria-hidden="true" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="#2c7a6e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx='8' cy='9.4' r='2.2'/><path d='M4.6 19.6 a3.4 4 0 0 1 6.8 0'/><circle cx='16' cy='9.4' r='2.2'/><path d='M12.6 19.6 a3.4 4 0 0 1 6.8 0'/><path fill='#2c7a6e' stroke='none' transform='translate(12 5.4) scale(1.25)' d='M0 1.7C-1.8 0-1.8-1.6-0.8-1.6-0.25-1.6 0-1.05 0-0.75 0-1.05 0.25-1.6 0.8-1.6 1.8-1.6 1.8 0 0 1.7Z'/></svg>
   </button>
-  <button class="flove-app-name" id="appNameBtn" type="button" aria-expanded="false" aria-controls="appInfoPanel">Daty</button>
+  <button class="flove-app-name" id="appNameBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="topmenu">Daty</button>
   <span class="flove-spacer"></span>
-  <button class="topmenu-btn" id="topmenuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Open menu" data-aria-en="Open menu" data-aria-es="Abrir menú">☰</button>
 </nav>
 
 <section class="app-info-panel" id="appInfoPanel" hidden aria-labelledby="appNameBtn">
@@ -1508,7 +1487,9 @@
   <button type="button" class="app-info__close" id="appInfoCloseBtn"><span class="en" lang="en">✕ Close</span><span class="es" lang="es">✕ Cerrar</span></button>
 </section>
 
-<div class="topmenu" id="topmenu" hidden role="menu" aria-labelledby="topmenuBtn">
+<div class="topmenu" id="topmenu" hidden role="menu" aria-labelledby="appNameBtn">
+  <button class="topmenu__item" data-act="info"   type="button" role="menuitem"><span class="en" lang="en">ⓘ What is Daty?</span><span class="es" lang="es">ⓘ ¿Qué es Daty?</span></button>
+  <div class="topmenu__sep" role="separator"></div>
   <button class="topmenu__item" data-act="reset"  type="button" role="menuitem"><span class="en" lang="en">⟲ Reset all</span><span class="es" lang="es">⟲ Reiniciar todo</span></button>
   <button class="topmenu__item" data-act="export" type="button" role="menuitem"><span class="en" lang="en">📦 Export JSON</span><span class="es" lang="es">📦 Exportar JSON</span></button>
   <button class="topmenu__item" data-act="import" type="button" role="menuitem"><span class="en" lang="en">📥 Import JSON</span><span class="es" lang="es">📥 Importar JSON</span></button>
@@ -1753,31 +1734,18 @@
         // Keep the (a11y-only, visually-hidden) submit button from reloading the page.
         document.getElementById('mainForm')?.addEventListener('submit', e => e.preventDefault());
 
-        // ---------- NAV-BAR ACTIONS ----------
-        document.getElementById('floveMarkBtn')?.addEventListener('click', () => {
-            location.reload();
-        });
-        const appNameBtn      = document.getElementById('appNameBtn');
+        // ---------- APP INFO PANEL (opened from the ⓘ menu entry) ----------
         const appInfoPanel    = document.getElementById('appInfoPanel');
         const appInfoCloseBtn = document.getElementById('appInfoCloseBtn');
-        appNameBtn?.addEventListener('click', () => {
-            const open = appInfoPanel.hasAttribute('hidden');
-            if (open) {
-                appInfoPanel.removeAttribute('hidden');
-                appNameBtn.setAttribute('aria-expanded', 'true');
-            } else {
-                const v = appInfoPanel.querySelector('video');
-                if (v) v.pause();
-                appInfoPanel.setAttribute('hidden', '');
-                appNameBtn.setAttribute('aria-expanded', 'false');
-            }
-        });
-        appInfoCloseBtn?.addEventListener('click', () => {
-            const v = appInfoPanel.querySelector('video');
+        function openAppInfo() {
+            appInfoPanel?.removeAttribute('hidden');
+        }
+        function closeAppInfo() {
+            const v = appInfoPanel?.querySelector('video');
             if (v) v.pause();
-            appInfoPanel.setAttribute('hidden', '');
-            appNameBtn?.setAttribute('aria-expanded', 'false');
-        });
+            appInfoPanel?.setAttribute('hidden', '');
+        }
+        appInfoCloseBtn?.addEventListener('click', closeAppInfo);
 
         // ---------- TOAST ----------
         const toastEl = document.getElementById('toast');
@@ -2365,27 +2333,32 @@ footer{margin-top:24px;font-size:.78rem;color:#6e5a44;font-style:italic}</style>
 
         // ---------- TOPMENU ----------
         (function wireTopmenu(){
-            const btn      = document.getElementById('topmenuBtn');
+            const triggers = [
+                document.getElementById('floveMarkBtn'),
+                document.getElementById('appNameBtn'),
+            ].filter(Boolean);
             const menu     = document.getElementById('topmenu');
             const importEl = document.getElementById('importFile');
-            if (!btn || !menu) return;
+            if (!triggers.length || !menu) return;
 
-            const open  = () => { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); };
-            const close = () => { menu.hidden = true;  btn.setAttribute('aria-expanded', 'false'); };
+            const open  = () => { menu.hidden = false; triggers.forEach(t => t.setAttribute('aria-expanded', 'true')); };
+            const close = () => { menu.hidden = true;  triggers.forEach(t => t.setAttribute('aria-expanded', 'false')); };
 
-            btn.addEventListener('click', e => {
+            triggers.forEach(t => t.addEventListener('click', e => {
                 e.stopPropagation();
                 menu.hidden ? open() : close();
-            });
+            }));
             document.addEventListener('click', e => {
-                if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) close();
+                if (!menu.hidden && !menu.contains(e.target) && !triggers.some(t => t.contains(e.target))) close();
             });
 
             menu.querySelectorAll('.topmenu__item').forEach(item => {
                 item.addEventListener('click', () => {
                     const act = item.dataset.act;
                     close();
-                    if (act === 'reset') {
+                    if (act === 'info') {
+                        openAppInfo();
+                    } else if (act === 'reset') {
                         if (confirm(T('Reset all fields?', '¿Reiniciar todos los campos?'))) {
                             document.getElementById('mainForm').reset();
                             urlContainer.innerHTML = '';

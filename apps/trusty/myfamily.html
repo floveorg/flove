@@ -623,67 +623,6 @@
   border-color: var(--app-accent);
 }
 
-.flove-menu-btn {
-  width: 36px; height: 36px;
-  border-radius: var(--flove-radius-pill);
-  border: 1px solid rgba(127,127,127,.22);
-  background: rgba(255,255,255,.5);
-  color: inherit;
-  font-size: 18px;
-  cursor: pointer;
-  font-family: inherit;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background var(--flove-fast), border-color var(--flove-fast);
-}
-.flove-menu-btn:hover { background: var(--app-accent-soft); border-color: var(--app-accent); }
-.flove-menu-btn[aria-expanded="true"] { background: var(--app-accent); color: var(--app-ink-on-accent); }
-
-.flove-menu {
-  width: min(280px, calc(100vw - 24px));
-  background: #fff;
-  color: #1a1a1a;
-  border: 1px solid rgba(0,0,0,.1);
-  border-radius: var(--flove-radius);
-  box-shadow: 0 18px 40px rgba(0,0,0,.18);
-  padding: 6px;
-  z-index: 200;
-  font-family: var(--flove-font-ui);
-}
-.flove-menu[hidden] { display: none; }
-.flove-menu__section {
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-}
-.flove-menu__section:last-child { border-bottom: 0; }
-.flove-menu__title {
-  margin: 0 8px 4px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .8px;
-  color: #6b7280;
-}
-.flove-menu__item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 9px 10px;
-  font: inherit;
-  font-size: .9rem;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  border-radius: var(--flove-radius);
-  cursor: pointer;
-  text-decoration: none;
-}
-.flove-menu__item:hover {
-  background: var(--app-accent-soft);
-  color: var(--app-ink-on-accent);
-}
-
 @media (max-width: 540px) {
   .flove-categories { gap: 4px; padding: 0 2px; }
   .flove-cat-chip { padding: 3px 10px; font-size: 11px; }
@@ -767,6 +706,12 @@
       align-items: center;
       text-decoration: none;
       color: inherit;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      cursor: pointer;
     }
     .app-name-toggle {
       background: transparent;
@@ -1412,10 +1357,10 @@
 </div>
 
 <div class="flove-bar">
-  <a href="MyFamily.html" class="flove-mark-link" aria-label="reload" data-aria-en="reload" data-aria-es="recargar">
+  <button type="button" class="flove-mark-link" id="logoBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="infoPanel" aria-label="About MyFamily" data-aria-en="About MyFamily" data-aria-es="Acerca de MyFamily">
     <svg class="flove-mark" aria-hidden="true" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="#8b9a7b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d='M4.5 11.2 l7.5 -6 7.5 6'/><path d='M6.4 11 v8 h11.2 v-8'/><path fill='#8b9a7b' stroke='none' transform='translate(12 15) scale(1.6)' d='M0 1.7C-1.8 0-1.8-1.6-0.8-1.6-0.25-1.6 0-1.05 0-0.75 0-1.05 0.25-1.6 0.8-1.6 1.8-1.6 1.8 0 0 1.7Z'/></svg>
-  </a>
-  <button type="button" class="flove-app-name app-name-toggle" id="aboutBtn" aria-expanded="false" aria-controls="infoPanel" title="About MyFamily" data-aria-en="About MyFamily" data-aria-es="Acerca de MyFamily">MyFamily</button>
+  </button>
+  <button type="button" class="flove-app-name app-name-toggle" id="aboutBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="infoPanel" title="About MyFamily" data-aria-en="About MyFamily" data-aria-es="Acerca de MyFamily">MyFamily</button>
   <span class="flove-spacer"></span>
   <details class="lang">
     <summary class="worldball" aria-label="Language" data-aria-en="Language" data-aria-es="Idioma">🌐</summary>
@@ -2090,23 +2035,31 @@
       });
     }
 
-    // ----- INFO PANEL (title toggles · close button + ESC dismiss) -----
+    // ----- INFO PANEL (logo + title toggle · close button + ESC / outside-click dismiss) -----
     const aboutBtn = document.getElementById('aboutBtn');
+    const logoBtn = document.getElementById('logoBtn');
+    const infoTriggers = [logoBtn, aboutBtn].filter(Boolean);
     const infoPanel = document.getElementById('infoPanel');
     const infoCloseBtn = document.getElementById('infoCloseBtn');
     function setInfoOpen(open) {
       infoPanel.classList.toggle('is-open', open);
-      aboutBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      infoTriggers.forEach((t) => t.setAttribute('aria-expanded', open ? 'true' : 'false'));
       infoPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
       if (open) infoCloseBtn.focus();
       else aboutBtn.focus();
     }
-    aboutBtn.addEventListener('click', () => {
+    infoTriggers.forEach((t) => t.addEventListener('click', () => {
       setInfoOpen(!infoPanel.classList.contains('is-open'));
-    });
+    }));
     infoCloseBtn.addEventListener('click', () => setInfoOpen(false));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && infoPanel.classList.contains('is-open')) setInfoOpen(false);
+    });
+    document.addEventListener('click', (e) => {
+      if (!infoPanel.classList.contains('is-open')) return;
+      if (infoPanel.contains(e.target)) return;
+      if (infoTriggers.some((t) => t.contains(e.target))) return;
+      setInfoOpen(false);
     });
 
     // ----- PLANT THE GRASS (populate both SVG strips as a fuzzy bush) -----

@@ -148,7 +148,7 @@
     body > *:not(.dream-veil){ position:relative; z-index:1; }
 
     /* ============================================================
-       TOPBAR — sticky · asterism · Trusty name · ☰ menu
+       TOPBAR — sticky · asterism · Trusty name (both open the menu)
        ============================================================ */
     .topbar{
       position:sticky; top:0; z-index:50;
@@ -184,27 +184,6 @@
     .topbar .spacer{ flex:1; }
 
     .menu-wrap{ position:relative; }
-    .menu-btn{
-      width:42px; height:42px;
-      display:inline-flex; align-items:center; justify-content:center;
-      background:linear-gradient(150deg, #fff, var(--paper));
-      border:1px solid var(--line-strong);
-      border-radius:var(--radius-pill);
-      color:var(--ink);
-      font-size:1.15rem; line-height:1;
-      cursor:pointer;
-      box-shadow:var(--shadow-sm);
-      transition:transform var(--fast), border-color var(--fast), box-shadow var(--fast), background var(--fast);
-    }
-    .menu-btn:hover{
-      transform:translateY(-1px);
-      border-color:var(--accent);
-      box-shadow:0 8px 18px var(--accent-glow);
-    }
-    .menu-btn[aria-expanded="true"]{
-      background:linear-gradient(150deg, var(--accent), var(--accent-deep));
-      color:#fff; border-color:var(--accent-deep);
-    }
 
     .menu-dropdown{
       position:absolute; right:0; top:calc(100% + 10px);
@@ -234,6 +213,7 @@
     .menu-item .glyph{
       width:1.4rem; text-align:center; color:var(--accent);
     }
+    .menu-sep{ height:1px; margin:.35rem .25rem; background:var(--line-strong); }
 
     /* ============================================================
        RELATED-APPS ROW — collapsible · left / center / right
@@ -1472,6 +1452,8 @@
     /* mark-link + title button on topbar */
     .topbar .mark-link{
       display:inline-flex; align-items:center;
+      background:transparent; border:0; padding:0;
+      color:inherit; font:inherit; cursor:pointer;
       text-decoration:none;
       transition:transform var(--fast);
     }
@@ -2164,11 +2146,13 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a href="trustful.html" class="mark-link" id="markLink" aria-label="Reload Trusty" data-aria-en="Reload Trusty" data-aria-es="Recargar Trusty">
+    <button type="button" class="mark-link" id="markLink"
+            aria-haspopup="true" aria-expanded="false" aria-controls="menuDropdown"
+            aria-label="Open menu" data-aria-en="Open menu" data-aria-es="Abrir menú">
       <svg class="flove-mark mark" aria-hidden="true" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="#5a8f7b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx='9.4' cy='8.8' r='2.4'/><circle cx='14.6' cy='8.8' r='2.4'/><path d='M4.5 19.5 a7.5 7 0 0 1 15 0'/></svg>
-    </a>
+    </button>
     <button class="brand-toggle" id="titleBtn" type="button"
-            aria-haspopup="true" aria-expanded="false" aria-controls="introBox">
+            aria-haspopup="true" aria-expanded="false" aria-controls="menuDropdown">
       <span class="brand-h1" role="heading" aria-level="1">Trusty</span>
     </button>
 
@@ -2196,10 +2180,11 @@
 
     <span class="spacer"></span>
     <div class="menu-wrap">
-      <button id="menuBtn" class="menu-btn" type="button"
-              aria-haspopup="true" aria-expanded="false"
-              aria-controls="menuDropdown" aria-label="Open menu" data-aria-en="Open menu" data-aria-es="Abrir menú">☰</button>
       <div id="menuDropdown" class="menu-dropdown" role="menu">
+        <button class="menu-item" id="introMenuBtn" type="button" role="menuitem">
+          <span class="glyph">ⓘ</span> <span class="en" lang="en">What is Trusty?</span><span class="es" lang="es">¿Qué es Trusty?</span>
+        </button>
+        <div class="menu-sep" role="separator"></div>
         <button class="menu-item" id="relatedAppsBtn" type="button" role="menuitem">
           <span class="glyph">✺</span> <span class="en" lang="en">Related apps</span><span class="es" lang="es">Apps relacionadas</span>
         </button>
@@ -2224,7 +2209,7 @@
   </div>
 </header>
 
-<!-- Intro box — toggled by clicking the title -->
+<!-- Intro box — opened from the menu ("What is Trusty?") -->
 <section class="intro" id="introBox" hidden>
   <div class="intro-card">
     <button class="section-close" id="introClose" type="button" aria-label="Collapse intro" data-aria-en="Collapse intro" data-aria-es="Contraer la introducción">✕</button>
@@ -2302,7 +2287,6 @@
 <section class="related-apps-row" id="relatedAppsRow" aria-label="Related apps" data-aria-en="Related apps" data-aria-es="Apps relacionadas" inert>
   <div class="group left">
     <a href="daty.html" class="pill" title="Dating &amp; meeting" data-title-en="Dating &amp; meeting" data-title-es="Citas y encuentros">Daty</a>
-    <a href="hoty.html" class="pill" title="Attraction" data-title-en="Attraction" data-title-es="Atracción">Hoty</a>
   </div>
   <div class="group center">
     <a href="maty.html"     class="pill" title="Couple agreement" data-title-en="Couple agreement" data-title-es="Acuerdo de pareja">Maty</a>
@@ -3400,29 +3384,33 @@
 
   /* Topbar menu + related-apps drawer */
   function initMenu(){
-    const btn      = $("#menuBtn");
+    const triggers = [$("#markLink"), $("#titleBtn")].filter(Boolean);
     const dropdown = $("#menuDropdown");
     const relBtn   = $("#relatedAppsBtn");
     const relRow   = $("#relatedAppsRow");
     const relClose = $("#relatedAppsClose");
-    if(!btn || !dropdown) return;
+    const infoBtn  = $("#introMenuBtn");
+    const intro    = $("#introBox");
+    if(!triggers.length || !dropdown) return;
 
     const setMenu = (open)=>{
       dropdown.classList.toggle("is-open", open);
-      btn.setAttribute("aria-expanded", String(open));
+      triggers.forEach((t)=> t.setAttribute("aria-expanded", String(open)));
     };
     const setRelated = (open)=>{
       relRow.classList.toggle("is-open", open);
       relRow.toggleAttribute("inert", !open);
     };
 
-    btn.addEventListener("click", (e)=>{
-      e.stopPropagation();
-      setMenu(!dropdown.classList.contains("is-open"));
+    triggers.forEach((t)=>{
+      t.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        setMenu(!dropdown.classList.contains("is-open"));
+      });
     });
 
     document.addEventListener("click", (e)=>{
-      if(!dropdown.contains(e.target) && e.target !== btn){ setMenu(false); }
+      if(!dropdown.contains(e.target) && !triggers.some((t)=> t.contains(e.target))){ setMenu(false); }
     });
 
     document.addEventListener("keydown", (e)=>{
@@ -3431,6 +3419,13 @@
         if(relRow && relRow.classList.contains("is-open")) setRelated(false);
       }
     });
+
+    if(infoBtn && intro){
+      infoBtn.addEventListener("click", ()=>{
+        intro.removeAttribute("hidden");
+        setMenu(false);
+      });
+    }
 
     if(relBtn){
       relBtn.addEventListener("click", ()=>{
@@ -3443,33 +3438,15 @@
     }
   }
 
-  /* Logo reload + title toggles intro · "see more" expands intro-more */
+  /* Intro/About panel — opened from the menu · ✕ closes · "see more" expands intro-more */
   function initIntro(){
-    const mark   = $("#markLink");
-    const title  = $("#titleBtn");
     const intro  = $("#introBox");
     const more   = $("#introMore");
     const seeBtn = $("#seeMoreBtn");
     const introClose = $("#introClose");
 
-    if(mark){
-      mark.addEventListener("click", (e)=>{
-        e.preventDefault();
-        location.reload();
-      });
-    }
-
-    const setIntro = (open)=>{
-      if(open){ intro.removeAttribute("hidden"); }
-      else    { intro.setAttribute("hidden",""); }
-      if(title) title.setAttribute("aria-expanded", String(open));
-    };
-
-    if(title && intro){
-      title.addEventListener("click", ()=> setIntro(intro.hasAttribute("hidden")));
-    }
-    if(introClose){
-      introClose.addEventListener("click", ()=> setIntro(false));
+    if(introClose && intro){
+      introClose.addEventListener("click", ()=> intro.setAttribute("hidden",""));
     }
 
     if(seeBtn && more){

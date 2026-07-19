@@ -79,19 +79,25 @@ main{
 .rung--normal  { margin-left: 74px;  }
 .rung--advanced{ margin-left: 122px; }
 
-/* cards stripped bare — no background, border, shadow or margin;
-   just icon + text. Auto-width rows are centred, so the growing
-   titles alone shape the pyramid. */
+/* each card: only logo + name show; clicking the head toggles a panel
+   with the card's details + a Go button. Pure-CSS checkbox toggle, one
+   per card, so any number can stay open at once (multi-expand). */
 .rung{
-  display: flex; align-items: center; gap: 11px;
-  padding: 4px 6px;
-  text-decoration: none; color: var(--ink);
-  transition: transform .22s var(--ease);
-  animation: rise .7s var(--ease) both;
+  position: relative;
+  display: flex; flex-direction: column; align-items: flex-start;
+  animation: fade-right .8s var(--ease) both;
 }
-.rung:hover, .rung:focus-visible{ transform: translateY(-2px); outline: none; }
-.rung:hover .rung-name, .rung:focus-visible .rung-name{ color: var(--a); }
-.rung:focus-visible .rung-name{ text-decoration: underline; text-underline-offset: 3px; }
+.card-ctl{ position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.card-head{
+  display: inline-flex; align-items: center; gap: 11px;
+  padding: 4px 6px; cursor: pointer; color: var(--ink);
+  transition: transform .22s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.card-head:hover{ transform: translateX(2px); }
+.card-head:hover .rung-name{ color: var(--a); }
+.card-ctl:focus-visible + .card-head{ outline: 2px solid var(--a); outline-offset: 3px; border-radius: 12px; }
 
 .rung-disc{
   flex: 0 0 auto;
@@ -100,13 +106,35 @@ main{
   color: var(--a);
   transition: transform .22s var(--ease);
 }
-.rung:hover .rung-disc{ transform: scale(1.1); }
+.card-head:hover .rung-disc{ transform: scale(1.1); }
 .rung-disc svg{ width: 26px; height: 26px; }
 
-.rung-body{ display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.rung-tier{ font-size: 9.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--a); opacity: .85; }
 .rung-name{ font-family: var(--font-display); font-weight: 600; line-height: 1.1; transition: color .22s var(--ease); }
-.rung-slogan{ font-size: .78rem; color: var(--ink-soft); }
+.card-caret{ display: inline-flex; margin-left: 3px; color: var(--a); opacity: .5; transition: transform .3s var(--ease); }
+.card-caret svg{ width: 14px; height: 14px; }
+.card-ctl:checked ~ .card-head .card-caret{ transform: rotate(180deg); }
+
+/* collapsible info panel — details + Go (animated open via grid rows) */
+.card-info{
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  margin-left: 41px;
+  transition: grid-template-rows .32s var(--ease), opacity .32s var(--ease);
+}
+.card-ctl:checked ~ .card-info{ grid-template-rows: 1fr; opacity: 1; }
+.card-info-inner{ overflow: hidden; min-height: 0;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding-top: 6px; }
+.rung-tier{ font-size: 9.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--a); opacity: .85; }
+.rung-slogan{ font-size: .82rem; color: var(--ink-soft); }
+.go-btn{
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 2px; padding: 6px 14px; border-radius: 999px;
+  background: var(--a); color: #fff; text-decoration: none;
+  font-size: .8rem; font-weight: 600; letter-spacing: .3px;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--a) 32%, transparent);
+  transition: transform .18s var(--ease), filter .18s var(--ease);
+}
+.go-btn:hover, .go-btn:focus-visible{ transform: translateX(3px); filter: brightness(1.06); outline: none; }
+.go-btn svg{ width: 15px; height: 15px; }
 
 /* size lives in the TITLES ONLY — small apex (mini) → big base (super) */
 .rung--mini     .rung-name{ font-size: 1.05rem; }
@@ -115,13 +143,15 @@ main{
 .rung--advanced .rung-name{ font-size: 2.05rem; }
 .rung--super    .rung-name{ font-size: 2.45rem; }
 
-/* staggered rise — apex (mini) enters first, base (super) last */
-.rung--mini    { animation-delay: .12s; }
-.rung--basic   { animation-delay: .26s; }
-.rung--normal  { animation-delay: .40s; }
-.rung--advanced{ animation-delay: .54s; }
-.rung--super   { animation-delay: .68s; }
-@keyframes rise{ from{ opacity: 0; transform: translateY(28px) scale(.94); } to{ opacity: 1; transform: none; } }
+/* intro — each card fades in rightwards, one every 2s */
+.rung--mini    { animation-delay: 0s;  }
+.rung--basic   { animation-delay: 2s;  }
+.rung--normal  { animation-delay: 4s;  }
+.rung--advanced{ animation-delay: 6s;  }
+.rung--super   { animation-delay: 8s;  }
+.rung--shareful{ animation-delay: 10s; }
+.rung--freed   { animation-delay: 12s; }
+@keyframes fade-right{ from{ opacity: 0; transform: translateX(-34px); } to{ opacity: 1; transform: none; } }
 
 /* ── the base row — Rewardy (super) with Freed & Shareful to its left.
    Freed a third of Rewardy's size, Shareful a half. Bottoms aligned. ── */
@@ -130,15 +160,18 @@ main{
 .base-row{ position: relative; margin-left: 195px; display: flex; align-items: flex-end; }
 .base-super{ position: relative; }
 .base-sats{ position: absolute; right: calc(100% + 14px); bottom: 4px; display: flex; align-items: flex-end; gap: 13px; }
-.rung--freed, .rung--shareful{ padding: 2px 3px; gap: 6px; }
+.rung--freed .card-head, .rung--shareful .card-head{ padding: 2px 3px; gap: 6px; }
 .rung--shareful .rung-name{ font-size: 1.22rem; }   /* half of Rewardy's 2.45rem */
 .rung--shareful .rung-disc{ width: 20px; height: 20px; }
 .rung--shareful .rung-disc svg{ width: 16px; height: 16px; }
 .rung--freed    .rung-name{ font-size: .82rem; }     /* a third of Rewardy's 2.45rem */
 .rung--freed    .rung-disc{ width: 14px; height: 14px; }
 .rung--freed    .rung-disc svg{ width: 12px; height: 12px; }
-.rung--shareful{ animation-delay: .78s; }
-.rung--freed   { animation-delay: .86s; }
+
+/* base-step cards drop their info panel below themselves (absolute), so
+   opening one never disturbs the row; reserve space beneath when open. */
+.base-row .card-info{ position: absolute; top: calc(100% + 2px); left: 0; margin-left: 0; z-index: 6; min-width: max-content; }
+.pyramid:has(.base-row .card-ctl:checked){ padding-bottom: 108px; }
 
 /* ── the two poles — Lowy (top) & Help (bottom): a polarity.
    Same pill, opposite palette (dark/light) and opposite entrance. ── */
@@ -198,7 +231,7 @@ main{
 }
 
 @media (max-width: 480px){
-  .rung{ gap: 9px; }
+  .card-head{ gap: 9px; }
   .rung--advanced .rung-name{ font-size: 1.85rem; }
   .rung--super    .rung-name{ font-size: 2.15rem; }
   /* gentler stair + satellites back in flow so nothing runs off-screen */
@@ -238,85 +271,126 @@ main{
   </div>
   <div class="pole-div" aria-hidden="true"></div>
 
-  <!-- The pyramid — apex (mini) at top, widening to the base (super).
-       Each rung links straight to its own page. -->
+  <!-- The staircase — each card shows only logo + name; click to expand
+       its details + Go. Independent, so several can stay open at once. -->
   <ol class="pyramid">
     <li>
-      <a class="rung rung--mini" href="dealy-mini.html" style="--a:#059669;--as:#d1fae5;" aria-label="MiniDealy — mini tier">
-        <span class="rung-disc" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-2.4-2.4M17 16H7l2.4 2.4"/><path d="M12 12.4a1.6 1.6 0 0 0 1.6-1.6c0-1.1-1.6-2.4-1.6-2.4s-1.6 1.3-1.6 2.4A1.6 1.6 0 0 0 12 12.4z"/></svg>
-        </span>
-        <span class="rung-body">
-          <span class="rung-tier">Mini</span>
+      <div class="rung rung--mini" style="--a:#059669;">
+        <input type="checkbox" id="c-mini" class="card-ctl">
+        <label class="card-head" for="c-mini">
+          <span class="rung-disc" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-2.4-2.4M17 16H7l2.4 2.4"/><path d="M12 12.4a1.6 1.6 0 0 0 1.6-1.6c0-1.1-1.6-2.4-1.6-2.4s-1.6 1.3-1.6 2.4A1.6 1.6 0 0 0 12 12.4z"/></svg>
+          </span>
           <span class="rung-name">MiniDealy</span>
+          <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </label>
+        <div class="card-info"><div class="card-info-inner">
+          <span class="rung-tier">Mini</span>
           <span class="rung-slogan">A small kind swap.</span>
-        </span>
-      </a>
+          <a class="go-btn" href="dealy-mini.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div></div>
+      </div>
     </li>
     <li>
-      <a class="rung rung--basic" href="inventary.html" style="--a:#1e4a6b;--as:#b9d2e5;" aria-label="Inventary — basic tier">
-        <span class="rung-disc" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5h17v11h-17zM3.5 8.5 6 4.5h12l2.5 4M12 4.5v15"/></svg>
-        </span>
-        <span class="rung-body">
-          <span class="rung-tier">Basic</span>
+      <div class="rung rung--basic" style="--a:#1e4a6b;">
+        <input type="checkbox" id="c-basic" class="card-ctl">
+        <label class="card-head" for="c-basic">
+          <span class="rung-disc" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5h17v11h-17zM3.5 8.5 6 4.5h12l2.5 4M12 4.5v15"/></svg>
+          </span>
           <span class="rung-name">Inventary</span>
+          <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </label>
+        <div class="card-info"><div class="card-info-inner">
+          <span class="rung-tier">Basic</span>
           <span class="rung-slogan">All of yours.</span>
-        </span>
-      </a>
+          <a class="go-btn" href="inventary.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div></div>
+      </div>
     </li>
     <li>
-      <a class="rung rung--normal" href="wanty.html" style="--a:#1f6390;--as:#c0d4e8;" aria-label="Wanty — normal tier">
-        <span class="rung-disc" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.6 5.5 6 .9-4.3 4.2 1 6-5.3-2.8L6.7 20.2l1-6L3.4 10l6-.9z"/></svg>
-        </span>
-        <span class="rung-body">
-          <span class="rung-tier">Normal</span>
+      <div class="rung rung--normal" style="--a:#1f6390;">
+        <input type="checkbox" id="c-normal" class="card-ctl">
+        <label class="card-head" for="c-normal">
+          <span class="rung-disc" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.6 5.5 6 .9-4.3 4.2 1 6-5.3-2.8L6.7 20.2l1-6L3.4 10l6-.9z"/></svg>
+          </span>
           <span class="rung-name">Wanty</span>
+          <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </label>
+        <div class="card-info"><div class="card-info-inner">
+          <span class="rung-tier">Normal</span>
           <span class="rung-slogan">Start thriving.</span>
-        </span>
-      </a>
+          <a class="go-btn" href="wanty.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div></div>
+      </div>
     </li>
     <li>
-      <a class="rung rung--advanced" href="dealy-advanced.html" style="--a:#dc2626;--as:#fee2e2;" aria-label="Dealy — advanced tier">
-        <span class="rung-disc" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 12.6 12.6 20.2a1.9 1.9 0 0 1-2.7 0l-6.1-6.1a1.9 1.9 0 0 1-.6-1.4V5a1.9 1.9 0 0 1 1.9-1.9h7.7c.5 0 1 .2 1.4.6l6 6a1.9 1.9 0 0 1 0 2.9z"/><circle cx="7.6" cy="7.6" r="1.3"/></svg>
-        </span>
-        <span class="rung-body">
-          <span class="rung-tier">Advanced</span>
+      <div class="rung rung--advanced" style="--a:#dc2626;">
+        <input type="checkbox" id="c-advanced" class="card-ctl">
+        <label class="card-head" for="c-advanced">
+          <span class="rung-disc" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 12.6 12.6 20.2a1.9 1.9 0 0 1-2.7 0l-6.1-6.1a1.9 1.9 0 0 1-.6-1.4V5a1.9 1.9 0 0 1 1.9-1.9h7.7c.5 0 1 .2 1.4.6l6 6a1.9 1.9 0 0 1 0 2.9z"/><circle cx="7.6" cy="7.6" r="1.3"/></svg>
+          </span>
           <span class="rung-name">Dealy</span>
+          <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </label>
+        <div class="card-info"><div class="card-info-inner">
+          <span class="rung-tier">Advanced</span>
           <span class="rung-slogan">Gift, lend, swap&hellip;</span>
-        </span>
-      </a>
+          <a class="go-btn" href="dealy-advanced.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div></div>
+      </div>
     </li>
     <li>
       <!-- base step: Freed & Shareful hang to the left of Rewardy -->
       <div class="base-row">
         <div class="base-sats">
-          <a class="rung rung--freed" href="freed.html" style="--a:#10b981;" aria-label="Freed — waive for all">
-            <span class="rung-disc" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5h17v10h-17zM2.5 6.5h19v3h-19zM12 6.5v13"/><circle cx="9.4" cy="4.6" r="1.9"/><circle cx="14.6" cy="4.6" r="1.9"/></svg>
-            </span>
-            <span class="rung-body"><span class="rung-name">Freed</span></span>
-          </a>
-          <a class="rung rung--shareful" href="shareful.html" style="--a:#8b5cf6;" aria-label="Shareful — lend on clear terms">
-            <span class="rung-disc" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.2h-4.2"/></svg>
-            </span>
-            <span class="rung-body"><span class="rung-name">Shareful</span></span>
-          </a>
+          <div class="rung rung--freed" style="--a:#10b981;">
+            <input type="checkbox" id="c-freed" class="card-ctl">
+            <label class="card-head" for="c-freed">
+              <span class="rung-disc" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5h17v10h-17zM2.5 6.5h19v3h-19zM12 6.5v13"/><circle cx="9.4" cy="4.6" r="1.9"/><circle cx="14.6" cy="4.6" r="1.9"/></svg>
+              </span>
+              <span class="rung-name">Freed</span>
+              <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            </label>
+            <div class="card-info"><div class="card-info-inner">
+              <span class="rung-slogan">Waive for all.</span>
+              <a class="go-btn" href="freed.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            </div></div>
+          </div>
+          <div class="rung rung--shareful" style="--a:#8b5cf6;">
+            <input type="checkbox" id="c-shareful" class="card-ctl">
+            <label class="card-head" for="c-shareful">
+              <span class="rung-disc" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.2h-4.2"/></svg>
+              </span>
+              <span class="rung-name">Shareful</span>
+              <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            </label>
+            <div class="card-info"><div class="card-info-inner">
+              <span class="rung-slogan">Lend on clear terms.</span>
+              <a class="go-btn" href="shareful.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            </div></div>
+          </div>
         </div>
         <div class="base-super">
-        <a class="rung rung--super" href="rewardy.html" style="--a:#7c3aed;--as:#ede9fe;" aria-label="Rewardy — super tier">
-          <span class="rung-disc" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.8" r="5.3"/><path d="M8.6 13.2 6.6 21l5.4-2.9 5.4 2.9-2-7.8"/></svg>
-          </span>
-          <span class="rung-body">
-            <span class="rung-tier">Super</span>
-            <span class="rung-name">Rewardy</span>
-            <span class="rung-slogan">Earn direct.</span>
-          </span>
-        </a>
+          <div class="rung rung--super" style="--a:#7c3aed;">
+            <input type="checkbox" id="c-super" class="card-ctl">
+            <label class="card-head" for="c-super">
+              <span class="rung-disc" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.8" r="5.3"/><path d="M8.6 13.2 6.6 21l5.4-2.9 5.4 2.9-2-7.8"/></svg>
+              </span>
+              <span class="rung-name">Rewardy</span>
+              <span class="card-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            </label>
+            <div class="card-info"><div class="card-info-inner">
+              <span class="rung-tier">Super</span>
+              <span class="rung-slogan">Earn direct.</span>
+              <a class="go-btn" href="rewardy.html">Go <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            </div></div>
+          </div>
         </div>
       </div>
     </li>

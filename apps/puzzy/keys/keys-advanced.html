@@ -4529,6 +4529,14 @@ window.tKey = function tKey(k){
             </span>
           </span>
 
+          <!-- §13.15 · Publish to your Appy profile (WRITER trio; auto-publishes on Update) -->
+          <span class="cycle-wrap appy-wrap">
+            <button type="button" class="fbtn" data-flove-publish="appy" title="Publish to your Appy profile">✦ Appy</button>
+            <button type="button" class="fbtn" data-flove-publish="wizy" title="Publish for your agent (Wizy)">✦ Wizy</button>
+            <button type="button" class="fbtn" data-flove-publish="more" title="More networks (nety · 0asis) — coming"><span class="t-en">More</span><span class="t-es">Más</span></button>
+            <span class="flove-appy-hint" data-flove-hint role="status" aria-live="polite"></span>
+          </span>
+
           <div class="cycle-wrap pub-wrap">
             <div class="cycle-trigger">
               <div class="cycle-row above pub-row--schedule" role="group" aria-label="Nety publish schedule">
@@ -9144,6 +9152,54 @@ window.tKey = function tKey(k){
     // json (default for unknown)
     return JSON.stringify(d, null, 2);
   }
+
+  // ── §13.15 · Publish-to-Appy WRITER hooks ─────────────────────────────
+  // Summary-model (§13.12) keyed by app, reusing the same buildSummaryData
+  // the download formats serialize. flove-appy.js reads this on Publish /
+  // auto-publish; it also auto-syncs on every [data-flove-update] click.
+  window.floveSummary = function () {
+    const d = buildSummaryData();
+    return {
+      app: 'Keys',
+      version: 1,
+      phrase: serializeSummary('txt'),
+      groups: d.groups,
+      perspective: d.perspective,
+      picks: d.picks,
+      mode: d.mode
+    };
+  };
+  // Domain agent block folded into the record on a Wizy publish, so any
+  // agent (local MyWizy or external) can act on a Keys play.
+  window.floveAgentBlock = function buildAgentBlock(m) {
+    return {
+      prompt: 'You are handed a Keys play: triads of words the user grouped and named, '
+        + 'a set of perspective bars (each a pole ↔ pole axis with a % position), and the '
+        + 'keys they picked, played in one mode. Read the groups, perspective and picks, '
+        + 'then help the user reflect on the pattern their keys form — what the named triads '
+        + 'and the perspective positions suggest — and offer one gentle question about a key '
+        + 'or axis they might revisit.',
+      schema: {
+        app: 'app slug (Keys)',
+        phrase: 'one-line human summary the app composed',
+        groups: 'array of { title, words } — each named triad and its words',
+        perspective: 'array of { label, value } — bipolar axes and their % position',
+        picks: 'array of picked keys (strings)',
+        mode: 'play mode (normal · master · adventure · creative · free)'
+      },
+      context: {
+        source: 'keys · FLOVE',
+        url: 'https://flove.org/apps/puzzy/keys/keys-advanced.html',
+        axis: 'puzzy (triads · perspective)'
+      },
+      suggestions: [
+        'Reflect back the pattern the named triads form in one or two sentences.',
+        'Point out where a perspective axis sits strongly toward one pole.',
+        'Offer one gentle question about a key or axis the user might revisit.'
+      ]
+    };
+  };
+
   const FMT_MIME = { txt:'text/plain', md:'text/markdown', html:'text/html', csv:'text/csv', xml:'application/xml', json:'application/json' };
   function triggerDownloadBlob(name, blob){
     const url = URL.createObjectURL(blob);
@@ -10815,5 +10871,7 @@ window.tKey = function tKey(k){
   } catch(_){}
 })();
 </script>
+<!-- §13.15 · Publish to Appy — the app→profile bridge (auto-wires [data-flove-publish] + auto-publish on Update) -->
+<script src="../../appy/flove-appy.js" defer></script>
 </body>
 </html>

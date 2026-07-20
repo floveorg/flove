@@ -203,6 +203,8 @@
     var btns = document.querySelectorAll('[data-flove-publish]');
     for (var i = 0; i < btns.length; i++) {
       (function (btn) {
+        var m0 = btn.getAttribute('data-flove-publish');
+        if (m0 !== 'appy' && m0 !== 'wizy' && m0 !== 'more') return;   // ignore flove.js's unrelated 'go' hook etc.
         if (btn.__floveWired) return; btn.__floveWired = true;
         btn.addEventListener('click', function () {
           var mode = btn.getAttribute('data-flove-publish');

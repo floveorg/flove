@@ -321,6 +321,11 @@ body {
 .get-ic{ font-size:1.15rem; line-height:1; filter:drop-shadow(0 1px 3px rgba(0,0,0,.25)) }
 .get-lbl{ font-family:'Inter',sans-serif; font-weight:600; font-size:.68rem; letter-spacing:.04em; color:#000; text-shadow:0 1px 2px rgba(255,255,255,.7) }
 .get-fmt{ font-family:"JetBrains Mono", ui-monospace, monospace; font-size:.56rem; color:#000; opacity:.55 }
+/* WEB → apps-intro: the home fades out to white over 5s, then opens the intro */
+.web-fade{ position:fixed; inset:0; z-index:99999; background:#fffdf8; opacity:0;
+  pointer-events:none; transition:opacity 5s linear; }
+.web-fade.on{ opacity:1; pointer-events:auto; }
+@media (prefers-reduced-motion: reduce){ .web-fade{ transition:opacity .4s linear; } }
 .cta-row {
   position:relative;
   display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start;
@@ -1011,7 +1016,7 @@ body:has(#lang-es:checked) .es{display:inline}
           <span class="btn-hint"><span class="en" lang="en">web · mobile · desktop</span><span class="es" lang="es">web · móvil · escritorio</span></span>
         </summary>
         <div class="get-opts" role="group" aria-label="Get flove" data-aria-en="Get flove" data-aria-es="Consigue flove">
-          <a class="get-opt" href="./apps/index.html">
+          <a class="get-opt" href="./apps/apps-intro.html" data-web-fade>
             <span class="get-ic" aria-hidden="true">🌐</span>
             <span class="get-lbl"><span class="en" lang="en">WEB</span><span class="es" lang="es">WEB</span></span>
             <span class="get-fmt">https</span>
@@ -1280,6 +1285,28 @@ body:has(#lang-es:checked) .es{display:inline}
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   })();
+</script>
+<script>
+/* WEB (Apps → get flove → web): fade the home out to white over 5s, then open
+   apps-intro. Same relative route in localhost and file://. A modified click
+   (new tab / cmd / ctrl) passes straight through; reduced-motion → quick fade. */
+(function(){
+  var link = document.querySelector('[data-web-fade]');
+  if(!link) return;
+  var veil = document.createElement('div');
+  veil.className = 'web-fade';
+  veil.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(veil);
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var wait = reduce ? 450 : 5000;
+  link.addEventListener('click', function(e){
+    if(e.metaKey || e.ctrlKey || e.shiftKey || e.button){ return; }   // let new-tab/modified clicks through
+    e.preventDefault();
+    var href = link.getAttribute('href');
+    veil.classList.add('on');
+    setTimeout(function(){ location.href = href; }, wait);
+  });
+})();
 </script>
 </body>
 </html>

@@ -58,8 +58,9 @@ folder is that home's source of truth.
   `retrieve.py` / `serve.py` to query); semantic embeddings are optional and
   **kept off for now**, so no heavyweight model is needed.
 - **Edit** — change the `.md` file that *owns* the fact (one home per fact; every
-  other file points to it). Edit the markdown here — **not** the rendered
-  `standards.html`, which is generated separately. When you add or rename a doc,
-  update `apps/dev/_sidebar.md` so it shows in the docsify nav.
+  other file points to it). Edit the markdown here — the standalone
+  `standards/index.html` page is maintained separately, so don't hand-edit it to
+  change a standard. When you add or rename a doc, update `apps/dev/_sidebar.md`
+  so it shows in the docsify nav.
 - **Publish** — commit + push (scoped) to Gitea `marc/flove`; the live site
-  (and the regenerated `standards.html`) updates via a separate `update-web`.
+  updates via a separate `update-web`.

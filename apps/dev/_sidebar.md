@@ -19,13 +19,5 @@
   - [· Summary](/standards/frontend/summary.md)
   - [· Export](/standards/frontend/export.md)
 
-- **theory**
-  - [Theory pack — readme](/theory/README.md)
-  - [0 · Metaphysics](/theory/papers/0_metaphysics.md)
-  - [1 · Science](/theory/papers/1_science.md)
-  - [2 · Biology](/theory/papers/2_biology.md)
-  - [3 · Linguistics](/theory/papers/3_linguistics.md)
-  - [4 · PsicoSocial](/theory/papers/4_psicosocial.md)
-  - [Poems](/theory/poems/POEMS.md)
-  - [Slides narration](/theory/slides/narration.md)
-  - [KB tool](/theory/kb/README.md)
+> The **theory** pack now lives separately under `docs/theory/`
+> (papers · slides · poems · tables + the KB agent-search).

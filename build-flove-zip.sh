@@ -32,8 +32,8 @@ rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/build-sw.mjs" \
 # the blog (separate repo, gitignored so not even in the archive), the whole
 # behind-the-scenes docs/making-of/ folder, and these standalone extras. apps/lowai
 # carries its own publish-lowai.sh, stripped here with the rest of the lowai folder.
-rm -rf "$TARGET/blog" "$TARGET/docs/making-of" \
-       "$TARGET/apps/lowai" "$TARGET/docs/ephemerall" "$TARGET/docs/anim-form.html"
+rm -rf "$TARGET/blog" "$TARGET/apps/dev/making-of" \
+       "$TARGET/apps/lowai" "$TARGET/docs/ephemerall" "$TARGET/apps/dev/anim-form.html"
 
 # Make the entry obvious in the download: rename launch.html -> START.html
 # (download only — the live site keeps launch.html). Keep the local copy's

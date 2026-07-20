@@ -330,7 +330,9 @@ def parse_docs(conn: sqlite3.Connection):
     """Parse the top-level canonical flove docs (overview, backend, coordinates,
     puzzy, worldview, oasis, CLAUDE) and the standards/ tree. These are the
     non-theory corpus — indexed with no theory category (category=None)."""
-    docs_dir = THEORY_DIR.parent  # docs/flove
+    # The canonical docs live in apps/dev/ (the docsify "dev" app); theory (this
+    # KB's THEORY_DIR) now lives separately under docs/theory/.
+    docs_dir = KB_DIR.parents[2] / "apps" / "dev"  # repo_root/apps/dev
     md_files = (
         sorted(docs_dir.glob("*.md"))
         + sorted(docs_dir.glob("standards/*.md"))

@@ -127,6 +127,21 @@
     if (typeof window.applyLang === 'function') { try { window.applyLang(); } catch (_) {} }
   }
 
+  /* ---- file:// fallback: the bridge can't cross file:// documents, so download
+          the <app>-summary.json the user uploads in Appy (§13.15 environment matrix). ---- */
+  function isFile() { return typeof location !== 'undefined' && location.protocol === 'file:'; }
+  function downloadSummary(app, summary) {
+    try {
+      var blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = app + '-summary.json';
+      (document.body || document.documentElement).appendChild(a); a.click(); a.remove();
+      setTimeout(function () { try { URL.revokeObjectURL(url); } catch (_) {} }, 1000);
+      return true;
+    } catch (_) { return false; }
+  }
+
   /* ---- WRITER auto-wiring: any [data-flove-publish="appy|wizy|more"] button ---- */
   function wirePublishButtons() {
     var btns = document.querySelectorAll('[data-flove-publish]');
@@ -137,6 +152,18 @@
           var mode = btn.getAttribute('data-flove-publish');
           if (mode === 'more') {
             setHint('Further networks (nety · 0asis) — coming.', 'Más redes (nety · 0asis) — próximamente.', 'fas fa-ellipsis');
+            return;
+          }
+          if (isFile()) {
+            var s = currentSummary();
+            if (!s || !s.app) {
+              setHint('Nothing to save yet — use the app first.', 'Nada que guardar todavía — usa la app primero.', 'fas fa-circle-info');
+              return;
+            }
+            if (mode === 'wizy') s.agent = agentBlock(s);
+            try { publish({ app: s.app, summary: s, via: mode }); } catch (_) {}   // harmless if same document
+            if (downloadSummary(s.app, s)) setHint('On file:// — downloaded ' + s.app + '-summary.json. Upload it in your Appy profile.', 'En file:// — descargado ' + s.app + '-summary.json. Súbelo en tu perfil de Appy.', 'fas fa-download');
+            else setHint('Could not download — try a served page (http).', 'No se pudo descargar — prueba una página servida (http).', 'fas fa-triangle-exclamation');
             return;
           }
           var r = publishSummary(mode);
@@ -201,10 +228,12 @@
     btn.addEventListener('mouseenter', function () { btn.style.filter = 'brightness(1.08)'; });
     btn.addEventListener('mouseleave', function () { btn.style.filter = ''; });
     btn.addEventListener('click', function () {
-      publish({ app: app, colour: colour, summary: currentSummary() });
-      btn.textContent = '✓ Published to Appy';
+      var summary = currentSummary();
+      if (isFile() && summary && summary.app) downloadSummary(summary.app, summary);   // file:// → download to upload in Appy
+      publish({ app: app, colour: colour, summary: summary });
+      btn.textContent = isFile() ? '✓ Downloaded — upload in Appy' : '✓ Published to Appy';
       btn.style.transform = 'scale(1.04)';
-      setTimeout(function () { btn.textContent = '✦ Publish to Appy'; btn.style.transform = ''; }, 1700);
+      setTimeout(function () { btn.textContent = '✦ Publish to Appy'; btn.style.transform = ''; }, 1900);
     });
     (document.body || document.documentElement).appendChild(btn);
   }

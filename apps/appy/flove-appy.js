@@ -17,6 +17,17 @@
    (falls back to #hintMessage). Optional per-app agent detail:
      window.floveAgentBlock = (summary) => ({ prompt, schema, context, suggestions });
 
+   AUTO-PUBLISH (F1) — always on (local phase): keep the profile in
+   sync without re-clicking. Auto-wired to any [data-flove-update]
+   (§13.9) click, so Update-based apps need NO extra JS. Live-state
+   apps (no Update button) call it where they persist:
+     window.floveAppy.autoSync();
+   Optional honest indicator: <span data-flove-auto-state></span>.
+   Target is always 'appy' (wizy stays an explicit click), debounced,
+   http-only (no bridge on file://). All local: same-origin, same
+   device — nothing leaves the browser. Consent gates the LATER
+   cross-device step (nety / 0asis, F2+), not this local save.
+
    READER (an appy profile page) — include this script (no data-app)
    and render on load AND on change:
      function paint(recs){ ... }        // recs = [{app, colour, summary, url, via, date}]
@@ -142,6 +153,51 @@
     } catch (_) { return false; }
   }
 
+  /* ============================================================
+     Auto-publish (F1) — ALWAYS ON (phase 0/1, local only).
+     Keeps the Appy profile in sync WITHOUT re-clicking: an app calls
+     floveAppy.autoSync() where it persists / on Update, and the current
+     summary is written to the profile (appy mode — handing a summary to
+     an agent, wizy, stays an explicit click). Debounced (~800 ms),
+     merges by app (latest wins, no dupes). No auto path on file://
+     (needs the bridge). ALL LOCAL: same-origin localStorage, same
+     device — nothing leaves the browser, so no consent gate here. When
+     real cross-device sync arrives (nety / 0asis, F2+), THAT step gates
+     on consent, because that is when data leaves the device. ---- */
+  var autoTimer = null;
+
+  /* subtle honest indicator into [data-flove-auto-state] (optional element) */
+  function setAutoState(state) {
+    var el = document.querySelector('[data-flove-auto-state]');
+    if (!el) return;
+    var map = {
+      pending: ['saving…', 'guardando…', 'fas fa-rotate'],
+      synced:  ['saved to Appy ✓', 'guardado en Appy ✓', 'fas fa-cloud-arrow-up'],
+      error:   ['couldn’t save', 'no se pudo guardar', 'fas fa-triangle-exclamation'],
+      idle:    ['', '', '']
+    };
+    var m = map[state] || map.idle;
+    el.innerHTML = m[0] ? ('<i class="' + m[2] + '"></i> <span class="en" lang="en">' + m[0]
+      + '</span><span class="es" lang="es">' + m[1] + '</span>') : '';
+    if (typeof window.applyLang === 'function') { try { window.applyLang(); } catch (_) {} }
+  }
+
+  /* Debounced auto-save of the current summary to the profile (appy mode).
+     Always on; the one hard limit is file:// (no bridge). Honest via setAutoState. */
+  function autoSync() {
+    if (isFile()) return;                                        // no bridge across file:// documents
+    setAutoState('pending');
+    if (autoTimer) clearTimeout(autoTimer);
+    autoTimer = setTimeout(function () {
+      autoTimer = null;
+      var s = currentSummary();
+      if (!s || !s.app) { setAutoState('idle'); return; }        // nothing to save yet
+      var r = publishSummary('appy');                            // never wizy — no agent block on a background save
+      setAutoState(r.ok ? 'synced' : 'error');
+      if (r.ok) { try { document.dispatchEvent(new CustomEvent('flove-appy:published', { detail: r })); } catch (_) {} }
+    }, 800);
+  }
+
   /* ---- WRITER auto-wiring: any [data-flove-publish="appy|wizy|more"] button ---- */
   function wirePublishButtons() {
     var btns = document.querySelectorAll('[data-flove-publish]');
@@ -194,7 +250,8 @@
     KEY: KEY, COLOURS: COLOURS,
     read: read, played: read, publish: publish, clear: clear,
     currentSummary: currentSummary, agentBlock: agentBlock,
-    publishSummary: publishSummary, onChange: onChange
+    publishSummary: publishSummary, onChange: onChange,
+    autoSync: autoSync
   };
 
   /* ---- legacy floating "Publish to Appy" button (opt-in via data-app) ---- */
@@ -209,6 +266,13 @@
 
   function init() {
     wirePublishButtons();                                               // standard hook — every page
+    /* §13.15 F1 — auto-publish: any Update (§13.9) click syncs the fresh summary
+       to Appy. Debounced, so it reads the summary AFTER the app's own Update
+       handler has recomputed it. Live-state apps (no Update button) call
+       floveAppy.autoSync() themselves where they persist. */
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('[data-flove-update]')) autoSync();
+    }, true);   // capture phase — fires even if the app stops bubbling on its Update button
 
     var s = ownScript();
     var app = s && s.getAttribute('data-app');

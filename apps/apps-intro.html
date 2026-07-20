@@ -199,6 +199,16 @@
   .stats .row span{font-variant-numeric:tabular-nums}
   .stats .total{margin-top:.3rem;padding-top:.28rem;border-top:1px solid rgba(36,31,54,.14);opacity:.85}
 
+  /* leaving apps-intro — the whole interface fades out over 5s (varied per link) */
+  body.exit{pointer-events:none;transition:opacity 5s linear, filter 5s linear, transform 5s var(--ease)}
+  body.exit.fx-fade{opacity:0}
+  body.exit.fx-blur{opacity:.04;filter:blur(24px) saturate(1.5)}
+  body.exit.fx-zoom{opacity:0;transform:scale(.5)}
+  body.exit.fx-spin{opacity:0;transform:scale(.5) rotate(16deg)}
+  body.exit.fx-rise{opacity:0;transform:translateY(-9vh) scale(.85)}
+  .exit-veil{position:fixed;inset:0;z-index:99999;pointer-events:none;opacity:0;background:#fffdf8;transition:opacity 5s linear}
+  .exit-veil.on{opacity:1}
+
   @media (prefers-reduced-motion:reduce){
     .dream-veil,.dream-blob,.choice,.m1,.m2,.m3,
     .c-graph .ico,.c-boxes .prog,.c-cards .mapfold,.ico.party,.dock-link,.dock-ico{animation:none!important;transition:none!important}
@@ -320,6 +330,19 @@
   var FX = ['e-spin','e-flip','e-shake','e-jump','e-grow','e-shrink','e-wobble','e-pulse','e-swing','e-flash'];
   var clicks = 0, armed = null, armTimer = null;
 
+  // ── leaving apps-intro: fade the whole interface out over 5s (varied per link) ──
+  var EXITS = ['fx-fade','fx-blur','fx-zoom','fx-spin','fx-rise','white'], exiting = false;
+  function exitTo(href, variant){
+    if(exiting || !href) return; exiting = true;
+    var v = EXITS[((variant % EXITS.length) + EXITS.length) % EXITS.length];
+    if(v === 'white'){
+      var veil = document.createElement('div'); veil.className = 'exit-veil';
+      document.body.appendChild(veil); document.body.style.pointerEvents = 'none';
+      requestAnimationFrame(function(){ veil.classList.add('on'); });
+    } else { document.body.classList.add('exit', v); }
+    setTimeout(function(){ window.location.href = href; }, 5000);
+  }
+
   icos.forEach(function(ic){
     ic.addEventListener('animationend', function(){ FX.forEach(function(c){ ic.classList.remove(c); }); });
   });
@@ -372,14 +395,14 @@
   }
 
   // per-icon: two-click navigation
-  links.forEach(function(a){
+  links.forEach(function(a, li){
     a.addEventListener('click', function(e){
       if(reduce) return;                       // reduced motion → normal single-click nav
       e.preventDefault();
       if(a === armed){                         // second click while grown → go
         var href = a.getAttribute('href');
         disarm();
-        window.location.href = href;
+        exitTo(href, li);                      // fade the interface out (5s), then go
         return;
       }
       disarm();                                // first click → arm & grow ×3
@@ -400,14 +423,13 @@
     if(clicks % 10 === 0) thankYou();
   });
 
-  // top-dock links (home · dev): a quick pop on click, then navigate
+  // dock links (home · dev): a quick pop, then the 5s interface fade-out
   Array.prototype.slice.call(document.querySelectorAll('a.dock-link')).forEach(function(a){
     a.addEventListener('click', function(e){
       if(reduce) return;                       // reduced motion → normal single-click nav
       e.preventDefault();
-      var href = a.getAttribute('href');
       a.classList.remove('clicked'); void a.offsetWidth; a.classList.add('clicked');
-      setTimeout(function(){ window.location.href = href; }, 470);
+      exitTo(a.getAttribute('href'), a.classList.contains('dev-link') ? 4 : 3);   // pop + fade
     });
   });
 

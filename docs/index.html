@@ -2985,7 +2985,11 @@
       <li class="m-item"><label class="js-about-docs" for="tab-paradigm" tabindex="0"><span class="en" lang="en">About Docs</span><span class="es" lang="es">Acerca de Docs</span></label></li>
       <li class="m-item"><a href="https://flove.org/blog/" target="_blank" rel="noopener"><span class="en" lang="en">Blog</span><span class="es" lang="es">Blog</span></a></li>
       <li class="m-item"><a href="standards.html"><span class="en" lang="en">Tech standards</span><span class="es" lang="es">Estándares técnicos</span></a></li>
-      <li class="m-item"><button type="button" id="dl-table"><span class="en" lang="en">Download table</span><span class="es" lang="es">Descargar tabla</span></button></li>
+      <li class="m-item"><button type="button" id="dl-table"><span class="en" lang="en">Download files</span><span class="es" lang="es">Descargar ficheros</span></button></li>
+      <li class="m-item"><button type="button" id="dl-whole-csv"><span class="en" lang="en">Download table (CSV)</span><span class="es" lang="es">Descargar tabla (CSV)</span></button></li>
+      <li class="m-item"><button type="button" id="dl-whole-md"><span class="en" lang="en">Download table (Markdown)</span><span class="es" lang="es">Descargar tabla (Markdown)</span></button></li>
+      <li class="m-item"><label class="m-file" for="imp-file" tabindex="0"><span class="en" lang="en">Import table (CSV)…</span><span class="es" lang="es">Importar tabla (CSV)…</span></label><input type="file" id="imp-file" accept=".csv,text/csv" hidden></li>
+      <li class="m-item" style="font-size:.85em;opacity:.85"><label style="display:flex;gap:.45em;align-items:center;cursor:pointer;padding:.15em 0"><input type="checkbox" id="imp-overwrite"><span class="en" lang="en">Import overwrites (else adds)</span><span class="es" lang="es">Importar sobrescribe (si no, añade)</span></label></li>
       <li class="m-item m-item--lang">
         <!-- translate2 worldball — page language switcher (en + es). Pure-CSS swap of .en/.es spans. -->
         <details class="lang">
@@ -4585,6 +4589,162 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     const ms = document.getElementById("advmenu-state"); if (ms) ms.checked = false;   // close the menu
+  });
+})();
+
+// ── Whole table: export (CSV / Markdown) + import (CSV — adds paradigms/apps only) ──
+//    Built from the live DOM. Import matches rows by (Substance, Field) and only
+//    ADDS related paradigms/apps (or overwrites the primary when the toggle is on);
+//    it NEVER creates rows or changes Substance/Field. CSV round-trips with the export.
+(function(){
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const langES = () => (($('#lang-es')||{}).checked);
+  const norm = (s) => (s||'').replace(/\s+/g,' ').trim().toLowerCase();
+  // EN text of a cell (mirrors the export language of the dump); falls back to textContent
+  const enText = (el) => { if (!el) return ''; const e = el.querySelector('.en'); return ((e ? e.textContent : el.textContent)||'').replace(/\s+/g,' ').trim(); };
+  const primary = (cell, sel) => cell ? ($$(':scope > ' + sel, cell)[0] || null) : null;
+  const related = (cell, sel) => cell ? $$(':scope > .more .more-body ' + sel, cell) : [];
+  let moreSeq = 0;
+
+  const COLS = ['Category','Substance','Field','Paradigm','Related paradigms','App','Related apps','Description'];
+
+  function collect(){
+    const out = [];
+    $$('section.section').forEach(sec => {
+      const rows = $('.rows', sec); if (!rows) return;
+      const cat = enText($('.section-title', sec)) || (sec.dataset.title || '');
+      $$('.item', rows).forEach(item => {
+        const subEl = $('.sub', item), parEl = $('.par', item), appEl = $('.app-cell', item);
+        const pPar = primary(parEl, 'a.std-link'), pApp = primary(appEl, 'a.app-btn');
+        out.push({
+          'Category': cat,
+          'Substance': enText(subEl),
+          'Field': enText($('.field', item)),
+          'Paradigm': pPar ? pPar.textContent.trim() : '',
+          'Related paradigms': related(parEl,'a.std-link').map(a => a.textContent.trim()).join('; '),
+          'App': pApp ? pApp.textContent.trim() : '',
+          'Related apps': related(appEl,'a.app-btn').map(a => a.textContent.trim()).join('; '),
+          'Description': subEl ? (subEl.getAttribute('data-tip-en') || '') : ''
+        });
+      });
+    });
+    return out;
+  }
+
+  const csvCell = (v) => /[",\n]/.test(v) ? '"' + String(v).replace(/"/g,'""') + '"' : String(v);
+  const toCSV = (rows) => COLS.join(',') + '\n' + rows.map(r => COLS.map(c => csvCell(r[c]||'')).join(',')).join('\n') + '\n';
+  const mdCell = (v) => String(v||'').replace(/\|/g,'\\|');
+  const toMD = (rows) => '| ' + COLS.join(' | ') + ' |\n|' + COLS.map(()=>'---').join('|') + '|\n' +
+    rows.map(r => '| ' + COLS.map(c => mdCell(r[c])).join(' | ') + ' |').join('\n') + '\n';
+
+  function download(name, text, mime){
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const ms = $('#advmenu-state'); if (ms) ms.checked = false;
+  }
+  const bCsv = $('#dl-whole-csv'); if (bCsv) bCsv.addEventListener('click', () => download('flove-whole-table.csv', toCSV(collect()), 'text/csv'));
+  const bMd  = $('#dl-whole-md');  if (bMd)  bMd.addEventListener('click',  () => download('flove-whole-table.md',  toMD(collect()),  'text/markdown'));
+
+  // ── Import ──
+  function parseCSV(text){
+    const rows = []; let row = [], cur = '', q = false;
+    for (let i = 0; i < text.length; i++){
+      const ch = text[i];
+      if (q){ if (ch === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n'){ row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (ch !== '\r') cur += ch;
+    }
+    if (cur !== '' || row.length){ row.push(cur); rows.push(row); }
+    return rows.filter(r => r.length && r.some(c => c.trim() !== ''));
+  }
+  const splitList = (s) => (s||'').split(/[;,]/).map(x => x.trim()).filter(Boolean);
+
+  function findItem(substance, field){
+    const nf = norm(field), ns = norm(substance);
+    return $$('section.section .rows .item').find(item => {
+      const f = norm(enText($('.field', item)));
+      const sEl = $('.sub', item), s = sEl ? norm(enText(sEl)) : '';
+      return f === nf && (ns === '' || ns === s);
+    }) || null;
+  }
+  function moreBody(cell, isApps){
+    let more = $(':scope > .more', cell);
+    if (!more){
+      more = document.createElement('span'); more.className = 'more';
+      const id = 'more-imp-' + (moreSeq++);
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'more-toggle'; cb.id = id;
+      const lab = document.createElement('label'); lab.className = 'more-trigger'; lab.setAttribute('for', id); lab.textContent = '+';
+      const body = document.createElement('span'); body.className = 'more-body' + (isApps ? ' apps' : '');
+      if (isApps){ const ml = document.createElement('span'); ml.className = 'more-label'; ml.textContent = 'Related apps'; body.appendChild(ml); }
+      more.appendChild(cb); more.appendChild(lab); more.appendChild(body);
+      cell.appendChild(more);
+    }
+    return $('.more-body', more);
+  }
+  function addRelated(cell, name, isApps){
+    const body = moreBody(cell, isApps);
+    if ($$('a', body).some(a => norm(a.textContent) === norm(name))) return false;
+    const a = document.createElement('a');
+    a.className = isApps ? 'app-btn' : 'std-link';
+    a.href = '#'; a.setAttribute('data-user-added', '1'); a.title = 'Added by import';
+    a.textContent = name;
+    a.addEventListener('click', e => e.preventDefault());
+    body.appendChild(a);
+    return true;
+  }
+  function setPrimary(cell, sel, name){
+    const p = primary(cell, sel);
+    if (p){ p.textContent = name; p.setAttribute('data-user-added', '1'); }
+  }
+
+  const fileInput = $('#imp-file');
+  if (fileInput) fileInput.addEventListener('change', (ev) => {
+    const file = ev.target.files && ev.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const overwrite = ($('#imp-overwrite')||{}).checked;
+      const grid = parseCSV(String(reader.result));
+      if (!grid.length){ alert('Empty CSV.'); return; }
+      const head = grid[0].map(h => h.trim().toLowerCase());
+      const col = (name) => head.indexOf(name.toLowerCase());
+      const iSub = col('Substance'), iField = col('Field'), iPar = col('Paradigm'),
+            iRPar = col('Related paradigms'), iApp = col('App'), iRApp = col('Related apps');
+      if (iField < 0){ alert('CSV needs at least a "Field" column (export the table first to get the format).'); return; }
+      let added = 0, changed = 0, ignored = 0;
+      for (let r = 1; r < grid.length; r++){
+        const cells = grid[r];
+        const substance = iSub  >= 0 ? (cells[iSub]||'')  : '';
+        const field     =                cells[iField]||'';
+        if (!field.trim()){ continue; }
+        const item = findItem(substance, field);
+        if (!item){ ignored++; continue; }
+        const parCell = $('.par', item), appCell = $('.app-cell', item);
+        if (iRPar >= 0) splitList(cells[iRPar]).forEach(n => { if (addRelated(parCell, n, false)) added++; });
+        if (iRApp >= 0) splitList(cells[iRApp]).forEach(n => { if (addRelated(appCell, n, true))  added++; });
+        const par = iPar >= 0 ? (cells[iPar]||'').trim() : '';
+        const app = iApp >= 0 ? (cells[iApp]||'').trim() : '';
+        if (overwrite){
+          if (par){ setPrimary(parCell, 'a.std-link', par); changed++; }
+          if (app){ setPrimary(appCell, 'a.app-btn',  app); changed++; }
+        } else {
+          const cp = primary(parCell, 'a.std-link'), ca = primary(appCell, 'a.app-btn');
+          if (par && cp && norm(cp.textContent) !== norm(par)) { if (addRelated(parCell, par, false)) added++; }
+          if (app && ca && norm(ca.textContent) !== norm(app)) { if (addRelated(appCell, app, true))  added++; }
+        }
+      }
+      ev.target.value = '';
+      const ms = $('#advmenu-state'); if (ms) ms.checked = false;
+      alert((langES()
+        ? 'Importado: ' + added + ' añadidos, ' + changed + ' sobrescritos, ' + ignored + ' filas ignoradas (substance/field inexistente — nunca se crean ni se cambian). Cambios en esta sesión; descarga la tabla para guardarlos.'
+        : 'Imported: ' + added + ' added, ' + changed + ' overwritten, ' + ignored + ' rows ignored (substance/field not found — never created or changed). Changes are in-session; download the table to keep them.'));
+    };
+    reader.readAsText(file);
   });
 })();
 

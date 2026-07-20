@@ -152,14 +152,33 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
     animation:tTxt 6s var(--ease) forwards}
   @keyframes tTxt{0%{opacity:0;transform:scale(.6) rotate(-4deg)}12%{opacity:1;transform:scale(1) rotate(0)}82%{opacity:1}100%{opacity:0;transform:scale(1.12)}}
-  .thanks i{position:absolute;left:50%;top:48%;width:12px;height:12px;border-radius:2px;background:var(--c);opacity:0;
+  .thanks i{position:absolute;left:50%;top:48%;width:17px;height:17px;background:var(--c);opacity:0;
+    clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);  /* ★ */
     animation:tConf var(--d,3s) var(--delay,0s) cubic-bezier(.15,.7,.3,1) forwards}
   @keyframes tConf{0%{opacity:1;transform:translate(-50%,-50%) scale(.4) rotate(0)}12%{opacity:1}
     100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(var(--rot))}}
 
+  /* 10-click finale — 3s of progressive rainbow sweeping across the icons (no text) */
+  .ico.party{animation:partyHue 3s linear}
+  @keyframes partyHue{from{filter:hue-rotate(0deg) saturate(1.5)}to{filter:hue-rotate(360deg) saturate(1.5)}}
+
+  /* bottom-right stat — how long each of the 10 empty-clicks took */
+  .stats{position:fixed;right:14px;bottom:12px;z-index:5;
+    font:600 11px/1.5 'Inter',system-ui,sans-serif;color:var(--ink);
+    background:rgba(255,255,255,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(36,31,54,.14);border-radius:12px;padding:.5rem .62rem;min-width:104px;
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.22);pointer-events:none;
+    opacity:0;transform:translateY(6px);transition:opacity .3s var(--ease),transform .3s var(--ease)}
+  .stats.show{opacity:1;transform:none}
+  .stats h4{margin:0 0 .3rem;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--edge);opacity:.65}
+  .stats .row{display:flex;justify-content:space-between;gap:1rem}
+  .stats .row b{font-weight:700;color:var(--edge);opacity:.7}
+  .stats .row span{font-variant-numeric:tabular-nums}
+  .stats .total{margin-top:.3rem;padding-top:.28rem;border-top:1px solid rgba(36,31,54,.14);opacity:.85}
+
   @media (prefers-reduced-motion:reduce){
     .dream-veil,.dream-blob,.choice,.m1,.m2,.m3,
-    .c-graph .ico,.c-boxes .prog,.c-cards .mapfold{animation:none!important;transition:none!important}
+    .c-graph .ico,.c-boxes .prog,.c-cards .mapfold,.ico.party{animation:none!important;transition:none!important}
     .choice{opacity:1!important;transform:none!important}
     .slot{transition:none!important}
   }
@@ -236,6 +255,9 @@
 
 </nav>
 
+<!-- bottom-right: per-click timing for the current 10-click round -->
+<div class="stats" id="stats" aria-hidden="true"></div>
+
 <script>
 /* Small JS:
    • click empty space → fire one of 10 effects on the icons (cycling); every
@@ -258,18 +280,19 @@
   });
   function fire(idx){
     var cls = FX[idx % FX.length];
-    icos.forEach(function(ic){
-      FX.forEach(function(c){ ic.classList.remove(c); });
-      void ic.offsetWidth;
-      ic.classList.add(cls);
-    });
+    var ic = icos[Math.floor(Math.random()*icos.length)];   // one effect → any single item
+    FX.forEach(function(c){ ic.classList.remove(c); });
+    void ic.offsetWidth;
+    ic.classList.add(cls);
   }
   function disarm(){ if(armed){ armed.classList.remove('arming'); armed = null; } clearTimeout(armTimer); }
 
+  // finale after the 10th click: NO "thank you" text — a star burst, plus 3
+  // extra seconds of progressive colour sweeping across the icons.
   function thankYou(){
+    icos.forEach(function(ic){ ic.classList.add('party'); });
+    setTimeout(function(){ icos.forEach(function(ic){ ic.classList.remove('party'); }); }, 3000);
     var w = document.createElement('div'); w.className = 'thanks';
-    var t = document.createElement('span'); t.className = 'thanks-txt'; t.textContent = 'thank you';
-    w.appendChild(t);
     var cols = ['#c133ff','#6a3aff','#ff8a3a','#33d97a','#5ea4e6','#ffce3a','#4fd6cc','#ff5a5a','#ffffff'];
     for(var i = 0; i < 80; i++){
       var p = document.createElement('i');
@@ -277,12 +300,30 @@
       p.style.setProperty('--tx', Math.round(Math.random()*170 - 85) + 'vw');
       p.style.setProperty('--ty', Math.round(Math.random()*90 + 12) + 'vh');
       p.style.setProperty('--rot', Math.round(Math.random()*1080 - 540) + 'deg');
-      p.style.setProperty('--d', (1.8 + Math.random()*1.4).toFixed(2) + 's');
-      p.style.setProperty('--delay', (Math.random()*3.6).toFixed(2) + 's');
+      p.style.setProperty('--d', (1.6 + Math.random()*1.0).toFixed(2) + 's');
+      p.style.setProperty('--delay', (Math.random()*0.9).toFixed(2) + 's');
       w.appendChild(p);
     }
     document.body.appendChild(w);
-    setTimeout(function(){ w.remove(); }, 6000);
+    setTimeout(function(){ w.remove(); }, 3400);
+  }
+
+  // bottom-right stat: how long each of the 10 clicks in a round took
+  var stats = document.getElementById('stats'), roundStart = 0, lastClick = 0;
+  function recordClick(k){
+    if(!stats) return;
+    var now = performance.now();
+    if(k === 1){ stats.innerHTML = '<h4>clicks · s</h4>'; roundStart = now; stats.classList.add('show'); }
+    var gap = (k === 1) ? 0 : (now - lastClick);
+    lastClick = now;
+    var row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = '<b>' + k + '</b><span>' + (gap / 1000).toFixed(2) + '</span>';
+    stats.appendChild(row);
+    if(k === 10){
+      var t = document.createElement('div'); t.className = 'row total';
+      t.innerHTML = '<b>&Sigma;</b><span>' + ((now - roundStart) / 1000).toFixed(2) + '</span>';
+      stats.appendChild(t);
+    }
   }
 
   // per-icon: two-click navigation
@@ -310,6 +351,7 @@
     disarm();
     fire(clicks);
     clicks++;
+    recordClick(((clicks - 1) % 10) + 1);       // log this click's timing (1..10 in the round)
     if(clicks % 10 === 0) thankYou();
   });
 

@@ -6,6 +6,7 @@
 - [Oasis (0asis adaptation)](/oasis.md)
 - [Worldview](/worldview.md)
 - [Standards matrix · interactive tool](/flove-tiers-matrix.html ':ignore')
+- [Standards page (HTML)](/standards/standards.html ':ignore')
 
 - **standards**
   - [Standards — readme](/standards/README.md)

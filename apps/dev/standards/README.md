@@ -4,7 +4,7 @@ The stable index of the flove frontend standards. This file changes rarely: it
 only **names** each standard and points to where it's specified. The full text
 lives once — in `frontend.md`, or, for the biggest standards, in its own
 `frontend/<topic>.md`; keep descriptions *there*, not here. An
-interactive, navigable version (tiers × standards) is [`flove-tiers-matrix.html`](flove-tiers-matrix.html).
+interactive, navigable version (tiers × standards) is [`flove-tiers-matrix.html`](../flove-tiers-matrix.html).
 
 **The three files of this sub-book:**
 

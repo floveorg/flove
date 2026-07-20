@@ -111,6 +111,34 @@
   @keyframes eSwing{0%{transform:rotate(0)}30%{transform:rotate(20deg) translateY(-8px)}62%{transform:rotate(-15deg)}100%{transform:rotate(0)}}
   @keyframes eFlash{0%,100%{filter:none}42%{filter:hue-rotate(190deg) saturate(2.4) drop-shadow(0 0 22px var(--ac))}}
 
+  /* ── periodic per-icon effects — each on its OWN clock (40 · 12 · 14s) +
+        its own start delay, so the three fire at different times ───────── */
+  /* 1 · graph — colours drift through the spectrum, a slow shift ~every 10s */
+  .c-graph .ico{animation:graphShift 40s var(--ease) 3s infinite}
+  @keyframes graphShift{
+    0%,18%  {filter:hue-rotate(0deg)}
+    25%,43% {filter:hue-rotate(90deg)}
+    50%,68% {filter:hue-rotate(180deg)}
+    75%,93% {filter:hue-rotate(270deg)}
+    100%    {filter:hue-rotate(360deg)}
+  }
+  /* 3 · boxes — three tiles march through mixed progressive colours, staggered */
+  .c-boxes .prog{animation:boxProg 12s ease-in-out infinite}
+  .c-boxes .prog.d1{animation-delay:-4s}
+  .c-boxes .prog.d2{animation-delay:-8s}
+  @keyframes boxProg{
+    0%,100%{fill:#ff3344}  20%{fill:#ff8a3a}  40%{fill:#ffd633}
+    60%{fill:#33d97a}  80%{fill:#5ea4e6}
+  }
+  /* 2 · map (middle) — folds shut then expands open again, once each cycle */
+  .c-cards .mapfold{transform-box:fill-box;transform-origin:center;
+    animation:mapFold 14s var(--ease) 8s infinite}
+  @keyframes mapFold{
+    0%,52%,100%{transform:scaleX(1)}
+    64%,72%{transform:scaleX(.26)}     /* folded shut */
+    84%{transform:scaleX(1.09)}        /* expand, slight overshoot */
+  }
+
   /* ── 6s thank-you splash ──────────────────────────────────────────── */
   .thanks{position:fixed;inset:0;z-index:6;pointer-events:none;display:grid;place-items:center;overflow:hidden}
   .thanks::before{content:"";position:absolute;left:50%;top:50%;width:0;height:0;border-radius:50%;
@@ -129,7 +157,8 @@
     100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(var(--rot))}}
 
   @media (prefers-reduced-motion:reduce){
-    .dream-veil,.dream-blob,.choice,.m1,.m2,.m3{animation:none!important;transition:none!important}
+    .dream-veil,.dream-blob,.choice,.m1,.m2,.m3,
+    .c-graph .ico,.c-boxes .prog,.c-cards .mapfold{animation:none!important;transition:none!important}
     .choice{opacity:1!important;transform:none!important}
     .slot{transition:none!important}
   }
@@ -169,18 +198,21 @@
   <a class="choice c-cards" href="index.html" aria-label="Entrada · elige categoría (rainbow)">
    <span class="mover m2">
     <svg class="ico" viewBox="0 0 100 100" aria-hidden="true">
-      <!-- foldable map: accordion panels, one per rainbow colour, + route & pin -->
-      <g stroke="var(--edge)" stroke-width="1.4" stroke-linejoin="round">
-        <path d="M10 30 L21.43 36 L21.43 72 L10 66 Z"    fill="var(--k1,#ff3344)"/>
-        <path d="M21.43 36 L32.86 30 L32.86 66 L21.43 72 Z" fill="var(--k2,#ff8a3a)"/>
-        <path d="M32.86 30 L44.29 36 L44.29 72 L32.86 66 Z" fill="var(--k3,#ffd633)"/>
-        <path d="M44.29 36 L55.71 30 L55.71 66 L44.29 72 Z" fill="var(--k4,#33d97a)"/>
-        <path d="M55.71 30 L67.14 36 L67.14 72 L55.71 66 Z" fill="var(--k5,#5ea4e6)"/>
-        <path d="M67.14 36 L78.57 30 L78.57 66 L67.14 72 Z" fill="var(--k6,#8d89ff)"/>
-        <path d="M78.57 30 L90 36 L90 72 L78.57 66 Z"    fill="var(--k7,#c133ff)"/>
+      <!-- foldable map: accordion panels, one per rainbow colour, + route & pin.
+           .mapfold is the group the CSS folds shut & expands open. -->
+      <g class="mapfold">
+        <g stroke="var(--edge)" stroke-width="1.4" stroke-linejoin="round">
+          <path d="M10 30 L21.43 36 L21.43 72 L10 66 Z"    fill="var(--k1,#ff3344)"/>
+          <path d="M21.43 36 L32.86 30 L32.86 66 L21.43 72 Z" fill="var(--k2,#ff8a3a)"/>
+          <path d="M32.86 30 L44.29 36 L44.29 72 L32.86 66 Z" fill="var(--k3,#ffd633)"/>
+          <path d="M44.29 36 L55.71 30 L55.71 66 L44.29 72 Z" fill="var(--k4,#33d97a)"/>
+          <path d="M55.71 30 L67.14 36 L67.14 72 L55.71 66 Z" fill="var(--k5,#5ea4e6)"/>
+          <path d="M67.14 36 L78.57 30 L78.57 66 L67.14 72 Z" fill="var(--k6,#8d89ff)"/>
+          <path d="M78.57 30 L90 36 L90 72 L78.57 66 Z"    fill="var(--k7,#c133ff)"/>
+        </g>
+        <path d="M18 60 Q34 40 50 54 T82 46" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-dasharray="1.4 5" opacity=".92"/>
+        <circle cx="82" cy="46" r="4.4" fill="#fff"/><circle cx="82" cy="46" r="1.9" fill="var(--edge)"/>
       </g>
-      <path d="M18 60 Q34 40 50 54 T82 46" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-dasharray="1.4 5" opacity=".92"/>
-      <circle cx="82" cy="46" r="4.4" fill="#fff"/><circle cx="82" cy="46" r="1.9" fill="var(--edge)"/>
     </svg>
    </span>
   </a>
@@ -191,11 +223,11 @@
   <a class="choice c-boxes" href="index.html#all" aria-label="Cuadrícula · todas las apps">
    <span class="mover m3">
     <svg class="ico" viewBox="0 0 100 100" aria-hidden="true">
-      <rect x="18" y="18" width="34" height="34" rx="2" fill="var(--k1,#4fd6cc)"/>
+      <rect class="prog d0" x="18" y="18" width="34" height="34" rx="2" fill="var(--k1,#4fd6cc)"/>
       <rect x="56" y="18" width="26" height="16" rx="2" fill="var(--k2,#5ea4e6)"/>
-      <rect x="56" y="38" width="26" height="14" rx="2" fill="var(--k3,#8d89ff)"/>
+      <rect class="prog d1" x="56" y="38" width="26" height="14" rx="2" fill="var(--k3,#8d89ff)"/>
       <rect x="18" y="56" width="16" height="26" rx="2" fill="var(--k4,#33d97a)"/>
-      <rect x="38" y="56" width="44" height="26" rx="2" fill="var(--k5,#ffce3a)"/>
+      <rect class="prog d2" x="38" y="56" width="44" height="26" rx="2" fill="var(--k5,#ffce3a)"/>
     </svg>
    </span>
   </a>

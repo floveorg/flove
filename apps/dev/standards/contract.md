@@ -113,6 +113,13 @@ off, he reports back and you iterate. Don't try to launch a browser,
 take screenshots, or call playwright/chrome-devtools — they're not
 wired and the attempts only add noise.
 
+**One exception — vector artwork.** For a *self-contained SVG* (a logo mark,
+icon, or symbol) you may rasterize it to PNG (`convert`, or headless chromium
+when filters/clips are involved) and read the image to check the shape before
+committing — that's inspecting a static asset, not driving a page, and it beats
+iterating blind. Whole-page layout, motion, and responsive states still need
+Marc's browser.
+
 ## 6. Accessibility floor
 
 - Every interactive element has a visible `:focus-visible` state.

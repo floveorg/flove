@@ -43,3 +43,23 @@ resolve to them here, regardless of which file physically hosts the section.
 
 *If a standard outgrows `frontend.md`, split it to `frontend/<topic>.md` and
 leave a pointer in that file and in this table — deepen without moving the index.*
+
+## Working with these standards
+
+The standards are the **dev-docs** chapter of flove. They live in the docsify
+home at **`apps/dev/`** (`flove.org/apps/dev/` once published) — the canonical
+home of the whole context pack (docs · standards · theory). This `standards/`
+folder is that home's source of truth.
+
+- **Consult** — open `apps/dev/index.html` (docsify) and use its sidebar +
+  built-in search, or ask the **agent search**: the knowledge base under
+  `docs/theory/kb/` indexes the whole corpus, these standards included. It runs
+  on FTS keyword search out of the box (`python3 ingest.py --reset` to rebuild,
+  `retrieve.py` / `serve.py` to query); semantic embeddings are optional and
+  **kept off for now**, so no heavyweight model is needed.
+- **Edit** — change the `.md` file that *owns* the fact (one home per fact; every
+  other file points to it). Edit the markdown here — **not** the rendered
+  `standards.html`, which is generated separately. When you add or rename a doc,
+  update `apps/dev/_sidebar.md` so it shows in the docsify nav.
+- **Publish** — commit + push (scoped) to Gitea `marc/flove`; the live site
+  (and the regenerated `standards.html`) updates via a separate `update-web`.

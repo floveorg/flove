@@ -46,6 +46,7 @@ schema, context, suggestions })` (wizy mode falls back to a generic block).
 - **`wizy`** — same, plus an `agent` block on the record so an AI agent can act on it.
 - **`more`** — placeholder for further networks (**nety · 0asis**); shows a
   "coming" hint until the backend phases light it up.
+  <!-- ↗ pendings:#BE02 -->
 
 **READER contract (an Appy profile page).** Include the same script; render from
 `window.floveAppy.played()` on load **and** re-render via

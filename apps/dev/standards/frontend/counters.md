@@ -87,6 +87,7 @@ are the canonical reference (used by `blogy-advanced.html` via
 - **Other tiers (mini / basic / advanced placeholder / super
   placeholder)** — do not yet include counters; add the markup + CSS
   block + (for non-modular tiers) the inline JS to enable.
+  <!-- ↗ pendings:#T05 -->
 
 Reference impl: tail of `apps/flove.js` (module) and tail of
 `apps/blogy/blogy-advanced-one.html` (inline copy).

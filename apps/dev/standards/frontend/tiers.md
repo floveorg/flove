@@ -73,13 +73,9 @@ held the fully-featured app.)
 
 | # | Tier | File suffix | Typical build* | Complexity / status |
 |---|------|-------------|--------|---------------------|
-| 0 | **nano** | `<app>-nano.html` | CSS-pure | Below mini — the absolute minimal seed (one field + one result, no chrome). **Reserved · not featured yet.** |
-| 1 | **mini** | `<app>-mini.html` | CSS-pure | Smallest functional unit; short IDs (`#m`, `#info`). |
-| 2 | **basic** | `<app>-basic.html` | CSS-pure | **Simple-complexity standard.** Topbar (mark + title + tier-switcher + menu via logo/title, §13.7.13), a small menu (language + About — *e.g. the "basic" menu*), one entry field + Add, and a static summary + Copy. No compass, labelers, stepper, charts or modals. The plainest reference frontend. |
-| 3 | **normal** | `<app>-normal.html` | CSS-pure | **Medium-complexity standard.** Adds compass (3 layouts), magic labelers (3), a tier badge, a 3-step stepper + node nav, a ✦ wizard suggester + ★ rater, a summary with magic-phrase swap + Bars chart, and one modal (New labeler). Still pure CSS. |
-| 4 | **advanced** | `<app>-advanced.html` | JS distro · loads `../flove.js` externally | **The fully-featured app** (was the canonical Normal until 2026-06-01). Sub-wizard fan-out, All toggle, full 6-step stepper, insight cycle, 4 chart views, save/share/publish, F2+ pre-publish hooks. New features land here first. |
-| 5 | **super** | `<app>-super.html` | JS distro + backend | Advanced + F2+ Publisher hooks + web-of-trust wizards. Currently an in-development placeholder. |
-| 6 | **mega** | `<app>-mega.html` | JS distro + backend | Beyond super — the maximal / orchestrated build (multi-instance, full backend). **Reserved · not featured yet.** |
+| 0 | **nano** | `<app>-nano.html` | CSS-pure | Below mini — the absolute minimal seed (one field + one result, no chrome). **Reserved · not featured yet.** <!-- ↗ pendings:#T04 --> |
+| 5 | **super** | `<app>-super.html` | JS distro + backend | Advanced + F2+ Publisher hooks + web-of-trust wizards. Currently an in-development placeholder. <!-- ↗ pendings:#T02 --> |
+| 6 | **mega** | `<app>-mega.html` | JS distro + backend | Beyond super — the maximal / orchestrated build (multi-instance, full backend). **Reserved · not featured yet.** <!-- ↗ pendings:#T03 --> |
 
 *\* "Typical build" is the build these tiers have **usually** shipped in —
 NOT part of the tier definition. The tier is the functionality level; the
@@ -144,7 +140,8 @@ app-agnostically so any `<app>-<tier>-raw` follows it.
 > pending** and today's single-file apps stand in as the `-one` form.
 > *(This pending item is the app **tier/build** rename — distinct from the
 > **export** scale, where the `mini` rung = **JSON** is already settled
-> (§13.12); the mini **export** is not "N/A".)* F0 itself reaches down to
+> (§13.12); the mini **export** is not "N/A".)* <!-- ↗ pendings:#T01 -->
+> F0 itself reaches down to
 > **`basic`** (not advanced-only) — see §13.12's tier rule.
 
 `mini`, `basic` and `normal` form the simple→medium complexity showcase

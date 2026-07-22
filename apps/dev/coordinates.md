@@ -144,7 +144,7 @@ Examples:
 inside the Tools tree. The set notation is parser-friendly and reads
 naturally as "this work combines these three media".
 
-### A.7 · Parked debates
+### A.7 · Parked debates <!-- ↗ pendings:#BE03 -->
 
 Items deferred for later resolution; reopen on demand:
 
@@ -153,7 +153,7 @@ Items deferred for later resolution; reopen on demand:
   films → inmersivo → canon → mythos`. Currently absorbed into
   `content-scope` at the centre; may split out again as its own
   coordinate (perhaps under Usability, perhaps as a new tree) if it
-  earns it.
+  earns it. <!-- ↗ pendings:#T07 -->
 - **flove-quality measure.** flove at the centre may receive its own
   intensity/extension coordinates — provisional syntax
   `flove[q<N>, k<N>]` where `q` = cantidad (extension) and `k` =

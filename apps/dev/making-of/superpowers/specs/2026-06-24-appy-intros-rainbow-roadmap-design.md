@@ -44,6 +44,7 @@ Two moments, one shared pattern — **loud once → then permanently re-openable
 - The **exact permanent nav location** of the re-openable intros / global changers is
   **user-decided later**; this spec marks it `TBD` and only requires that a permanent,
   discoverable entry exists.
+  <!-- ↗ pendings:#DS04 -->
 
 **Deliberate divergence from §13.2 (recorded):** §13.2 places the canonical entrance on the
 launcher `index.html`. For the **appy download distribution** the first landing is

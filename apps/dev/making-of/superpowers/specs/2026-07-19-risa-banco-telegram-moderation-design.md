@@ -3,6 +3,7 @@
 **Fecha:** 2026-07-19
 **App:** Risa Liberada (`flove/apps/liberada/risa/index.html`)
 **Estado:** diseño aprobado (pendiente revisión final de Marc)
+<!-- ↗ pendings:#BR04 -->
 
 > **Enmienda 2026-07-19 — hosting del audio en Cloudinary (Marc):** los clips de audio que sube la gente **NO** viven en el repo git; se suben a **Cloudinary** (subida firmada, zero-dep) y `banco.json` guarda solo la URL en `src`. GitHub sigue albergando `banco.json` + el código del bot + la web. Motivo: evitar el hinchado del repo con binarios y los límites blandos de GitHub Pages; Cloudinary es CDN de medios. Caveat FOSS (Cloudinary es propietario; alternativas libres: Cloudflare R2 / Backblaze B2 / MinIO autoalojado) — se mantiene `src` como URL simple para que cambiar de host sea una línea. Esto sustituye a «audio en el repo» en §3, §4 y §5.2 más abajo. Credencial: secret `CLOUDINARY_URL` en Actions.
 

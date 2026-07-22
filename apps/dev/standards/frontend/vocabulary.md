@@ -278,6 +278,7 @@ app (Mode, Sound, sound depth, language).
 > exist but no markup toggles them.
 > Sound-depth control is pending a new design — until then, the sound
 > engine defaults to the `#sound-mini:checked` state.
+> <!-- ↗ pendings:#T06 -->
 > Tier navigation lives in the topbar tier-pop (§13.1).
 
 *Language (`lang-*` — default location):*

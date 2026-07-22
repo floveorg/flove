@@ -27,6 +27,7 @@
 ## Status snapshot
 
 Tasks **0–5 are already implemented** in commit `8d0efc0` (`apps/appy/advancedappy.html` + the ⚙ link in `apps/index.html`). They are documented below as the canonical record; their checkboxes are pre-checked. Tasks **6–9 are pending**.
+<!-- ↗ pendings:#DS03 -->
 
 ---
 

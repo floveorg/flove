@@ -2,6 +2,7 @@
 
 - **Date:** 2026-06-25
 - **Status:** design approved (brainstorming) — pending implementation plan
+<!-- ↗ pendings:#DS02 -->
 - **Anchors:** `context/flove/backend_plan.md` **§13.13 · Locking** (this add-on
   is the canonical **demo of the High method**) and the **F0/F1** strands of
   the JS distro (§15).

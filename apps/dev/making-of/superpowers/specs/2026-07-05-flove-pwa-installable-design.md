@@ -2,6 +2,7 @@
 
 **Date:** 2026-07-05
 **Status:** approved (design), pending implementation plan
+<!-- ↗ pendings:#DS01 -->
 
 ## Problem
 

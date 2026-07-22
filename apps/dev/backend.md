@@ -11,6 +11,7 @@
 > the future.
 
 Status: **draft v0.3** · Owner: Marc · Updated: 2026-06-25
+<!-- ↗ pendings:#BE01 -->
 
 ---
 

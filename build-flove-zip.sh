@@ -33,7 +33,10 @@ rm -f  "$TARGET/flove.zip" "$TARGET/build-flove-zip.sh" "$TARGET/build-sw.mjs" \
 # behind-the-scenes docs/making-of/ folder, and these standalone extras. apps/lowai
 # carries its own publish-lowai.sh, stripped here with the rest of the lowai folder.
 rm -rf "$TARGET/docs/blog" "$TARGET/apps/dev/making-of" \
-       "$TARGET/apps/lowai" "$TARGET/docs/ephemerall" "$TARGET/apps/dev/anim-form.html"
+       "$TARGET/apps/lowai" "$TARGET/apps/liberada/fuga" \
+       "$TARGET/docs/ephemerall" "$TARGET/apps/dev/anim-form.html"
+rm -f "$TARGET/apps/economy/dealy/rewardy.html" \
+      "$TARGET/apps/appy/nety.html" "$TARGET/apps/appy/profily.html"
 
 # Make the entry obvious in the download: rename launch.html -> START.html
 # (download only — the live site keeps launch.html). Keep the local copy's

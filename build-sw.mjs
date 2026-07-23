@@ -25,8 +25,8 @@ const DENY_EXACT = new Set([
   '.cloudinary-progress.json', '.htmlvalidate.json',
 ]);
 // Web-only extras kept live but out of the offline app (mirrors the zip).
-const DENY_DIRS = ['docs/blog/', 'apps/lowai/', 'docs/ephemerall/', 'docs/superpowers/'];
-const DENY_PREFIX_FILES = ['apps/dev/anim-form.html'];
+const DENY_DIRS = ['docs/blog/', 'apps/lowai/', 'apps/liberada/fuga/', 'docs/ephemerall/', 'docs/superpowers/'];
+const DENY_PREFIX_FILES = ['apps/dev/anim-form.html', 'apps/economy/dealy/rewardy.html', 'apps/appy/nety.html', 'apps/appy/profily.html'];
 
 const tracked = execSync('git ls-files', { cwd: ROOT, encoding: 'utf8' })
   .split('\n').map(s => s.trim()).filter(Boolean);

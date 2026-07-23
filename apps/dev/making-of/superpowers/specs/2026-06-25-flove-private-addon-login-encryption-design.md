@@ -173,7 +173,7 @@ plaintext→ciphertext migration (no loss/dupes); idle-timeout + crypt-on-exit
 drop the key; multi-tab lock sync; **isolation** — two copies, different
 `distroId` + different pass, same origin, cannot read each other.
 
-## 9. Open questions (deferred multiuser-pack spec)
+## 9. Open questions (deferred multiuser-pack spec) <!-- ↗ pendings:#MUP01 -->
 
 - Default copy count; how `distroId`s are assigned/labelled per person.
 - Whether a thin launcher lists the copies or each is opened directly.

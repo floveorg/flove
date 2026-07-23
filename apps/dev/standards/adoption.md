@@ -5,6 +5,8 @@ the **frontend roadmap** — each cell is a unit of *pulido* work. A living
 table: update it as standards are elevated into each app. The stable index of
 what the standards *are* is `README.md`; the full spec is `frontend.md`.
 
+**Before starting adoption work**, check [`plans/conflicts.md`](../plans/conflicts.md) for known tensions between plans.
+
 | App | Tier model (§13.1) | i18n (§13.2) | Forms-iframe (§13.3) | Compass (§13.4) | Topbar (§13.5) | Onboarding (§13.6) | Vocab (§13.7) | Counters (§13.8) | Summary (§13.9) | Export (§13.12) | Surfaces (§13.11) |
 |-----|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
 | blogy | ✓ (5 of 7) | ✓ | ✓ (4 forms) | ✓ | partial | partial | ✓ (reference) | ✓ | ✓ (reference · advanced) | partial | 2D |
@@ -41,3 +43,25 @@ Full rule: [`frontend/publish.md`](frontend/publish.md).
 
 So for a `file://` workflow the real path is **download → upload**; the automatic
 bridge is a bonus that only kicks in once the apps are served over http.
+
+## Distro adoption (§13.11) — enrichment rollout
+
+Which apps have adopted the enrichment loader and which distro they target. The
+enrichment loader (`flove-loader.js`) is the Solo→SoloRich bridge; Central+ adds
+backend depth on separate branches.
+
+| App | Enrichment | Distro target | Branch |
+|-----|-----------|---------------|--------|
+| blogy | ✅ enriched | SoloRich → Central | `main` → `central/` |
+| 46 normal/advanced/super apps | ✅ enriched | SoloRich → Central | `main` → `central/` |
+| 8 mini/basic apps | ⏸ opt-in | Solo (no enrichment) | `main` |
+| 16 support pages | ❌ skipped | — | `main` |
+
+**SoloRich persistence:** libSQL via `@libsql/client` (wraps sql.js WASM + OPFS), single shared `flove.db` with `app` column, fallback localStorage key `flove:db`. Central backend:
+Python/FastAPI + Turso (SQLite-compatible HTTP API), serverless on Railway at
+`flove.org/api/*` (same origin, GitHub Pages proxy), full CRUD
+(`POST/PUT/DELETE /api/{app}/save`, `GET /api/{app}/list`). Central apps in
+`central/apps/`, lighter than Solo (no topbar, flove.js injects bottom nav).
+No MongoDB — Turso for serverless SQLite, PostgreSQL for CentralRich, Turso for DecentralRich.
+Full spec in [`plans/central-backend.md`](../plans/central-backend.md).
+Full spec in [`plans/central-backend.md`](../plans/central-backend.md).

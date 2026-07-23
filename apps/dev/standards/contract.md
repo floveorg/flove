@@ -4,7 +4,8 @@ The **non-negotiable** rules every flove app follows — identity, tokens,
 CSS-over-JS, file pattern, the a11y floor, anti-patterns. This is the stable
 core; the *opt-in* patterns catalogue lives in `frontend.md`, and the
 at-a-glance index in `README.md` (this folder's matrix). Philosophy:
-`../worldview.md`. Architecture: `../backend.md`. Live token source of
+`../worldview.md`. Architecture: `../backend.md`. Plans & conflicts:
+`../plans/index.md`. Live token source of
 truth: `flove.css` — these notes summarize and constrain it.
 
 ## 0. Stance

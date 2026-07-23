@@ -156,13 +156,11 @@ classDiagram
 - Persisted and exported through the F0 layer (§10) with a custom
   snapshot that emits exactly the `PuzzyAnnotation` shape above.
 
-### 8.8 · Open questions (specific to puzzy)
+### 8.8 · Open questions (resolved) <!-- ↗ pendings:#PZQ01-#PZQ03 -->
 
-- **Aggregation across human raters** — what does the common area
-  show when several people rate the same object? (yuxtaposition ·
-  mean + dispersion · toggle). Decision deferred to F3 / F5.
-- **Where the puzzy compute lives** — client-only / module-42-only /
-  hybrid with offline cache. Deferred until F5 starts.
+- ✅ **Aggregation across human raters** → **Mean + dispersion** (statistical summary: average + spread) <!-- ↗ pendings:#PZQ01 -->
+- ✅ **Where the puzzy compute lives** → **Hybrid with offline cache** (client-first, server fallback) <!-- ↗ pendings:#PZQ02 -->
 - **Which app fields admit free tags** — declared per-app in
   `mapping.json`; the canonical catalogue will be filled when each
   app ships its mapping (F1 deliverable).
+  <!-- ↗ pendings:#PZQ03 -->

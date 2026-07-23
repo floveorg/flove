@@ -13,6 +13,7 @@ Open the one you need:
 - **Read-me-first map** → [`overview.md`](overview.md)
 - **Architecture / backend spec** → [`backend.md`](backend.md)
 - **Philosophy / ethos** → [`worldview.md`](worldview.md)
+- **Implementation plans & conflicts** → [`plans/index.md`](plans/index.md)
 
 When Marc names a frontend pattern ("tier model", "compass", "topbar",
 "surfaces", "forms-iframe", "i18n t-en", "export", "locking"…), open

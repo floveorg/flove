@@ -155,10 +155,11 @@ below is the **appy (data-software) feature ladder**.
   = "the full stack, integrated." Candidate directions to choose later: **network powers**
   (pool stewardship, donation directing at scale, promotion/governance, hosting/vouching
   others) **or self-sovereignty** (run your own full node, host others). Not pinned this
-  round.
+  round. <!-- ↗ pendings:#NEC01 -->
 - **nety hardware quota levels are also open** (deferred, §13) — the ladder stays a *quota
   ladder* conceptually (same resource types, more capacity per tier, mini = light client →
   super = large contributor); concrete per-tier quotas are not pinned this round.
+  <!-- ↗ pendings:#NEC02 -->
 
 **Flow:** contribute in the lower layer → cross contributing **stages** → granted
 **passwords** that open protected sections of the upper layer. `nety` is where you log in

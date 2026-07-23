@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>flove · design decisions interview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --bg:#0b0b0f; --ink:#e9eaf2; --muted:#a3a7b4; --line:#1e2133;
+    --card:#11131a; --panel:#13162a; --accent:#8d89ff; --accent-soft:#c9c6ff; --signal:#00f7a7;
+  }
+  html{ scroll-behavior:smooth; }
+  body{
+    font-family:"Space Mono",ui-monospace,monospace; color:var(--ink); line-height:1.6;
+    background:
+      radial-gradient(900px 560px at 112% -8%, rgba(0,247,167,.10) 0, transparent 55%),
+      radial-gradient(820px 540px at -10% 8%, rgba(141,137,255,.14) 0, transparent 55%),
+      var(--bg);
+    min-height:100svh; -webkit-font-smoothing:antialiased; padding-bottom:6rem;
+  }
+  .wrap{ max-width:880px; margin:0 auto; padding:clamp(1.4rem,4vw,3rem) clamp(1.1rem,4vw,2rem); }
+  .wm{ font-family:"Fredoka",sans-serif; font-weight:700; letter-spacing:-.02em; }
+  .wm em{ font-style:normal; color:var(--signal); }
+  header.top h1{ font-size:clamp(1.9rem,7vw,3rem); line-height:1; }
+  .kicker{ font-size:.6rem; letter-spacing:.32em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
+
+  .intro{ margin:1rem 0 1.6rem; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:12px; padding:1.1rem 1.2rem; font-size:.8rem; color:var(--accent-soft); }
+  .intro p{ margin:.35rem 0; }
+  .intro b{ color:var(--signal); font-weight:400; }
+  .intro .how{ color:var(--muted); font-size:.74rem; margin-top:.6rem; }
+  .intro .how kbd{ background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:5px;
+    padding:.05rem .35rem; font-size:.68rem; color:var(--ink); }
+
+  .bar{ position:sticky; top:0; z-index:20; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
+    padding:.7rem 0 .9rem; margin-bottom:1.2rem; background:linear-gradient(var(--bg) 70%, transparent);
+    border-bottom:1px solid var(--line); }
+  button{ font-family:"Space Mono",monospace; cursor:pointer; font-size:.72rem; letter-spacing:.02em;
+    padding:.55rem .9rem; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.02);
+    color:var(--ink); transition:.16s; }
+  button:hover{ border-color:var(--accent); color:var(--accent-soft); }
+  button.solid{ background:linear-gradient(150deg,#8d89ff,#6f6bf0); color:#fff; border-color:transparent;
+    box-shadow:0 12px 30px -16px rgba(141,137,255,.9); }
+  button.signal{ border-color:rgba(0,247,167,.4); color:var(--signal); }
+  button.signal[aria-pressed="true"]{ background:rgba(0,247,167,.14); color:var(--signal); border-color:var(--signal); }
+  .bar .grow{ flex:1; }
+  .count{ font-size:.62rem; color:var(--muted); }
+  .toast{ position:fixed; left:50%; bottom:1.4rem; transform:translateX(-50%) translateY(140%);
+    background:var(--panel); border:1px solid var(--accent); color:var(--accent-soft); padding:.6rem 1rem;
+    border-radius:10px; font-size:.72rem; transition:transform .3s ease; z-index:40; }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+
+  .sec{ border:1px solid var(--line); border-radius:14px; margin-bottom:.9rem; overflow:hidden; background:rgba(255,255,255,.012); }
+  .sec.setup{ border-left:3px solid var(--signal); }
+  .sec-h{ width:100%; text-align:left; border:none; border-radius:0; background:transparent;
+    display:flex; align-items:center; gap:.7rem; padding:1rem 1.2rem; font-size:.7rem; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--accent-soft); }
+  .sec-h:hover{ color:var(--accent-soft); background:rgba(141,137,255,.06); }
+  .sec-h .chev{ color:var(--muted); transition:transform .18s; }
+  .sec.open .sec-h .chev{ transform:rotate(90deg); }
+  .sec-h .pill{ margin-left:auto; font-size:.56rem; letter-spacing:.1em; color:var(--muted);
+    border:1px solid var(--line); border-radius:999px; padding:.12rem .5rem; }
+  .sec-h .pill.done{ color:var(--signal); border-color:rgba(0,247,167,.4); }
+  .sec-body{ display:none; padding:0 1rem 1rem; }
+  .sec.open .sec-body{ display:block; }
+
+  .field{ margin:.6rem 0 .9rem; }
+  .field-l{ font-size:.56rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.4rem; }
+  .intents{ display:flex; flex-wrap:wrap; gap:.4rem; }
+  .intent{ display:flex; align-items:center; gap:.4rem; font-size:.74rem; border:1px solid var(--line);
+    border-radius:999px; padding:.3rem .75rem; cursor:pointer; }
+  .intent input{ accent-color:var(--accent); }
+  .intent:has(input:checked){ border-color:var(--accent); background:rgba(141,137,255,.14); color:var(--accent-soft); }
+  .field input[type=text], .field textarea{ width:100%; font-family:inherit; font-size:.75rem; color:var(--ink);
+    background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem; resize:vertical; }
+  .ptrs{ display:flex; flex-direction:column; gap:.3rem; }
+  .ptrs a{ font-size:.72rem; color:var(--accent-soft); }
+  .ptrs .none{ font-size:.7rem; color:var(--muted); }
+
+  .q{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.2rem; margin-bottom:1rem; }
+  .q:last-child{ margin-bottom:0; }
+  .q.skipped{ opacity:.35; }
+  .q.skipped .opts{ display:none; }
+  .q .qhead{ display:flex; align-items:flex-start; gap:.5rem; }
+  .q .qn{ font-size:.56rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); flex:1; }
+  .q .skip{ display:flex; align-items:center; gap:.3rem; font-size:.58rem; color:var(--muted); cursor:pointer;
+    border:1px solid var(--line); border-radius:999px; padding:.15rem .5rem; flex:none; white-space:nowrap; transition:.14s; }
+  .q .skip:hover{ border-color:var(--accent); color:var(--accent-soft); }
+  .q .skip input{ accent-color:var(--accent); width:12px; height:12px; }
+  .q.skipped .skip{ border-color:rgba(255,80,80,.5); color:#ff6b6b; background:rgba(255,80,80,.08); }
+  .q h3{ font-family:"Fredoka",sans-serif; font-weight:600; font-size:1.02rem; letter-spacing:-.01em; margin:.3rem 0 .8rem; }
+  .q h3 .ref{ display:inline-flex; align-items:center; gap:.25rem; font-size:.56rem; letter-spacing:.04em; color:var(--signal);
+    border:1px solid rgba(0,247,167,.35); border-radius:999px; padding:.05rem .45rem; text-decoration:none;
+    margin-left:.5rem; vertical-align:middle; font-family:"Space Mono",monospace; text-transform:none; font-weight:400; }
+  .q h3 .ref:hover{ background:rgba(0,247,167,.1); }
+  .q .ctx{ font-size:.72rem; color:var(--muted); margin-bottom:.7rem; padding:.6rem .8rem; background:rgba(255,255,255,.025);
+    border:1px solid var(--line); border-radius:8px; line-height:1.55; }
+  .q .ctx b{ color:var(--accent-soft); font-weight:400; }
+  .opts{ display:flex; flex-direction:column; gap:.45rem; }
+
+  .opt{ border:1px solid var(--line); background:rgba(255,255,255,.015); border-radius:9px; transition:.14s; }
+  .opt:hover{ border-color:var(--accent); }
+  .opt .row{ display:flex; align-items:flex-start; gap:.6rem; padding:.55rem .7rem; cursor:pointer; font-size:.78rem; }
+  .opt .row input{ accent-color:var(--accent); margin-top:.2rem; flex:none; }
+  .opt .row .lab{ flex:1; }
+  .opt .row .chev{ color:var(--muted); font-size:.7rem; transition:transform .18s; flex:none; }
+  .opt.open .row .chev{ transform:rotate(90deg); }
+  .opt .desc{ display:none; padding:0 .8rem .65rem 2.05rem; font-size:.7rem; color:var(--muted); line-height:1.55; }
+  .opt.open .desc{ display:block; }
+  .opt.chosen{ border-color:var(--accent); background:rgba(141,137,255,.12); }
+  body.sugg .opt.sugg{ border-color:var(--signal); box-shadow:inset 0 0 0 1px rgba(0,247,167,.35); }
+  .opt .sugg-badge{ display:none; margin-left:auto; align-self:center; font-size:.5rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--signal); white-space:nowrap; }
+  body.sugg .opt.sugg .sugg-badge{ display:inline; }
+  .opt .info{ display:none; margin-top:.5rem; padding:.6rem .8rem; background:rgba(141,137,255,.06);
+    border:1px solid rgba(141,137,255,.2); border-radius:8px; font-size:.72rem; color:var(--accent-soft); line-height:1.55; }
+  .opt.open .info{ display:block; }
+  .custom-reply{ margin-top:.5rem; }
+  .custom-reply input{ width:100%; font-family:inherit; font-size:.75rem; color:var(--ink);
+    background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:8px;
+    padding:.5rem .7rem; transition:.14s; }
+  .custom-reply input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(141,137,255,.2); }
+  .custom-reply input::placeholder{ color:var(--muted); font-style:italic; }
+  .custom-reply.has-value{ border-color:var(--accent); background:rgba(141,137,255,.08); border-radius:8px; padding:.5rem .7rem; }
+
+  footer.foot{ margin-top:2.4rem; padding-top:1.4rem; border-top:1px solid var(--line);
+    font-size:.64rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:.6rem 1.2rem; align-items:center; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; } html{ scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">design decisions interview</div>
+    <h1 class="wm">flove <em>decisions</em></h1>
+  </header>
+
+  <div class="intro">
+    <p>51 design decisions for flove — nety ecosystem, docs, backend, trusty options, and more. <b>Your answers are saved in this browser</b> and survive reloads.</p>
+    <p class="how">
+      <kbd>Setup</kbd> (top block) tunes what the copied prompt asks for and links the context. ·
+      <kbd>click a block</kbd> to open it — blocks start collapsed, so answer the ones you care about and skip the rest. ·
+      <kbd>★ suggested</kbd> overlays my recommended pick + reasoning <i>without</i> changing yours. ·
+      <kbd>click a row</kbd> expands an option's explanation. ·
+      <kbd>↗</kbd> on a question links the relevant context. ·
+      <kbd>don't keep</kbd> — check to exclude a question from the copied prompt and frozen HTML. ·
+      <kbd>Copy prompt</kbd> copies your chosen intent + context + picks (minus skipped questions). ·
+      <kbd>Save to history</kbd> appends your kept answers to the interview history (for making-of.html).
+    </p>
+  </div>
+
+  <div class="bar">
+    <button id="reveal" class="signal" aria-pressed="false">★ suggested</button>
+    <button id="expand">⤢ expand all</button>
+    <button id="clear">↺ clear mine</button>
+    <span class="grow"></span>
+    <span class="count" id="count">0 answered</span>
+  </div>
+
+  <form id="form"></form>
+
+  <div class="bar" style="position:static;border-top:1px solid var(--line);border-bottom:none;margin-top:1.6rem;">
+    <button id="save" class="solid">⮓ Save frozen HTML</button>
+    <button id="copy">⧉ Copy prompt</button>
+    <button id="history" class="signal">↻ Save to history</button>
+  </div>
+
+  <footer class="foot">
+    <span>flove decisions interview · self-contained · saves to your browser</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CONTEXT = [
+  {label:"pendings.md", url:"apps/dev/pendings.md"},
+  {label:"contract.md §9", url:"apps/dev/standards/contract.md"},
+  {label:"nety access ecosystem design", url:"apps/dev/making-of/superpowers/specs/2026-06-18-nety-access-ecosystem-design.md"},
+  {label:"nety frontend build plan", url:"apps/dev/making-of/superpowers/plans/2026-06-18-nety-frontend-build.md"},
+  {label:"appy five apps tier ladders", url:"apps/dev/making-of/superpowers/specs/2026-06-19-appy-five-apps-tier-ladders-design.md"},
+  {label:"trusty dual-axis app", url:"apps/dev/making-of/superpowers/plans/2026-06-14-trusty-dual-axis-app.md"},
+  {label:"puzzy.md", url:"apps/dev/puzzy.md"},
+  {label:"backend.md", url:"apps/dev/backend.md"},
+  {label:"coordinates.md", url:"apps/dev/coordinates.md"},
+  {label:"risa-banco-web-phase0", url:"apps/dev/making-of/superpowers/plans/2026-07-19-risa-banco-web-phase0.md"},
+  {label:"pwa installable design", url:"apps/dev/making-of/superpowers/specs/2026-07-05-flove-pwa-installable-design.md"},
+  {label:"private addon login encryption", url:"apps/dev/making-of/superpowers/specs/2026-06-25-flove-private-addon-login-encryption-design.md"},
+];
+
+const DATA = [
+  {sec:"K · Shared Code Abstraction", items:[
+    {q:"Where should the shared flove.js and flove.css live?", ctx:"Currently blogy/flove.js and blogy/flove.css serve as the abstracted common code prototype. They need to move to a central location for all apps to use. blogy/flove.js is 3140 lines; blogy/flove.css is 710 lines. The appy/flove-appy.js already exists (1494 lines) as Appy-specific shared code.", o:[
+      {l:"apps/appy/", d:"Central appy directory — flove-appy.js + flove.js + flove.css together. Logical, but appy is an app itself."},
+      {l:"apps/shared/", d:"New shared directory. Clean separation, but requires new path."},
+      {l:"apps/flove-common/", d:"Dedicated common directory. Clear naming, more structure."},
+      {l:"Defer", d:"Don't decide yet — wait until the first abstraction wave ships."}
+    ], suggest:["apps/appy/"], ref:{label:"CAQ01", url:"apps/dev/coordinates.md"}},
+    {q:"How should other apps load the shared flove.js/flove.css?", ctx:"Currently only blogy tiers load flove.js externally. Other apps (economy, puzzy, trusty, etc.) have inline JS/CSS. Two models: external <script>/<link> tags (simpler, more HTTP requests) or build-time inlining (single-file, no deps, but needs build step).", o:[
+      {l:"External <script>/<link>", d:"Load from appy/ via relative path. Simple, no build step, extra HTTP requests."},
+      {l:"Build-time inlining", d:"Bake shared code into each app's HTML. Single-file, no deps, needs build step."},
+      {l:"Hybrid", d:"External in dev, inlined for production. Balanced, more complexity."}
+    ], suggest:["External <script>/<link>"], ref:{label:"CAQ02", url:"apps/dev/coordinates.md"}},
+    {q:"What should go in the first abstraction wave (flove.js)?", ctx:"blogy/flove.js contains: sound engine (drum/snare/kick + ambient pad), summary actions (collect/save 6 formats/share), wizard/bot injection, ZIP export (pure JS), view toggle. Which of these should move to the shared flove.js first?", o:[
+      {l:"Everything (all 5 modules)", d:"Move sound, summary, wizard, ZIP, view toggle. Full abstraction, riskier."},
+      {l:"Sound + summary only", d:"Most reused modules. Lower risk, partial benefit."},
+      {l:"Just sound engine", d:"Smallest, most self-contained. Safest first step."},
+      {l:"Incremental", d:"Move one module at a time, test each. Slowest, safest."}
+    ], suggest:["Sound + summary only"], ref:{label:"CAQ03", url:"apps/blogy/flove.js"}},
+    {q:"What should go in the first abstraction wave (flove.css)?", ctx:"blogy/flove.css contains: flove-bar, asterism, footer badge, cards, pills, buttons, toasts, modals. Which should move first? Note: some styles are blogy-specific (cards, pills) while others are universal (toasts, modals, buttons).", o:[
+      {l:"Everything (all 8 modules)", d:"Move all styles. Full abstraction, riskier."},
+      {l:"Universal only (toasts, modals, buttons)", d:"Styles all apps need. Safe, useful."},
+      {l:"Just flove-bar", d:"Most reused component. Safest first step."},
+      {l:"Incremental", d:"Move one module at a time, test each. Slowest, safest."}
+    ], suggest:["Universal only (toasts, modals, buttons)"], ref:{label:"CAQ04", url:"apps/blogy/flove.css"}},
+    {q:"Should the main apps/index.html keep its own theme pattern?", ctx:"apps/index.html uses :root.dark with its own CSS variables and localStorage. It's the central hub. Should it adopt the shared theme toggle (from appy/) or keep its own pattern? Keeping its own = more code, less consistency; adopting shared = less code, but index.html is special.", o:[
+      {l:"Keep its own pattern", d:"Index.html stays independent. More code, but tailored to its needs."},
+      {l:"Adopt shared theme", d:"Use appy/flove-theme.js + flove-theme.css. Consistent, less code, but index.html loses some control."},
+      {l:"Partial adoption", d:"Use shared CSS variables, keep its own JS logic. Balanced."}
+    ], suggest:["Keep its own pattern"], ref:{label:"CAQ05", url:"apps/index.html"}},
+    {q:"How should the shared theme toggle handle dark-by-design apps?", ctx:"Dark-by-design apps (economy, lowai, fuga) default to dark. Light-by-design apps (risa, blogy) default to light. The theme toggle should flip them. But: should dark-by-design apps show a light variant when toggled, or should the toggle be hidden for them?", o:[
+      {l:"Toggle flips variant", d:"Dark apps show light variant when toggled, and vice versa. Most flexible, more CSS."},
+      {l:"Toggle hidden for dark apps", d:"No toggle for dark-by-design apps. Simpler, less flexibility."},
+      {l:"Toggle always visible", d:"All apps show toggle, but dark apps stay dark. Consistent, no actual change."}
+    ], suggest:["Toggle flips variant"], ref:{label:"CAQ06", url:"apps/dev/pendings.md"}},
+    {q:"Should the shared theme support system preference detection?", ctx:"Currently some apps use @media (prefers-color-scheme: dark) to auto-detect. The shared theme could: ignore system preference (use localStorage only), always follow system, or let user choose (system default + override).", o:[
+      {l:"System default + override", d:"Follow system by default, localStorage overrides. Most flexible, more JS."},
+      {l:"localStorage only", d:"Ignore system preference, use stored choice. Simpler, less adaptive."},
+      {l:"System only", d:"Always follow system preference. Simplest, no user control."}
+    ], suggest:["System default + override"], ref:{label:"CAQ07", url:"apps/dev/pendings.md"}},
+    {q:"How should the shared theme handle transition animations?", ctx:"When toggling themes, a smooth transition is nice but can cause performance issues (FOUC, layout shifts). Options: instant swap (no animation), CSS transition (smooth but can flash), or JS-controlled (fade out, swap, fade in).", o:[
+      {l:"Instant swap", d:"No animation, immediate change. Fastest, can feel abrupt."},
+      {l:"CSS transition", d:"Smooth color transition via CSS. Nice, but can cause FOUC."},
+      {l:"JS-controlled fade", d:"Fade out, swap theme, fade in. Smoothest, most code."}
+    ], suggest:["Instant swap"], ref:{label:"CAQ08", url:"apps/dev/pendings.md"}},
+  ]},
+
+  {sec:"L · Backend Deployment", items:[
+    {q:"Where will the flove backend run?", ctx:"The backend (module-42) needs a hosting environment. Options: Marc's local machine (simplest, not accessible remotely), a VPS (full control, more work), a cloud platform (AWS/GCP/Vercel — managed, less control), or a combination (local dev + cloud prod).", o:[
+      {l:"Marc's local machine", d:"Run on localhost. Simplest, no remote access, dev-only."},
+      {l:"VPS (Hetzner/DigitalOcean)", d:"Full control, fixed cost. More work to maintain."},
+      {l:"Cloud platform (AWS/GCP)", d:"Managed services, scalable. Less control, variable cost."},
+      {l:"Hybrid (local dev + cloud prod)", d:"Develop locally, deploy to cloud. Balanced, more complexity."}
+    ], suggest:["Hybrid (local dev + cloud prod)"], ref:{label:"DEP01", url:"apps/dev/backend.md"}},
+    {q:"What authentication method should the backend use?", ctx:"The backend needs auth for: Marc (admin), flove users (read/write), and possibly public (read-only). Options: JWT tokens, session cookies, API keys, or OAuth (GitHub/Google). JWT is stateless but complex; sessions are simpler but need storage; API keys are simple but less secure.", o:[
+      {l:"JWT tokens", d:"Stateless auth, good for APIs. More complex, no server-side session."},
+      {l:"Session cookies", d:"Server-side sessions. Simpler, but needs cookie storage."},
+      {l:"API keys", d:"Simple key-based auth. Easy, but less secure for user flows."},
+      {l:"OAuth (GitHub/Google)", d:"Third-party auth. Trusted, but requires external dependency."}
+    ], suggest:["JWT tokens"], ref:{label:"DEP02", url:"apps/dev/backend.md"}},
+    {q:"What database should the backend use?", ctx:"The backend needs storage for: flove apps metadata, user profiles, ratings (puzzy), cross-links, and routing.json. Options: SQLite (simple, file-based), PostgreSQL (powerful, relational), MongoDB (flexible, NoSQL), or JSON files (simplest, no DB).", o:[
+      {l:"SQLite", d:"File-based, zero config. Simple, limited concurrency."},
+      {l:"PostgreSQL", d:"Powerful relational DB. Full-featured, needs hosting."},
+      {l:"MongoDB", d:"Flexible NoSQL. Schema-less, needs hosting."},
+      {l:"JSON files", d:"Just store data as JSON files. Simplest, no DB, limited querying."}
+    ], suggest:["SQLite"], ref:{label:"DEP03", url:"apps/dev/backend.md"}},
+    {q:"How should the backend expose its API?", ctx:"The backend needs an API for apps to read/write data. Options: REST (standard, verbose), GraphQL (flexible, complex), tRPC (type-safe, TypeScript-focused), or WebSocket (real-time, complex).", o:[
+      {l:"REST", d:"Standard HTTP endpoints. Simple, verbose, widely supported."},
+      {l:"GraphQL", d:"Flexible query language. Powerful, complex setup."},
+      {l:"tRPC", d:"Type-safe RPC for TypeScript. Best DX, TypeScript required."},
+      {l:"WebSocket", d:"Real-time bidirectional. Complex, needed for live features."}
+    ], suggest:["REST"], ref:{label:"DEP04", url:"apps/dev/backend.md"}},
+    {q:"How should the backend handle CORS?", ctx:"The backend runs on a different domain than flove apps (localhost:3000 vs flove.org). CORS needs to allow flove apps to access the API. Options: strict (only flove.org), permissive (all origins), or env-based (configurable).", o:[
+      {l:"Strict (flove.org only)", d:"Only allow flove.org origins. Most secure, limited flexibility."},
+      {l:"Permissive (all origins)", d:"Allow any origin. Simple, less secure."},
+      {l:"Env-based (configurable)", d:"Set allowed origins via env var. Flexible, more setup."}
+    ], suggest:["Env-based (configurable)"], ref:{label:"DEP05", url:"apps/dev/backend.md"}},
+    {q:"How should the backend handle rate limiting?", ctx:"To prevent abuse, the backend needs rate limiting. Options: IP-based (simple, shared IPs), token-based (per-user, more accurate), or none (trust all callers). Rate limiting protects against DDoS and abuse.", o:[
+      {l:"IP-based", d:"Limit by IP address. Simple, shared IP issues."},
+      {l:"Token-based", d:"Limit by API key/user. More accurate, requires auth."},
+      {l:"None", d:"No rate limiting. Simplest, vulnerable to abuse."},
+      {l:"Hybrid", d:"IP-based for anonymous, token-based for authenticated. Balanced."}
+    ], suggest:["Hybrid"], ref:{label:"DEP06", url:"apps/dev/backend.md"}},
+    {q:"How should the backend handle logging and monitoring?", ctx:"The backend needs logs for debugging and monitoring for health. Options: console.log only (simplest), structured JSON logs (searchable), or full observability (Prometheus/Grafana). Logging is essential for debugging; monitoring catches issues early.", o:[
+      {l:"Console.log only", d:"Just print to console. Simplest, hard to search."},
+      {l:"Structured JSON logs", d:"JSON-formatted logs. Searchable, parseable, more output."},
+      {l:"Full observability (Prometheus/Grafana)", d:"Metrics + dashboards. Most thorough, heavy setup."},
+      {l:"File-based logs", d:"Write logs to files. Persistent, simple."}
+    ], suggest:["Structured JSON logs"], ref:{label:"DEP07", url:"apps/dev/backend.md"}},
+    {q:"How should the backend handle backups?", ctx:"Data (SQLite DB, JSON files) needs backups. Options: manual (Marc runs script), automated (cron job), or cloud sync (auto-backup to S3/GCS). Backups protect against data loss.", o:[
+      {l:"Manual (script)", d:"Marc runs backup script periodically. Simple, depends on discipline."},
+      {l:"Automated (cron)", d:"Scheduled backups via cron. Reliable, more setup."},
+      {l:"Cloud sync (S3/GCS)", d:"Auto-backup to cloud storage. Offsite, requires cloud account."},
+      {l:"None", d:"No backups. Simplest, risky."}
+    ], suggest:["Automated (cron)"], ref:{label:"DEP08", url:"apps/dev/backend.md"}},
+    {q:"How should the backend handle deployment updates?", ctx:"When Marc pushes new code, how does it get deployed? Options: manual (Marc pulls + restarts), CI/CD (GitHub Actions auto-deploy), or Docker (containerized, reproducible). CI/CD is automated but needs setup; Docker is portable but heavier.", o:[
+      {l:"Manual (pull + restart)", d:"Marc pulls code and restarts the server. Simplest, manual."},
+      {l:"CI/CD (GitHub Actions)", d:"Auto-deploy on push. Automated, needs setup."},
+      {l:"Docker", d:"Containerized deployment. Reproducible, heavier."},
+      {l:"PM2 + manual", d:"Use PM2 process manager with manual deploys. Simple, supervised."}
+    ], suggest:["PM2 + manual"], ref:{label:"DEP09", url:"apps/dev/backend.md"}},
+    {q:"What should the backend's initial scope be?", ctx:"The backend could start minimal (just routing.json + metadata) or full-featured (auth + ratings + cross-links + cubes). Starting small is faster but less useful; starting big is slower but more complete.", o:[
+      {l:"Minimal (routing.json + metadata)", d:"Just serve app metadata and routing. Fast to ship, limited."},
+      {l:"Medium (+ auth + profiles)", d:"Add user auth and profiles. More useful, more work."},
+      {l:"Full (+ ratings + cross-links + cubes)", d:"Complete backend. Most useful, most work."},
+      {l:"Incremental", d:"Start minimal, add features one by one. Balanced, flexible."}
+    ], suggest:["Minimal (routing.json + metadata)"], ref:{label:"DEP10", url:"apps/dev/backend.md"}},
+  ]},
+
+  {sec:"M · Trusty Options Overlap", items:[
+    {q:"Should Reciprocity be removed from SIGNALS?", ctx:"SIGNALS > Reciprocity overlaps directly with CONDITIONS > Reciprocity. Both cover the same concept of 'what's given back'. Removing it from SIGNALS reduces redundancy. SIGNALS currently has 6 items; CONDITIONS has 7 categories.", o:[
+      {l:"Remove from SIGNALS", d:"Duplicative with CONDITIONS > Reciprocity. Keep it only in CONDITIONS."},
+      {l:"Keep in both", d:"Some users may see it in SIGNALS but not CONDITIONS. Redundancy aids discovery."},
+      {l:"Merge into another SIGNAL", d:"Combine with Documentation/formality or Transparency/visibility."}
+    ], suggest:["Remove from SIGNALS"], ref:{label:"TRU01", url:"apps/trusty/trusty.html"}},
+    {q:"Should Transparency/visibility be removed from SIGNALS?", ctx:"SIGNALS > Transparency/visibility overlaps directly with CONDITIONS > Transparency. Both cover visibility, logs, and check-ins. Removing it from SIGNALS reduces redundancy.", o:[
+      {l:"Remove from SIGNALS", d:"Duplicative with CONDITIONS > Transparency. Keep it only in CONDITIONS."},
+      {l:"Keep in both", d:"Some users may see it in SIGNALS but not CONDITIONS. Redundancy aids discovery."},
+      {l:"Merge into another SIGNAL", d:"Combine with Documentation/formality or Reciprocity."}
+    ], suggest:["Remove from SIGNALS"], ref:{label:"TRU02", url:"apps/trusty/trusty.html"}},
+    {q:"Should any other SIGNALS be removed?", ctx:"SIGNALS currently has: Past good track record, References/witnesses, Transparency/visibility, Reciprocity, Documentation/formality, Passing small tests. After removing Reciprocity and Transparency, 4 remain. Are any others redundant?", o:[
+      {l:"Keep remaining 4", d:"Past good track record, References/witnesses, Documentation/formality, Passing small tests are all distinct."},
+      {l:"Remove Documentation/formality", d:"Overlaps with CONDITIONS > Care & handling (documentation, logs)."},
+      {l:"Remove Passing small tests", d:"Overlaps with CONDITIONS > Duration & timing (testing periods)."},
+      {l:"Remove Past good track record", d:"Overlaps with PEOPLE > Heart > Loyalty (track record)."}
+    ], suggest:["Keep remaining 4"], ref:{label:"TRU03", url:"apps/trusty/trusty.html"}},
+    {q:"Add link to maty for 'See I'm not okay before I say it'?", ctx:"PEOPLE > Heart > Presence item: 'See I'm not okay before I say it' (line 3822). This is about emotional attunement in close relationships — similar to maty's focus on couple agreement and emotional clarity.", o:[
+      {l:"Add link to maty", d:"Emotional attunement is core to couple trust. Link helps users discover maty."},
+      {l:"Don't add link", d:"Keep it generic — not all relationships are couples."},
+      {l:"Add link to different app", d:"Specify which app in 'Your reply'."}
+    ], suggest:["Add link to maty"], ref:{label:"TRU04", url:"apps/trusty/trusty.html"}},
+    {q:"Add link to maty for 'Speak well of me when I'm not in the room'?", ctx:"PEOPLE > Heart > Loyalty item: 'Speak well of me when I'm not in the room' (line 3827). This is about loyalty and reputation — core to couple trust in maty.", o:[
+      {l:"Add link to maty", d:"Loyalty and reputation are central to couple trust. Link helps users discover maty."},
+      {l:"Don't add link", d:"Keep it generic — loyalty applies to all relationships."},
+      {l:"Add link to different app", d:"Specify which app in 'Your reply'."}
+    ], suggest:["Add link to maty"], ref:{label:"TRU05", url:"apps/trusty/trusty.html"}},
+    {q:"Add link to evily for 'Respect a no / a limit'?", ctx:"PEOPLE > Safety > Limits & consent item: 'Respect a \"no\" / a limit (knock, ask, personal space)' (line 3841). This is about hard limits and consent — core to evily's focus on worst-case and safe-words.", o:[
+      {l:"Add link to evily", d:"Hard limits and consent are central to evily. Link helps users discover evily."},
+      {l:"Don't add link", d:"Keep it generic — limits apply to all relationships."},
+      {l:"Add link to different app", d:"Specify which app in 'Your reply'."}
+    ], suggest:["Add link to evily"], ref:{label:"TRU06", url:"apps/trusty/trusty.html"}},
+    {q:"Add link to evily for 'Keep a secret'?", ctx:"PEOPLE > Privacy & Words > Secrets item: 'Keep a secret' (line 3858). This is about privacy and confidentiality — core to evily's focus on private, worst-case scenarios.", o:[
+      {l:"Add link to evily", d:"Secrets and privacy are central to evily. Link helps users discover evily."},
+      {l:"Don't add link", d:"Keep it generic — secrets apply to all relationships."},
+      {l:"Add link to different app", d:"Specify which app in 'Your reply'."}
+    ], suggest:["Add link to evily"], ref:{label:"TRU07", url:"apps/trusty/trusty.html"}},
+    {q:"Add link to myfamily for 'Let a bond end kindly'?", ctx:"PEOPLE > Care > Staying power item: 'Let a bond end kindly when it's run its course' (line 3900). This is about relationship endings and family bonds — core to myfamily's focus on family relationships.", o:[
+      {l:"Add link to myfamily", d:"Bond endings and family relationships are central to myfamily. Link helps users discover myfamily."},
+      {l:"Don't add link", d:"Keep it generic — bond endings apply to all relationships."},
+      {l:"Add link to different app", d:"Specify which app in 'Your reply'."}
+    ], suggest:["Add link to myfamily"], ref:{label:"TRU08", url:"apps/trusty/trusty.html"}},
+    {q:"Are there other PEOPLE items that need app links?", ctx:"Currently 7 PEOPLE items have app links: evily (2), maty (1), parenty (1), myfamily (2), dealy (1). Are there other items that should link to related apps?", o:[
+      {l:"No other links needed", d:"Current app links are sufficient."},
+      {l:"Add more links", d:"Specify which items and apps in 'Your reply'."}
+    ], suggest:["No other links needed"], ref:{label:"TRU09", url:"apps/trusty/trusty.html"}},
+    {q:"Are there other overlaps I missed?", ctx:"I analyzed SCOPES vs PEOPLE, SIGNALS vs CONDITIONS, and SIGNALS vs PEOPLE. Are there other overlaps between these arrays that need attention?", o:[
+      {l:"No other overlaps", d:"Current analysis is complete."},
+      {l:"Yes, other overlaps", d:"Specify which overlaps in 'Your reply'."}
+    ], suggest:["No other overlaps"], ref:{label:"TRU10", url:"apps/trusty/trusty.html"}},
+  ]},
+];
+
+const NOTES = [
+  "<b>Versioning:</b> Flove[FeatureName]YY-M format (contract.md §9)",
+  "<b>AAA:</b> WCAG AAA for docs (not AA)",
+  "<b>Changelog button:</b> In title/logo click, NOT content menus; excluded from main/apps-intro/apps-graph/launchers",
+  "<b>APK version:</b> Aligns with milestones, not every content change",
+  "<b>Working directory:</b> Always ~/Documents/flove (CLAUDE.md rule)",
+  "<b>Puntero format:</b> <!-- ↗ pendings:#ID --> in source docs",
+  "<b>ephemerall:</b> Persistence standard, moved to apps/dev/standards/ephemerall/",
+];
+
+const LS = 'flove-decisions-2026-v1';
+
+const INTENTS = {
+  implement: { label:"Implement all", prompt:"Turn my selections into an implementation plan: which pending items to resolve, in what order, with what code changes. Prioritize by dependency." },
+  conflicts: { label:"Find conflicts", prompt:"Analyse my selections for INTERNAL CONTRAST and CONFLICTS: where do my choices tension or contradict each other, where are they coherent and mutually reinforcing, and what trade-offs do the conflicts force? Group findings into (1) hard conflicts, (2) soft tensions, (3) coherent clusters, and end with the 2–3 decisions I'd revisit first." },
+  summarize: { label:"Summarize", prompt:"Summarise my selections into a concise design brief: the decisions made, grouped by theme, with the rationale implied by each pick." },
+  plan:      { label:"Draft a plan",  prompt:"Turn my selections into a step-by-step implementation plan, ordered by dependency, flagging anything still unspecified." },
+};
+const DEFAULT_INTENT = 'implement';
+
+const form = document.getElementById('form');
+let store = {};
+try{ store = JSON.parse(localStorage.getItem(LS) || '{}'); }catch(e){ store = {}; }
+const saveStore = () => localStorage.setItem(LS, JSON.stringify(store));
+const getIntent = () => (store.__intent && INTENTS[store.__intent]) ? store.__intent : DEFAULT_INTENT;
+let qIndex = 0;
+const sections = [];
+
+function buildSetup(){
+  const sec=document.createElement('div'); sec.className='sec setup';
+  const head=document.createElement('button'); head.type='button'; head.className='sec-h';
+  head.innerHTML=`<span class="chev">›</span><span>Setup · prompt &amp; context</span>`;
+  const body=document.createElement('div'); body.className='sec-body';
+  const intents=Object.entries(INTENTS).map(([k,v])=>
+    `<label class="intent"><input type="radio" name="__intent" value="${k}"${getIntent()===k?' checked':''}> ${esc(v.label)}</label>`).join('');
+  const ptrs=CONTEXT.length
+    ? `<div class="ptrs">`+CONTEXT.map(c=>`<a href="${c.url}" target="_blank" rel="noopener">↗ ${esc(c.label)}</a>`).join('')+`</div>`
+    : `<div class="ptrs"><span class="none">— no context links —</span></div>`;
+  body.innerHTML =
+    `<div class="field"><div class="field-l">what should I do with your answers?</div><div class="intents">${intents}</div></div>`+
+    `<div class="field"><div class="field-l">extra instructions (optional)</div><input type="text" id="f-extra" placeholder="e.g. focus on the data model" value="${esc(store.__extra||'')}"></div>`+
+    `<div class="field"><div class="field-l">context (pointers)</div>${ptrs}</div>`+
+    `<div class="field"><div class="field-l">attach more context (optional)</div><textarea id="f-addon" rows="2" placeholder="paste a link or note to ride along in the copied prompt">${esc(store.__addon||'')}</textarea></div>`;
+  head.addEventListener('click', ()=>sec.classList.toggle('open'));
+  sec.append(head, body); form.appendChild(sec);
+  body.addEventListener('change', e=>{ if(e.target.name==='__intent'){ store.__intent=e.target.value; saveStore(); } });
+  body.querySelector('#f-extra').addEventListener('input', e=>{ store.__extra=e.target.value; saveStore(); });
+  body.querySelector('#f-addon').addEventListener('input', e=>{ store.__addon=e.target.value; saveStore(); });
+}
+buildSetup();
+
+DATA.forEach(group=>{
+  const sec = document.createElement('div'); sec.className='sec';
+  const head = document.createElement('button'); head.type='button'; head.className='sec-h';
+  const chev = document.createElement('span'); chev.className='chev'; chev.textContent='›';
+  const title = document.createElement('span'); title.textContent = group.sec;
+  const pill = document.createElement('span'); pill.className='pill';
+  head.append(chev, title, pill);
+  const bodyEl = document.createElement('div'); bodyEl.className='sec-body';
+  const names = [];
+
+  group.items.forEach(item=>{
+    qIndex++;
+    const name = 'q'+qIndex; names.push(name);
+    const saved = store[name] || [];
+    const customSaved = store[name+'_custom'] || '';
+    const isSkipped = store[name+'_skip'] || false;
+    const card = document.createElement('div'); card.className='q' + (isSkipped ? ' skipped' : '');
+    const ref = item.ref ? ` <a class="ref" href="${item.ref.url}" target="_blank" rel="noopener" title="context pointer">↗ ${esc(item.ref.label)}</a>` : '';
+    const ctx = item.ctx ? `<div class="ctx">${item.ctx}</div>` : '';
+    card.innerHTML = `<div class="qhead"><div class="qn">Q${qIndex}</div><label class="skip"><input type="checkbox" name="${name}_skip"${isSkipped?' checked':''}> don't keep</label></div><h3>${esc(item.q)}${ref}</h3>${ctx}`;
+    const opts = document.createElement('div'); opts.className='opts';
+    item.o.forEach(opt=>{
+      const wrap = document.createElement('div'); wrap.className='opt';
+      if((item.suggest||[]).includes(opt.l)) wrap.classList.add('sugg');
+      const row = document.createElement('label'); row.className='row';
+      const inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.name = name; inp.value = opt.l;
+      if(saved.includes(opt.l)){ inp.checked = true; wrap.classList.add('chosen'); }
+      inp.addEventListener('change', ()=>{ persist(name); syncChosen(opts); updateCount(); });
+      const lab = document.createElement('span'); lab.className='lab'; lab.textContent = opt.l;
+      const badge = document.createElement('span'); badge.className='sugg-badge'; badge.textContent='★ suggested';
+      const ochev = document.createElement('span'); ochev.className='chev'; ochev.textContent='›';
+      row.append(inp, lab, badge, ochev);
+      const desc = document.createElement('div'); desc.className='desc'; desc.textContent = opt.d;
+      if(opt.info){
+        const info = document.createElement('div'); info.className='info'; info.innerHTML = opt.info;
+        row.addEventListener('click', (e)=>{
+          if(e.target.classList.contains('chev')){
+            e.preventDefault();
+            wrap.classList.toggle('open');
+          }
+        });
+        wrap.append(row, desc, info);
+      } else {
+        row.addEventListener('click', (e)=>{
+          if(e.target.classList.contains('chev')){
+            e.preventDefault();
+            wrap.classList.toggle('open');
+          }
+        });
+        wrap.append(row, desc);
+      }
+      opts.appendChild(wrap);
+    });
+    const customWrap = document.createElement('div'); customWrap.className='custom-reply';
+    const customInput = document.createElement('input');
+    customInput.type = 'text'; customInput.placeholder = 'Your reply…';
+    customInput.value = customSaved;
+    if(customSaved) customWrap.classList.add('has-value');
+    customInput.addEventListener('input', ()=>{
+      store[name+'_custom'] = customInput.value.trim();
+      customWrap.classList.toggle('has-value', !!customInput.value.trim());
+      saveStore();
+      updateCount();
+    });
+    customWrap.appendChild(customInput);
+    opts.appendChild(customWrap);
+    card.appendChild(opts); bodyEl.appendChild(card);
+
+    const skipCb = card.querySelector(`input[name="${name}_skip"]`);
+    skipCb.addEventListener('change', ()=>{
+      store[name+'_skip'] = skipCb.checked;
+      card.classList.toggle('skipped', skipCb.checked);
+      saveStore();
+      updateCount();
+    });
+  });
+
+  head.addEventListener('click', ()=> sec.classList.toggle('open'));
+  sec.append(head, bodyEl);
+  form.appendChild(sec);
+  sections.push({sec, pill, names});
+});
+
+function persist(name){
+  store[name] = [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(i=>i.value);
+  if(!store[name].length) delete store[name];
+  saveStore();
+}
+function syncChosen(opts){
+  opts.querySelectorAll('.opt').forEach(o=> o.classList.toggle('chosen', o.querySelector('input').checked));
+}
+function updateCount(){
+  const answered = Object.keys(store).filter(k=>/^q\d+$/.test(k)).length;
+  const skipped = Object.keys(store).filter(k=>/^q\d+_skip$/.test(k)).length;
+  const kept = qIndex - skipped;
+  document.getElementById('count').textContent = answered + ' / ' + kept + ' answered' + (skipped ? ' · ' + skipped + ' skipped' : '');
+  sections.forEach(s=>{
+    const done = s.names.filter(n=>store[n]&&store[n].length).length;
+    const secSkipped = s.names.filter(n=>store[n+'_skip']).length;
+    s.pill.textContent = done + '/' + (s.names.length - secSkipped);
+    s.pill.classList.toggle('done', done===(s.names.length - secSkipped));
+  });
+}
+
+const revealBtn = document.getElementById('reveal');
+revealBtn.addEventListener('click', ()=>{
+  const on = document.body.classList.toggle('sugg');
+  revealBtn.setAttribute('aria-pressed', on ? 'true':'false');
+  if(on) sections.forEach(s=>s.sec.classList.add('open'));
+  form.querySelectorAll('.opt.sugg').forEach(o=> o.classList.toggle('open', on));
+  toast(on ? "suggested picks shown (★) — your picks are untouched" : "suggested overlay off");
+});
+const expandBtn = document.getElementById('expand');
+expandBtn.addEventListener('click', ()=>{
+  const anyClosed = sections.some(s=> !s.sec.classList.contains('open'));
+  sections.forEach(s=> s.sec.classList.toggle('open', anyClosed));
+  expandBtn.textContent = anyClosed ? '⤡ collapse all' : '⤢ expand all';
+});
+document.getElementById('clear').addEventListener('click', ()=>{
+  store = {}; saveStore();
+  form.querySelectorAll('input[type=radio],input[type=checkbox]').forEach(i=>{ if(i.name!=='__intent') i.checked=false; });
+  form.querySelectorAll('.opt').forEach(o=>o.classList.remove('chosen'));
+  form.querySelectorAll('.q').forEach(q=>q.classList.remove('skipped'));
+  const ex=document.getElementById('f-extra'), ad=document.getElementById('f-addon');
+  if(ex) ex.value=''; if(ad) ad.value='';
+  const def=form.querySelector(`input[name="__intent"][value="${DEFAULT_INTENT}"]`); if(def) def.checked=true;
+  updateCount(); toast('your selections cleared');
+});
+
+function gather(){
+  const out=[]; let i=0;
+  DATA.forEach(g=>g.items.forEach(item=>{
+    i++;
+    const isSkipped = store['q'+i+'_skip'] || false;
+    const picks=[...form.querySelectorAll(`input[name="q${i}"]:checked`)].map(x=>x.value);
+    out.push({sec:g.sec, q:item.q, picks, suggest:item.suggest||[], ref:item.ref||null, skipped:isSkipped}));
+  }));
+  return out;
+}
+function buildPrompt(){
+  const intent = INTENTS[getIntent()];
+  const extra = (store.__extra||'').trim();
+  const addon = (store.__addon||'').trim();
+  const sel = gather().filter(r=>!r.skipped).map((r,idx)=>{
+    const picks = r.picks.length? r.picks.join(' / ') : '(unanswered)';
+    const ref = r.ref ? `  [context: ${r.ref.label} → ${r.ref.url}]` : '';
+    return `Q${idx+1} [${r.sec}] ${r.q}${ref}\n   → ${picks}`;
+  }).join('\n');
+  const skippedCount = gather().filter(r=>r.skipped).length;
+  let p = intent.prompt + (extra ? `\n\nAlso: ${extra}` : '');
+  if(CONTEXT.length) p += `\n\nCONTEXT (pointers):\n` + CONTEXT.map(c=>`- ${c.label}: ${c.url}`).join('\n');
+  if(addon) p += `\n\nADDITIONAL CONTEXT (from filler):\n${addon}`;
+  p += `\n\nSELECTIONS:\n${sel}`;
+  if(skippedCount) p += `\n\n(${skippedCount} question${skippedCount>1?'s':''} skipped — marked "don't keep")`;
+  return p;
+}
+
+document.getElementById('save').addEventListener('click', ()=>{
+  const all = gather();
+  const kept = all.filter(r=>!r.skipped);
+  const rows = kept.map((r,idx)=>{
+    const picks = r.picks.length? r.picks.join(' · ') : '<em style="color:#5a5e72">— unanswered —</em>';
+    const sugg = r.suggest.join(' · ');
+    const ref = r.ref ? `<div class="fref">↗ ${esc(r.ref.label)}: ${esc(r.ref.url)}</div>` : '';
+    return `<div class="fq"><div class="fqn">Q${idx+1} · ${esc(r.sec)}</div><div class="fqt">${esc(r.q)}</div>`+
+           `<div class="fpa">you: ${picks}</div>`+ (sugg?`<div class="fma">★ suggested: ${esc(sugg)}</div>`:'') + ref + `</div>`;
+  }).join('');
+  const ctx = CONTEXT.length ? `<div class="notes"><h3>Context (pointers)</h3><ul>${CONTEXT.map(c=>`<li><a style="color:#c9c6ff" href="${esc(c.url)}">${esc(c.label)}</a></li>`).join('')}</ul></div>` : '';
+  const notes = NOTES.map(n=>`<li>${n}</li>`).join('');
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><title>frozen answers</title>
+<style>body{font-family:ui-monospace,monospace;background:#0b0b0f;color:#e9eaf2;max-width:820px;margin:0 auto;padding:2rem 1.2rem;line-height:1.6}
+h1{font-size:1.6rem}.fq{border:1px solid #1e2133;border-radius:12px;padding:.9rem 1rem;margin:.7rem 0;background:#11131a}
+.fqn{font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:#8d89ff}.fqt{font-weight:700;margin:.25rem 0 .5rem}
+.fpa{color:#00f7a7}.fma{color:#a3a7b4;font-size:.82rem;margin-top:.2rem}.fref{color:#00f7a7;font-size:.74rem;margin-top:.2rem}
+.notes{border-left:3px solid #00f7a7;padding:1rem 1.1rem;background:#13162a;border-radius:10px;margin-top:1.4rem}
+.notes li{margin:.4rem 0;color:#a3a7b4}.notes b{color:#c9c6ff;font-weight:400}small{color:#5a5e72}</style></head>
+<body><h1>✺ frozen answers</h1><small>intent: ${esc(INTENTS[getIntent()].label)} · snapshot · not editable</small>${rows}${ctx}
+${notes?`<div class="notes"><h3>Stated decisions</h3><ul>${notes}</ul></div>`:''}</body></html>`;
+  download('flove-decisions-frozen.html', doc);
+  toast('saved frozen HTML ✓');
+});
+
+document.getElementById('copy').addEventListener('click', async ()=>{
+  const prompt = buildPrompt();
+  try{ await navigator.clipboard.writeText(prompt); toast('prompt copied — paste it back to me'); }
+  catch(e){ fallbackCopy(prompt); }
+});
+
+document.getElementById('history').addEventListener('click', ()=>{
+  const all = gather();
+  const kept = all.filter(r=>!r.skipped);
+  const now = new Date();
+  const stamp = now.toISOString().slice(0,16).replace('T',' ');
+  const rows = kept.map((r,idx)=>{
+    const picks = r.picks.length? r.picks.join(' · ') : '— unanswered —';
+    const sugg = r.suggest.join(' · ');
+    return `<tr><td>Q${idx+1}</td><td>${esc(r.sec)}</td><td>${esc(r.q)}</td><td>${esc(picks)}</td><td>${esc(sugg)}</td></tr>`;
+  }).join('');
+  const keptHtml = `<h3>${stamp} · ${esc(INTENTS[getIntent()].label)} · ${kept.length} questions</h3>
+<table><thead><tr><th>#</th><th>Section</th><th>Question</th><th>Answer</th><th>Suggested</th></tr></thead>
+<tbody>${rows}</tbody></table>`;
+  let history = '';
+  try{ history = localStorage.getItem('flove-history') || ''; }catch(e){}
+  history = keptHtml + '\n<!-- ··· -->\n' + history;
+  localStorage.setItem('flove-history', history);
+  toast('saved to history — check making-of.html');
+});
+
+function buildMakingOf(){
+  let history = '';
+  try{ history = localStorage.getItem('flove-history') || ''; }catch(e){}
+  if(!history){ toast('no history yet'); return; }
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><title>flove decisions · history</title>
+<style>body{font-family:ui-monospace,monospace;background:#0b0b0f;color:#e9eaf2;max-width:900px;margin:0 auto;padding:2rem 1.2rem;line-height:1.6}
+h1{font-size:1.6rem}h3{font-size:.9rem;color:#8d89ff;margin:2rem 0 .5rem;border-bottom:1px solid #1e2133;padding-bottom:.4rem}
+table{width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:1.5rem}
+th{text-align:left;padding:.4rem .6rem;border-bottom:1px solid #1e2133;color:#8d89ff;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase}
+td{padding:.4rem .6rem;border-bottom:1px solid rgba(30,33,51,.5);vertical-align:top}
+tr:hover td{background:rgba(141,137,255,.06)}
+small{color:#5a5e72}</style></head>
+<body><h1>✺ flove decisions · history</h1><small>auto-generated from interview localStorage</small>
+${history}</body></html>`;
+  download('making-of.html', doc);
+  toast('making-of.html downloaded ✓');
+}
+
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function download(name, text){
+  const blob = new Blob([text], {type:'text/html'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+  ta.select(); document.execCommand('copy'); ta.remove(); toast('prompt copied');
+}
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+updateCount();
+</script>
+</body>
+</html>

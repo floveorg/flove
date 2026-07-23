@@ -36,7 +36,7 @@ icon into `images/` and README/LICENSE into `docs/`.
 - No change to the hosting/publish pipeline (still Gitea → `update-web` → flove.org).
 - The discreet in-app "Install flove" button (`beforeinstallprompt`, §13.6 onboarding
   style) is **deferred** to a follow-up; this pass relies on the browser's own
-  install affordance.
+  install affordance. <!-- ↗ pendings:#PWA01 -->
 - The Linux `.desktop` + `start-flove.sh` local-server fallback is **kept as-is**
   (Firefox desktop can't install PWAs); only its icon path is updated.
 

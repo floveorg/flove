@@ -107,7 +107,7 @@ the living reference/mock; the real apps adopt only what's validated.
 
 - [ ] **B1 · Decide the target shape (deferred to last)** — does the real access point become a
   tabbed app like miniappy, the section-stacked `nety.html` of spec §8, or a hybrid (public
-  section landing + tabbed member app)? Resolve before porting.
+  section landing + tabbed member app)? Resolve before porting. <!-- ↗ pendings:#NYB01 -->
 - [ ] **B2 · Port Access/identity/stars** — registration, four-path entry, identity ladder,
   stars/stage board → real `nety.html` (CSS-pure + one inline script per spec §9).
 - [ ] **B3 · Port MyNet/circles/permissions + invite web** into the real flow.

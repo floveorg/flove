@@ -14,6 +14,8 @@ interactive, navigable version (tiers × standards) is [`flove-tiers-matrix.html
 | [`frontend.md`](frontend.md) | the **opt-in catalogue** (§13) + regions · elements · conventions | long · grows |
 | [`adoption.md`](adoption.md) | the **per-app checklist** (§14) — who adopted what | a living table |
 
+**Implementation plans & cross-plan conflicts** live in [`plans/`](../plans/). Check [`plans/conflicts.md`](../plans/conflicts.md) before starting work.
+
 ## The catalogue at a glance (§13 → `frontend.md`)
 
 Standards with their own deep chapter link to `frontend/…`; the rest live inline in `frontend.md`.
@@ -65,3 +67,21 @@ folder is that home's source of truth.
 - **Publish** — commit + push (scoped) to Gitea `marc/flove`; the live site
   updates via a separate `update-web`. The Android TWA app updates via `update-apk`
   (rebuild + GitHub Release); content updates automatically (web wrapper).
+
+## Development tools
+
+### Interview pattern (talk2web)
+
+Design-question interviews follow a standardized HTML form pattern (reference:
+`flove-decisions-interview.html`). Key conventions:
+
+- **"don't keep" checkbox** per question — excludes the question from the copied
+  prompt and frozen HTML. State stored as `qN_skip` in localStorage.
+- **History button** — appends kept answers (timestamped) to `localStorage`.
+  A `buildMakingOf()` function generates a standalone `making-of.html` from this
+  history, which feeds into `apps/dev/making-of/making-of.html`.
+- **localStorage keys**: `qN` (picks), `qN_skip` (boolean), `__intent`,
+  `__extra`, `__addon`, `flove-history`.
+- **Bar buttons**: ★ suggested, expand all, clear, save frozen HTML, copy prompt,
+  save to history.
+- Full spec in `~/.claude/skills/talk2web/SKILL.md` §Standardized Interview Pattern.

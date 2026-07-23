@@ -100,6 +100,15 @@ stepper, never as their own step. So a cell in the grid is *(tier ×
 variant)* — e.g. `mini × -full` = `minifull`, `advanced × -one` =
 `advanced-one`.
 
+**A third dimension — the distro axis.** Every tier (nano→mega) is available
+in every distro (`Solo · SoloRich · Central · CentralRich · Decentral · DecentralRich`).
+The tier is the feature complexity; the distro is the runtime/backend
+organization. They are orthogonal: a mini app can ship in Solo (self-contained)
+or Central (with SQLite), and a super app can ship in Solo as well — it
+just inlines more features without backend. The distro column in
+`frontend.md §13.11` names the 6 distros; this paragraph clarifies they do
+not constrain the tier ladder.
+
 #### The `-raw` mode — per-axis spec (polished 2026-07-18)
 
 **`-raw` = closest to the raw material: both *stripped* and *unstyled*.**

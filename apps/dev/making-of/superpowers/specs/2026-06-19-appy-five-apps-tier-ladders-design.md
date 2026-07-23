@@ -124,5 +124,7 @@ stage ceiling (CSS/`:has()` + the small inline script pattern, per the flove tie
 
 - Exact per-nav **quota numbers** for nety hardware (deferred, spec §13).
 - Whether **social** is a standalone app or profily-integrated MyNet (decide at Phase C start).
+  <!-- ↗ pendings:#AF01 -->
 - **vizy** XR/VR depth (the old `apps/flovy/vr` was removed; recover from git if revived).
+  <!-- ↗ pendings:#AF02 -->
 - Backend wiring for any of this (Phase D; flovenet/oasis).

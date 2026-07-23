@@ -96,6 +96,8 @@ Three strands; the **JS distro (F0–F1)** is the live focus, the **`nety`
 corporate backend (F2–F5)** follows, and the **external-platform
 integration demo** (0asis et al.) runs in parallel, deferred.
 
+**Implementation plans & cross-plan conflicts** live in [`plans/index.md`](plans/index.md). Check [`plans/conflicts.md`](plans/conflicts.md) before starting work.
+
 | Phase | Track | Deliverable |
 |-------|-------|-------------|
 | **F0** | JS distro | **`mini` + `minifull` (local)** — the `mini` tier + its `-full` variant of every app, persisted locally; added items survive reload, summary = source of truth + **Update**, export "what you see"; `miniappy`/`minifull` aggregate *your own* summaries offline *(in progress)* |

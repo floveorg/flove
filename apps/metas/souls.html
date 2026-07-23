@@ -1615,6 +1615,23 @@
   /* "Integumentary" is the longest system label — shrink it 30% so it fits */
   .pick-btn[data-value="integumentary"] .pick-label{ font-size: .595rem; }
 
+  /* cross-app verb suggestions (from pracsys profile) */
+  .pick-suggest{
+    grid-column:1/-1;
+    display:flex; flex-wrap:wrap; gap:.25rem;
+    justify-content:center;
+    margin-top:-.25rem; margin-bottom:.2rem;
+  }
+  .pick-suggest:empty{ display:none }
+  .pick-suggest .sv{
+    font:500 .55rem/1 system-ui,sans-serif;
+    color:var(--mut); background:var(--panel);
+    padding:.15rem .4rem; border-radius:999px;
+    border:1px solid transparent;
+    cursor:default; transition:background .15s, color .15s, border-color .15s;
+  }
+  .pick-suggest .sv:hover{ background:var(--app-accent); color:#fff; border-color:var(--app-accent); }
+
   /* two-row picker layout (e.g. stage 3 bio) */
   .pick-grid.two-rows{
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -3462,6 +3479,27 @@
   });
 
   // ── picker render helper ────────────────────────────────
+  // cross-app verb suggestions (populated after flove-appy.js loads — see bottom of file)
+  const CROSS_SUGGESTIONS = {};
+  function renderCrossSuggestions(containerSel, items){
+    const grid = $(containerSel);
+    if (!grid) return;
+    grid.parentElement.querySelectorAll('.pick-suggest').forEach(el => el.remove());
+    const sg = document.createElement('div');
+    sg.className = 'pick-suggest';
+    items.forEach(it => {
+      const vs = CROSS_SUGGESTIONS[it.id];
+      if (!vs || !vs.length) return;
+      vs.slice(0, 3).forEach(v => {
+        const s = document.createElement('span');
+        s.className = 'sv'; s.textContent = v;
+        s.title = it.label + ': ' + v;
+        sg.appendChild(s);
+      });
+    });
+    grid.parentElement.insertBefore(sg, grid.nextSibling);
+  }
+
   function renderPicker(containerSel, items, getValue, setValue, onPick){
     const el = $(containerSel);
     if (!el) return () => {};
@@ -3513,6 +3551,8 @@
   const syncS3BioA = renderPicker('#s3BioPick',     BIO_A, s3BioGetter, s3BioSetter);
   const syncS3BioB = renderPicker('#s3BioPickMore', BIO_B, s3BioGetter, s3BioSetter);
   refreshS3Channel = () => { syncS3BioA(); syncS3BioB(); };
+  renderCrossSuggestions('#s3BioPick', BIO_A);
+  renderCrossSuggestions('#s3BioPickMore', BIO_B);
 
   // lock s3 bio systems — nervous (its senses live in stage 2) shows a reason;
   // reproductive is locked silently (no info). Immune is now selectable.
@@ -3594,6 +3634,7 @@
     syncS4Bio = renderPicker('#s4BioPick', BIO_SYSTEMS,
                           () => state.s4Bio,
                           v => state.s4Bio = v);
+    renderCrossSuggestions('#s4BioPick', BIO_SYSTEMS);
     applyS4BioLocks();
   };
   // mark prev-tier highlight + dim/lock for systems already passed
@@ -6277,5 +6318,22 @@
 </script>
 <!-- §13.15 · Publish to Appy — the app→profile bridge (auto-wires [data-flove-publish]) -->
 <script src="../appy/flove-appy.js"></script>
+<script>
+(function(){
+  try {
+    var profile = window.floveAppy && window.floveAppy.played ? window.floveAppy.played() : [];
+    var pracsysRec = profile.find(function(r){ return r.app === 'PracSys'; });
+    if (pracsysRec && pracsysRec.summary && pracsysRec.summary.cross && pracsysRec.summary.cross.systems){
+      var systems = pracsysRec.summary.cross.systems;
+      Object.keys(systems).forEach(function(sysId){
+        if (systems[sysId] && systems[sysId].length) CROSS_SUGGESTIONS[sysId] = systems[sysId];
+      });
+      renderCrossSuggestions('#s3BioPick', BIO_A);
+      renderCrossSuggestions('#s3BioPickMore', BIO_B);
+      renderCrossSuggestions('#s4BioPick', BIO_SYSTEMS);
+    }
+  } catch(_){}
+})();
+</script>
 </body>
 </html>

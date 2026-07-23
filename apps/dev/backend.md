@@ -2,6 +2,7 @@
 
 > **Quick map:** for the concise, frontend-first picture see `overview.md`;
 > this file is the deep reference.
+> **Implementation plans & conflicts:** [`plans/index.md`](plans/index.md)
 
 > Living document.  Captures the project's **coordinate system**
 > (four-tree taxonomy locating any flove unit of work) and the
@@ -1363,18 +1364,27 @@ flowchart LR
 
 ---
 
-## 12 · Open questions (deferred)
+## 12 · Decisions resolved <!-- ↗ pendings:#BEQ01-#BEQ05, #DEP01-#DEP10 -->
 
-- Authoring flow for `routing.json` — community-editable wiki, or
-  curator-only?
-- AI module 42 fine-tuning workflow — full or LoRA?  Whose compute?
-- Identity masks (one user, multiple personae) — needed in F2 or F5?
-- Granular visibility per element — "public to my tribes only" — or
-  rely on 0asis defaults?
-- Cross-link semantics — typed (`responds_to`, `derived_from`) or
-  untyped?
+### Backend design questions
+- ✅ Authoring flow for `routing.json` → **Automated (AI)** <!-- ↗ pendings:#BEQ01 -->
+- ✅ AI module 42 fine-tuning → **Depends on athenea/wizy** <!-- ↗ pendings:#BEQ02 -->
+- ✅ Identity masks → **F2 (early)** <!-- ↗ pendings:#BEQ03 -->
+- ✅ Granular visibility → **Hybrid** (default from 0asis + per-element override) <!-- ↗ pendings:#BEQ04 -->
+- ✅ Cross-link semantics → **Typed** (`responds_to`, `derived_from`) <!-- ↗ pendings:#BEQ05 -->
+- ✅ Cubes → **No, flove.zip only** (one big bundle, simpler) <!-- ↗ pendings:#BEQ06 -->
 
-These will be revisited as F0 and F1 land.
+### Backend deployment
+- ✅ Hosting → **Hybrid** (local dev + cloud prod, GitHub) <!-- ↗ pendings:#DEP01 -->
+- ✅ Auth → **OAuth (GitHub/Google)** — "in this version" <!-- ↗ pendings:#DEP02 -->
+- ✅ Database → **JSON files** — "in this version" <!-- ↗ pendings:#DEP03 -->
+- ⏳ API → **pending** (L04) <!-- ↗ pendings:#DEP04 -->
+- ⏳ CORS → **pending** (L05) <!-- ↗ pendings:#DEP05 -->
+- ⏳ Rate limiting → **pending** (L06) <!-- ↗ pendings:#DEP06 -->
+- ✅ Logging → **Structured JSON logs** — "in this version" <!-- ↗ pendings:#DEP07 -->
+- ✅ Backups → **Automated (cron)** <!-- ↗ pendings:#DEP08 -->
+- ✅ Deployment → **CI/CD (GitHub Actions)** <!-- ↗ pendings:#DEP09 -->
+- ✅ Initial scope → **Minimal** (routing.json + metadata) <!-- ↗ pendings:#DEP10 -->
 
 ---
 

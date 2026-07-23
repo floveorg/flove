@@ -494,7 +494,9 @@ renderConditions();
 - **Full advanced topbar altering displays (blogyadvanced):** hidden inputs + `body:has()` for axis + 4 modifiers (Task 1), display CSS (Tasks 2, 4). ✅
 - **Open items deferred (not in scope here):** md open-Q3 (Conditions vs existing Protection fields — merge?) and open-Q4 (→ crumbly granular mode). Flagged, not built. ⚠️
 
-## Decisions left for the designer / Marc
+## Decisions left for the designer / Marc <!-- ↗ pendings:#TR01-#TR02 -->
 1. **Conditions overlap (md Q3):** Task 6 adds Conditions *alongside* the existing "Additional Protection" card. If they should merge, that's a follow-up.
+   <!-- ↗ pendings:#TR01 -->
 2. **`→ crumbly` granular mode (md Q4):** not wired — add later if wanted.
+   <!-- ↗ pendings:#TR02 -->
 3. **Exact motion/shadow/typography:** baselines given; frontend-designer mode owns the final aesthetics.

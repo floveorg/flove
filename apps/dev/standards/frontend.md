@@ -470,7 +470,7 @@ presented is three independent choices:
 | Axis | Question | Values |
 |------|----------|--------|
 | **tier** (§13.1) | *how many features?* | mini · basic · normal · advanced · super |
-| **distro** | *which qualities/runtime?* | CSS-pure → JS (`flove.js`) → backend (super) |
+| **distro** | *which runtime / backend?* | Solo · SoloRich · Central · CentralRich · Decentral (Nety) |
 | **surface** | *into which medium is it rendered?* | **hardware · 2D · 3D · AR · VR** |
 
 `surface` is the new axis: it names the **medium** the content is
@@ -478,6 +478,8 @@ rendered into, the way `tier` names the feature count and `distro`
 names the runtime qualities. The three compose — in principle any tier
 can target any surface — but **2D is the baseline** every tier already
 targets, and the richer surfaces grow up from `advanced`.
+
+**The distro axis.** Each distro offers all 5 tiers (mini→super); the backend depth varies, not the feature ceiling. Solo = self-contained per app, no external files. SoloRich = self-contained with enrichment loader (`flove-loader.js`) that tries external shared libs from `apps/appy/` (silent skip on fail); SoloRich persistence: libSQL via `@libsql/client` (wraps sql.js WASM + OPFS), fallback localStorage. Central = FastAPI + Turso (SQLite-compatible HTTP API, serverless on Railway, `flove.org/api/*` via GitHub Pages proxy), shared libs in `central/libs/`, full CRUD, web-first. Central apps lighter (no topbar, flove.js injects bottom nav). CentralRich = FastAPI + PostgreSQL/JSONB. Decentral (Nety) = P2P network layer, SQLite per peer. DecentralRich = Turso — embedded replicas per peer + cloud sync. Solo/SoloRich live on `main`; Central on `central/` branch (full fork); CentralRich and Decentral/DecentralRich deferred. No MongoDB — Turso for serverless SQLite, PostgreSQL for CentralRich.
 
 Do not confuse `surface` with the **Compass** (§13.4): the compass
 re-*lays-out* the **same** medium (2D canonical vs. random vs. compact);

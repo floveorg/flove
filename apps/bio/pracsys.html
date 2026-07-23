@@ -2505,6 +2505,20 @@
     });
     return rows;
   }
+  // ── cross-app data: verbs grouped by system id (for souls.html suggestions) ──
+  function extractCrossData(){
+    const cross = {};
+    Object.entries(state.placed).forEach(([slotId, sysId]) => {
+      const vs = state.verbs[slotId];
+      if (sysId && vs && vs.length) cross[sysId] = vs.slice();
+    });
+    Object.entries(state.subs).forEach(([id, rec]) => {
+      const sysId = rec.slotId ? state.placed[rec.slotId] : null;
+      const vs = state.subVerbs[id];
+      if (sysId && vs && vs.length) cross[sysId] = (cross[sysId] || []).concat(vs);
+    });
+    return cross;
+  }
   // ── the flove element (JSON / Copy-as-JSON / Publish payload) ──
   function buildElement(){
     return {
@@ -2512,6 +2526,7 @@
       placements: Object.fromEntries(Object.entries(state.placed).map(([k,v]) => [k, SYS[v].label])),
       reasons: state.reasons,
       verbs: state.verbs,
+      cross: { systems: extractCrossData() },
       subs: Object.fromEntries(Object.entries(state.subs).map(([id,rec]) => [id, {
         kind: rec.kind, target:(sysAt(rec.slotId)||{}).label || null,
         reasons:(state.subReasons[id]||[]).slice(), verbs:(state.subVerbs[id]||[]).slice()
